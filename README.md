@@ -19,11 +19,11 @@
 
 - 项目设置、功能内聚目录、2D 碰撞层命名
 - 输入映射与 `PlayerInput`（只产出 `move_vector` / `aim_vector` / `fire_held`）
-- 灰盒沙盒：地板、墙、玩家占位、相机简单跟随（无平滑、无偏移、无震动）
+- 灰盒沙盒：地板、墙、玩家占位
 - `DebugOverlay` 显示输入与 FPS
 - Autoload **0** 个
 
-Day 1 当时人物不移动，只验证输入可读。那是当时的验收，不是现在的行为。
+Day 1 当时人物不移动、相机是玩家身上的裸 `Camera2D`。那是当时的验收，不是现在的行为。
 
 ## Day 2（已完成）：加速度移动
 
@@ -57,15 +57,42 @@ move_vector
 - 朝向只转 `Visual`，跟 `aim_vector`；位移跟 `move_vector`。必须能 strafing
 - 撞墙靠 `move_and_slide` 沿墙滑，不写射线绕墙
 - `fire_held` 仍只显示，不生成子弹
-- 相机仍是 Day 1：无平滑、无鼠标偏移、无震动
 - Autoload 仍为 0
 
-按住 WASD，人物会移动；松开会滑行一小段再停。`DebugOverlay` 增补 `velocity` 与 `speed`。
+按住 WASD，人物会移动；松开会滑行一小段再停。`DebugOverlay` 有 `velocity` 与 `speed`。Day 2 不改手感参数来「带动镜头」。
+
+## Day 3（已完成）：独立相机 + 瞄准重量
+
+相机不再是 Player 的装饰子节点。`player.tscn` 里没有 `Camera2D`。`PlayerCamera` 与 `AimReticle` 作为 `CombatSandbox` 里和 Player **平级** 的节点。
+
+相机合同：
+
+```text
+look_target = player.global_position + aim_vector * look_ahead
+global_position = lerp(look_target, 1.0 - exp(-follow_smoothing * delta))
+```
+
+- 前探只用**归一化** `aim_vector * look_ahead`，不用鼠标离玩家的距离比例（避免跟 `get_global_mouse_position` 正反馈漂走）
+- 只用脚本指数平滑；`position_smoothing_enabled`、`drag_margin` 全关。禁止双重平滑
+- 不旋转相机，`zoom` 保持 `(1, 1)`
+- 世界准星：`AimReticle.global_position = mouse_world_position`（浅青十字），不是 CanvasLayer HUD
+- 仅窗口内且有焦点时藏系统光标；鼠标移出窗口或失焦立刻恢复，避免桌面丢指针；退出场景后一定恢复
+
+参数（集中在 `PlayerCamera` 的 `@export`）：
+
+| 参数 | 初值 | 含义 |
+|---|---|---|
+| `look_ahead` | 100 | 前探像素，锁在 80～120 |
+| `follow_smoothing` | 8 | 越大越跟手；快甩鼠标会落后再追上 |
+
+`DebugOverlay` 增补 `look_target`、`camera_offset`、`camera_pos`。
+
+**本阶段不做：** 震屏、开火后坐、沿 `-aim` 踢镜头、镜头缩放。点击左键只把 `fire_held` 显示为 true。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 3 才做**瞄准相机偏移 / 平滑 / 震屏
-- 武器、子弹、对象池、开火消费 `fire_held`
+- **Day 4 才做**手枪、池化子弹、命中假人
+- 震屏 / 受击踢镜 / 开火后坐
 - 敌人、伤害、AnimationTree / 完整动画状态机、Dash
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -81,13 +108,15 @@ aim_vector     Vector2   瞄准方向（可与移动不同）
 fire_held      bool      是否按住开火
 ```
 
+另有只读辅助量 `mouse_world_position`，给世界准星用。
+
 桌面：
 
 - WASD（可加方向键）→ `move_vector`
 - 鼠标世界坐标相对玩家 → `aim_vector`（归一化；与玩家重合时保持上一帧或 `Vector2.RIGHT`，禁止 NaN）
 - 按住鼠标左键 → `fire_held`
 - 没有 `aim` action；瞄准用鼠标位置，不锁最近敌人
-- Motor **只读** `PlayerInput.move_vector`，禁止自己读 WASD
+- Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`。禁止自己读 WASD 或把鼠标按键当开火
 
 `fire_held` 本阶段只读出并显示，不接到武器。场景中不得出现子弹。
 
@@ -96,6 +125,9 @@ fire_held      bool      是否按住开火
 ## 禁止事项（旧作不要带进新仓库）
 
 - 自动锁最近敌人；PC 自动开火；手机「自动射击」开关；桌面虚拟摇杆
+- 把 `Camera2D` 死挂在 Player 上，再用 Tween 随机 `offset` 当震动
+- 引擎 `position_smoothing` 和脚本 lerp 同时开（双重平滑）
+- 用鼠标离玩家的距离拉镜头（正反馈漂走）
 - `RunState` / `ProjectilePool` / `GameFlow` / `UiCanvasScaler` 以及任何全局单例（本阶段 Autoload = 0；全程建议 ≤ 2）
 - 用 `Control.scale` 当 UI 缩放；像素坐标硬编码 HUD；脚本里 `StyleBoxFlat.new()`
 - `Engine.time_scale` 做 hitstop；Autoload 或任意脚本改 `physics_ticks_per_second`
@@ -109,16 +141,16 @@ fire_held      bool      是否按住开火
 场景和脚本放在同一功能目录，不要按「脚本仓库 / 场景仓库」切开：
 
 ```text
-player/     玩家场景、占位、PlayerInput、PlayerMotor
+player/     玩家场景、占位、PlayerInput、PlayerMotor（不含相机）
 weapons/    三把枪 + 弹道 + 池（尚未开始）
 enemies/    敌人（尚未开始）
 combat/     碰撞层常量；后续 CombatWorld、伤害、HitFeedback
 arena/      灰盒图、WaveDirector（尚未开始）
-camera/     相机手感（Day 1 仅玩家身上的简单跟随；Day 3 才做偏移）
+camera/     PlayerCamera、AimReticle
 ui/         仅 Slice 四个界面 + Theme（尚未开始）
 data/       武器/敌人/升级 Resource（尚未开始）
 debug/      DebugOverlay
-sandbox/    主场景
+sandbox/    主场景（Player / PlayerCamera / AimReticle 平级）
 ```
 
 ## 碰撞层（仅建层，不实现弹道）
@@ -133,6 +165,6 @@ sandbox/    主场景
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 3
+## 下一步：Day 4
 
-**Day 3 才做瞄准相机偏移。** 跟随玩家 + 向鼠标/准星偏移 80～120px。不要提前做震屏和武器。
+**Day 4 才做手枪与对象池。** 按住开火 → 池化子弹 → 命中假人 → 伤害数字；能打空；按下当帧出第一发。不要提前做震屏后坐或三把枪。

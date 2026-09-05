@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://camera/aim_reticle.gd" id="1_reticle"]
+
+[node name="AimReticle" type="Node2D"]
+z_index = 20
+script = ExtResource("1_reticle")
+
+[node name="CrossH" type="Polygon2D" parent="."]
+color = Color(0.72, 0.95, 0.98, 1)
+polygon = PackedVector2Array(-14, -1.5, 14, -1.5, 14, 1.5, -14, 1.5)
+
+[node name="CrossV" type="Polygon2D" parent="."]
+color = Color(0.72, 0.95, 0.98, 1)
+polygon = PackedVector2Array(-1.5, -14, 1.5, -14, 1.5, 14, -1.5, 14)
+
+[node name="Dot" type="Polygon2D" parent="."]
+color = Color(1, 1, 1, 1)
+polygon = PackedVector2Array(0, -3, 3, 0, 0, 3, -3, 0)

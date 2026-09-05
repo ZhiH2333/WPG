@@ -1,8 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://debug/debug_overlay.tscn" id="3_debug"]
+[ext_resource type="PackedScene" path="res://camera/player_camera.tscn" id="4_camera"]
+[ext_resource type="PackedScene" path="res://camera/aim_reticle.tscn" id="5_reticle"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -68,5 +70,9 @@ color = Color(0.2, 0.2, 0.22, 1)
 polygon = PackedVector2Array(-20, -490, 20, -490, 20, 490, -20, 490)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="PlayerCamera" parent="." instance=ExtResource("4_camera")]
+
+[node name="AimReticle" parent="." instance=ExtResource("5_reticle")]
 
 [node name="DebugOverlay" parent="." instance=ExtResource("3_debug")]

@@ -1,4 +1,4 @@
-## Day 2：加速度移动 + 瞄准朝向。根节点不旋转；Visual 只跟 aim_vector。
+## 加速度移动 + 瞄准朝向。根节点不旋转；Visual 只跟 aim_vector。相机不写在 Player 里。
 extends CharacterBody2D
 class_name Player
 

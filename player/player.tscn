@@ -20,10 +20,6 @@ shape = SubResource("CircleShape2D_body")
 color = Color(1, 0.62, 0.18, 1)
 polygon = PackedVector2Array(24, 0, -16, -18, -8, 0, -16, 18)
 
-[node name="Camera2D" type="Camera2D" parent="."]
-position_smoothing_enabled = false
-rotation_smoothing_enabled = false
-
 [node name="PlayerInput" type="Node" parent="."]
 script = ExtResource("2_input")
 
