@@ -14,6 +14,7 @@ var _enemies: Array[EnemyBase] = []
 @onready var _player_camera: PlayerCamera = $PlayerCamera
 @onready var _aim_reticle: AimReticle = $AimReticle
 @onready var _debug_overlay: DebugOverlay = $DebugOverlay
+@onready var _hud: Hud = $Hud
 @onready var _projectiles: ProjectilePool = $Projectiles
 @onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
 @onready var _enemies_root: Node2D = $Enemies
@@ -59,6 +60,9 @@ func _bind_runtime() -> void:
 	_encounter.restart()
 	_debug_overlay.bind_enemies(_enemies)
 	_debug_overlay.bind_encounter(_encounter)
+	_hud.bind_player(_player)
+	_hud.bind_weapon_host(_player.get_weapon_host())
+	_hud.bind_encounter(_encounter)
 
 func _collect_enemies() -> Array[EnemyBase]:
 	var enemies: Array[EnemyBase] = []

@@ -1,1 +1,1 @@
-Slice UI（尚未开始）
+最小战斗 HUD（Hud + game_theme.tres）。DebugOverlay 仍在 debug/，不要把 FPS 搬进 HUD。

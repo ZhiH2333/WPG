@@ -1,0 +1,39 @@
+[gd_resource type="Theme" load_steps=4 format=3]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
+bg_color = Color(1, 0.62, 0.18, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_bg"]
+bg_color = Color(0.12, 0.12, 0.14, 0.85)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill_low"]
+bg_color = Color(0.86, 0.22, 0.2, 1)
+
+[resource]
+default_font_size = 18
+Label/colors/font_color = Color(0.95, 0.95, 0.9, 1)
+Label/colors/font_outline_color = Color(0, 0, 0, 0.85)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.85)
+Label/constants/outline_size = 6
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 1
+HudHp/base_type = &"Label"
+HudHp/colors/font_color = Color(0.95, 0.95, 0.9, 1)
+HudHp/colors/font_outline_color = Color(0, 0, 0, 0.85)
+HudHp/constants/outline_size = 6
+HudHp/font_sizes/font_size = 22
+HudWeapon/base_type = &"Label"
+HudWeapon/colors/font_color = Color(0.95, 0.95, 0.9, 1)
+HudWeapon/colors/font_outline_color = Color(0, 0, 0, 0.85)
+HudWeapon/constants/outline_size = 6
+HudWeapon/font_sizes/font_size = 18
+HudPhrase/base_type = &"Label"
+HudPhrase/colors/font_color = Color(0.95, 0.95, 0.9, 1)
+HudPhrase/colors/font_outline_color = Color(0, 0, 0, 0.85)
+HudPhrase/constants/outline_size = 8
+HudPhrase/font_sizes/font_size = 26
+ProgressBar/styles/background = SubResource("StyleBoxFlat_hp_bg")
+ProgressBar/styles/fill = SubResource("StyleBoxFlat_hp_fill")
+ProgressBarLow/base_type = &"ProgressBar"
+ProgressBarLow/styles/background = SubResource("StyleBoxFlat_hp_bg")
+ProgressBarLow/styles/fill = SubResource("StyleBoxFlat_hp_fill_low")

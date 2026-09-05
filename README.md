@@ -250,11 +250,31 @@ Overlay：`phrase`（P0=`0/8` / 句中=`1/8` / 结束=`phrases_done`）、`phras
 
 三把枪身份、Motor 420、`look_ahead=100`、shake、击退/hitstop 初值未改。
 
-**本阶段不做：** 升级弹窗、三选一、XP、商店、WAVE COMPLETE 大字、最小 HUD 壳。
+**当时不做：** 升级弹窗、三选一、XP、商店、WAVE COMPLETE 大字、最小 HUD 壳。
+
+## Day 12（已完成）：最小战斗 HUD
+
+玩家不看 Overlay 也能读懂状态。`ui/hud.tscn` 是 `CanvasLayer` **layer=10**（低于 DebugOverlay 的 100）。`CombatSandbox` 拥有 Hud，`_bind_runtime` 在 Overlay bind 之后调用 `bind_player` / `bind_weapon_host` / `bind_encounter`。不是 Autoload，没有 `UiCanvasScaler`。
+
+三块信息，只读已有 getter，HUD 不自己减 HP、不扫 group、不 tick 句读：
+
+- **左下** HP：`PlayerHealth.get_hp()` / `get_max_hp()`，文字 `当前/最大` + `ProgressBar`（`custom_minimum_size = Vector2(280, 16)`）。填充色走 Theme（玩家灰盒橙 `Color(1.0, 0.62, 0.18)`）；**HP≤20** 把 type variation 切到红 `Color(0.86, 0.22, 0.20)`，禁止全屏闪红。扣血瞬时跳变，没有缓动。
+- **左下** 当前武器：`WeaponHost.get_current_weapon().get_display_name()` → `Pistol` / `Shotgun` / `Rifle`。不要中文名，不要 6 个武器槽。切枪 1/2/3 同一帧换字。
+- **顶中** 句读：直接显示 `EncounterPhrases.get_phrase_label()`（P0=`0/8`，句中=`1/8`…`7/8`，句间=`rest`，结束=`phrases_done`）。不要第二套编号。
+
+布局：锚点 + VBox / HBox。左下 margin 左 32 / 下 32；顶中 margin 顶 24、pivot 居中。禁止 `Control.scale`、禁止 `position = Vector2(16, 16)` 当自适应、禁止脚本 `_ready` 里 `StyleBoxFlat.new()`。颜色/字号在 `ui/game_theme.tres`。所有 HUD 控件 `mouse_filter = IGNORE`，点 HUD 所占区域仍能改 `aim_vector`。
+
+DebugOverlay 仍在左上：`fps_min_2s` / `phrase_alive` / `rest_left` / 池。禁止把 Overlay 删掉或把 FPS 搬进 HUD。
+
+玩家死亡：HUD 仍在，HP 显示 `0/100`。没有 YOU DIED、没有死亡结算屏。R：HUD 立刻 `100/100`、枪名保持重置前那把、句读回 `0/8`。禁止 `reload_current_scene()`。
+
+句读表 P0–P8、三把枪身份、Motor 420、`look_ahead=100`、shake、击退/hitstop、敌人数值、Day 10 gated 修复都没动。
+
+**本阶段不做：** XP 条/等级、三选一、商店、材料/金币、WAVE COMPLETE、死亡屏、主菜单、设置、弹药数字、换弹弧。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 12 才做**最小 HUD（HP / 当前武器 / 句读序号）。仍无三选一、无商店、无 XP
+- **Day 13 才做**RunSession（本局是否存活 / 句读进度的局状态对象）。仍无 XP、无三选一、无商店
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -317,10 +337,10 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）；不是 WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         仅 Slice 四个界面 + Theme（尚未开始）
+ui/         Hud + game_theme.tres（左下 HP+武器，顶中句读）；DebugOverlay 仍在 debug/
 data/       武器/敌人/升级 Resource（尚未开始）
 debug/      DebugOverlay
-sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies）
+sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / Hud / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -335,6 +355,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 12
+## 下一步：Day 13
 
-**Day 12 = 最小 HUD。** HP / 当前武器 / 句读序号。仍无三选一，无商店，无 XP，无第四把枪。
+**Day 13 = RunSession。** 本局是否存活 / 句读进度的局状态对象。仍无 XP，无三选一，无商店，无第四把枪。

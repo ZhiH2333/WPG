@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://enemies/ranged_enemy.tscn" id="8_ranged"]
 [ext_resource type="Script" path="res://combat/sfx_pool.gd" id="9_sfx"]
 [ext_resource type="Script" path="res://arena/encounter_phrases.gd" id="10_encounter"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="11_hud"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -183,5 +184,7 @@ script = ExtResource("10_encounter")
 [node name="PlayerCamera" parent="." instance=ExtResource("4_camera")]
 
 [node name="AimReticle" parent="." instance=ExtResource("5_reticle")]
+
+[node name="Hud" parent="." instance=ExtResource("11_hud")]
 
 [node name="DebugOverlay" parent="." instance=ExtResource("3_debug")]
