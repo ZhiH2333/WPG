@@ -26,7 +26,7 @@ func get_hp() -> int:
 func is_defeated() -> bool:
 	return _defeated
 
-func apply_damage(amount: int, hit_position: Vector2) -> void:
+func apply_damage(amount: int, hit_position: Vector2, _hit_direction: Vector2 = Vector2.ZERO) -> void:
 	if _defeated:
 		return
 	_hp = maxi(0, _hp - amount)

@@ -148,13 +148,45 @@ Day 4 当时 capacity = 64。Day 5 提到 96。禁止每发 instantiate/queue_fr
 
 `WeaponHost` 包住三把枪；`Weapon` 只抽重复合同。`DebugOverlay` 读 Host：`weapon`、`spread_deg`、`pellets`。
 
-**本阶段不做：** 换弹弧、弹药数字 HUD、镜头后坐/震屏、Hitstop、敌人 AI。
+**当时不做：** 换弹弧、弹药数字 HUD、镜头后坐/震屏、Hitstop、敌人 AI。
+
+## Day 6（已完成）：打得动、死得掉
+
+沙盒不再放静止假人。2 近战（左/下约 350px）+ 2 远程（右/上约 420px）。`CombatSandbox` 在 `_ready` 把 `Player` 引用 bind 给每个敌人，禁止每帧 `get_nodes_in_group("player")`。
+
+- 近战：廉价 seek 走向玩家（`desired = to_player.normalized() * speed`，再 `move_toward`），`Area2D` 接触伤害 8。不射击。
+- 远程：保持 280±70 距离带（过近后退、过远靠近、带内 strafing）；带内朝玩家**当前位置**开枪，不预判。时间戳 0.9s，无 Timer。弹从 `Visual/Muzzle` 出。
+- 玩家 `PlayerHealth`：max_hp=100，i-frame 0.45s。扣血、闪白、伤害数字。HP≤0 停 Motor、`WeaponHost.deactivate_all()`、变灰留场，不弹菜单、不重载场景。
+- 敌人 0 血：停 AI / 物理、关碰撞、变灰留场。禁止 `queue_free`、禁止掉落。
+- 敌人弹：本局 `CombatSandbox/EnemyProjectiles` 池 **32**，更大更慢深红弹。玩家弹池仍 **96**。同一 `projectile.tscn`，`reset(..., is_player_shot)` 切碰撞与颜色。
+- 命中：玩家弹打 `EnemyBase`（`DummyTarget` 脚本仍可被打以免留着报错）；敌人弹打 `PlayerHealth`。不误伤己方。墙/出界/寿命到 → Release。池满打不出，不删天上的弹。
+- Overlay：`player_hp` / `player_dead` / `enemy_hp`（类型+hp），以及两套池的 active/free。
+
+接触重叠时由 i-frame 卡住，无敌结束再判一次，禁止每物理帧刮光。
+
+**当时不做：** squash、击退位移、局部 hitstop、死亡碎裂、镜头后坐。
+
+## Day 7（已完成）：打中有肉、死得能读
+
+命中闭环同一拍发生：停弹回池 → 扣 HP + 数字 + 闪白（保留）→ 沿弹方向击退 → Visual squash/微转 → 该敌人局部 hitstop → 0 血塌缩留场。
+
+- `HitReaction`（`combat/hit_reaction.gd`）只改 Visual：沿 hit 本地轴压到 ~0.82、垂直微胀 ~1.12，额外 tilt ±4.5°（符号跟 hit.x），约 0.1s 弹回 `scale=1` / tilt=0。不改 CollisionShape、不改根节点朝向、不用 Tween 改 position。
+- 敌人击退走 `knockback_velocity` + `move_and_slide`：impulse 260，length 钳到 420，damping 1800。禁止 Tween `global_position`。撞墙沿墙滑。
+- 局部 hitstop **只冻被打中的那只**：`_hitstop_left_sec = maxf(旧值, 0.012)`，刷新不叠加。期间不 AI、不转向、不开火、不接触伤害、不 `move_and_slide`。不改 `Engine.time_scale`，不冻玩家 / 相机 / 其它敌人 / 弹池。
+- 霰弹 8 粒同一帧：8 段数字可以跳；击退累加后钳 max_speed；hitstop 仍是一次 12ms；squash 重开一次。禁止 8×12ms 冻成一次泵枪。
+- 步枪 0.09s 连发：被打的敌人一顿一顿后仰，玩家移动/开火仍跟手。
+- 玩家受击：闪白 + 数字 + 轻击退（impulse 180 / max 260 / damping 1800）+ 轻 squash。**不要玩家 hitstop**（那是输入延迟）。HP / i-frame 0.45s 与 Day 6 相同。
+- 死亡可读（无粒子）：敌人变灰、scale → (1.15, 0.55)、tilt → 80° 倒地，0.15s 到位后冻结；停 AI / 转向 / 开火；关碰撞；可再滑一点击退后清零；不 `queue_free`。玩家只轻微压扁、不倒地 90°，停走停枪，不弹菜单。
+- Overlay 增补 `hitstop_ms`（场上敌人剩余 hitstop 的最大值）和最近敌人的 `knockback_speed`。
+
+三把枪身份参数、Motor / 相机 `@export` 初值、敌人 max_hp / 移速 / 射速未改。击退参数是另加的 `@export`。
+
+**本阶段不做：** 音效、镜头后坐/震屏/zoom、开火枪身踢、死亡碎裂粒子、掉落物、换弹 UI。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 6 才做**可移动的近战 + 远程敌人（`EnemyBase`），不是第四把枪
-- 震屏 / 受击踢镜 / 开火后坐 / 换弹进度弧
-- 敌人还击、死亡碎裂、掉落
+- **Day 8 才做**音效 + 方向性开火/受击震屏（VFX）。不要商店，不要 AnimationTree
+- 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
 - Web 导出妥协、C#、外部 ECS、任何 Autoload
@@ -188,6 +220,7 @@ fire_held      bool      是否按住开火
 - 子弹从身体/武器节点中心出，而不是枪口
 - 用 Timer 节点做射速；等下一个 timeout 才出第一发
 - 把弹池做成 Autoload；每发 `instantiate`/`queue_free`；池满删天上的弹
+- 每帧 `get_tree().get_nodes_in_group("player")`；每敌 NavigationAgent / raycast / `queue_redraw`；满员删最老敌人
 - 把 `Camera2D` 死挂在 Player 上，再用 Tween 随机 `offset` 当震动
 - 引擎 `position_smoothing` 和脚本 lerp 同时开（双重平滑）
 - 用鼠标离玩家的距离拉镜头（正反馈漂走）
@@ -204,30 +237,30 @@ fire_held      bool      是否按住开火
 场景和脚本放在同一功能目录，不要按「脚本仓库 / 场景仓库」切开：
 
 ```text
-player/     玩家场景、PlayerInput、PlayerMotor、Muzzle、WeaponHost
+player/     玩家场景、PlayerInput、PlayerMotor、PlayerHealth、Muzzle、WeaponHost
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle、Projectile、本局 ProjectilePool
-enemies/    DummyTarget（静止假人）
-combat/     碰撞层常量、DamageNumber
+enemies/    EnemyBase、MeleeEnemy、RangedEnemy；DummyTarget 脚本保留但沙盒不再放置
+combat/     碰撞层常量、DamageNumber、HitReaction
 arena/      灰盒图、WaveDirector（尚未开始）
 camera/     PlayerCamera、AimReticle
 ui/         仅 Slice 四个界面 + Theme（尚未开始）
 data/       武器/敌人/升级 Resource（尚未开始）
 debug/      DebugOverlay
-sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / DummyTargets）
+sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / Enemies）
 ```
 
 ## 碰撞层
 
-| 层 | 名称 | Day 4 用法 |
+| 层 | 名称 | Day 6–7 用法 |
 |---|---|---|
-| 1 | player | 玩家只撞墙 |
-| 2 | enemy | 假人；不挡玩家移动 |
-| 3 | player_bullet | 手枪弹；mask = enemy + wall |
-| 4 | enemy_bullet | 预留 |
+| 1 | player | 玩家只撞墙，不跟敌人刚体互推 |
+| 2 | enemy | 近战/远程；mask = wall；不挡玩家移动 |
+| 3 | player_bullet | 玩家弹；mask = enemy + wall |
+| 4 | enemy_bullet | 敌人弹；mask = player + wall |
 | 5 | wall | 灰盒围墙 |
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 6
+## 下一步：Day 8
 
-**Day 6 = 可移动敌人。** `EnemyBase`：近战 + 远程，能走近/射击、能死、能掉血。不要第四把枪，不要换弹 UI，不要镜头后坐。
+**Day 8 = 音效 + 方向性开火/受击震屏（VFX）。** 不要商店，不要第四把枪，不要换弹 UI，不要 AnimationTree。locomotion 若要做，只让 Visual 跟速度切 idle/walk，不要上 AnimationTree。

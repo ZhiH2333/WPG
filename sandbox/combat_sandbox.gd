@@ -3,6 +3,7 @@ class_name CombatSandbox
 
 const PROJECTILE_SCENE: PackedScene = preload("res://weapons/projectile.tscn")
 const POOL_CAPACITY: int = 96
+const ENEMY_POOL_CAPACITY: int = 32
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -13,7 +14,8 @@ var _mouse_inside_window: bool = true
 @onready var _aim_reticle: AimReticle = $AimReticle
 @onready var _debug_overlay: DebugOverlay = $DebugOverlay
 @onready var _projectiles: ProjectilePool = $Projectiles
-@onready var _dummy_targets: Node2D = $DummyTargets
+@onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
+@onready var _enemies_root: Node2D = $Enemies
 
 func _ready() -> void:
 	_apply_wall_layers()
@@ -27,6 +29,7 @@ func _exit_tree() -> void:
 func _bind_runtime() -> void:
 	var player_input: PlayerInput = _player.get_player_input()
 	_projectiles.setup(_projectiles, PROJECTILE_SCENE, POOL_CAPACITY)
+	_enemy_projectiles.setup(_enemy_projectiles, PROJECTILE_SCENE, ENEMY_POOL_CAPACITY)
 	_player.bind_projectile_pool(_projectiles)
 	_player_camera.bind_player(_player)
 	_aim_reticle.bind_player_input(player_input)
@@ -34,15 +37,25 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_player_camera(_player_camera)
 	_debug_overlay.bind_weapon_host(_player.get_weapon_host())
 	_debug_overlay.bind_projectile_pool(_projectiles)
-	_debug_overlay.bind_dummies(_collect_dummies())
+	_debug_overlay.bind_enemy_projectile_pool(_enemy_projectiles)
+	var enemies: Array[EnemyBase] = _collect_enemies()
+	_bind_enemies(enemies)
+	_debug_overlay.bind_enemies(enemies)
 
-func _collect_dummies() -> Array[DummyTarget]:
-	var dummies: Array[DummyTarget] = []
-	for child: Node in _dummy_targets.get_children():
-		var dummy: DummyTarget = child as DummyTarget
-		if dummy != null:
-			dummies.append(dummy)
-	return dummies
+func _collect_enemies() -> Array[EnemyBase]:
+	var enemies: Array[EnemyBase] = []
+	for child: Node in _enemies_root.get_children():
+		var enemy: EnemyBase = child as EnemyBase
+		if enemy != null:
+			enemies.append(enemy)
+	return enemies
+
+func _bind_enemies(enemies: Array[EnemyBase]) -> void:
+	for enemy: EnemyBase in enemies:
+		enemy.bind_player(_player)
+		var ranged: RangedEnemy = enemy as RangedEnemy
+		if ranged != null:
+			ranged.bind_projectile_pool(_enemy_projectiles)
 
 func _bind_window_cursor() -> void:
 	var window: Window = get_window()

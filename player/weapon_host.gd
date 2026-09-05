@@ -4,6 +4,7 @@ class_name WeaponHost
 ## 切枪不进输入合同三量；只读 1/2/3，转发给当前武器。
 var _weapons: Array[Weapon] = []
 var _current_index: int = 0
+var _switch_locked: bool = false
 
 func _ready() -> void:
 	_collect_weapons()
@@ -29,10 +30,17 @@ func get_pistol() -> Pistol:
 			return pistol
 	return null
 
+func deactivate_all() -> void:
+	_switch_locked = true
+	for weapon: Weapon in _weapons:
+		weapon.set_active(false)
+
 func _process(_delta: float) -> void:
 	_poll_weapon_switch()
 
 func _poll_weapon_switch() -> void:
+	if _switch_locked:
+		return
 	if Input.is_action_just_pressed("weapon_pistol"):
 		_activate_index(0)
 		return

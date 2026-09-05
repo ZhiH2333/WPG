@@ -1,0 +1,30 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://enemies/melee_enemy.gd" id="1_melee"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 16.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_contact"]
+radius = 26.0
+
+[node name="MeleeEnemy" type="CharacterBody2D"]
+motion_mode = 1
+collision_layer = 2
+collision_mask = 16
+script = ExtResource("1_melee")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_body")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.86, 0.22, 0.2, 1)
+polygon = PackedVector2Array(22, 0, -16, -16, -8, 0, -16, 16)
+
+[node name="ContactArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ContactArea"]
+shape = SubResource("CircleShape2D_contact")

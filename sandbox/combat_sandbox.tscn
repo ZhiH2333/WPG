@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -6,7 +6,8 @@
 [ext_resource type="PackedScene" path="res://camera/player_camera.tscn" id="4_camera"]
 [ext_resource type="PackedScene" path="res://camera/aim_reticle.tscn" id="5_reticle"]
 [ext_resource type="Script" path="res://weapons/projectile_pool.gd" id="6_pool"]
-[ext_resource type="PackedScene" path="res://enemies/dummy_target.tscn" id="7_dummy"]
+[ext_resource type="PackedScene" path="res://enemies/melee_enemy.tscn" id="7_melee"]
+[ext_resource type="PackedScene" path="res://enemies/ranged_enemy.tscn" id="8_ranged"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -71,18 +72,24 @@ shape = SubResource("RectangleShape2D_vwall")
 color = Color(0.2, 0.2, 0.22, 1)
 polygon = PackedVector2Array(-20, -490, 20, -490, 20, 490, -20, 490)
 
-[node name="DummyTargets" type="Node2D" parent="."]
+[node name="Enemies" type="Node2D" parent="."]
 
-[node name="DummyTarget1" parent="DummyTargets" instance=ExtResource("7_dummy")]
-position = Vector2(300, -120)
+[node name="MeleeEnemy1" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-350, 80)
 
-[node name="DummyTarget2" parent="DummyTargets" instance=ExtResource("7_dummy")]
-position = Vector2(420, 20)
+[node name="MeleeEnemy2" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-80, 350)
 
-[node name="DummyTarget3" parent="DummyTargets" instance=ExtResource("7_dummy")]
-position = Vector2(280, 160)
+[node name="RangedEnemy1" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(420, -80)
+
+[node name="RangedEnemy2" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(120, -420)
 
 [node name="Projectiles" type="Node2D" parent="."]
+script = ExtResource("6_pool")
+
+[node name="EnemyProjectiles" type="Node2D" parent="."]
 script = ExtResource("6_pool")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]

@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://player/player_input.gd" id="2_input"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://weapons/pistol.gd" id="5_pistol"]
 [ext_resource type="Script" path="res://weapons/shotgun.gd" id="6_shotgun"]
 [ext_resource type="Script" path="res://weapons/rifle.gd" id="7_rifle"]
+[ext_resource type="Script" path="res://player/player_health.gd" id="8_health"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 20.0
@@ -32,6 +33,9 @@ script = ExtResource("2_input")
 
 [node name="PlayerMotor" type="Node" parent="."]
 script = ExtResource("3_motor")
+
+[node name="PlayerHealth" type="Node" parent="."]
+script = ExtResource("8_health")
 
 [node name="WeaponHost" type="Node" parent="."]
 script = ExtResource("4_host")
