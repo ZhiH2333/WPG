@@ -7,6 +7,8 @@ const DAMAGE_NUMBER_SCENE: PackedScene = preload("res://combat/damage_number.tsc
 const FLASH_DURATION_SEC: float = 0.1
 const DEAD_COLOR: Color = Color(0.42, 0.42, 0.44, 1)
 const DEATH_SLIDE_STOP_SPEED: float = 12.0
+const ENTER_SCALE_FROM := Vector2(0.4, 0.4)
+const SEPARATION_PIXELS: float = 40.0
 
 @export var max_hp: int = 36
 @export var move_speed: float = 175.0
@@ -15,6 +17,7 @@ const DEATH_SLIDE_STOP_SPEED: float = 12.0
 @export var knockback_max_speed: float = 420.0
 @export var knockback_damping: float = 1800.0
 @export var hitstop_sec: float = 0.012
+@export var spawn_stagger_sec: float = 0.0
 
 var _hp: int = 36
 var _defeated: bool = false
@@ -26,6 +29,11 @@ var _was_in_hitstop: bool = false
 var _hit_reaction: HitReaction
 var _sfx_pool: SfxPool
 var _player_camera: PlayerCamera
+var _spawn_position: Vector2 = Vector2.ZERO
+var _spawn_stagger_left_sec: float = 0.0
+var _spawn_stagger_duration_sec: float = 0.0
+var _separation_sign: float = 1.0
+var _alive_color: Color = Color(0.86, 0.22, 0.2, 1)
 
 @onready var _visual: Polygon2D = $Visual
 
@@ -34,6 +42,9 @@ func _ready() -> void:
 	collision_layer = GameCollisionLayers.MASK_ENEMY
 	collision_mask = GameCollisionLayers.MASK_WALL
 	_hp = max_hp
+	_spawn_position = global_position
+	_alive_color = _visual.color
+	_separation_sign = 1.0 if (get_index() % 2 == 0) else -1.0
 	_bind_hit_reaction()
 
 func bind_player(player: Player) -> void:
@@ -48,11 +59,17 @@ func bind_player_camera(player_camera: PlayerCamera) -> void:
 func get_hp() -> int:
 	return _hp
 
+func get_spawn_position() -> Vector2:
+	return _spawn_position
+
 func is_defeated() -> bool:
 	return _defeated
 
 func is_in_hitstop() -> bool:
 	return _hitstop_left_sec > 0.0
+
+func is_entering() -> bool:
+	return _spawn_stagger_left_sec > 0.0
 
 func get_hitstop_left_sec() -> float:
 	return _hitstop_left_sec
@@ -63,9 +80,36 @@ func get_knockback_speed() -> float:
 func get_kind_name() -> String:
 	return "Enemy"
 
+func reset_for_sandbox(spawn_position: Vector2) -> void:
+	_spawn_position = spawn_position
+	_hp = max_hp
+	_defeated = false
+	_flash_left_sec = 0.0
+	_knockback_velocity = Vector2.ZERO
+	_hitstop_left_sec = 0.0
+	_was_in_hitstop = false
+	velocity = Vector2.ZERO
+	global_position = spawn_position
+	collision_layer = GameCollisionLayers.MASK_ENEMY
+	collision_mask = GameCollisionLayers.MASK_WALL
+	_visual.color = _alive_color
+	_visual.modulate = Color.WHITE
+	_hit_reaction.reset()
+	_begin_enter()
+	set_physics_process(true)
+	_on_reset_for_sandbox()
+
+func assign_spawn_stagger(stagger_sec: float) -> void:
+	spawn_stagger_sec = clampf(stagger_sec, 0.0, 0.8)
+	_spawn_stagger_duration_sec = spawn_stagger_sec
+	_spawn_stagger_left_sec = spawn_stagger_sec
+	_begin_enter()
+
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
 	if _defeated or amount <= 0:
 		return
+	if is_entering():
+		_finish_entering()
 	var direction: Vector2 = _resolve_hit_direction(hit_direction)
 	var was_alive: bool = _hp > 0
 	_hp = maxi(0, _hp - amount)
@@ -82,6 +126,9 @@ func _physics_process(delta: float) -> void:
 	if _defeated:
 		_tick_death_slide(delta)
 		return
+	_tick_spawn_stagger(delta)
+	if is_entering():
+		return
 	if _hitstop_left_sec > 0.0:
 		_hitstop_left_sec = maxf(0.0, _hitstop_left_sec - delta)
 		_was_in_hitstop = true
@@ -94,8 +141,12 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_tick_flash(delta)
+	_update_enter_scale()
 
 func _tick_ai(_delta: float) -> void:
+	pass
+
+func _on_reset_for_sandbox() -> void:
 	pass
 
 func _steer_toward(delta: float, desired_velocity: Vector2) -> void:
@@ -106,6 +157,13 @@ func _desired_velocity_to_player() -> Vector2:
 	if to_player.is_zero_approx():
 		return Vector2.ZERO
 	return to_player.normalized() * move_speed
+
+func _separated_seek_velocity() -> Vector2:
+	var desired: Vector2 = _desired_velocity_to_player()
+	var to_player: Vector2 = _to_player()
+	if to_player.is_zero_approx():
+		return desired
+	return desired + to_player.normalized().orthogonal() * _separation_sign * SEPARATION_PIXELS
 
 func _player_alive() -> bool:
 	return _player != null and not _player.is_defeated()
@@ -139,6 +197,7 @@ func _restore_color() -> void:
 
 func _defeat() -> void:
 	_defeated = true
+	_spawn_stagger_left_sec = 0.0
 	collision_layer = GameCollisionLayers.MASK_NONE
 	collision_mask = GameCollisionLayers.MASK_NONE
 	_visual.color = DEAD_COLOR
@@ -209,3 +268,29 @@ func _tick_death_slide(delta: float) -> void:
 		return
 	velocity = _knockback_velocity
 	move_and_slide()
+
+func _begin_enter() -> void:
+	_spawn_stagger_duration_sec = spawn_stagger_sec
+	_spawn_stagger_left_sec = spawn_stagger_sec
+	if _spawn_stagger_left_sec <= 0.0:
+		_visual.scale = Vector2.ONE
+		return
+	_visual.scale = ENTER_SCALE_FROM
+
+func _finish_entering() -> void:
+	_spawn_stagger_left_sec = 0.0
+	if _visual != null and not _defeated:
+		_visual.scale = Vector2.ONE
+
+func _tick_spawn_stagger(delta: float) -> void:
+	if _spawn_stagger_left_sec <= 0.0:
+		return
+	_spawn_stagger_left_sec = maxf(0.0, _spawn_stagger_left_sec - delta)
+	if _spawn_stagger_left_sec <= 0.0:
+		_finish_entering()
+
+func _update_enter_scale() -> void:
+	if _defeated or _spawn_stagger_duration_sec <= 0.0 or _spawn_stagger_left_sec <= 0.0:
+		return
+	var t: float = 1.0 - (_spawn_stagger_left_sec / _spawn_stagger_duration_sec)
+	_visual.scale = ENTER_SCALE_FROM.lerp(Vector2.ONE, clampf(t, 0.0, 1.0))

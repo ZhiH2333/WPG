@@ -35,6 +35,16 @@ func is_defeated() -> bool:
 func is_invincible() -> bool:
 	return _i_frame_left_sec > 0.0
 
+func reset_for_sandbox() -> void:
+	_hp = max_hp
+	_defeated = false
+	_i_frame_left_sec = 0.0
+	_flash_left_sec = 0.0
+	if _visual == null:
+		return
+	_visual.color = _alive_color
+	_visual.modulate = Color.WHITE
+
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
 	if _defeated or _i_frame_left_sec > 0.0 or amount <= 0:
 		return

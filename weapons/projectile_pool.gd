@@ -38,3 +38,10 @@ func get_free_count() -> int:
 
 func get_active_count() -> int:
 	return _capacity - _free.size()
+
+func park_all() -> void:
+	for child: Node in get_children():
+		var projectile: Projectile = child as Projectile
+		if projectile == null:
+			continue
+		release(projectile)

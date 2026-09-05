@@ -46,7 +46,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemy_hp: %s\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nFPS: %d" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nreset: R\nFPS: %d" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -67,7 +67,9 @@ func _compose_status_text() -> String:
 		_read_enemy_active(),
 		_read_enemy_free(),
 		_read_refused(weapon),
-		_format_enemy_hp(),
+		_format_alive_summary(),
+		_count_dead_enemies(),
+		_format_nearest(),
 		_read_hitstop_ms(),
 		_read_knockback_speed(),
 		_format_vector(_read_shake_offset()),
@@ -150,13 +152,30 @@ func _read_player_hp() -> int:
 		return 0
 	return _player.get_player_health().get_hp()
 
-func _format_enemy_hp() -> String:
-	if _enemies.is_empty():
-		return "-"
-	var parts: PackedStringArray = PackedStringArray()
+func _format_alive_summary() -> String:
+	var melee_alive: int = 0
+	var ranged_alive: int = 0
 	for enemy: EnemyBase in _enemies:
-		parts.append("%s %d" % [enemy.get_kind_name(), enemy.get_hp()])
-	return ", ".join(parts)
+		if enemy.is_defeated():
+			continue
+		if enemy is MeleeEnemy:
+			melee_alive += 1
+		else:
+			ranged_alive += 1
+	return "%dM+%dR" % [melee_alive, ranged_alive]
+
+func _count_dead_enemies() -> int:
+	var dead: int = 0
+	for enemy: EnemyBase in _enemies:
+		if enemy.is_defeated():
+			dead += 1
+	return dead
+
+func _format_nearest() -> String:
+	var nearest: EnemyBase = _find_nearest_enemy()
+	if nearest == null:
+		return "-"
+	return "%s %d" % [nearest.get_kind_name(), nearest.get_hp()]
 
 func _read_hitstop_ms() -> float:
 	var left_sec: float = 0.0
@@ -181,16 +200,20 @@ func _read_shake_speed() -> float:
 func _find_nearest_enemy() -> EnemyBase:
 	if _enemies.is_empty():
 		return null
-	if _player == null:
-		return _enemies[0]
-	var nearest: EnemyBase = _enemies[0]
+	var nearest: EnemyBase = null
 	var best_dist: float = INF
 	for enemy: EnemyBase in _enemies:
-		var dist: float = enemy.global_position.distance_squared_to(_player.global_position)
+		if enemy.is_defeated():
+			continue
+		var dist: float = INF
+		if _player != null:
+			dist = enemy.global_position.distance_squared_to(_player.global_position)
 		if dist < best_dist:
 			best_dist = dist
 			nearest = enemy
-	return nearest
+	if nearest != null:
+		return nearest
+	return _enemies[0]
 
 func _format_vector(value: Vector2) -> String:
 	return "(%.2f, %.2f)" % [value.x, value.y]

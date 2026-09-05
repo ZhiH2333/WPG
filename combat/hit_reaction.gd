@@ -65,6 +65,22 @@ func apply_facing(base_rotation: float) -> void:
 func is_dead() -> bool:
 	return _dead
 
+func reset() -> void:
+	_dead = false
+	_recover_left_sec = 0.0
+	_death_left_sec = 0.0
+	_extra_tilt = 0.0
+	_recover_from_scale = Vector2.ONE
+	_recover_from_tilt = 0.0
+	_death_from_scale = Vector2.ONE
+	_death_from_tilt = 0.0
+	_death_to_scale = Vector2.ONE
+	_death_to_tilt = 0.0
+	if _visual == null:
+		return
+	_visual.scale = Vector2.ONE
+	_sync_rotation()
+
 func _process(delta: float) -> void:
 	if _visual == null:
 		return

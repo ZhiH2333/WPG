@@ -75,17 +75,44 @@ polygon = PackedVector2Array(-20, -490, 20, -490, 20, 490, -20, 490)
 
 [node name="Enemies" type="Node2D" parent="."]
 
-[node name="MeleeEnemy1" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(-350, 80)
+[node name="MeleeLeft1" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-520, -160)
 
-[node name="MeleeEnemy2" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(-80, 350)
+[node name="MeleeLeft2" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-470, -55)
 
-[node name="RangedEnemy1" parent="Enemies" instance=ExtResource("8_ranged")]
-position = Vector2(420, -80)
+[node name="MeleeLeft3" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-420, 55)
 
-[node name="RangedEnemy2" parent="Enemies" instance=ExtResource("8_ranged")]
-position = Vector2(120, -420)
+[node name="MeleeLeft4" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-380, 165)
+
+[node name="MeleeBottom1" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-165, 380)
+
+[node name="MeleeBottom2" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-55, 400)
+
+[node name="MeleeBottom3" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(60, 415)
+
+[node name="MeleeBottom4" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(170, 430)
+
+[node name="RangedRight1" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(500, -130)
+
+[node name="RangedRight2" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(555, 10)
+
+[node name="RangedRight3" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(615, 150)
+
+[node name="RangedTop1" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(-90, -410)
+
+[node name="RangedTop2" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(95, -440)
 
 [node name="Projectiles" type="Node2D" parent="."]
 script = ExtResource("6_pool")

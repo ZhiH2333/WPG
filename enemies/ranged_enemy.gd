@@ -20,7 +20,7 @@ func _ready() -> void:
 	move_speed = 140.0
 	acceleration = 1200.0
 	super._ready()
-	_strafe_sign = 1.0 if global_position.x > 200.0 else -1.0
+	_refresh_strafe_sign()
 
 func bind_projectile_pool(pool: ProjectilePool) -> void:
 	_pool = pool
@@ -30,13 +30,13 @@ func get_kind_name() -> String:
 
 func _process(delta: float) -> void:
 	super._process(delta)
-	if _defeated or is_in_hitstop():
+	if _defeated or is_in_hitstop() or is_entering():
 		return
 	_face_player()
 	_tick_fire()
 
 func _tick_ai(delta: float) -> void:
-	if is_in_hitstop() or _defeated:
+	if is_in_hitstop() or _defeated or is_entering():
 		return
 	if not _player_alive():
 		_steer_toward(delta, Vector2.ZERO)
@@ -55,7 +55,7 @@ func _band_desired_velocity() -> Vector2:
 	return to_player.normalized().orthogonal() * _strafe_sign * move_speed * 0.45
 
 func _tick_fire() -> void:
-	if _defeated or is_in_hitstop() or not _player_alive() or _pool == null:
+	if _defeated or is_in_hitstop() or is_entering() or not _player_alive() or _pool == null:
 		return
 	if not _is_in_fire_band():
 		return
@@ -95,3 +95,10 @@ func _try_fire() -> bool:
 
 func _get_fire_interval_msec() -> int:
 	return maxi(1, int(round(fire_interval * 1000.0)))
+
+func _on_reset_for_sandbox() -> void:
+	_next_fire_at_msec = 0
+	_refresh_strafe_sign()
+
+func _refresh_strafe_sign() -> void:
+	_strafe_sign = 1.0 if global_position.x > 200.0 else -1.0

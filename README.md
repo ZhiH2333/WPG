@@ -197,11 +197,26 @@ Day 4 当时 capacity = 64。Day 5 提到 96。禁止每发 instantiate/queue_fr
 
 Overlay 增补 `shake_offset` / `shake_speed`。三把枪身份、Motor 420、`look_ahead=100`、`follow_smoothing=8`、击退/hitstop 初值未改。
 
-**本阶段不做：** 换弹 UI、弹药 HUD、AnimationTree、locomotion 状态机、死亡碎裂粒子海、掉落物、商店。
+**当时不做：** 换弹 UI、弹药 HUD、AnimationTree、locomotion 状态机、死亡碎裂粒子海、掉落物、商店、10 人以上沙盒。
+
+## Day 9（已完成）：13 人分侧沙盒，R 重置同一批节点
+
+场上 **8 近战 + 5 远程 = 13**，不是均匀圆包围，不是四边下雨。玩家仍在原点。距玩家都 ≥ ~280px，开局不会刷在脸上秒伤。
+
+- 近战：左侧一撮 4 只（x≈-520～-380，y 错开），下侧一撮 4 只（y≈380～430，x 错开）。廉价 seek + 正交偏置 `to_player.orthogonal() * ±40`（节点 index 奇偶定符号）。禁止每敌探查其它敌人、禁止 NavigationAgent。
+- 远程：右侧 3 只（x≈500～615），上侧 2 只（y≈-410～-440）。距离带 / 枪口出膛 / 深红大弹与 Day 6 相同。
+- 入场 stagger 0.0～0.8s，**同一侧同一小波**错开。倒完之前：Visual 从 scale 0.4 收到 1.0，近战不造成接触伤害，远程不开火。无预警圈 UI。
+- 尸体变灰塌缩留场，不 `queue_free`。3 分钟循环靠 **R 原地重置同一批节点**，禁止 `reload_current_scene()`，禁止边死边 instantiate 新敌人，禁止 EnemyManager / WaveDirector。
+- 重置合同：两套弹 `park_all`（玩家池仍 96，敌人池 **48**）→ 每个敌人 `reset_for_sandbox(spawn)` 满血站回两侧出生点（HitReaction.reset 清 `_dead`）→ 玩家原点满血、清 i-frame、解开 `WeaponHost` 并 activate **当前枪**（不强制切回手枪）→ Overlay 立刻反映人数。
+- Overlay：`enemies_alive: 8M+5R`、`enemies_dead`、`nearest`、`reset: R`。不刷 13 条 HP。FPS 保留。13 人仍各自 `_physics_process`，不做 AI 分频。
+
+三把枪身份、Motor / 相机 shake / 击退 / hitstop 初值未改。
+
+**本阶段不做：** 30 人压测、波次表、商店、精英/Boss、掉落物、AnimationTree。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 9 才做**10～15 人沙盒（同一套近战/远程复制多只），验证愿意连打 3 分钟。不要商店，不要波次导演，不要 AnimationTree
+- **Day 10 才做**30 人压测（目标帧率；失败才 AI 分频 / 集中更新）。不要商店，不要波次导演，不要 AnimationTree
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -227,6 +242,7 @@ fire_held      bool      是否按住开火
 - 没有 `aim` action；瞄准用鼠标位置，不锁最近敌人
 - Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
 - 切枪 1/2/3 由 `WeaponHost` 读取，不塞进输入合同三量
+- 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量
 
 手机双摇杆是后续阶段；不要做 Input Autoload。输入组件挂在玩家节点上。
 
@@ -237,6 +253,7 @@ fire_held      bool      是否按住开火
 - 用 Timer 节点做射速；等下一个 timeout 才出第一发
 - 把弹池做成 Autoload；每发 `instantiate`/`queue_free`；池满删天上的弹
 - 每帧 `get_tree().get_nodes_in_group("player")`；每敌 NavigationAgent / raycast / `queue_redraw`；满员删最老敌人
+- `reload_current_scene()` 当沙盒重置；WaveDirector / EnemyManager；四边随机下雨刷怪
 - 把 `Camera2D` 死挂在 Player 上，再用 Tween 随机 `offset` 当震动
 - 随机 `Vector2(rand, rand)` 当镜头震动；用 `Engine.time_scale` 给震屏配慢动作
 - Autoload 音频栈 / 每发 `new AudioStreamPlayer`
@@ -270,7 +287,7 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 ## 碰撞层
 
-| 层 | 名称 | Day 6–8 用法 |
+| 层 | 名称 | Day 6–9 用法 |
 |---|---|---|
 | 1 | player | 玩家只撞墙，不跟敌人刚体互推 |
 | 2 | enemy | 近战/远程；mask = wall；不挡玩家移动 |
@@ -280,6 +297,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 9
+## 下一步：Day 10
 
-**Day 9 = 10～15 人沙盒。** 同一套近战/远程复制多只，打到自己愿意连打 3 分钟。不要商店，不要波次导演，不要 AnimationTree，不要第四把枪。
+**Day 10 = 30 人压测。** 目标桌面 60；超标才改结构（AI 分频 / 集中更新）。不要商店，不要波次表，不要 AnimationTree，不要第四把枪。

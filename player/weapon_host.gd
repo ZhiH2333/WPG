@@ -35,6 +35,11 @@ func deactivate_all() -> void:
 	for weapon: Weapon in _weapons:
 		weapon.set_active(false)
 
+func reset_after_player_revive() -> void:
+	_switch_locked = false
+	for i: int in _weapons.size():
+		_weapons[i].set_active(i == _current_index)
+
 func _process(_delta: float) -> void:
 	_poll_weapon_switch()
 

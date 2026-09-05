@@ -1,7 +1,7 @@
 extends EnemyBase
 class_name MeleeEnemy
 
-## 走向玩家，Area2D 碰到才造成接触伤害。不射击。
+## 走向玩家，Area2D 碰到才造成接触伤害。不射击。廉价正交分离，禁止探查其它敌人。
 @export var contact_damage: int = 8
 
 @onready var _contact_area: Area2D = $ContactArea
@@ -24,23 +24,25 @@ func _bind_contact_area() -> void:
 	_contact_area.body_entered.connect(_on_contact_body_entered)
 
 func _tick_ai(delta: float) -> void:
-	if is_in_hitstop() or _defeated:
+	if is_in_hitstop() or _defeated or is_entering():
 		return
 	if not _player_alive():
 		_steer_toward(delta, Vector2.ZERO)
 		return
-	_steer_toward(delta, _desired_velocity_to_player())
+	_steer_toward(delta, _separated_seek_velocity())
 	_try_contact_damage()
 
 func _on_contact_body_entered(body: Node) -> void:
 	_try_hit_player(body)
 
 func _try_contact_damage() -> void:
+	if not _contact_area.monitoring or is_entering() or _defeated:
+		return
 	for body: Node2D in _contact_area.get_overlapping_bodies():
 		_try_hit_player(body)
 
 func _try_hit_player(body: Node) -> void:
-	if not _player_alive() or is_in_hitstop() or _defeated:
+	if not _player_alive() or is_in_hitstop() or _defeated or is_entering():
 		return
 	var player: Player = body as Player
 	if player == null:
@@ -53,5 +55,8 @@ func _try_hit_player(body: Node) -> void:
 	player.get_player_health().apply_damage(contact_damage, global_position, direction)
 
 func _on_defeated() -> void:
-	_contact_area.monitoring = false
 	_contact_area.set_deferred("monitoring", false)
+
+func _on_reset_for_sandbox() -> void:
+	_contact_area.monitoring = true
+	_contact_area.set_deferred("monitoring", true)

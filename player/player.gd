@@ -86,6 +86,15 @@ func on_defeated() -> void:
 	_knockback_velocity = Vector2.ZERO
 	_weapon_host.deactivate_all()
 
+func reset_for_sandbox() -> void:
+	global_position = Vector2.ZERO
+	velocity = Vector2.ZERO
+	_knockback_velocity = Vector2.ZERO
+	_player_health.reset_for_sandbox()
+	_hit_reaction.reset()
+	_fire_feedback.stop_recoil()
+	_weapon_host.reset_after_player_revive()
+
 func _process(_delta: float) -> void:
 	if is_defeated():
 		return
