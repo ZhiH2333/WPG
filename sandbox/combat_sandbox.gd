@@ -20,6 +20,7 @@ var _enemies: Array[EnemyBase] = []
 @onready var _enemies_root: Node2D = $Enemies
 @onready var _sfx_pool: SfxPool = $SfxPool
 @onready var _encounter: EncounterPhrases = $EncounterPhrases
+@onready var _run_session: RunSession = $RunSession
 
 func _ready() -> void:
 	_apply_wall_layers()
@@ -31,7 +32,9 @@ func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _process(delta: float) -> void:
-	_encounter.tick(delta)
+	if _run_session.is_playing():
+		_encounter.tick(delta)
+	_run_session.tick(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("sandbox_reset"):
@@ -63,6 +66,10 @@ func _bind_runtime() -> void:
 	_hud.bind_player(_player)
 	_hud.bind_weapon_host(_player.get_weapon_host())
 	_hud.bind_encounter(_encounter)
+	_run_session.bind_player(_player)
+	_run_session.bind_encounter(_encounter)
+	_run_session.restart()
+	_debug_overlay.bind_run_session(_run_session)
 
 func _collect_enemies() -> Array[EnemyBase]:
 	var enemies: Array[EnemyBase] = []
@@ -91,6 +98,7 @@ func _reset_sandbox() -> void:
 	_player.reset_for_sandbox()
 	_hold_all_in_reserve()
 	_encounter.restart()
+	_run_session.restart()
 
 func _bind_window_cursor() -> void:
 	var window: Window = get_window()

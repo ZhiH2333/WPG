@@ -270,11 +270,30 @@ DebugOverlay 仍在左上：`fps_min_2s` / `phrase_alive` / `rest_left` / 池。
 
 句读表 P0–P8、三把枪身份、Motor 420、`look_ahead=100`、shake、击退/hitstop、敌人数值、Day 10 gated 修复都没动。
 
-**本阶段不做：** XP 条/等级、三选一、商店、材料/金币、WAVE COMPLETE、死亡屏、主菜单、设置、弹药数字、换弹弧。
+**当时不做：** XP 条/等级、三选一、商店、材料/金币、WAVE COMPLETE、死亡屏、主菜单、设置、弹药数字、换弹弧。
+
+## Day 13（已完成）：本局节点 RunSession
+
+`arena/run_session.gd`（`class_name RunSession`）是 **CombatSandbox 的子节点**，与 `EncounterPhrases` 平级。不是 Autoload，不要旧名 `RunState` / `GameFlow`。只观察，不抄血：HP 仍只在 `PlayerHealth`，句读表仍只在 `EncounterPhrases`。禁止再存一份 `player_current_hp` / phrase 数组。禁止 `get_tree().paused`、禁止 `Engine.time_scale`、禁止信号总线。
+
+三件事：
+
+- **playing**：这局还在打。只有 playing 才累加 `elapsed_sec`，才调用 `EncounterPhrases.tick`
+- **dead**：玩家死了。停止推进下一句（rest 倒完也不开下一句，P1 重叠 P3 也不再触发）。已经在场的非预备役敌人继续走/打。HUD 仍是 `0/100` + 当前枪 + 当时的 phrase。没有 YOU DIED、不锁镜头
+- **cleared**：句读打完且人还活着。玩家仍可走、可打空（Day 11 P8）。`run_time` 冻结。不要弹「通关」
+- **同一帧既死又 phrases_done → dead**
+
+R 五步：两套弹 `park_all` → 玩家 `reset_for_sandbox` → 30 人 `hold_in_reserve` → `EncounterPhrases.restart()` → `RunSession.restart()`（playing，elapsed=0）。禁止 `reload_current_scene()`。
+
+Overlay 增补：`run: playing|dead|cleared`、`run_time`。HUD 不 bind RunSession，不显示 run 字段，三块布局不变。
+
+本阶段列表为空：不要 `upgrade_ids`、不要 xp、不要 gold、不要 wave_index。句读表 P0–P8、三把枪身份、Motor 420、`look_ahead=100`、shake、击退/hitstop、敌人数值、Day 10 gated 修复都没动。
+
+**本阶段不做：** 升级 Resource、三选一弹窗、XP、商店、死亡结算屏。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 13 才做**RunSession（本局是否存活 / 句读进度的局状态对象）。仍无 XP、无三选一、无商店
+- **Day 14 才做**10 个升级 Resource 定义；RunSession 可持有已选 id 列表但本阶段恒空、不改枪/HP。仍无三选一弹窗、无 XP、无商店
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -335,12 +354,12 @@ weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle、Projectile、本局 Pr
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
-arena/      EncounterPhrases 手写句读（P0–P8）；不是 WaveDirector
+arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
 ui/         Hud + game_theme.tres（左下 HP+武器，顶中句读）；DebugOverlay 仍在 debug/
 data/       武器/敌人/升级 Resource（尚未开始）
 debug/      DebugOverlay
-sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / Hud / DebugOverlay）
+sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / Hud / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -355,6 +374,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 13
+## 下一步：Day 14
 
-**Day 13 = RunSession。** 本局是否存活 / 句读进度的局状态对象。仍无 XP，无三选一，无商店，无第四把枪。
+**Day 14 = 10 个升级 Resource 定义。** RunSession 可持有已选 id 列表，但本阶段恒空、不改枪/HP。仍无三选一弹窗，无 XP，无商店，无第四把枪。

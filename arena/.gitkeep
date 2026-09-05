@@ -1,1 +1,1 @@
-手写句读 EncounterPhrases（P0–P8）。不是 WaveDirector / SpawnBudget。
+EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession。不是 Autoload RunState。
