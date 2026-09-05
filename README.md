@@ -226,11 +226,35 @@ Overlay 增补 `shake_offset` / `shake_speed`。三把枪身份、Motor 420、`l
 
 三把枪身份、Motor 420、`look_ahead=100`、`follow_smoothing=8`、shake、击退/hitstop 初值未改。
 
-**本阶段不做：** 波次表、商店、精英/Boss、掉落物、AnimationTree、第四把枪。
+**当时不做：** 波次表、商店、精英/Boss、掉落物、AnimationTree、第四把枪。
+
+## Day 11（已完成）：手写句读，不是 30 人同时压
+
+30 个预放节点改成 **预备役 → 按句读激活**。开局全部 `hold_in_reserve`，先 **P0 rest 1.5s**（场上 0 活），不要立刻 P1。活着的那一撮仍各自 `_physics_process` + 廉价 seek。尸体变灰留场；未出场的预备役隐藏并关物理。不要 instantiate 新敌人。
+
+手写短语表在 `arena/encounter_phrases.gd`（`EncounterPhrases`），用**节点名**引用沙盒实例。禁止 SpawnBudget、禁止 WaveDirector、禁止权重随机填满。`CombatSandbox` 拥有该节点，不是 Autoload。
+
+- **P0** rest 1.5s
+- **P1** 左侧 4 近战 `MeleeLeft1..4`，同侧 stagger；等这 4 只全部 defeated（不是半场）
+- **P3 重叠：** P1 还剩 1～2 只活着时提前激活右侧 3 远程 `RangedRight1..3`。若 P1 已清完才进 P3，也合法，**rest 仍走 P2**
+- **P2 / P4 / P6** rest 1.5s（重叠已开 P3 则跳过 P2）
+- **P5** 下侧 6 近战 + 上侧 2 远程同时压；等这 8 只全部 defeated
+- **P7** dump 剩余未用节点（左 5–10、下 7–10、右 4–6、上 3–4）分侧激活
+- **P8** `phrases_done`：空场 + 尸体。玩家仍可走可打空。不弹窗。按 R 从头
+
+R 重置：两套弹 `park_all` → 玩家 `reset_for_sandbox` → 30 人全部 `hold_in_reserve`（不 `reset_for_sandbox` 再 stagger 全上）→ `EncounterPhrases.restart()` 回 P0。禁止 `reload_current_scene()`。
+
+Overlay：`phrase`（P0=`0/8` / 句中=`1/8` / 结束=`phrases_done`）、`phrase_alive`、`rest_left`。`enemies_alive` / `enemies_dead` **只数非预备役**。句中并发约 4～12，不是一开局 `20M+10R`。
+
+句间 rest 用 delta 倒数，不用 Timer 节点，不冻玩家、不用 `time_scale`。Day 10 已达标，**没有**火花池 / AI 分频 / EnemyManager。
+
+三把枪身份、Motor 420、`look_ahead=100`、shake、击退/hitstop 初值未改。
+
+**本阶段不做：** 升级弹窗、三选一、XP、商店、WAVE COMPLETE 大字、最小 HUD 壳。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 11 才做**手写战场句读（几撮进出场 + 1.5s 停顿）。仍无升级弹窗、无 WaveDirector 预算、无商店
+- **Day 12 才做**最小 HUD（HP / 当前武器 / 句读序号）。仍无三选一、无商店、无 XP
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -291,7 +315,7 @@ weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle、Projectile、本局 Pr
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
-arena/      灰盒图、WaveDirector（尚未开始）
+arena/      EncounterPhrases 手写句读（P0–P8）；不是 WaveDirector
 camera/     PlayerCamera、AimReticle
 ui/         仅 Slice 四个界面 + Theme（尚未开始）
 data/       武器/敌人/升级 Resource（尚未开始）
@@ -301,7 +325,7 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 ## 碰撞层
 
-| 层 | 名称 | Day 6–10 用法 |
+| 层 | 名称 | Day 6–11 用法 |
 |---|---|---|
 | 1 | player | 玩家只撞墙，不跟敌人刚体互推 |
 | 2 | enemy | 近战/远程；mask = wall；不挡玩家移动 |
@@ -311,6 +335,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 11
+## 下一步：Day 12
 
-**Day 11 = 手写战场句读。** 几撮进出场 + 约 1.5s 停顿。仍无升级弹窗，无 WaveDirector 预算，无商店，无第四把枪。
+**Day 12 = 最小 HUD。** HP / 当前武器 / 句读序号。仍无三选一，无商店，无 XP，无第四把枪。

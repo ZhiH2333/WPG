@@ -21,6 +21,7 @@ const SEPARATION_PIXELS: float = 40.0
 
 var _hp: int = 36
 var _defeated: bool = false
+var _in_reserve: bool = false
 var _flash_left_sec: float = 0.0
 var _player: Player
 var _knockback_velocity: Vector2 = Vector2.ZERO
@@ -65,11 +66,14 @@ func get_spawn_position() -> Vector2:
 func is_defeated() -> bool:
 	return _defeated
 
+func is_in_reserve() -> bool:
+	return _in_reserve
+
 func is_in_hitstop() -> bool:
 	return _hitstop_left_sec > 0.0
 
 func is_entering() -> bool:
-	return _spawn_stagger_left_sec > 0.0
+	return not _in_reserve and _spawn_stagger_left_sec > 0.0
 
 func get_hitstop_left_sec() -> float:
 	return _hitstop_left_sec
@@ -80,7 +84,38 @@ func get_knockback_speed() -> float:
 func get_kind_name() -> String:
 	return "Enemy"
 
+func hold_in_reserve() -> void:
+	_in_reserve = true
+	_defeated = false
+	_flash_left_sec = 0.0
+	_knockback_velocity = Vector2.ZERO
+	_hitstop_left_sec = 0.0
+	_was_in_hitstop = false
+	_spawn_stagger_left_sec = 0.0
+	_spawn_stagger_duration_sec = 0.0
+	spawn_stagger_sec = 0.0
+	velocity = Vector2.ZERO
+	global_position = _spawn_position
+	collision_layer = GameCollisionLayers.MASK_NONE
+	collision_mask = GameCollisionLayers.MASK_NONE
+	visible = false
+	_visual.color = _alive_color
+	_visual.modulate = Color.WHITE
+	_visual.scale = Vector2.ONE
+	if _hit_reaction != null:
+		_hit_reaction.reset()
+	set_physics_process(false)
+	set_process(false)
+	_on_hold_in_reserve()
+
+func activate_from_reserve() -> void:
+	_in_reserve = false
+	visible = true
+	set_process(true)
+	reset_for_sandbox(_spawn_position)
+
 func reset_for_sandbox(spawn_position: Vector2) -> void:
+	_in_reserve = false
 	_spawn_position = spawn_position
 	_hp = max_hp
 	_defeated = false
@@ -88,15 +123,18 @@ func reset_for_sandbox(spawn_position: Vector2) -> void:
 	_knockback_velocity = Vector2.ZERO
 	_hitstop_left_sec = 0.0
 	_was_in_hitstop = false
+	spawn_stagger_sec = 0.0
 	velocity = Vector2.ZERO
 	global_position = spawn_position
 	collision_layer = GameCollisionLayers.MASK_ENEMY
 	collision_mask = GameCollisionLayers.MASK_WALL
+	visible = true
 	_visual.color = _alive_color
 	_visual.modulate = Color.WHITE
 	_hit_reaction.reset()
 	_begin_enter()
 	set_physics_process(true)
+	set_process(true)
 	_on_reset_for_sandbox()
 
 func assign_spawn_stagger(stagger_sec: float) -> void:
@@ -106,7 +144,7 @@ func assign_spawn_stagger(stagger_sec: float) -> void:
 	_begin_enter()
 
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
-	if _defeated or amount <= 0:
+	if _in_reserve or _defeated or amount <= 0:
 		return
 	if is_entering():
 		_finish_entering()
@@ -123,6 +161,8 @@ func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = V
 		_defeat()
 
 func _physics_process(delta: float) -> void:
+	if _in_reserve:
+		return
 	if _defeated:
 		_tick_death_slide(delta)
 		return
@@ -140,6 +180,8 @@ func _physics_process(delta: float) -> void:
 	_face_player()
 
 func _process(delta: float) -> void:
+	if _in_reserve:
+		return
 	_tick_flash(delta)
 	_update_enter_scale()
 
@@ -147,6 +189,9 @@ func _tick_ai(_delta: float) -> void:
 	pass
 
 func _on_reset_for_sandbox() -> void:
+	pass
+
+func _on_hold_in_reserve() -> void:
 	pass
 
 func _steer_toward(delta: float, desired_velocity: Vector2) -> void:

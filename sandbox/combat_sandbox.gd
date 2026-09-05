@@ -8,7 +8,6 @@ const ENEMY_POOL_CAPACITY: int = 64
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
 var _enemies: Array[EnemyBase] = []
-var _enemy_spawns: Array[Vector2] = []
 
 @onready var _walls: Node2D = $Walls
 @onready var _player: Player = $Player
@@ -19,6 +18,7 @@ var _enemy_spawns: Array[Vector2] = []
 @onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
 @onready var _enemies_root: Node2D = $Enemies
 @onready var _sfx_pool: SfxPool = $SfxPool
+@onready var _encounter: EncounterPhrases = $EncounterPhrases
 
 func _ready() -> void:
 	_apply_wall_layers()
@@ -28,6 +28,9 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func _process(delta: float) -> void:
+	_encounter.tick(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("sandbox_reset"):
@@ -50,10 +53,12 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_projectile_pool(_projectiles)
 	_debug_overlay.bind_enemy_projectile_pool(_enemy_projectiles)
 	_enemies = _collect_enemies()
-	_cache_enemy_spawns()
 	_bind_enemies(_enemies)
-	_apply_entry_stagger()
+	_encounter.bind_enemies(_enemies)
+	_hold_all_in_reserve()
+	_encounter.restart()
 	_debug_overlay.bind_enemies(_enemies)
+	_debug_overlay.bind_encounter(_encounter)
 
 func _collect_enemies() -> Array[EnemyBase]:
 	var enemies: Array[EnemyBase] = []
@@ -62,11 +67,6 @@ func _collect_enemies() -> Array[EnemyBase]:
 		if enemy != null:
 			enemies.append(enemy)
 	return enemies
-
-func _cache_enemy_spawns() -> void:
-	_enemy_spawns.clear()
-	for enemy: EnemyBase in _enemies:
-		_enemy_spawns.append(enemy.global_position)
 
 func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 	for enemy: EnemyBase in enemies:
@@ -77,41 +77,16 @@ func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 		if ranged != null:
 			ranged.bind_projectile_pool(_enemy_projectiles)
 
-func _apply_entry_stagger() -> void:
-	var side_index: Dictionary = {}
-	for i: int in _enemies.size():
-		var enemy: EnemyBase = _enemies[i]
-		var side: String = _side_key_for(_enemy_spawns[i])
-		var index_in_side: int = int(side_index.get(side, 0))
-		side_index[side] = index_in_side + 1
-		enemy.assign_spawn_stagger(_stagger_for_side(side, index_in_side))
+func _hold_all_in_reserve() -> void:
+	for enemy: EnemyBase in _enemies:
+		enemy.hold_in_reserve()
 
 func _reset_sandbox() -> void:
 	_projectiles.park_all()
 	_enemy_projectiles.park_all()
 	_player.reset_for_sandbox()
-	for i: int in _enemies.size():
-		_enemies[i].reset_for_sandbox(_enemy_spawns[i])
-	_apply_entry_stagger()
-
-func _side_key_for(spawn: Vector2) -> String:
-	if spawn.x < -300.0:
-		return "left"
-	if spawn.y > 300.0:
-		return "bottom"
-	if spawn.x > 400.0:
-		return "right"
-	return "top"
-
-func _stagger_for_side(side: String, index_in_side: int) -> float:
-	var base_sec: float = 0.0
-	if side == "bottom":
-		base_sec = 0.04
-	elif side == "right":
-		base_sec = 0.06
-	elif side == "top":
-		base_sec = 0.08
-	return clampf(base_sec + float(index_in_side) * 0.06, 0.0, 0.8)
+	_hold_all_in_reserve()
+	_encounter.restart()
 
 func _bind_window_cursor() -> void:
 	var window: Window = get_window()

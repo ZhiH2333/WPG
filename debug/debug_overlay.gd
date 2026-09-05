@@ -12,6 +12,7 @@ var _weapon_host: WeaponHost
 var _pool: ProjectilePool
 var _enemy_pool: ProjectilePool
 var _enemies: Array[EnemyBase] = []
+var _encounter: EncounterPhrases
 var _fps_slot_min: PackedFloat32Array = PackedFloat32Array()
 var _fps_slot_sum: PackedFloat32Array = PackedFloat32Array()
 var _fps_slot_count: PackedInt32Array = PackedInt32Array()
@@ -50,6 +51,9 @@ func bind_enemy_projectile_pool(pool: ProjectilePool) -> void:
 func bind_enemies(enemies: Array[EnemyBase]) -> void:
 	_enemies = enemies
 
+func bind_encounter(encounter: EncounterPhrases) -> void:
+	_encounter = encounter
+
 func get_fps_min_2s() -> float:
 	return _fps_min_2s
 
@@ -70,7 +74,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nreset: R\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nreset: R\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -99,6 +103,9 @@ func _compose_status_text() -> String:
 		_format_vector(_read_shake_offset()),
 		_read_shake_speed(),
 		AI_STAGGER_LABEL,
+		_read_phrase_label(),
+		_read_phrase_alive(),
+		_read_rest_left(),
 		fps,
 		_fps_min_2s,
 		_fps_avg_2s,
@@ -179,11 +186,26 @@ func _read_player_hp() -> int:
 		return 0
 	return _player.get_player_health().get_hp()
 
+func _read_phrase_label() -> String:
+	if _encounter == null:
+		return "-"
+	return _encounter.get_phrase_label()
+
+func _read_phrase_alive() -> int:
+	if _encounter == null:
+		return 0
+	return _encounter.get_phrase_alive()
+
+func _read_rest_left() -> float:
+	if _encounter == null:
+		return 0.0
+	return _encounter.get_rest_left()
+
 func _format_alive_summary() -> String:
 	var melee_alive: int = 0
 	var ranged_alive: int = 0
 	for enemy: EnemyBase in _enemies:
-		if enemy.is_defeated():
+		if enemy.is_in_reserve() or enemy.is_defeated():
 			continue
 		if enemy is MeleeEnemy:
 			melee_alive += 1
@@ -194,8 +216,9 @@ func _format_alive_summary() -> String:
 func _count_dead_enemies() -> int:
 	var dead: int = 0
 	for enemy: EnemyBase in _enemies:
-		if enemy.is_defeated():
-			dead += 1
+		if enemy.is_in_reserve() or not enemy.is_defeated():
+			continue
+		dead += 1
 	return dead
 
 func _format_nearest() -> String:
@@ -207,6 +230,8 @@ func _format_nearest() -> String:
 func _read_hitstop_ms() -> float:
 	var left_sec: float = 0.0
 	for enemy: EnemyBase in _enemies:
+		if enemy.is_in_reserve():
+			continue
 		left_sec = maxf(left_sec, enemy.get_hitstop_left_sec())
 	return left_sec * 1000.0
 
@@ -230,7 +255,7 @@ func _find_nearest_enemy() -> EnemyBase:
 	var nearest: EnemyBase = null
 	var best_dist: float = INF
 	for enemy: EnemyBase in _enemies:
-		if enemy.is_defeated():
+		if enemy.is_in_reserve() or enemy.is_defeated():
 			continue
 		var dist: float = INF
 		if _player != null:
@@ -238,9 +263,7 @@ func _find_nearest_enemy() -> EnemyBase:
 		if dist < best_dist:
 			best_dist = dist
 			nearest = enemy
-	if nearest != null:
-		return nearest
-	return _enemies[0]
+	return nearest
 
 func _tick_fps_window(delta: float) -> void:
 	if delta <= 0.0:
