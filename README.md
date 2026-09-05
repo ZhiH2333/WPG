@@ -106,11 +106,11 @@ fire_held 为假 → next_fire_at = mini(next_fire_at, now)（松开后立刻可
 
 ```text
 Acquire → 飞 → 命中假人 / 撞墙 / 出界 / 寿命到 → Release
-capacity = 64，预实例化。禁止每发 instantiate/queue_free
-池满时这一发打不出并记 refused，禁止删天上正在飞的弹
+Day 4 当时 capacity = 64。Day 5 提到 96。禁止每发 instantiate/queue_free
+池满时这一枪打不出并记 refused，禁止删天上正在飞的弹
 ```
 
-假人：3 个静止红块，max_hp=40。命中扣血、闪白 ≤0.1s、世界伤害数字向上漂约 0.45s。HP≤0 变灰并关掉受伤，留在场上，不 `queue_free`、不掉落。
+假人：3 个静止红块。Day 4 为 max_hp=40；Day 5 提到 80 方便试步枪。命中扣血、闪白 ≤0.1s、世界伤害数字向上漂约 0.45s。HP≤0 变灰并关掉受伤，留在场上，不 `queue_free`、不掉落。
 
 手枪参数（集中在 `Pistol` 的 `@export`）：
 
@@ -121,15 +121,40 @@ capacity = 64，预实例化。禁止每发 instantiate/queue_free
 | `damage` | 8 | 单发伤害 |
 | `lifetime` | 0.9 | 子弹最长存活 |
 
-`DebugOverlay` 增补 `fire_cd`、`active_bullets`、`pool_free`、`last_shot_refused`、`dummy_hp`。
+`DebugOverlay` 当时增补 `fire_cd`、`active_bullets`、`pool_free`、`last_shot_refused`、`dummy_hp`。
 
-**本阶段不做：** 霰弹/步枪、换弹 UI、相机后坐/震屏、Hitstop、敌人 AI/波次、死亡碎裂。
+## Day 5（已完成）：三把枪身份差
+
+同一套瞄准 + 按住开火合同，只换节奏。键盘 **1 / 2 / 3** 切手枪 / 霰弹 / 步枪。切枪立刻换当前武器、不走火；切走步枪时散布清零。切枪不进入 `move/aim/fire_held` 三量合同。
+
+开火合同差异（时间戳，**不用 Timer**）：
+
+```text
+三把都是：fire_held 且 now >= next_fire_at → 开火，next_fire_at = now + interval
+手枪：松开 → next_fire_at = mini(next_fire_at, now)（可立刻点射）
+霰弹：松开 → 不改 next_fire_at（泵必须走完，禁止连点刷爆发）
+步枪：松开 → next_fire_at = mini(next_fire_at, now)；未开火时每帧收回散布
+```
+
+身份（30 秒可辨，禁止只改 damage）：
+
+| 枪 | 节奏 | 弹道 |
+|---|---|---|
+| 手枪 | 0.18s，松开可点 | 单弹、散布 0、细而准 |
+| 霰弹 | 0.62s 泵，松开不复位 | 同一枪口均匀扇形 8 粒（±1° 微抖），每粒伤害 6 |
+| 步枪 | 0.09s 连发，松开可点 | 第一发准；每发 +0.9° 散布至 11°；停火 18°/s 收回 |
+
+霰弹一扳机需要 8 发空闲弹；不够则整枪拒发（`refused++`），禁止打出残散弹。池 **capacity = 96**，仍是本局节点、同一 `projectile.tscn`。
+
+`WeaponHost` 包住三把枪；`Weapon` 只抽重复合同。`DebugOverlay` 读 Host：`weapon`、`spread_deg`、`pellets`。
+
+**本阶段不做：** 换弹弧、弹药数字 HUD、镜头后坐/震屏、Hitstop、敌人 AI。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 5 才做**霰弹 + 步枪身份差
+- **Day 6 才做**可移动的近战 + 远程敌人（`EnemyBase`），不是第四把枪
 - 震屏 / 受击踢镜 / 开火后坐 / 换弹进度弧
-- 敌人行走、还击、死亡碎裂、掉落
+- 敌人还击、死亡碎裂、掉落
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
 - Web 导出妥协、C#、外部 ECS、任何 Autoload
@@ -152,7 +177,8 @@ fire_held      bool      是否按住开火
 - 鼠标世界坐标相对玩家 → `aim_vector`（归一化；与玩家重合时保持上一帧或 `Vector2.RIGHT`，禁止 NaN）
 - 按住鼠标左键 → `fire_held`
 - 没有 `aim` action；瞄准用鼠标位置，不锁最近敌人
-- Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；Pistol **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
+- Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
+- 切枪 1/2/3 由 `WeaponHost` 读取，不塞进输入合同三量
 
 手机双摇杆是后续阶段；不要做 Input Autoload。输入组件挂在玩家节点上。
 
@@ -178,8 +204,8 @@ fire_held      bool      是否按住开火
 场景和脚本放在同一功能目录，不要按「脚本仓库 / 场景仓库」切开：
 
 ```text
-player/     玩家场景、PlayerInput、PlayerMotor、Muzzle；Pistol 挂在玩家上
-weapons/    Pistol、Projectile、ProjectilePool（本局节点）
+player/     玩家场景、PlayerInput、PlayerMotor、Muzzle、WeaponHost
+weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle、Projectile、本局 ProjectilePool
 enemies/    DummyTarget（静止假人）
 combat/     碰撞层常量、DamageNumber
 arena/      灰盒图、WaveDirector（尚未开始）
@@ -202,6 +228,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Dummy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 5
+## 下一步：Day 6
 
-**Day 5 = 霰弹 + 步枪身份差。** 三把枪 30 秒可辨：手枪准而快、霰弹走近再扣、步枪按住喷且连续散布变大。不要提前做换弹 UI 或镜头后坐。
+**Day 6 = 可移动敌人。** `EnemyBase`：近战 + 远程，能走近/射击、能死、能掉血。不要第四把枪，不要换弹 UI，不要镜头后坐。

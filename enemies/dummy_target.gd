@@ -6,9 +6,9 @@ const FLASH_DURATION_SEC: float = 0.1
 const ALIVE_COLOR: Color = Color(0.86, 0.22, 0.2, 1)
 const DEAD_COLOR: Color = Color(0.42, 0.42, 0.44, 1)
 
-@export var max_hp: int = 40
+@export var max_hp: int = 80
 
-var _hp: int = 40
+var _hp: int = 80
 var _defeated: bool = false
 var _flash_left_sec: float = 0.0
 

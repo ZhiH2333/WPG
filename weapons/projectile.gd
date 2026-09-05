@@ -12,6 +12,8 @@ var _lifetime_sec: float = 0.9
 var _age_sec: float = 0.0
 var _last_global_position: Vector2 = Vector2.ZERO
 
+@onready var _visual: Node2D = $Visual
+
 func _ready() -> void:
 	collision_layer = GameCollisionLayers.MASK_PLAYER_BULLET
 	collision_mask = GameCollisionLayers.MASK_ENEMY | GameCollisionLayers.MASK_WALL
@@ -25,7 +27,7 @@ func bind_pool(pool: ProjectilePool) -> void:
 func is_parked() -> bool:
 	return not _in_flight
 
-func reset(spawn_position: Vector2, flight_velocity: Vector2, damage: int, lifetime_sec: float) -> void:
+func reset(spawn_position: Vector2, flight_velocity: Vector2, damage: int, lifetime_sec: float, visual_scale: float = 1.0) -> void:
 	_in_flight = true
 	_damage = damage
 	_lifetime_sec = lifetime_sec
@@ -34,6 +36,7 @@ func reset(spawn_position: Vector2, flight_velocity: Vector2, damage: int, lifet
 	global_position = spawn_position
 	_last_global_position = spawn_position
 	rotation = flight_velocity.angle()
+	_visual.scale = Vector2.ONE * visual_scale
 	visible = true
 	monitorable = true
 	monitoring = true
@@ -43,6 +46,8 @@ func park() -> void:
 	_in_flight = false
 	_velocity = Vector2.ZERO
 	_age_sec = 0.0
+	if _visual != null:
+		_visual.scale = Vector2.ONE
 	visible = false
 	monitoring = false
 	monitorable = false

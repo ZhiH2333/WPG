@@ -1,9 +1,12 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://player/player_input.gd" id="2_input"]
 [ext_resource type="Script" path="res://player/player_motor.gd" id="3_motor"]
-[ext_resource type="Script" path="res://weapons/pistol.gd" id="4_pistol"]
+[ext_resource type="Script" path="res://player/weapon_host.gd" id="4_host"]
+[ext_resource type="Script" path="res://weapons/pistol.gd" id="5_pistol"]
+[ext_resource type="Script" path="res://weapons/shotgun.gd" id="6_shotgun"]
+[ext_resource type="Script" path="res://weapons/rifle.gd" id="7_rifle"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 20.0
@@ -30,5 +33,22 @@ script = ExtResource("2_input")
 [node name="PlayerMotor" type="Node" parent="."]
 script = ExtResource("3_motor")
 
-[node name="Pistol" type="Node" parent="."]
-script = ExtResource("4_pistol")
+[node name="WeaponHost" type="Node" parent="."]
+script = ExtResource("4_host")
+
+[node name="Pistol" type="Node" parent="WeaponHost"]
+script = ExtResource("5_pistol")
+
+[node name="Shotgun" type="Node" parent="WeaponHost"]
+script = ExtResource("6_shotgun")
+fire_interval = 0.62
+projectile_speed = 780.0
+damage = 6
+lifetime = 0.45
+
+[node name="Rifle" type="Node" parent="WeaponHost"]
+script = ExtResource("7_rifle")
+fire_interval = 0.09
+projectile_speed = 1100.0
+damage = 5
+lifetime = 0.85

@@ -2,7 +2,7 @@ extends Node2D
 class_name CombatSandbox
 
 const PROJECTILE_SCENE: PackedScene = preload("res://weapons/projectile.tscn")
-const POOL_CAPACITY: int = 64
+const POOL_CAPACITY: int = 96
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -32,7 +32,7 @@ func _bind_runtime() -> void:
 	_aim_reticle.bind_player_input(player_input)
 	_debug_overlay.bind_player(_player)
 	_debug_overlay.bind_player_camera(_player_camera)
-	_debug_overlay.bind_pistol(_player.get_pistol())
+	_debug_overlay.bind_weapon_host(_player.get_weapon_host())
 	_debug_overlay.bind_projectile_pool(_projectiles)
 	_debug_overlay.bind_dummies(_collect_dummies())
 
