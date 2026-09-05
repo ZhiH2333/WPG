@@ -24,6 +24,8 @@ var _knockback_velocity: Vector2 = Vector2.ZERO
 var _hitstop_left_sec: float = 0.0
 var _was_in_hitstop: bool = false
 var _hit_reaction: HitReaction
+var _sfx_pool: SfxPool
+var _player_camera: PlayerCamera
 
 @onready var _visual: Polygon2D = $Visual
 
@@ -36,6 +38,12 @@ func _ready() -> void:
 
 func bind_player(player: Player) -> void:
 	_player = player
+
+func bind_sfx_pool(sfx_pool: SfxPool) -> void:
+	_sfx_pool = sfx_pool
+
+func bind_player_camera(player_camera: PlayerCamera) -> void:
+	_player_camera = player_camera
 
 func get_hp() -> int:
 	return _hp
@@ -59,12 +67,14 @@ func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = V
 	if _defeated or amount <= 0:
 		return
 	var direction: Vector2 = _resolve_hit_direction(hit_direction)
+	var was_alive: bool = _hp > 0
 	_hp = maxi(0, _hp - amount)
 	_spawn_damage_number(amount, hit_position)
 	_start_flash()
 	_apply_knockback(direction)
 	_start_hitstop()
 	_hit_reaction.play(direction)
+	_play_hit_feedback(hit_position, direction, was_alive and _hp <= 0)
 	if _hp <= 0:
 		_defeat()
 
@@ -169,6 +179,15 @@ func _apply_knockback(direction: Vector2) -> void:
 
 func _start_hitstop() -> void:
 	_hitstop_left_sec = maxf(_hitstop_left_sec, hitstop_sec)
+
+func _play_hit_feedback(hit_position: Vector2, direction: Vector2, killed: bool) -> void:
+	if _sfx_pool != null:
+		_sfx_pool.play_hit(hit_position)
+		if killed:
+			_sfx_pool.play_kill(hit_position)
+	if _player_camera == null:
+		return
+	_player_camera.apply_kick(direction, 4.0 if killed else 2.0)
 
 func _apply_post_hitstop_velocity() -> void:
 	if not _was_in_hitstop:

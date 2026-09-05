@@ -47,3 +47,18 @@ func _on_shot_success() -> void:
 func _on_deactivated() -> void:
 	super._on_deactivated()
 	_current_spread_deg = min_spread_deg
+
+func get_camera_kick_amplitude() -> float:
+	return 3.0
+
+func get_recoil_pixels() -> float:
+	return 3.0
+
+func get_muzzle_flash_duration_sec() -> float:
+	return 0.035
+
+func get_muzzle_flash_scale() -> Vector2:
+	return Vector2(0.9, 0.5)
+
+func get_muzzle_flash_color() -> Color:
+	return Color(1.0, 0.98, 0.86, 1)

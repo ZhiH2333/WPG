@@ -95,6 +95,7 @@ func _try_fire() -> bool:
 	var acquired: Array[Projectile] = []
 	if not _acquire_pellets(pellet_count, acquired):
 		_shot_refused_count += 1
+		_player.notify_shot_refused()
 		return false
 	var aim: Vector2 = _resolve_aim_direction()
 	var muzzle: Vector2 = _player.get_muzzle_global_position()
@@ -102,6 +103,7 @@ func _try_fire() -> bool:
 	for index: int in pellet_count:
 		var direction: Vector2 = _direction_for_pellet(aim, index, pellet_count)
 		acquired[index].reset(muzzle, direction * projectile_speed, damage, lifetime, visual_scale)
+	_player.notify_shot_fired(aim, self)
 	return true
 
 func _acquire_pellets(pellet_count: int, acquired: Array[Projectile]) -> bool:
@@ -145,6 +147,21 @@ func _pellet_jitter_deg() -> float:
 
 func _pellet_visual_scale() -> float:
 	return 1.0
+
+func get_camera_kick_amplitude() -> float:
+	return 5.0
+
+func get_recoil_pixels() -> float:
+	return 4.0
+
+func get_muzzle_flash_duration_sec() -> float:
+	return 0.05
+
+func get_muzzle_flash_scale() -> Vector2:
+	return Vector2(1.0, 1.0)
+
+func get_muzzle_flash_color() -> Color:
+	return Color(1.0, 0.96, 0.72, 1)
 
 func _on_shot_success() -> void:
 	pass

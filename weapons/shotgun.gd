@@ -30,3 +30,18 @@ func _pellet_jitter_deg() -> float:
 
 func _pellet_visual_scale() -> float:
 	return 0.72
+
+func get_camera_kick_amplitude() -> float:
+	return 9.0
+
+func get_recoil_pixels() -> float:
+	return 6.0
+
+func get_muzzle_flash_duration_sec() -> float:
+	return 0.07
+
+func get_muzzle_flash_scale() -> Vector2:
+	return Vector2(1.85, 1.4)
+
+func get_muzzle_flash_color() -> Color:
+	return Color(1.0, 0.9, 0.52, 1)

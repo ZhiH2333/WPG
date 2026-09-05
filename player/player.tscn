@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://player/player_input.gd" id="2_input"]
@@ -8,6 +8,8 @@
 [ext_resource type="Script" path="res://weapons/shotgun.gd" id="6_shotgun"]
 [ext_resource type="Script" path="res://weapons/rifle.gd" id="7_rifle"]
 [ext_resource type="Script" path="res://player/player_health.gd" id="8_health"]
+[ext_resource type="PackedScene" path="res://combat/muzzle_flash.tscn" id="9_flash"]
+[ext_resource type="Script" path="res://player/fire_feedback.gd" id="10_feedback"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 20.0
@@ -27,6 +29,8 @@ polygon = PackedVector2Array(24, 0, -16, -18, -8, 0, -16, 18)
 
 [node name="Muzzle" type="Marker2D" parent="Visual"]
 position = Vector2(28, 0)
+
+[node name="MuzzleFlash" parent="Visual/Muzzle" instance=ExtResource("9_flash")]
 
 [node name="PlayerInput" type="Node" parent="."]
 script = ExtResource("2_input")
@@ -56,3 +60,6 @@ fire_interval = 0.09
 projectile_speed = 1100.0
 damage = 5
 lifetime = 0.85
+
+[node name="FireFeedback" type="Node" parent="."]
+script = ExtResource("10_feedback")

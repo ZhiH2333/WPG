@@ -43,6 +43,7 @@ func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = V
 	_spawn_damage_number(amount, hit_position)
 	_start_flash()
 	_i_frame_left_sec = i_frame_sec
+	_player.notify_hurt(direction)
 	if _hp <= 0:
 		_defeat()
 		return

@@ -181,11 +181,27 @@ Day 4 当时 capacity = 64。Day 5 提到 96。禁止每发 instantiate/queue_fr
 
 三把枪身份参数、Motor / 相机 `@export` 初值、敌人 max_hp / 移速 / 射速未改。击退参数是另加的 `@export`。
 
-**本阶段不做：** 音效、镜头后坐/震屏/zoom、开火枪身踢、死亡碎裂粒子、掉落物、换弹 UI。
+**当时不做：** 音效、镜头后坐/震屏/zoom、开火枪身踢、死亡碎裂粒子、掉落物、换弹 UI。
+
+## Day 8（已完成）：闭眼能分辨开火/受击
+
+方向性反馈，不是随机抖。跟手公式仍是 Day 3：`look_target = player + aim * look_ahead`，指数平滑不变。shake 是**额外偏移**，加在 lerp 结果上。
+
+- 相机 `apply_kick(direction, amplitude)`：`_shake_offset += dir * amplitude`，length 钳到 `shake_max=12`；每帧 `move_toward(ZERO, shake_decay=90 * delta)`。禁止随机 `Vector2`、禁止 Tween `Camera2D.offset`、禁止 zoom/旋转相机、禁止 `Engine.time_scale`。
+- 开火踢 `-aim`：手枪 5、步枪 3、霰弹 9。**霰弹一扳机只踢一次、闪一次、响一声**（`Weapon._try_fire` 在 8 粒循环之外 `notify_shot_fired` 一次）。步枪连发每发轻踢，靠 max 12 + 快衰减，停火后很快回 0。
+- 受击踢沿 `hit_direction`：敌人 2、击杀 4、玩家 6。玩家无 hitstop，移动仍跟手。局部 hitstop 仍只冻被打中的那只敌人。
+- 枪口闪光：`Visual/Muzzle/MuzzleFlash` 唯一节点 show/hide，手枪 ~50ms，霰弹更大 ~70ms，步枪更短更窄 ~35ms。禁止每发 instantiate 闪光。
+- 枪身短后坐：只平移 Visual.position（`-aim * 4/6/3 px`），0.1s 弹回。不改碰撞、不用 `HitReaction.play` 冒充后坐。
+- 命中火花：接触点沿 `-hit` 微喷，0.08s `queue_free`。墙和肉都可以。不是 GPUParticles。
+- `SfxPool` 挂在 `CombatSandbox` 上，**不是 Autoload**。8 个 `AudioStreamPlayer2D` 轮询，全忙抢最老。程序生成短 WAV（手枪短促、霰弹低沉一爆、步枪连点、敌人弹更闷、拒发咔）。池满拒发走 click，不当枪声。
+
+Overlay 增补 `shake_offset` / `shake_speed`。三把枪身份、Motor 420、`look_ahead=100`、`follow_smoothing=8`、击退/hitstop 初值未改。
+
+**本阶段不做：** 换弹 UI、弹药 HUD、AnimationTree、locomotion 状态机、死亡碎裂粒子海、掉落物、商店。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 8 才做**音效 + 方向性开火/受击震屏（VFX）。不要商店，不要 AnimationTree
+- **Day 9 才做**10～15 人沙盒（同一套近战/远程复制多只），验证愿意连打 3 分钟。不要商店，不要波次导演，不要 AnimationTree
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -222,6 +238,8 @@ fire_held      bool      是否按住开火
 - 把弹池做成 Autoload；每发 `instantiate`/`queue_free`；池满删天上的弹
 - 每帧 `get_tree().get_nodes_in_group("player")`；每敌 NavigationAgent / raycast / `queue_redraw`；满员删最老敌人
 - 把 `Camera2D` 死挂在 Player 上，再用 Tween 随机 `offset` 当震动
+- 随机 `Vector2(rand, rand)` 当镜头震动；用 `Engine.time_scale` 给震屏配慢动作
+- Autoload 音频栈 / 每发 `new AudioStreamPlayer`
 - 引擎 `position_smoothing` 和脚本 lerp 同时开（双重平滑）
 - 用鼠标离玩家的距离拉镜头（正反馈漂走）
 - `RunState` / `GameFlow` / `UiCanvasScaler` 以及任何全局单例（Autoload = 0；全程建议 ≤ 2）。本局节点可以有 `ProjectilePool`
@@ -237,21 +255,22 @@ fire_held      bool      是否按住开火
 场景和脚本放在同一功能目录，不要按「脚本仓库 / 场景仓库」切开：
 
 ```text
-player/     玩家场景、PlayerInput、PlayerMotor、PlayerHealth、Muzzle、WeaponHost
+player/     玩家场景、PlayerInput、PlayerMotor、PlayerHealth、Muzzle、WeaponHost、FireFeedback
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle、Projectile、本局 ProjectilePool
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy；DummyTarget 脚本保留但沙盒不再放置
-combat/     碰撞层常量、DamageNumber、HitReaction
+combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
+audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      灰盒图、WaveDirector（尚未开始）
 camera/     PlayerCamera、AimReticle
 ui/         仅 Slice 四个界面 + Theme（尚未开始）
 data/       武器/敌人/升级 Resource（尚未开始）
 debug/      DebugOverlay
-sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / Enemies）
+sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies）
 ```
 
 ## 碰撞层
 
-| 层 | 名称 | Day 6–7 用法 |
+| 层 | 名称 | Day 6–8 用法 |
 |---|---|---|
 | 1 | player | 玩家只撞墙，不跟敌人刚体互推 |
 | 2 | enemy | 近战/远程；mask = wall；不挡玩家移动 |
@@ -261,6 +280,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 8
+## 下一步：Day 9
 
-**Day 8 = 音效 + 方向性开火/受击震屏（VFX）。** 不要商店，不要第四把枪，不要换弹 UI，不要 AnimationTree。locomotion 若要做，只让 Visual 跟速度切 idle/walk，不要上 AnimationTree。
+**Day 9 = 10～15 人沙盒。** 同一套近战/远程复制多只，打到自己愿意连打 3 分钟。不要商店，不要波次导演，不要 AnimationTree，不要第四把枪。

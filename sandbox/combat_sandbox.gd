@@ -16,6 +16,7 @@ var _mouse_inside_window: bool = true
 @onready var _projectiles: ProjectilePool = $Projectiles
 @onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
 @onready var _enemies_root: Node2D = $Enemies
+@onready var _sfx_pool: SfxPool = $SfxPool
 
 func _ready() -> void:
 	_apply_wall_layers()
@@ -31,6 +32,8 @@ func _bind_runtime() -> void:
 	_projectiles.setup(_projectiles, PROJECTILE_SCENE, POOL_CAPACITY)
 	_enemy_projectiles.setup(_enemy_projectiles, PROJECTILE_SCENE, ENEMY_POOL_CAPACITY)
 	_player.bind_projectile_pool(_projectiles)
+	_player.bind_sfx_pool(_sfx_pool)
+	_player.bind_player_camera(_player_camera)
 	_player_camera.bind_player(_player)
 	_aim_reticle.bind_player_input(player_input)
 	_debug_overlay.bind_player(_player)
@@ -53,6 +56,8 @@ func _collect_enemies() -> Array[EnemyBase]:
 func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 	for enemy: EnemyBase in enemies:
 		enemy.bind_player(_player)
+		enemy.bind_sfx_pool(_sfx_pool)
+		enemy.bind_player_camera(_player_camera)
 		var ranged: RangedEnemy = enemy as RangedEnemy
 		if ranged != null:
 			ranged.bind_projectile_pool(_enemy_projectiles)

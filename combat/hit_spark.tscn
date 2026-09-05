@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://combat/hit_spark.gd" id="1_spark"]
+
+[node name="HitSpark" type="Node2D"]
+script = ExtResource("1_spark")
+
+[node name="Streak" type="Polygon2D" parent="."]
+color = Color(1, 0.86, 0.45, 1)
+polygon = PackedVector2Array(14, 0, -4, -3, -4, 3)
+
+[node name="StreakUp" type="Polygon2D" parent="."]
+position = Vector2(2, 0)
+rotation = -0.45
+color = Color(1, 0.72, 0.28, 1)
+polygon = PackedVector2Array(9, 0, -3, -2, -3, 2)
+
+[node name="StreakDown" type="Polygon2D" parent="."]
+position = Vector2(2, 0)
+rotation = 0.45
+color = Color(1, 0.62, 0.22, 1)
+polygon = PackedVector2Array(8, 0, -3, -2, -3, 2)

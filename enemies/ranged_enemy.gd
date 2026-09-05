@@ -89,6 +89,8 @@ func _try_fire() -> bool:
 		2.0,
 		false
 	)
+	if _sfx_pool != null:
+		_sfx_pool.play_enemy_shot(_muzzle.global_position)
 	return true
 
 func _get_fire_interval_msec() -> int:

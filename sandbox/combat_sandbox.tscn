@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://weapons/projectile_pool.gd" id="6_pool"]
 [ext_resource type="PackedScene" path="res://enemies/melee_enemy.tscn" id="7_melee"]
 [ext_resource type="PackedScene" path="res://enemies/ranged_enemy.tscn" id="8_ranged"]
+[ext_resource type="Script" path="res://combat/sfx_pool.gd" id="9_sfx"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -91,6 +92,9 @@ script = ExtResource("6_pool")
 
 [node name="EnemyProjectiles" type="Node2D" parent="."]
 script = ExtResource("6_pool")
+
+[node name="SfxPool" type="Node2D" parent="."]
+script = ExtResource("9_sfx")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 

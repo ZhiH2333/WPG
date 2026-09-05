@@ -5,6 +5,7 @@ class_name Projectile
 const WORLD_BOUNDS := Rect2(Vector2(-880.0, -530.0), Vector2(1760.0, 1060.0))
 const PLAYER_COLOR := Color(1, 0.92, 0.45, 1)
 const ENEMY_COLOR := Color(0.78, 0.12, 0.16, 1)
+const HIT_SPARK_SCENE: PackedScene = preload("res://combat/hit_spark.tscn")
 
 var _pool: ProjectilePool
 var _in_flight: bool = false
@@ -80,6 +81,7 @@ func _handle_hit(hit: Node) -> void:
 	if not _in_flight:
 		return
 	global_position = _last_global_position
+	_spawn_hit_spark()
 	_apply_hit_damage(hit)
 	_request_release()
 
@@ -109,6 +111,14 @@ func _hit_direction() -> Vector2:
 	if _velocity.is_zero_approx():
 		return Vector2.ZERO
 	return _velocity.normalized()
+
+func _spawn_hit_spark() -> void:
+	var spark: HitSpark = HIT_SPARK_SCENE.instantiate() as HitSpark
+	var host: Node = owner
+	if host == null:
+		host = get_parent()
+	host.add_child(spark)
+	spark.play(global_position, _hit_direction())
 
 func _apply_faction_collision() -> void:
 	if _is_player_shot:

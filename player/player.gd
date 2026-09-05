@@ -16,6 +16,7 @@ var _hit_reaction: HitReaction
 @onready var _visual: Node2D = $Visual
 @onready var _muzzle: Marker2D = $Visual/Muzzle
 @onready var _weapon_host: WeaponHost = $WeaponHost
+@onready var _fire_feedback: FireFeedback = $FireFeedback
 
 func _ready() -> void:
 	motion_mode = MOTION_MODE_FLOATING
@@ -45,6 +46,21 @@ func is_defeated() -> bool:
 func bind_projectile_pool(pool: ProjectilePool) -> void:
 	_weapon_host.bind_projectile_pool(pool)
 
+func bind_sfx_pool(sfx_pool: SfxPool) -> void:
+	_fire_feedback.bind_sfx_pool(sfx_pool)
+
+func bind_player_camera(player_camera: PlayerCamera) -> void:
+	_fire_feedback.bind_camera(player_camera)
+
+func notify_shot_fired(aim: Vector2, weapon: Weapon) -> void:
+	_fire_feedback.play_shot(aim, weapon)
+
+func notify_shot_refused() -> void:
+	_fire_feedback.play_refuse()
+
+func notify_hurt(hit_direction: Vector2) -> void:
+	_fire_feedback.play_hurt(hit_direction)
+
 func apply_hit_knockback(hit_direction: Vector2) -> void:
 	if is_defeated():
 		return
@@ -62,6 +78,7 @@ func play_hit_reaction(hit_direction: Vector2) -> void:
 	_hit_reaction.play(hit_direction)
 
 func begin_death_pose() -> void:
+	_fire_feedback.stop_recoil()
 	_hit_reaction.begin_death(false)
 
 func on_defeated() -> void:
