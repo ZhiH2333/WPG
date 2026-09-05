@@ -1,6 +1,9 @@
 extends Node2D
 class_name CombatSandbox
 
+const PROJECTILE_SCENE: PackedScene = preload("res://weapons/projectile.tscn")
+const POOL_CAPACITY: int = 64
+
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
 
@@ -9,6 +12,8 @@ var _mouse_inside_window: bool = true
 @onready var _player_camera: PlayerCamera = $PlayerCamera
 @onready var _aim_reticle: AimReticle = $AimReticle
 @onready var _debug_overlay: DebugOverlay = $DebugOverlay
+@onready var _projectiles: ProjectilePool = $Projectiles
+@onready var _dummy_targets: Node2D = $DummyTargets
 
 func _ready() -> void:
 	_apply_wall_layers()
@@ -21,10 +26,23 @@ func _exit_tree() -> void:
 
 func _bind_runtime() -> void:
 	var player_input: PlayerInput = _player.get_player_input()
+	_projectiles.setup(_projectiles, PROJECTILE_SCENE, POOL_CAPACITY)
+	_player.bind_projectile_pool(_projectiles)
 	_player_camera.bind_player(_player)
 	_aim_reticle.bind_player_input(player_input)
 	_debug_overlay.bind_player(_player)
 	_debug_overlay.bind_player_camera(_player_camera)
+	_debug_overlay.bind_pistol(_player.get_pistol())
+	_debug_overlay.bind_projectile_pool(_projectiles)
+	_debug_overlay.bind_dummies(_collect_dummies())
+
+func _collect_dummies() -> Array[DummyTarget]:
+	var dummies: Array[DummyTarget] = []
+	for child: Node in _dummy_targets.get_children():
+		var dummy: DummyTarget = child as DummyTarget
+		if dummy != null:
+			dummies.append(dummy)
+	return dummies
 
 func _bind_window_cursor() -> void:
 	var window: Window = get_window()
