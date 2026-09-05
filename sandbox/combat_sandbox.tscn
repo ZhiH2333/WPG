@@ -76,43 +76,94 @@ polygon = PackedVector2Array(-20, -490, 20, -490, 20, 490, -20, 490)
 [node name="Enemies" type="Node2D" parent="."]
 
 [node name="MeleeLeft1" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(-520, -160)
+position = Vector2(-620, -200)
 
 [node name="MeleeLeft2" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(-470, -55)
+position = Vector2(-590, -155)
 
 [node name="MeleeLeft3" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(-420, 55)
+position = Vector2(-560, -110)
 
 [node name="MeleeLeft4" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(-380, 165)
+position = Vector2(-530, -55)
+
+[node name="MeleeLeft5" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-500, 0)
+
+[node name="MeleeLeft6" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-470, 50)
+
+[node name="MeleeLeft7" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-445, 100)
+
+[node name="MeleeLeft8" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-420, 140)
+
+[node name="MeleeLeft9" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-400, 170)
+
+[node name="MeleeLeft10" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-380, 200)
 
 [node name="MeleeBottom1" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(-165, 380)
+position = Vector2(-280, 365)
 
 [node name="MeleeBottom2" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(-55, 400)
+position = Vector2(-218, 378)
 
 [node name="MeleeBottom3" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(60, 415)
+position = Vector2(-155, 390)
 
 [node name="MeleeBottom4" parent="Enemies" instance=ExtResource("7_melee")]
-position = Vector2(170, 430)
+position = Vector2(-93, 402)
+
+[node name="MeleeBottom5" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(-30, 415)
+
+[node name="MeleeBottom6" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(30, 425)
+
+[node name="MeleeBottom7" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(93, 437)
+
+[node name="MeleeBottom8" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(155, 448)
+
+[node name="MeleeBottom9" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(218, 458)
+
+[node name="MeleeBottom10" parent="Enemies" instance=ExtResource("7_melee")]
+position = Vector2(280, 468)
 
 [node name="RangedRight1" parent="Enemies" instance=ExtResource("8_ranged")]
-position = Vector2(500, -130)
+position = Vector2(490, -200)
 
 [node name="RangedRight2" parent="Enemies" instance=ExtResource("8_ranged")]
-position = Vector2(555, 10)
+position = Vector2(520, -120)
 
 [node name="RangedRight3" parent="Enemies" instance=ExtResource("8_ranged")]
-position = Vector2(615, 150)
+position = Vector2(550, -40)
+
+[node name="RangedRight4" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(580, 40)
+
+[node name="RangedRight5" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(610, 120)
+
+[node name="RangedRight6" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(640, 200)
 
 [node name="RangedTop1" parent="Enemies" instance=ExtResource("8_ranged")]
-position = Vector2(-90, -410)
+position = Vector2(-200, -405)
 
 [node name="RangedTop2" parent="Enemies" instance=ExtResource("8_ranged")]
-position = Vector2(95, -440)
+position = Vector2(-70, -425)
+
+[node name="RangedTop3" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(70, -445)
+
+[node name="RangedTop4" parent="Enemies" instance=ExtResource("8_ranged")]
+position = Vector2(200, -465)
 
 [node name="Projectiles" type="Node2D" parent="."]
 script = ExtResource("6_pool")

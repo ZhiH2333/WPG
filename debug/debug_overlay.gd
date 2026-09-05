@@ -1,6 +1,10 @@
 extends CanvasLayer
 class_name DebugOverlay
 
+const FPS_WINDOW_SEC: float = 2.0
+const FPS_SLOT_COUNT: int = 20
+const AI_STAGGER_LABEL: String = "off"
+
 var _player: Player
 var _player_input: PlayerInput
 var _player_camera: PlayerCamera
@@ -8,8 +12,21 @@ var _weapon_host: WeaponHost
 var _pool: ProjectilePool
 var _enemy_pool: ProjectilePool
 var _enemies: Array[EnemyBase] = []
+var _fps_slot_min: PackedFloat32Array = PackedFloat32Array()
+var _fps_slot_sum: PackedFloat32Array = PackedFloat32Array()
+var _fps_slot_count: PackedInt32Array = PackedInt32Array()
+var _fps_slot_index: int = 0
+var _fps_slot_elapsed: float = 0.0
+var _fps_min_2s: float = 0.0
+var _fps_avg_2s: float = 0.0
 
 @onready var _label: Label = $Label
+
+func _ready() -> void:
+	_fps_slot_min.resize(FPS_SLOT_COUNT)
+	_fps_slot_sum.resize(FPS_SLOT_COUNT)
+	_fps_slot_count.resize(FPS_SLOT_COUNT)
+	_reset_fps_slots()
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -33,7 +50,14 @@ func bind_enemy_projectile_pool(pool: ProjectilePool) -> void:
 func bind_enemies(enemies: Array[EnemyBase]) -> void:
 	_enemies = enemies
 
-func _process(_delta: float) -> void:
+func get_fps_min_2s() -> float:
+	return _fps_min_2s
+
+func get_fps_avg_2s() -> float:
+	return _fps_avg_2s
+
+func _process(delta: float) -> void:
+	_tick_fps_window(delta)
 	_refresh_label()
 
 func _refresh_label() -> void:
@@ -46,7 +70,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nreset: R\nFPS: %d" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nreset: R\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -74,7 +98,10 @@ func _compose_status_text() -> String:
 		_read_knockback_speed(),
 		_format_vector(_read_shake_offset()),
 		_read_shake_speed(),
+		AI_STAGGER_LABEL,
 		fps,
+		_fps_min_2s,
+		_fps_avg_2s,
 	]
 
 func _read_weapon() -> Weapon:
@@ -214,6 +241,44 @@ func _find_nearest_enemy() -> EnemyBase:
 	if nearest != null:
 		return nearest
 	return _enemies[0]
+
+func _tick_fps_window(delta: float) -> void:
+	if delta <= 0.0:
+		return
+	var instant_fps: float = 1.0 / delta
+	_fps_slot_min[_fps_slot_index] = minf(_fps_slot_min[_fps_slot_index], instant_fps)
+	_fps_slot_sum[_fps_slot_index] += instant_fps
+	_fps_slot_count[_fps_slot_index] += 1
+	_fps_slot_elapsed += delta
+	if _fps_slot_elapsed >= FPS_WINDOW_SEC / float(FPS_SLOT_COUNT):
+		_fps_slot_elapsed = 0.0
+		_fps_slot_index = (_fps_slot_index + 1) % FPS_SLOT_COUNT
+		_fps_slot_min[_fps_slot_index] = INF
+		_fps_slot_sum[_fps_slot_index] = 0.0
+		_fps_slot_count[_fps_slot_index] = 0
+	_refresh_fps_stats()
+
+func _refresh_fps_stats() -> void:
+	var min_fps: float = INF
+	var sum_fps: float = 0.0
+	var samples: int = 0
+	for i: int in FPS_SLOT_COUNT:
+		if _fps_slot_count[i] <= 0:
+			continue
+		min_fps = minf(min_fps, _fps_slot_min[i])
+		sum_fps += _fps_slot_sum[i]
+		samples += _fps_slot_count[i]
+	_fps_min_2s = 0.0 if min_fps == INF else min_fps
+	_fps_avg_2s = 0.0 if samples <= 0 else sum_fps / float(samples)
+
+func _reset_fps_slots() -> void:
+	_fps_slot_min.fill(INF)
+	_fps_slot_sum.fill(0.0)
+	_fps_slot_count.fill(0)
+	_fps_slot_index = 0
+	_fps_slot_elapsed = 0.0
+	_fps_min_2s = 0.0
+	_fps_avg_2s = 0.0
 
 func _format_vector(value: Vector2) -> String:
 	return "(%.2f, %.2f)" % [value.x, value.y]

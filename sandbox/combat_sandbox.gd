@@ -3,7 +3,7 @@ class_name CombatSandbox
 
 const PROJECTILE_SCENE: PackedScene = preload("res://weapons/projectile.tscn")
 const POOL_CAPACITY: int = 96
-const ENEMY_POOL_CAPACITY: int = 48
+const ENEMY_POOL_CAPACITY: int = 64
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -104,14 +104,14 @@ func _side_key_for(spawn: Vector2) -> String:
 	return "top"
 
 func _stagger_for_side(side: String, index_in_side: int) -> float:
-	var base_sec: float = 0.05
+	var base_sec: float = 0.0
 	if side == "bottom":
-		base_sec = 0.12
+		base_sec = 0.04
 	elif side == "right":
-		base_sec = 0.10
+		base_sec = 0.06
 	elif side == "top":
-		base_sec = 0.16
-	return clampf(base_sec + float(index_in_side) * 0.12, 0.0, 0.8)
+		base_sec = 0.08
+	return clampf(base_sec + float(index_in_side) * 0.06, 0.0, 0.8)
 
 func _bind_window_cursor() -> void:
 	var window: Window = get_window()

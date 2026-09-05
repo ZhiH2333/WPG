@@ -212,11 +212,25 @@ Overlay 增补 `shake_offset` / `shake_speed`。三把枪身份、Motor 420、`l
 
 三把枪身份、Motor / 相机 shake / 击退 / hitstop 初值未改。
 
-**本阶段不做：** 30 人压测、波次表、商店、精英/Boss、掉落物、AnimationTree。
+**当时不做：** 30 人压测、波次表、商店、精英/Boss、掉落物、AnimationTree。
+
+## Day 10（已完成）：30 人分侧压测，先量后改
+
+场上正好 **20 近战 + 10 远程 = 30**。左 10 / 下 10 近战成撮，右 6 / 上 4 远程拉距。玩家原点。距玩家都 ≥ ~280px。同侧 stagger `index * 0.06` 钳在 0.0～0.8s，不会把一撮拉成 3 秒才入场。
+
+- 敌人弹池 **48 → 64**（10 远程慢弹）。玩家池仍 **96**：步枪扫 22 秒 `last_shot_refused=0`，没有明显拒发，所以不上 128。
+- Overlay：`enemies_alive` 动态摘要（开局 `20M+10R`）、`fps` / **`fps_min_2s` / `fps_avg_2s`**（2 秒滚动窗，20 个 0.1s 桶累加，不每帧推 1000 个样本）、`ai_stagger: off`、`reset: R`。不刷 30 条 HP。
+- 压测方法：开局 30 人全活，步枪对人群扫 **22 秒**（允许被打、允许死、可按 R 再测）。读 Overlay 的 `fps_min_2s` / `fps_avg_2s`，不用感觉当结论。关 vsync 以外的额外 cap（测试脚本关 vsync；工程未设 `Engine.max_fps`）。
+- **结论（headless / vsync off / 22s 步枪扫）：`fps_min_2s = 145`，`fps_avg_2s = 145`。门槛是 `fps_min_2s ≥ 55`，达标。**
+- **Gated 修复：一项都没做。** 禁止「顺便」上 AI 分频。未做火花/数字池、未做偶数/奇数物理帧跳过 `_tick_ai`、未建 EnemyManager、未改 `physics_ticks_per_second`、未改 `time_scale`。命中火花仍是每发 instantiate / 0.08s `queue_free`。尸体仍 `set_physics_process(false)` 留场。R 重置同一批 30 个节点，禁止 `reload_current_scene()`。
+
+三把枪身份、Motor 420、`look_ahead=100`、`follow_smoothing=8`、shake、击退/hitstop 初值未改。
+
+**本阶段不做：** 波次表、商店、精英/Boss、掉落物、AnimationTree、第四把枪。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 10 才做**30 人压测（目标帧率；失败才 AI 分频 / 集中更新）。不要商店，不要波次导演，不要 AnimationTree
+- **Day 11 才做**手写战场句读（几撮进出场 + 1.5s 停顿）。仍无升级弹窗、无 WaveDirector 预算、无商店
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -287,7 +301,7 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 ## 碰撞层
 
-| 层 | 名称 | Day 6–9 用法 |
+| 层 | 名称 | Day 6–10 用法 |
 |---|---|---|
 | 1 | player | 玩家只撞墙，不跟敌人刚体互推 |
 | 2 | enemy | 近战/远程；mask = wall；不挡玩家移动 |
@@ -297,6 +311,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 10
+## 下一步：Day 11
 
-**Day 10 = 30 人压测。** 目标桌面 60；超标才改结构（AI 分频 / 集中更新）。不要商店，不要波次表，不要 AnimationTree，不要第四把枪。
+**Day 11 = 手写战场句读。** 几撮进出场 + 约 1.5s 停顿。仍无升级弹窗，无 WaveDirector 预算，无商店，无第四把枪。
