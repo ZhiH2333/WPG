@@ -4,7 +4,7 @@ class_name PlayerInput
 ## 鼠标与玩家过近时不重新归一化，避免 aim_vector 出现 NaN。
 const AIM_DEADZONE_SQ: float = 0.0001
 
-## 全项目唯一输入合同：只读，本阶段不消费。
+## 全项目唯一输入合同：只产出，Motor 只读 move_vector。
 var move_vector: Vector2 = Vector2.ZERO
 var aim_vector: Vector2 = Vector2.RIGHT
 var fire_held: bool = false

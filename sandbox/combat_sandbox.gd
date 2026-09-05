@@ -7,7 +7,7 @@ class_name CombatSandbox
 
 func _ready() -> void:
 	_apply_wall_layers()
-	_debug_overlay.bind_player_input(_player.get_player_input())
+	_debug_overlay.bind_player(_player)
 
 func _apply_wall_layers() -> void:
 	for child: Node in _walls.get_children():
