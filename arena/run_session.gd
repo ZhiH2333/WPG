@@ -1,8 +1,11 @@
 extends Node
 class_name RunSession
 
-## 本局状态：只观察玩家是否死亡。禁止镜像 HP，禁止暂停场景树。P8 后仍 playing，由沙盒再开一轮。
+## 本局状态：只观察玩家是否死亡。禁止镜像 HP，禁止暂停场景树。P8 后仍 playing，由沙盒再开一轮。XP 只活在本节点。
 enum Outcome { PLAYING, DEAD, CLEARED }
+
+const XP_BASE: int = 30
+const XP_PER_LEVEL: int = 15
 
 var _player: Player
 var _encounter: EncounterPhrases
@@ -12,6 +15,9 @@ var _elapsed_sec: float = 0.0
 var _owned_ids: PackedStringArray = PackedStringArray()
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _loop_index: int = 0
+var _level: int = 1
+var _xp: int = 0
+var _pending_level: int = 0
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -57,11 +63,46 @@ func notify_phrase_loop() -> void:
 func get_loop_index() -> int:
 	return _loop_index
 
+func add_xp(amount: int) -> void:
+	if amount <= 0:
+		return
+	_xp += amount
+	var need: int = get_xp_to_next()
+	while _xp >= need:
+		_xp -= need
+		_level += 1
+		_pending_level += 1
+		need = get_xp_to_next()
+
+func get_level() -> int:
+	return _level
+
+func get_xp() -> int:
+	return _xp
+
+func get_xp_to_next() -> int:
+	return XP_BASE + (_level - 1) * XP_PER_LEVEL
+
+func get_pending_level_count() -> int:
+	return _pending_level
+
+func has_pending_level() -> bool:
+	return _pending_level > 0
+
+func consume_pending_level() -> bool:
+	if _pending_level <= 0:
+		return false
+	_pending_level -= 1
+	return true
+
 func restart() -> void:
 	_outcome = Outcome.PLAYING
 	_elapsed_sec = 0.0
 	_owned_ids.clear()
 	_loop_index = 0
+	_level = 1
+	_xp = 0
+	_pending_level = 0
 	_rng.randomize()
 
 func tick(delta: float) -> void:
@@ -70,6 +111,7 @@ func tick(delta: float) -> void:
 	_elapsed_sec += delta
 	if _player != null and _player.is_defeated():
 		_outcome = Outcome.DEAD
+		_pending_level = 0
 
 func get_outcome() -> Outcome:
 	return _outcome

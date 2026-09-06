@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=7 format=3]
+[gd_resource type="Theme" load_steps=8 format=3]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
 bg_color = Color(1, 0.62, 0.18, 1)
@@ -44,6 +44,9 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(1, 0.62, 0.18, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xp_fill"]
+bg_color = Color(0.38, 0.72, 0.95, 1)
 
 [resource]
 default_font_size = 18
@@ -91,3 +94,6 @@ ProgressBar/styles/fill = SubResource("StyleBoxFlat_hp_fill")
 ProgressBarLow/base_type = &"ProgressBar"
 ProgressBarLow/styles/background = SubResource("StyleBoxFlat_hp_bg")
 ProgressBarLow/styles/fill = SubResource("StyleBoxFlat_hp_fill_low")
+ProgressBarXp/base_type = &"ProgressBar"
+ProgressBarXp/styles/background = SubResource("StyleBoxFlat_hp_bg")
+ProgressBarXp/styles/fill = SubResource("StyleBoxFlat_xp_fill")

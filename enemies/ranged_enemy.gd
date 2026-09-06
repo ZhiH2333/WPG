@@ -28,6 +28,9 @@ func bind_projectile_pool(pool: ProjectilePool) -> void:
 func get_kind_name() -> String:
 	return "Ranged"
 
+func get_xp_reward() -> int:
+	return 12
+
 func _process(delta: float) -> void:
 	super._process(delta)
 	if is_in_reserve() or _defeated or is_in_hitstop() or is_entering():

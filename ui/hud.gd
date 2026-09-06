@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name Hud
 
-## 最小战斗 HUD：左下 HP+武器，顶中句读。只读 getter，禁止自管一份 HP。
+## 最小战斗 HUD：左下 HP+武器+XP，顶中句读。只读 getter，禁止自管一份 HP。
 const HP_LOW_THRESHOLD: int = 20
 const FILL_STYLE_NORMAL: StringName = &""
 const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
@@ -9,10 +9,13 @@ const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
 var _player: Player
 var _weapon_host: WeaponHost
 var _encounter: EncounterPhrases
+var _run_session: RunSession
 var _hp_is_low: bool = false
 
 @onready var _hp_bar: ProgressBar = $Root/BottomLeft/HpRow/HpBar
 @onready var _hp_label: Label = $Root/BottomLeft/HpRow/HpLabel
+@onready var _xp_bar: ProgressBar = $Root/BottomLeft/XpRow/XpBar
+@onready var _xp_label: Label = $Root/BottomLeft/XpRow/XpLabel
 @onready var _weapon_label: Label = $Root/BottomLeft/WeaponLabel
 @onready var _phrase_label: Label = $Root/PhraseLabel
 
@@ -25,8 +28,12 @@ func bind_weapon_host(host: WeaponHost) -> void:
 func bind_encounter(encounter: EncounterPhrases) -> void:
 	_encounter = encounter
 
+func bind_run_session(session: RunSession) -> void:
+	_run_session = session
+
 func _process(_delta: float) -> void:
 	_refresh_hp()
+	_refresh_xp()
 	_refresh_weapon()
 	_refresh_phrase()
 
@@ -41,6 +48,18 @@ func _refresh_hp() -> void:
 	_hp_bar.value = float(hp)
 	_hp_label.text = "%d/%d" % [hp, max_hp]
 	_apply_hp_fill(hp)
+
+func _refresh_xp() -> void:
+	var level: int = 1
+	var xp: int = 0
+	var need: int = 30
+	if _run_session != null:
+		level = _run_session.get_level()
+		xp = _run_session.get_xp()
+		need = _run_session.get_xp_to_next()
+	_xp_bar.max_value = float(need)
+	_xp_bar.value = float(xp)
+	_xp_label.text = "Lv.%d  %d/%d" % [level, xp, need]
 
 func _apply_hp_fill(hp: int) -> void:
 	var is_low: bool = hp <= HP_LOW_THRESHOLD

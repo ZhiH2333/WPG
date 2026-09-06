@@ -385,11 +385,39 @@ Overlay：`loop: %d`（在 `run` / `run_time` 附近）。HUD 顶中仍只显示
 
 句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、UpgradeApplier 公式、Hud 三块锚点都没改。
 
-**本阶段不做：** XP / 等级条、商店。
+**当时不做：** XP / 等级条、商店。
+
+## Day 18（已完成）：击杀 XP，满条复用 UpgradeOffer
+
+打死敌人才加 XP。XP 只活在 `RunSession`，不镜像进 `PlayerHealth`，不是 Autoload。禁止 `get_tree().paused`、禁止 `Engine.time_scale`、禁止 `PROCESS_MODE_ALWAYS`、禁止第二套 `LevelUpOverlay`。
+
+击杀奖励：近战 **10**，远程 **12**。`DummyTarget` 不在沙盒、不给 XP。`hold_in_reserve` / R / 轮循环不算击杀。`EnemyBase.defeated` 在 `_on_defeated()` 之后 emit 一次；`CombatSandbox` 在 `_bind_enemies` 连接。
+
+需求：`xp_to_next = 30 + (level - 1) * 15`。开局 level=1、xp=0、need=30。3 只近战 = 30，第一次升级在 P1 中段。`add_xp` 用 while 扣满，一次击杀可连升两级（`pending` 累加）。每级单独弹一次三选一。
+
+与句间 offer **互斥排队**（同一时刻只能有一个 UpgradeOffer）：
+
+1. 弹窗已开 → 不再开第二扇；XP 只进 pending
+2. Encounter 处于 `AWAITING_OFFER` → 句间优先
+3. 不在 awaiting、弹窗关着、pending_level > 0 → 开升级三选一（`draft_offer` 同一套过滤）
+4. 升级弹窗选完：`try_grant` → `apply_owned` → close → `consume_pending_level`；**禁止** `acknowledge_offer`
+5. 句间弹窗选完：保持 `acknowledge_offer`
+
+升级弹窗打开时：停 `EncounterPhrases.tick`；玩家可走、不可开火、1/2/3 选卡；显示系统光标。**敌人 AI 不停**。HUD 顶中仍显示当前句（例如 `1/8`），`offer` 只给 `AWAITING_OFFER`。
+
+若最后一击同时满 XP 且 P7 清光：先弹升级，禁止同一帧 `_loop_phrases`。选完若仍 `is_done()` 再 loop。pending 或弹窗开着时不要 loop。轮循环 **不清 XP / level / owned / HP**。
+
+死亡：关窗、不授予、pending 丢弃；不再开升级窗。没有 YOU DIED。R：xp=0、level=1、pending=0，其余仍走现有六步。U 仍只授 `max_hp_s`。不要灌满 XP 热键。不要 XP 掉落物、不要世界飘「+10 XP」。
+
+HUD 左下 HP 条下面一条 XP 灰盒：`ProgressBarXp` + `Lv.%d  %d/%d`。Overlay：`level` / `xp: a/b` / `pending_lv`。不要第四块 ROUND。
+
+句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、UpgradeApplier 公式都没改。
+
+**本阶段不做：** 商店、死亡结算屏、主菜单。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 18 才做**击杀 XP，满条用现有 UpgradeOffer 再弹一次（与句间 offer 互斥排队，不 `get_tree().paused`）。仍无商店
+- **Day 19 才做**死亡结算条（时长 / 击杀数 / 已选 id）。仍无商店、无主菜单
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -453,7 +481,7 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         Hud + UpgradeOffer + game_theme.tres（左下 HP+武器，顶中句读；句间三选一 layer=20）；DebugOverlay 仍在 debug/
+ui/         Hud + UpgradeOffer + game_theme.tres（左下 HP+武器+XP，顶中句读；句间/升级三选一 layer=20）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / DebugOverlay）
@@ -471,6 +499,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 18
+## 下一步：Day 19
 
-**Day 18 = 击杀 XP。** 满条用现有 UpgradeOffer 再弹一次（与句间 offer 互斥排队，不 `get_tree().paused`）。仍无商店，无第四把枪。
+**Day 19 = 死亡结算条**（时长 / 击杀数 / 已选 id）。仍无商店、无主菜单。

@@ -3,6 +3,7 @@ class_name EnemyBase
 
 ## 廉价 seek 移动 + 受击链（闪白 / 击退 / squash / 局部 hitstop / 死亡塌缩）。
 ## 禁止 NavigationAgent、每帧 group 扫描、queue_redraw、Engine.time_scale。
+signal defeated
 const DAMAGE_NUMBER_SCENE: PackedScene = preload("res://combat/damage_number.tscn")
 const FLASH_DURATION_SEC: float = 0.1
 const DEAD_COLOR: Color = Color(0.42, 0.42, 0.44, 1)
@@ -83,6 +84,9 @@ func get_knockback_speed() -> float:
 
 func get_kind_name() -> String:
 	return "Enemy"
+
+func get_xp_reward() -> int:
+	return 0
 
 func hold_in_reserve() -> void:
 	_in_reserve = true
@@ -249,6 +253,7 @@ func _defeat() -> void:
 	_visual.modulate = Color.WHITE
 	_hit_reaction.begin_death(true)
 	_on_defeated()
+	defeated.emit()
 
 func _on_defeated() -> void:
 	pass

@@ -14,6 +14,7 @@ const GRANT_UPGRADE_ID: StringName = &"max_hp_s"
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
 var _enemies: Array[EnemyBase] = []
+var _offer_is_phrase: bool = false
 
 @onready var _walls: Node2D = $Walls
 @onready var _player: Player = $Player
@@ -40,13 +41,15 @@ func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _process(delta: float) -> void:
-	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _encounter.is_awaiting_offer():
+	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
 		_encounter.tick(delta)
 	if _run_session.is_playing() and _encounter.is_awaiting_offer() and not _upgrade_offer.is_open():
 		_open_offer_if_needed()
+	elif _run_session.is_playing() and _run_session.has_pending_level() and not _upgrade_offer.is_open() and not _encounter.is_awaiting_offer() and not _player.is_defeated():
+		_open_level_offer_if_needed()
 	if _upgrade_offer.is_open() and _player.is_defeated():
 		_abort_offer()
-	if _run_session.is_playing() and not _player.is_defeated() and _encounter.is_done():
+	if _run_session.is_playing() and not _player.is_defeated() and _encounter.is_done() and not _upgrade_offer.is_open() and not _run_session.has_pending_level():
 		_loop_phrases()
 	_run_session.tick(delta)
 
@@ -83,6 +86,7 @@ func _bind_runtime() -> void:
 	_hud.bind_player(_player)
 	_hud.bind_weapon_host(_player.get_weapon_host())
 	_hud.bind_encounter(_encounter)
+	_hud.bind_run_session(_run_session)
 	_run_session.bind_player(_player)
 	_run_session.bind_encounter(_encounter)
 	_run_session.bind_catalog(UPGRADE_CATALOG)
@@ -111,9 +115,19 @@ func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 		enemy.bind_player(_player)
 		enemy.bind_sfx_pool(_sfx_pool)
 		enemy.bind_player_camera(_player_camera)
+		if not enemy.defeated.is_connected(_on_enemy_defeated):
+			enemy.defeated.connect(_on_enemy_defeated.bind(enemy))
 		var ranged: RangedEnemy = enemy as RangedEnemy
 		if ranged != null:
 			ranged.bind_projectile_pool(_enemy_projectiles)
+
+func _on_enemy_defeated(enemy: EnemyBase) -> void:
+	if not _run_session.is_playing() or _player.is_defeated():
+		return
+	var reward: int = enemy.get_xp_reward()
+	if reward <= 0:
+		return
+	_run_session.add_xp(reward)
 
 func _assert_upgrade_catalog() -> void:
 	if UPGRADE_CATALOG.get_count() != 10:
@@ -158,9 +172,21 @@ func _try_debug_grant() -> void:
 func _open_offer_if_needed() -> void:
 	if not _run_session.is_playing() or _player.is_defeated():
 		return
+	_offer_is_phrase = true
 	var defs: Array[UpgradeDef] = _run_session.draft_offer(3)
 	if defs.is_empty():
 		_encounter.acknowledge_offer()
+		return
+	_upgrade_offer.present(defs)
+	_set_offer_input_lock(true)
+
+func _open_level_offer_if_needed() -> void:
+	if not _run_session.is_playing() or _player.is_defeated():
+		return
+	_offer_is_phrase = false
+	var defs: Array[UpgradeDef] = _run_session.draft_offer(3)
+	if defs.is_empty():
+		_run_session.consume_pending_level()
 		return
 	_upgrade_offer.present(defs)
 	_set_offer_input_lock(true)
@@ -175,11 +201,17 @@ func _on_upgrade_picked(upgrade_id: StringName) -> void:
 		return
 	_upgrade_applier.apply_owned()
 	_debug_overlay.set_last_grant_id(String(upgrade_id))
+	var was_phrase: bool = _offer_is_phrase
 	_close_offer()
-	_encounter.acknowledge_offer()
+	if was_phrase:
+		_encounter.acknowledge_offer()
+		return
+	_run_session.consume_pending_level()
 
 func _abort_offer() -> void:
 	_close_offer()
+	while _run_session.consume_pending_level():
+		pass
 
 func _close_offer() -> void:
 	_upgrade_offer.close()

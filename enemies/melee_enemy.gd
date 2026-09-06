@@ -16,6 +16,9 @@ func _ready() -> void:
 func get_kind_name() -> String:
 	return "Melee"
 
+func get_xp_reward() -> int:
+	return 10
+
 func _bind_contact_area() -> void:
 	_contact_area.collision_layer = GameCollisionLayers.MASK_NONE
 	_contact_area.collision_mask = GameCollisionLayers.MASK_PLAYER
