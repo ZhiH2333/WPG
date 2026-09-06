@@ -46,6 +46,8 @@ func _process(delta: float) -> void:
 		_open_offer_if_needed()
 	if _upgrade_offer.is_open() and _player.is_defeated():
 		_abort_offer()
+	if _run_session.is_playing() and not _player.is_defeated() and _encounter.is_done():
+		_loop_phrases()
 	_run_session.tick(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -123,6 +125,13 @@ func _assert_upgrade_catalog() -> void:
 func _hold_all_in_reserve() -> void:
 	for enemy: EnemyBase in _enemies:
 		enemy.hold_in_reserve()
+
+func _loop_phrases() -> void:
+	_projectiles.park_all()
+	_enemy_projectiles.park_all()
+	_hold_all_in_reserve()
+	_encounter.restart()
+	_run_session.notify_phrase_loop()
 
 func _reset_sandbox() -> void:
 	if _upgrade_offer.is_open():

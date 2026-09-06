@@ -360,11 +360,36 @@ Overlay：`offer: open|closed`、`offer_ids: a,b,c|-`。HUD 仍三块，顶中 `
 
 句读节点名 P0–P8、10 张卡 id/kind/value、三把枪 `_ready` 身份、Motor/相机/击退/hitstop 初值、UpgradeApplier 公式都没改。
 
-**本阶段不做：** XP / 等级条、商店、刷新三选一。
+**当时不做：** XP / 等级条、商店、刷新三选一。
+
+## Day 17（已完成）：P8 后同一局再开一轮句读
+
+打完 P8 且人还活着时，**同一局继续**：30 个节点 `hold` 回预备役，句读从 P0 再走一遍。不是新一场 `RunSession`，不是商店波。禁止 `reload_current_scene()`。
+
+`RunSession.tick` **不再**因 `encounter.is_done()` 设 `CLEARED`。`Outcome.CLEARED` 枚举保留，本阶段活着打完不赋值。只有玩家死亡才 `DEAD`。playing 时 `elapsed` 跨轮连续加。
+
+`CombatSandbox._loop_phrases`（在 `_run_session.tick` 之前调用）：
+
+1. 两套弹 `park_all`（P7 dump 残留弹不许在轮间 rest 里继续打人）
+2. 30 人 `hold_in_reserve`（尸体藏回出生点，不 `queue_free`、不 `instantiate`）
+3. `EncounterPhrases.restart()` → P0 rest 1.5s（`_p3_started` 清零，重叠规则下一轮照旧）
+4. `RunSession.notify_phrase_loop()` → `loop_index += 1`，outcome 保持 playing
+
+禁止：`RunSession.restart()`（会清 owned、elapsed=0）；`UpgradeApplier.apply_owned` / `capture_baseline`；`Player.reset_for_sandbox()`。玩家留在当场坐标；当前 HP 不变（47/120 仍是 47/120）；当前枪不变；owned 不变。
+
+时机：P7 清光 → `_begin_phrase(8)` 进 DONE 的同一帧或下一帧立刻 loop。HUD 允许闪 1 帧 `phrases_done`。P0 那 1.5s 就是轮间空窗。不要 WAVE COMPLETE、不要「继续」按钮。开局 `loop_index=0`；第一次 P8 后再开 → 1。无限直到死或 R，不要 cap。
+
+第二轮起：P2/P4/P6 仍弹三选一；`draft_offer` 继续过滤非 stackable 已有。卡池空则 `acknowledge` 跳过。死亡仍 dead，不再 loop；已激活敌人继续动。没有 YOU DIED。R 仍是整局重置（owned=0、loop=0、HP 回底值满血、原点、P0）。
+
+Overlay：`loop: %d`（在 `run` / `run_time` 附近）。HUD 顶中仍只显示 `get_phrase_label()`（下一轮 P0 又是 `0/8`）。不要第四块「ROUND 2」。
+
+句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、UpgradeApplier 公式、Hud 三块锚点都没改。
+
+**本阶段不做：** XP / 等级条、商店。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 17 才做**P8 后自动再开一轮句读（同一 30 节点 hold 回 P0，owned 保留、HP 不回底值）。仍无商店、无 XP 条
+- **Day 18 才做**击杀 XP，满条用现有 UpgradeOffer 再弹一次（与句间 offer 互斥排队，不 `get_tree().paused`）。仍无商店
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -446,6 +471,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 17
+## 下一步：Day 18
 
-**Day 17 = P8 后自动再开一轮句读。** 同一 30 节点 hold 回 P0，owned 保留、HP 不回底值。仍无商店，无 XP 条，无第四把枪。
+**Day 18 = 击杀 XP。** 满条用现有 UpgradeOffer 再弹一次（与句间 offer 互斥排队，不 `get_tree().paused`）。仍无商店，无第四把枪。

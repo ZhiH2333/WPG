@@ -1,7 +1,7 @@
 extends Node
 class_name RunSession
 
-## 本局状态：只观察玩家是否死亡、句读是否打完。禁止镜像 HP，禁止暂停场景树。
+## 本局状态：只观察玩家是否死亡。禁止镜像 HP，禁止暂停场景树。P8 后仍 playing，由沙盒再开一轮。
 enum Outcome { PLAYING, DEAD, CLEARED }
 
 var _player: Player
@@ -11,6 +11,7 @@ var _outcome: Outcome = Outcome.PLAYING
 var _elapsed_sec: float = 0.0
 var _owned_ids: PackedStringArray = PackedStringArray()
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _loop_index: int = 0
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -49,10 +50,18 @@ func draft_offer(count: int = 3) -> Array[UpgradeDef]:
 		picked.append(pool[i])
 	return picked
 
+func notify_phrase_loop() -> void:
+	_loop_index += 1
+	_outcome = Outcome.PLAYING
+
+func get_loop_index() -> int:
+	return _loop_index
+
 func restart() -> void:
 	_outcome = Outcome.PLAYING
 	_elapsed_sec = 0.0
 	_owned_ids.clear()
+	_loop_index = 0
 	_rng.randomize()
 
 func tick(delta: float) -> void:
@@ -61,9 +70,6 @@ func tick(delta: float) -> void:
 	_elapsed_sec += delta
 	if _player != null and _player.is_defeated():
 		_outcome = Outcome.DEAD
-		return
-	if _encounter != null and _encounter.is_done():
-		_outcome = Outcome.CLEARED
 
 func get_outcome() -> Outcome:
 	return _outcome
