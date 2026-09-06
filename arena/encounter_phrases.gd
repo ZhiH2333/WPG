@@ -17,7 +17,7 @@ const P7_NAMES: PackedStringArray = [
 	"RangedTop3", "RangedTop4",
 ]
 
-enum State { RESTING, PLAYING, DONE }
+enum State { RESTING, PLAYING, AWAITING_OFFER, DONE }
 
 var _state: State = State.RESTING
 var _phrase_index: int = 0
@@ -37,6 +37,8 @@ func restart() -> void:
 	_begin_phrase(0)
 
 func tick(delta: float) -> void:
+	if _state == State.AWAITING_OFFER:
+		return
 	if _state == State.RESTING:
 		_tick_rest(delta)
 		return
@@ -49,6 +51,14 @@ func is_done() -> bool:
 func is_resting() -> bool:
 	return _state == State.RESTING
 
+func is_awaiting_offer() -> bool:
+	return _state == State.AWAITING_OFFER
+
+func acknowledge_offer() -> void:
+	if _state != State.AWAITING_OFFER:
+		return
+	_begin_phrase(_phrase_index + 1)
+
 func get_rest_left() -> float:
 	return _rest_left
 
@@ -58,6 +68,8 @@ func get_phrase_alive() -> int:
 func get_phrase_label() -> String:
 	if _state == State.DONE:
 		return "phrases_done"
+	if _state == State.AWAITING_OFFER:
+		return "offer"
 	if _state == State.RESTING:
 		if _phrase_index == 0:
 			return "0/8"
@@ -89,9 +101,13 @@ func _begin_rest_or_skip(index: int) -> void:
 	if index == 2 and _p3_started:
 		_begin_phrase(3)
 		return
-	_state = State.RESTING
-	_rest_left = REST_SEC
 	_wait_names = PackedStringArray()
+	if index == 0:
+		_state = State.RESTING
+		_rest_left = REST_SEC
+		return
+	_state = State.AWAITING_OFFER
+	_rest_left = 0.0
 
 func _start_playing(activate_names: PackedStringArray, wait_names: PackedStringArray) -> void:
 	_state = State.PLAYING

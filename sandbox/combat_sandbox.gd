@@ -21,6 +21,7 @@ var _enemies: Array[EnemyBase] = []
 @onready var _aim_reticle: AimReticle = $AimReticle
 @onready var _debug_overlay: DebugOverlay = $DebugOverlay
 @onready var _hud: Hud = $Hud
+@onready var _upgrade_offer: UpgradeOffer = $UpgradeOffer
 @onready var _projectiles: ProjectilePool = $Projectiles
 @onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
 @onready var _enemies_root: Node2D = $Enemies
@@ -39,8 +40,12 @@ func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _process(delta: float) -> void:
-	if _run_session.is_playing():
+	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _encounter.is_awaiting_offer():
 		_encounter.tick(delta)
+	if _run_session.is_playing() and _encounter.is_awaiting_offer() and not _upgrade_offer.is_open():
+		_open_offer_if_needed()
+	if _upgrade_offer.is_open() and _player.is_defeated():
+		_abort_offer()
 	_run_session.tick(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -85,7 +90,10 @@ func _bind_runtime() -> void:
 	_upgrade_applier.bind_session(_run_session)
 	_upgrade_applier.capture_baseline()
 	_upgrade_applier.apply_owned()
+	_upgrade_offer.bind_session(_run_session)
+	_upgrade_offer.picked.connect(_on_upgrade_picked)
 	_debug_overlay.bind_run_session(_run_session)
+	_debug_overlay.bind_upgrade_offer(_upgrade_offer)
 	_debug_overlay.set_last_grant_id("-")
 
 func _collect_enemies() -> Array[EnemyBase]:
@@ -117,6 +125,8 @@ func _hold_all_in_reserve() -> void:
 		enemy.hold_in_reserve()
 
 func _reset_sandbox() -> void:
+	if _upgrade_offer.is_open():
+		_close_offer()
 	_projectiles.park_all()
 	_enemy_projectiles.park_all()
 	_run_session.restart()
@@ -127,12 +137,53 @@ func _reset_sandbox() -> void:
 	_debug_overlay.set_last_grant_id("-")
 
 func _try_debug_grant() -> void:
+	if _upgrade_offer.is_open():
+		return
 	if _player.is_defeated():
 		return
 	if not _run_session.try_grant(GRANT_UPGRADE_ID):
 		return
 	_upgrade_applier.apply_owned()
 	_debug_overlay.set_last_grant_id(String(GRANT_UPGRADE_ID))
+
+func _open_offer_if_needed() -> void:
+	if not _run_session.is_playing() or _player.is_defeated():
+		return
+	var defs: Array[UpgradeDef] = _run_session.draft_offer(3)
+	if defs.is_empty():
+		_encounter.acknowledge_offer()
+		return
+	_upgrade_offer.present(defs)
+	_set_offer_input_lock(true)
+
+func _on_upgrade_picked(upgrade_id: StringName) -> void:
+	if not _upgrade_offer.is_open():
+		return
+	if _player.is_defeated() or not _run_session.is_playing():
+		_abort_offer()
+		return
+	if not _run_session.try_grant(upgrade_id):
+		return
+	_upgrade_applier.apply_owned()
+	_debug_overlay.set_last_grant_id(String(upgrade_id))
+	_close_offer()
+	_encounter.acknowledge_offer()
+
+func _abort_offer() -> void:
+	_close_offer()
+
+func _close_offer() -> void:
+	_upgrade_offer.close()
+	_set_offer_input_lock(false)
+
+func _set_offer_input_lock(locked: bool) -> void:
+	_player.get_player_input().set_fire_suppressed(locked)
+	_player.get_weapon_host().set_switch_suppressed(locked)
+	if locked:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_aim_reticle.visible = false
+		return
+	_sync_system_cursor()
 
 func _bind_window_cursor() -> void:
 	var window: Window = get_window()
@@ -151,6 +202,10 @@ func _on_window_mouse_exited() -> void:
 	_sync_system_cursor()
 
 func _sync_system_cursor() -> void:
+	if _upgrade_offer.is_open():
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_aim_reticle.visible = false
+		return
 	var hide_cursor: bool = get_window().has_focus() and _mouse_inside_window
 	if hide_cursor:
 		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN

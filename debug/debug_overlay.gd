@@ -14,6 +14,7 @@ var _enemy_pool: ProjectilePool
 var _enemies: Array[EnemyBase] = []
 var _encounter: EncounterPhrases
 var _run_session: RunSession
+var _upgrade_offer: UpgradeOffer
 var _last_grant_id: String = "-"
 var _fps_slot_min: PackedFloat32Array = PackedFloat32Array()
 var _fps_slot_sum: PackedFloat32Array = PackedFloat32Array()
@@ -59,6 +60,9 @@ func bind_encounter(encounter: EncounterPhrases) -> void:
 func bind_run_session(run_session: RunSession) -> void:
 	_run_session = run_session
 
+func bind_upgrade_offer(offer: UpgradeOffer) -> void:
+	_upgrade_offer = offer
+
 func set_last_grant_id(upgrade_id: String) -> void:
 	_last_grant_id = upgrade_id
 
@@ -82,7 +86,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\ncatalog: %d\nupgrades: %d\ngrant: U\nlast_grant: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nreset: R\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\ncatalog: %d\nupgrades: %d\ngrant: U\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nreset: R\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -116,6 +120,8 @@ func _compose_status_text() -> String:
 		_read_catalog_count(),
 		_read_owned_upgrades(),
 		_last_grant_id,
+		_read_offer_state(),
+		_read_offer_ids(),
 		_read_phrase_label(),
 		_read_phrase_alive(),
 		_read_rest_left(),
@@ -221,6 +227,17 @@ func _read_owned_upgrades() -> int:
 	if _run_session == null:
 		return 0
 	return _run_session.get_owned_count()
+
+
+func _read_offer_state() -> String:
+	if _upgrade_offer == null or not _upgrade_offer.is_open():
+		return "closed"
+	return "open"
+
+func _read_offer_ids() -> String:
+	if _upgrade_offer == null:
+		return "-"
+	return _upgrade_offer.get_offer_ids_label()
 
 func _read_phrase_label() -> String:
 	if _encounter == null:

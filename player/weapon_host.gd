@@ -5,6 +5,7 @@ class_name WeaponHost
 var _weapons: Array[Weapon] = []
 var _current_index: int = 0
 var _switch_locked: bool = false
+var _switch_suppressed: bool = false
 
 func _ready() -> void:
 	_collect_weapons()
@@ -47,6 +48,9 @@ func get_rifle() -> Rifle:
 func get_weapons() -> Array[Weapon]:
 	return _weapons.duplicate()
 
+func set_switch_suppressed(suppressed: bool) -> void:
+	_switch_suppressed = suppressed
+
 func deactivate_all() -> void:
 	_switch_locked = true
 	for weapon: Weapon in _weapons:
@@ -62,6 +66,8 @@ func _process(_delta: float) -> void:
 
 func _poll_weapon_switch() -> void:
 	if _switch_locked:
+		return
+	if _switch_suppressed:
 		return
 	if Input.is_action_just_pressed("weapon_pistol"):
 		_activate_index(0)

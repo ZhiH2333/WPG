@@ -9,6 +9,8 @@ var move_vector: Vector2 = Vector2.ZERO
 var aim_vector: Vector2 = Vector2.RIGHT
 var fire_held: bool = false
 var mouse_world_position: Vector2 = Vector2.ZERO
+var _fire_suppressed: bool = false
+var _need_fire_release: bool = false
 
 func _enter_tree() -> void:
 	## 小于 0 更早处理，让同一帧的朝向、相机、准星读到本帧输入。
@@ -21,6 +23,16 @@ func update_input() -> void:
 	_update_move_vector()
 	_update_aim_vector()
 	_update_fire_held()
+
+func set_fire_suppressed(suppressed: bool) -> void:
+	_fire_suppressed = suppressed
+	if suppressed:
+		fire_held = false
+		_need_fire_release = true
+		return
+	if Input.is_action_pressed("fire"):
+		_need_fire_release = true
+		fire_held = false
 
 func _update_move_vector() -> void:
 	move_vector = Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -41,4 +53,13 @@ func _keep_last_aim() -> void:
 		aim_vector = Vector2.RIGHT
 
 func _update_fire_held() -> void:
-	fire_held = Input.is_action_pressed("fire")
+	if _fire_suppressed:
+		fire_held = false
+		return
+	var pressed: bool = Input.is_action_pressed("fire")
+	if _need_fire_release:
+		if pressed:
+			fire_held = false
+			return
+		_need_fire_release = false
+	fire_held = pressed

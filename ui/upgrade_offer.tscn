@@ -1,0 +1,153 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/upgrade_offer.gd" id="1_offer"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+
+[node name="UpgradeOffer" type="CanvasLayer"]
+layer = 20
+visible = false
+script = ExtResource("1_offer")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme = ExtResource("2_theme")
+
+[node name="Dimmer" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="Root/Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Cards" type="HBoxContainer" parent="Root/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Card0" type="Button" parent="Root/Center/Column/Cards"]
+custom_minimum_size = Vector2(280, 180)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+
+[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card0"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card0/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferTitle"
+autowrap_mode = 2
+
+[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card0/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+autowrap_mode = 2
+
+[node name="Card1" type="Button" parent="Root/Center/Column/Cards"]
+custom_minimum_size = Vector2(280, 180)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+
+[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card1/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferTitle"
+autowrap_mode = 2
+
+[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card1/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+autowrap_mode = 2
+
+[node name="Card2" type="Button" parent="Root/Center/Column/Cards"]
+custom_minimum_size = Vector2(280, 180)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+
+[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card2/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferTitle"
+autowrap_mode = 2
+
+[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card2/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+autowrap_mode = 2
+
+[node name="Hint" type="Label" parent="Root/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "1 / 2 / 3"
+horizontal_alignment = 1

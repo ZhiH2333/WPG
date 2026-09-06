@@ -340,11 +340,31 @@ Overlay：`grant: U`、`last_grant: max_hp_s|-`（R 清成 `-`），仍保留 `c
 
 句读表 P0–P8、10 张卡 id/kind/value、三把枪 `_ready` 身份赋值、Motor/相机/击退/hitstop 初值都没改。
 
-**本阶段不做：** 三选一弹窗、XP、商店。
+**当时不做：** 三选一弹窗、XP、商店。
+
+## Day 16（已完成）：句间三选一，替换 P2 / P4 / P6 rest
+
+`ui/upgrade_offer.tscn`（`UpgradeOffer`，CanvasLayer **layer=20**）与 Hud 平级。用弹窗**替换** P2 / P4 / P6 的 1.5s rest。P0 开场 rest 1.5s 保留，不弹卡。P8 `phrases_done` 不弹第四次。本局最多 3 次；P2 被 P3 重叠跳过则少一次。
+
+弹出时：停止 `EncounterPhrases.tick`（`AWAITING_OFFER` 直接 return）。禁止 `get_tree().paused`、禁止 `Engine.time_scale`、禁止 `PROCESS_MODE_ALWAYS`。`RunSession` 仍是 playing，elapsed 继续走。玩家可 WASD；`PlayerInput.set_fire_suppressed` 禁止开火（关窗后需松开左键才再打，避免点卡走火）；`WeaponHost.set_switch_suppressed` 禁止切枪，与死亡 `_switch_locked` 分开。弹窗打开时 1/2/3 选左/中/右卡。显示系统光标；关窗后走 `_sync_system_cursor`。
+
+三张必须不同 id。`RunSession.draft_offer`：catalog 去掉「非 stackable 且已 owned」，洗牌取最多 3 张。stackable 已拥有仍可出现。不够 3 张就有几张出几张；0 张：不弹窗，立刻 `acknowledge_offer`。必须点一张（或键盘 1/2/3）才继续。没有跳过、没有刷新、没有「继续」。
+
+选中：`try_grant` → `apply_owned` → 关窗 → `EncounterPhrases.acknowledge_offer()` 立刻 `_begin_phrase(index+1)`，不再跑 1.5s rest。HUD 跟上新 max（Vitality I → 120/120）；不在 HUD 上列已选卡。
+
+U 在弹窗打开时无效。R 先关窗、解锁输入，再走现有六步。残留弹打死玩家：立刻关窗、不授予、不 acknowledge。
+
+Theme 增补 `OfferTitle` / `OfferDesc` / `OfferButton`。禁止脚本里 `StyleBoxFlat.new()`。禁止 `Control.scale`。Dimmer `Color(0,0,0,0.55)` + 按钮挡住世界点击。
+
+Overlay：`offer: open|closed`、`offer_ids: a,b,c|-`。HUD 仍三块，顶中 `get_phrase_label()` 在等待选卡时为 `offer`。
+
+句读节点名 P0–P8、10 张卡 id/kind/value、三把枪 `_ready` 身份、Motor/相机/击退/hitstop 初值、UpgradeApplier 公式都没改。
+
+**本阶段不做：** XP / 等级条、商店、刷新三选一。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 16 才做**三选一弹窗（句读停推进、不 `get_tree().paused`），仍无 XP、无商店
+- **Day 17 才做**P8 后自动再开一轮句读（同一 30 节点 hold 回 P0，owned 保留、HP 不回底值）。仍无商店、无 XP 条
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -369,7 +389,7 @@ fire_held      bool      是否按住开火
 - 按住鼠标左键 → `fire_held`
 - 没有 `aim` action；瞄准用鼠标位置，不锁最近敌人
 - Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
-- 切枪 1/2/3 由 `WeaponHost` 读取，不塞进输入合同三量
+- 切枪 1/2/3 由 `WeaponHost` 读取，不塞进输入合同三量；弹窗打开时改语义为选左/中/右卡
 - 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
 
@@ -408,10 +428,10 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         Hud + game_theme.tres（左下 HP+武器，顶中句读）；DebugOverlay 仍在 debug/
+ui/         Hud + UpgradeOffer + game_theme.tres（左下 HP+武器，顶中句读；句间三选一 layer=20）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
-sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / DebugOverlay）
+sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -426,6 +446,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 16
+## 下一步：Day 17
 
-**Day 16 = 三选一弹窗。** 句读停推进，不 `get_tree().paused`。仍无 XP，无商店，无第四把枪。
+**Day 17 = P8 后自动再开一轮句读。** 同一 30 节点 hold 回 P0，owned 保留、HP 不回底值。仍无商店，无 XP 条，无第四把枪。
