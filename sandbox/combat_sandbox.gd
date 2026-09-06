@@ -34,6 +34,7 @@ var _offer_is_phrase: bool = false
 @onready var _upgrade_applier: UpgradeApplier = $UpgradeApplier
 
 func _ready() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	_apply_wall_layers()
 	_bind_runtime()
 	_bind_window_cursor()
@@ -56,7 +57,7 @@ func _process(delta: float) -> void:
 	_run_session.tick(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel") and _run_session.is_player_dead():
+	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		get_tree().change_scene_to_file(MENU_SCENE)
 		return
@@ -240,7 +241,7 @@ func _bind_window_cursor() -> void:
 	window.mouse_exited.connect(_on_window_mouse_exited)
 	window.focus_entered.connect(_sync_system_cursor)
 	window.focus_exited.connect(_sync_system_cursor)
-	_mouse_inside_window = _is_mouse_inside_window()
+	_mouse_inside_window = true
 
 func _on_window_mouse_entered() -> void:
 	_mouse_inside_window = true
@@ -261,11 +262,6 @@ func _sync_system_cursor() -> void:
 	else:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_aim_reticle.visible = hide_cursor
-
-func _is_mouse_inside_window() -> bool:
-	var window: Window = get_window()
-	var window_rect: Rect2i = Rect2i(window.position, window.size)
-	return window_rect.has_point(DisplayServer.mouse_get_position())
 
 func _apply_wall_layers() -> void:
 	for child: Node in _walls.get_children():

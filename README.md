@@ -437,13 +437,30 @@ HUD 仍四块（武器 / HP / XP / 句读），不要第五块 DEAD。Overlay �
 
 `project.godot` 主场景改成 `res://ui/main_menu.tscn`。Autoload 仍是 0。菜单没有 DebugOverlay / HUD / 30 个敌人。
 
-从战斗回菜单（本阶段只允许 **死后**）：`CombatSandbox` 在 `ui_cancel`（Esc）且 `is_player_dead()` 时 `change_scene_to_file(MENU_SCENE)`。playing / 弹窗开着 / 人还活着时 Esc 什么都不做。回菜单不要先 `park_all`。R 路径禁止 `change_scene`，仍走 `_reset_sandbox`。结算条 Hint 两行：`R to restart` / `Esc menu`。Play 进沙盒后行为与以前 F5 直进相同（`_bind_runtime` 里已有 `restart`）。
+从战斗回菜单（当时只允许 **死后**）：`CombatSandbox` 在 `ui_cancel`（Esc）且 `is_player_dead()` 时 `change_scene_to_file(MENU_SCENE)`。playing / 弹窗开着 / 人还活着时 Esc 当时什么都不做。回菜单不要先 `park_all`。R 路径禁止 `change_scene`，仍走 `_reset_sandbox`。结算条 Hint 两行：`R to restart` / `Esc menu`。Play 进沙盒后行为与以前 F5 直进相同（`_bind_runtime` 里已有 `restart`）。
 
-**本阶段不做：** 商店、设置页、活着按 Esc 回菜单。
+**当时不做：** 商店、设置页、活着按 Esc 回菜单。
+
+## Day 21（已完成）：活着按 Esc 也回菜单
+
+沙盒内按 **Esc**（引擎默认 `ui_cancel`），**无论活着还是已死**，立刻 `change_scene_to_file(MENU_SCENE)` 回主菜单。本局丢弃。不要暂停确认框。禁止 `get_tree().paused`、禁止 `Engine.time_scale`、禁止 `PROCESS_MODE_ALWAYS`、禁止新 CanvasLayer 暂停壳、禁止 AcceptDialog / ConfirmationDialog。不要把 `ui_cancel` / `ui_accept` 写入 `project.godot` `[input]`。
+
+离场合同：
+
+1. playing（含 P0 rest、句中、P8 后 loop 空窗）→ Esc 回菜单
+2. 三选一开着（句间或升级）→ Esc 回菜单；**不** `try_grant`、**不** `acknowledge_offer`、**不** `consume_pending_level`。卸场景即可
+3. 已死、结算条可见 → Esc 回菜单（Day 20 已有，本阶段删掉 `is_player_dead()` 闸）
+4. 回菜单不要先 `park_all` / `hold_in_reserve` / `RunSession.restart`；卸场景即可。`_exit_tree` 已把鼠标设回 VISIBLE
+
+`CombatSandbox._unhandled_input` 顺序锁死：`ui_cancel` → `sandbox_reset` → `debug_grant_upgrade`。Esc 前不要 `close_offer` / `_abort_offer`。R 仍走 `_reset_sandbox`，禁止 `change_scene`。Esc 与 R 不是同一条路。UpgradeOffer 不监听 `ui_cancel`（冒泡到沙盒）。HUD 仍四块，不加第五块。活着时中央不加提示。结算条 Hint 仍两行。Overlay：`reset: R` 下一行 `esc: menu`。菜单本身不改：Esc 不退出进程，点 Quit 才退出。再 Play 是新的一局（新加载 CombatSandbox，`_bind_runtime` 里已有 `restart`）。
+
+句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、XP 公式、MainMenu 布局、`MenuTitle` / `MainMenuButton` 都没改。
+
+**本阶段不做：** 商店、设置页、暂停确认框、轮循环加压。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 21 才做**活着按 Esc 也回菜单（playing 直接卸场景，不要暂停确认框）。仍无商店、无设置页
+- **Day 22 才做**轮循环加压（`loop_index` 提升敌人 HP 或移速，或缩短 rest；同一批 30 节点，不要 SpawnBudget）。仍无商店、无设置页、无暂停确认框
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -470,6 +487,7 @@ fire_held      bool      是否按住开火
 - Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
 - 切枪 1/2/3 由 `WeaponHost` 读取，不塞进输入合同三量；弹窗打开时改语义为选左/中/右卡
 - 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量
+- 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取，无论死活都卸场景回菜单；不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
 
 手机双摇杆是后续阶段；不要做 Input Autoload。输入组件挂在玩家节点上。
@@ -525,6 +543,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 21
+## 下一步：Day 22
 
-**Day 21 = 活着按 Esc 也回菜单**（playing 直接卸场景，不要暂停确认框）。仍无商店、无设置页。
+**Day 22 = 轮循环加压**（`loop_index` 提升敌人 HP 或移速，或缩短 rest；同一批 30 节点，不要 SpawnBudget）。仍无商店、无设置页、无暂停确认框。

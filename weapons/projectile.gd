@@ -92,14 +92,9 @@ func _apply_hit_damage(hit: Node) -> void:
 	_damage_player_side(hit)
 
 func _damage_enemy_side(hit: Node) -> void:
-	var direction: Vector2 = _hit_direction()
-	var enemy: EnemyBase = hit as EnemyBase
-	if enemy != null:
-		enemy.apply_damage(_damage, global_position, direction)
+	if not hit.has_method("apply_damage"):
 		return
-	var dummy: DummyTarget = hit as DummyTarget
-	if dummy != null:
-		dummy.apply_damage(_damage, global_position, direction)
+	hit.call("apply_damage", _damage, global_position, _hit_direction())
 
 func _damage_player_side(hit: Node) -> void:
 	var player: Player = hit as Player
