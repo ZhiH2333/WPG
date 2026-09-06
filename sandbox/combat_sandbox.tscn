@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://arena/run_session.gd" id="12_run"]
 [ext_resource type="Script" path="res://arena/upgrade_applier.gd" id="13_applier"]
 [ext_resource type="PackedScene" path="res://ui/upgrade_offer.tscn" id="14_offer"]
+[ext_resource type="PackedScene" path="res://ui/run_summary.tscn" id="15_summary"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -195,6 +196,8 @@ script = ExtResource("13_applier")
 [node name="AimReticle" parent="." instance=ExtResource("5_reticle")]
 
 [node name="Hud" parent="." instance=ExtResource("11_hud")]
+
+[node name="RunSummary" parent="." instance=ExtResource("15_summary")]
 
 [node name="UpgradeOffer" parent="." instance=ExtResource("14_offer")]
 

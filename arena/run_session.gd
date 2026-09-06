@@ -18,6 +18,7 @@ var _loop_index: int = 0
 var _level: int = 1
 var _xp: int = 0
 var _pending_level: int = 0
+var _kill_count: int = 0
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -95,6 +96,12 @@ func consume_pending_level() -> bool:
 	_pending_level -= 1
 	return true
 
+func note_kill() -> void:
+	_kill_count += 1
+
+func get_kill_count() -> int:
+	return _kill_count
+
 func restart() -> void:
 	_outcome = Outcome.PLAYING
 	_elapsed_sec = 0.0
@@ -103,6 +110,7 @@ func restart() -> void:
 	_level = 1
 	_xp = 0
 	_pending_level = 0
+	_kill_count = 0
 	_rng.randomize()
 
 func tick(delta: float) -> void:

@@ -23,6 +23,7 @@ var _offer_is_phrase: bool = false
 @onready var _debug_overlay: DebugOverlay = $DebugOverlay
 @onready var _hud: Hud = $Hud
 @onready var _upgrade_offer: UpgradeOffer = $UpgradeOffer
+@onready var _run_summary: RunSummary = $RunSummary
 @onready var _projectiles: ProjectilePool = $Projectiles
 @onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
 @onready var _enemies_root: Node2D = $Enemies
@@ -98,6 +99,7 @@ func _bind_runtime() -> void:
 	_upgrade_applier.apply_owned()
 	_upgrade_offer.bind_session(_run_session)
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
+	_run_summary.bind_run_session(_run_session)
 	_debug_overlay.bind_run_session(_run_session)
 	_debug_overlay.bind_upgrade_offer(_upgrade_offer)
 	_debug_overlay.set_last_grant_id("-")
@@ -124,6 +126,7 @@ func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 func _on_enemy_defeated(enemy: EnemyBase) -> void:
 	if not _run_session.is_playing() or _player.is_defeated():
 		return
+	_run_session.note_kill()
 	var reward: int = enemy.get_xp_reward()
 	if reward <= 0:
 		return

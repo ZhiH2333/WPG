@@ -1,0 +1,75 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/run_summary.gd" id="1_summary"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+
+[node name="RunSummary" type="CanvasLayer"]
+layer = 15
+visible = false
+script = ExtResource("1_summary")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Center" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root/Center"]
+custom_minimum_size = Vector2(640, 156)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryPanel"
+
+[node name="Column" type="VBoxContainer" parent="Root/Center/Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryTitle"
+text = "DEAD"
+horizontal_alignment = 1
+
+[node name="TimeLabel" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "time  0.0s"
+horizontal_alignment = 1
+
+[node name="KillsLabel" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "kills  0"
+horizontal_alignment = 1
+
+[node name="OwnedLabel" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "owned  -"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "R to restart"
+horizontal_alignment = 1

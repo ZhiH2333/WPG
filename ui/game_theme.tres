@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=8 format=3]
+[gd_resource type="Theme" load_steps=9 format=3]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
 bg_color = Color(1, 0.62, 0.18, 1)
@@ -47,6 +47,18 @@ border_color = Color(1, 0.62, 0.18, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xp_fill"]
 bg_color = Color(0.38, 0.72, 0.95, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_summary_panel"]
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+bg_color = Color(0.08, 0.08, 0.1, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.45, 0.48, 1)
 
 [resource]
 default_font_size = 18
@@ -97,3 +109,20 @@ ProgressBarLow/styles/fill = SubResource("StyleBoxFlat_hp_fill_low")
 ProgressBarXp/base_type = &"ProgressBar"
 ProgressBarXp/styles/background = SubResource("StyleBoxFlat_hp_bg")
 ProgressBarXp/styles/fill = SubResource("StyleBoxFlat_xp_fill")
+RunSummaryTitle/base_type = &"Label"
+RunSummaryTitle/colors/font_color = Color(0.95, 0.95, 0.9, 1)
+RunSummaryTitle/colors/font_outline_color = Color(0, 0, 0, 0.85)
+RunSummaryTitle/constants/outline_size = 8
+RunSummaryTitle/font_sizes/font_size = 28
+RunSummaryBody/base_type = &"Label"
+RunSummaryBody/colors/font_color = Color(0.95, 0.95, 0.9, 1)
+RunSummaryBody/colors/font_outline_color = Color(0, 0, 0, 0.85)
+RunSummaryBody/constants/outline_size = 6
+RunSummaryBody/font_sizes/font_size = 18
+RunSummaryHint/base_type = &"Label"
+RunSummaryHint/colors/font_color = Color(0.72, 0.72, 0.76, 1)
+RunSummaryHint/colors/font_outline_color = Color(0, 0, 0, 0.85)
+RunSummaryHint/constants/outline_size = 4
+RunSummaryHint/font_sizes/font_size = 16
+RunSummaryPanel/base_type = &"PanelContainer"
+RunSummaryPanel/styles/panel = SubResource("StyleBoxFlat_summary_panel")

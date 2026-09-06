@@ -413,11 +413,25 @@ HUD 左下 HP 条下面一条 XP 灰盒：`ProgressBarXp` + `Lv.%d  %d/%d`。Ove
 
 句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、UpgradeApplier 公式都没改。
 
-**本阶段不做：** 商店、死亡结算屏、主菜单。
+**当时不做：** 商店、死亡结算屏、主菜单。
+
+## Day 19（已完成）：死亡结算条
+
+玩家死后弹出 **一条结算条**（`ui/run_summary.tscn`，`RunSummary`，CanvasLayer **layer=15**）：本局时长、击杀数、已选升级 id。按 R 关掉并整局重置。不是主菜单，不是商店，不是通关屏。禁止 `get_tree().paused`、禁止 `Engine.time_scale`、禁止 `PROCESS_MODE_ALWAYS`、禁止全屏 Dimmer、禁止 Button、禁止剪贴板、禁止 `change_scene` / `reload_current_scene()`。没有 YOU DIED 大字。
+
+居中 `PanelContainer`（`custom_minimum_size=Vector2(640, 156)`），全部 `mouse_filter=IGNORE`。文案：`DEAD` / `time  %.1fs` / `kills  %d` / `owned  %s` / `R to restart`。owned 空则为 `-`。不显示 loop / level / HP / 当前枪。Theme：`RunSummaryTitle` / `RunSummaryBody` / `RunSummaryHint` / `RunSummaryPanel`。禁止脚本 `StyleBoxFlat.new()`。
+
+出现：`RunSession.is_player_dead()` 为 true 的那一帧或下一帧。弹窗若开着，现有 `_abort_offer` 先关窗清 pending，然后才显示。禁止等按键才弹出。消失：只有 R 走现有 `_reset_sandbox` 之后 hide。活着 playing 时必须 hidden。不锁镜头；已激活敌人继续走/打；结算条不再额外 `set_fire_suppressed`。
+
+击杀计数只活在 `RunSession`（`note_kill` / `get_kill_count`）。`CombatSandbox._on_enemy_defeated` 在 playing 且玩家未死的闸之后立刻 `note_kill()`，再 `add_xp`。`reward<=0` 也计击杀。`hold_in_reserve` / R / `_loop_phrases` 不算击杀。玩家已死后场上再死人：不 +kill、不加 XP。轮循环 **不清** kills / xp / level / owned。R：kills 随 `restart()` 归 0，条自己藏。U 不增加 kills。不要 CLEARED 结算。
+
+HUD 仍四块（武器 / HP / XP / 句读），不要第五块 DEAD。Overlay 增补 `kills: %d`（在 loop 附近）。句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、UpgradeApplier、XP 公式都没改。
+
+**本阶段不做：** 商店、主菜单、设置页。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 19 才做**死亡结算条（时长 / 击杀数 / 已选 id）。仍无商店、无主菜单
+- **Day 20 才做**极简主菜单（Play 进现有 sandbox）。仍无商店、无设置页
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -481,7 +495,7 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         Hud + UpgradeOffer + game_theme.tres（左下 HP+武器+XP，顶中句读；句间/升级三选一 layer=20）；DebugOverlay 仍在 debug/
+ui/         Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中句读；句间/升级三选一 layer=20；死亡结算条 layer=15）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / DebugOverlay）
@@ -499,6 +513,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 19
+## 下一步：Day 20
 
-**Day 19 = 死亡结算条**（时长 / 击杀数 / 已选 id）。仍无商店、无主菜单。
+**Day 20 = 极简主菜单**（Play 进现有 sandbox）。仍无商店、无设置页。
