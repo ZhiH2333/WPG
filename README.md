@@ -318,11 +318,33 @@ Overlay：`catalog: 10`、`upgrades: 0`。HUD 不显示升级，三块布局不�
 
 句读表 P0–P8、三把枪身份、Motor、相机、击退/hitstop、敌人数值、Day 10 gated 修复都没动。
 
-**本阶段不做：** 运行时应用层、三选一弹窗、XP、商店。
+**当时不做：** 运行时应用层、三选一弹窗、XP、商店。
+
+## Day 15（已完成）：底值重算应用层
+
+升级仍是数据；真正改手感的是 `arena/upgrade_applier.gd`（`UpgradeApplier`），CombatSandbox 子节点 `$UpgradeApplier`。禁止 `UpgradeDef` 自己改枪，禁止在当前值上 `+=`。公式：`runtime = baseline + owned 合计`。
+
+底值在 Player 子节点 `_ready` 之后采集一次（手枪 `_ready` 已写下 `fire_interval=0.18`）。禁止把 0.18/8/420 写成第二份魔法数。10 个 kind 全部 match：MAX_HP_FLAT / MOVE_SPEED_PCT / DAMAGE_FLAT / FIRE_RATE_PCT / PROJECTILE_SPEED_FLAT / I_FRAME_FLAT / SHOTGUN_PELLETS_FLAT / RIFLE_MAX_SPREAD_FLAT / KNOCKBACK_TAKEN_PCT。
+
+钳制：max_hp ≥ 1；pellet_count ≥ 1；fire_interval ≥ 0.02；move_speed ≥ 80；i_frame_sec ≥ 0.05；步枪 max_spread ≥ min_spread，apply 后当前散布钳进新 max。HP 合同：`apply_max_hp` 提高时当前 HP 加同一 delta（满血 100 + Vitality I → **120/120**）；降低时 `_hp = mini(_hp, new_max)`。
+
+`RunSession.try_grant`：目录没有 → false；非 stackable 已有 → false；否则 append。`restart()` 仍 `clear`。RunSession 不管 HP/枪。
+
+调试授予正好 1 条：action `debug_grant_upgrade`，物理键 **U**，不进 move/aim/fire_held。id=`max_hp_s`。第二次 U 忽略。玩家已死 U 无效。不要 10 个热键。
+
+开局：bind/assert/restart 之后 `capture_baseline()` → `apply_owned()`（owned 空，等于写回底值）。
+
+R 六步：两套弹 `park_all` → `RunSession.restart()`（owned 清空）→ `UpgradeApplier.apply_owned()`（回到底值）→ `Player.reset_for_sandbox()` → 30 人 `hold_in_reserve` → `EncounterPhrases.restart()`。禁止 `reload_current_scene()`。禁止 `get_tree().paused`。
+
+Overlay：`grant: U`、`last_grant: max_hp_s|-`（R 清成 `-`），仍保留 `catalog` / `upgrades` / `player_hp` / `pellets` / `speed` / `fps_min_2s`。HUD 仍三块，HP 数字/条跟上新 max，不显示升级名。
+
+句读表 P0–P8、10 张卡 id/kind/value、三把枪 `_ready` 身份赋值、Motor/相机/击退/hitstop 初值都没改。
+
+**本阶段不做：** 三选一弹窗、XP、商店。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 15 才做**运行时应用层（owned ids → HP/枪/移速）；沙盒可用调试授予 1 条验证，仍无三选一弹窗、无 XP、无商店
+- **Day 16 才做**三选一弹窗（句读停推进、不 `get_tree().paused`），仍无 XP、无商店
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -349,6 +371,7 @@ fire_held      bool      是否按住开火
 - Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
 - 切枪 1/2/3 由 `WeaponHost` 读取，不塞进输入合同三量
 - 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量
+- 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
 
 手机双摇杆是后续阶段；不要做 Input Autoload。输入组件挂在玩家节点上。
 
@@ -383,12 +406,12 @@ weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle、Projectile、本局 Pr
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
-arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession；不是 Autoload RunState / WaveDirector
+arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
 ui/         Hud + game_theme.tres（左下 HP+武器，顶中句读）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
-sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / Hud / DebugOverlay）
+sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -403,6 +426,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 15
+## 下一步：Day 16
 
-**Day 15 = 运行时应用层。** owned ids → HP / 枪 / 移速。沙盒可用调试授予 1 条验证。仍无三选一弹窗，无 XP，无商店，无第四把枪。
+**Day 16 = 三选一弹窗。** 句读停推进，不 `get_tree().paused`。仍无 XP，无商店，无第四把枪。

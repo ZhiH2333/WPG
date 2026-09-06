@@ -30,6 +30,23 @@ func get_pistol() -> Pistol:
 			return pistol
 	return null
 
+func get_shotgun() -> Shotgun:
+	for weapon: Weapon in _weapons:
+		var shotgun: Shotgun = weapon as Shotgun
+		if shotgun != null:
+			return shotgun
+	return null
+
+func get_rifle() -> Rifle:
+	for weapon: Weapon in _weapons:
+		var rifle: Rifle = weapon as Rifle
+		if rifle != null:
+			return rifle
+	return null
+
+func get_weapons() -> Array[Weapon]:
+	return _weapons.duplicate()
+
 func deactivate_all() -> void:
 	_switch_locked = true
 	for weapon: Weapon in _weapons:

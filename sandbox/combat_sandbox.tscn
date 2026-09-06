@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://arena/encounter_phrases.gd" id="10_encounter"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="11_hud"]
 [ext_resource type="Script" path="res://arena/run_session.gd" id="12_run"]
+[ext_resource type="Script" path="res://arena/upgrade_applier.gd" id="13_applier"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -182,6 +183,9 @@ script = ExtResource("10_encounter")
 
 [node name="RunSession" type="Node" parent="."]
 script = ExtResource("12_run")
+
+[node name="UpgradeApplier" type="Node" parent="."]
+script = ExtResource("13_applier")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 

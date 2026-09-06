@@ -20,6 +20,17 @@ func bind_encounter(encounter: EncounterPhrases) -> void:
 func bind_catalog(catalog: UpgradeCatalog) -> void:
 	_catalog = catalog
 
+func try_grant(upgrade_id: StringName) -> bool:
+	if _catalog == null:
+		return false
+	var def: UpgradeDef = _catalog.get_by_id(upgrade_id)
+	if def == null:
+		return false
+	if not def.stackable and has_upgrade(upgrade_id):
+		return false
+	_owned_ids.append(String(upgrade_id))
+	return true
+
 func restart() -> void:
 	_outcome = Outcome.PLAYING
 	_elapsed_sec = 0.0

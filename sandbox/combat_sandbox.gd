@@ -9,6 +9,7 @@ const REQUIRED_UPGRADE_IDS: PackedStringArray = [
 	"max_hp_s", "max_hp_m", "swift", "heavy_round", "cadence",
 	"long_shot", "second_skin", "extra_pellets", "steady_rifle", "thick_hide",
 ]
+const GRANT_UPGRADE_ID: StringName = &"max_hp_s"
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -26,6 +27,7 @@ var _enemies: Array[EnemyBase] = []
 @onready var _sfx_pool: SfxPool = $SfxPool
 @onready var _encounter: EncounterPhrases = $EncounterPhrases
 @onready var _run_session: RunSession = $RunSession
+@onready var _upgrade_applier: UpgradeApplier = $UpgradeApplier
 
 func _ready() -> void:
 	_apply_wall_layers()
@@ -42,10 +44,13 @@ func _process(delta: float) -> void:
 	_run_session.tick(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not event.is_action_pressed("sandbox_reset"):
+	if event.is_action_pressed("sandbox_reset"):
+		_reset_sandbox()
+		get_viewport().set_input_as_handled()
 		return
-	_reset_sandbox()
-	get_viewport().set_input_as_handled()
+	if event.is_action_pressed("debug_grant_upgrade"):
+		_try_debug_grant()
+		get_viewport().set_input_as_handled()
 
 func _bind_runtime() -> void:
 	var player_input: PlayerInput = _player.get_player_input()
@@ -76,7 +81,12 @@ func _bind_runtime() -> void:
 	_run_session.bind_catalog(UPGRADE_CATALOG)
 	_assert_upgrade_catalog()
 	_run_session.restart()
+	_upgrade_applier.bind_player(_player)
+	_upgrade_applier.bind_session(_run_session)
+	_upgrade_applier.capture_baseline()
+	_upgrade_applier.apply_owned()
 	_debug_overlay.bind_run_session(_run_session)
+	_debug_overlay.set_last_grant_id("-")
 
 func _collect_enemies() -> Array[EnemyBase]:
 	var enemies: Array[EnemyBase] = []
@@ -109,10 +119,20 @@ func _hold_all_in_reserve() -> void:
 func _reset_sandbox() -> void:
 	_projectiles.park_all()
 	_enemy_projectiles.park_all()
+	_run_session.restart()
+	_upgrade_applier.apply_owned()
 	_player.reset_for_sandbox()
 	_hold_all_in_reserve()
 	_encounter.restart()
-	_run_session.restart()
+	_debug_overlay.set_last_grant_id("-")
+
+func _try_debug_grant() -> void:
+	if _player.is_defeated():
+		return
+	if not _run_session.try_grant(GRANT_UPGRADE_ID):
+		return
+	_upgrade_applier.apply_owned()
+	_debug_overlay.set_last_grant_id(String(GRANT_UPGRADE_ID))
 
 func _bind_window_cursor() -> void:
 	var window: Window = get_window()

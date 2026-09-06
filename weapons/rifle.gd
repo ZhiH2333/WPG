@@ -23,6 +23,9 @@ func get_display_name() -> String:
 func get_current_spread_deg() -> float:
 	return _current_spread_deg
 
+func clamp_current_spread_to_max() -> void:
+	_current_spread_deg = clampf(_current_spread_deg, min_spread_deg, max_spread_deg)
+
 func _should_reset_cooldown_on_release() -> bool:
 	return true
 

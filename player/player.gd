@@ -31,6 +31,9 @@ func get_player_input() -> PlayerInput:
 func get_player_health() -> PlayerHealth:
 	return _player_health
 
+func get_player_motor() -> PlayerMotor:
+	return _player_motor
+
 func get_weapon_host() -> WeaponHost:
 	return _weapon_host
 

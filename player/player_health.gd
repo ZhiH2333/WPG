@@ -29,6 +29,15 @@ func get_hp() -> int:
 func get_max_hp() -> int:
 	return max_hp
 
+func apply_max_hp(new_max: int) -> void:
+	new_max = maxi(1, new_max)
+	var delta: int = new_max - max_hp
+	max_hp = new_max
+	if delta > 0:
+		_hp = mini(max_hp, _hp + delta)
+		return
+	_hp = mini(_hp, max_hp)
+
 func is_defeated() -> bool:
 	return _defeated
 
