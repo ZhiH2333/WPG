@@ -4,6 +4,11 @@ class_name CombatSandbox
 const PROJECTILE_SCENE: PackedScene = preload("res://weapons/projectile.tscn")
 const POOL_CAPACITY: int = 96
 const ENEMY_POOL_CAPACITY: int = 64
+const UPGRADE_CATALOG: UpgradeCatalog = preload("res://data/upgrade_catalog.tres")
+const REQUIRED_UPGRADE_IDS: PackedStringArray = [
+	"max_hp_s", "max_hp_m", "swift", "heavy_round", "cadence",
+	"long_shot", "second_skin", "extra_pellets", "steady_rifle", "thick_hide",
+]
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -68,6 +73,8 @@ func _bind_runtime() -> void:
 	_hud.bind_encounter(_encounter)
 	_run_session.bind_player(_player)
 	_run_session.bind_encounter(_encounter)
+	_run_session.bind_catalog(UPGRADE_CATALOG)
+	_assert_upgrade_catalog()
 	_run_session.restart()
 	_debug_overlay.bind_run_session(_run_session)
 
@@ -87,6 +94,13 @@ func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 		var ranged: RangedEnemy = enemy as RangedEnemy
 		if ranged != null:
 			ranged.bind_projectile_pool(_enemy_projectiles)
+
+func _assert_upgrade_catalog() -> void:
+	if UPGRADE_CATALOG.get_count() != 10:
+		push_error("升级目录条目数应为 10，实际 %d" % UPGRADE_CATALOG.get_count())
+	for upgrade_id: String in REQUIRED_UPGRADE_IDS:
+		if UPGRADE_CATALOG.get_by_id(StringName(upgrade_id)) == null:
+			push_error("升级目录缺少 id: %s" % upgrade_id)
 
 func _hold_all_in_reserve() -> void:
 	for enemy: EnemyBase in _enemies:

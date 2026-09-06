@@ -289,11 +289,40 @@ Overlay 增补：`run: playing|dead|cleared`、`run_time`。HUD 不 bind RunSess
 
 本阶段列表为空：不要 `upgrade_ids`、不要 xp、不要 gold、不要 wave_index。句读表 P0–P8、三把枪身份、Motor 420、`look_ahead=100`、shake、击退/hitstop、敌人数值、Day 10 gated 修复都没动。
 
-**本阶段不做：** 升级 Resource、三选一弹窗、XP、商店、死亡结算屏。
+**当时不做：** 升级 Resource、三选一弹窗、XP、商店、死亡结算屏。
+
+## Day 14（已完成）：10 条升级 Resource，owned 恒空
+
+升级是**数据，不是效果**。`data/upgrade_def.gd`（`UpgradeDef`）+ `data/upgrade_catalog.gd`（`UpgradeCatalog`）+ `data/upgrade_catalog.tres` 引用 `data/upgrades/` 下 10 个 `.tres`。禁止 `upgrades.json`、禁止 `FileAccess` 读 JSON、禁止 `BuildCatalog`、禁止稀有度权重 / luck / emoji。
+
+10 个 id 锁死，映射到现有 `@export`（给 Day 15 应用层用）。本阶段**没有任何脚本**读取 catalog 后改 `PlayerHealth.max_hp` / `Weapon.damage` / `fire_interval` / `PlayerMotor.move_speed` / `Shotgun.pellet_count` / `Rifle.max_spread_deg` / `i_frame_sec`。
+
+| id | title | kind | value | stackable |
+|---|---|---|---|---|
+| max_hp_s | Vitality I | MAX_HP_FLAT | 20 | false |
+| max_hp_m | Vitality II | MAX_HP_FLAT | 40 | false |
+| swift | Swift | MOVE_SPEED_PCT | 0.10 | true |
+| heavy_round | Heavy Round | DAMAGE_FLAT | 2 | true |
+| cadence | Cadence | FIRE_RATE_PCT | 0.12 | true |
+| long_shot | Long Shot | PROJECTILE_SPEED_FLAT | 80 | true |
+| second_skin | Second Skin | I_FRAME_FLAT | 0.10 | false |
+| extra_pellets | Extra Pellets | SHOTGUN_PELLETS_FLAT | 2 | false |
+| steady_rifle | Steady Rifle | RIFLE_MAX_SPREAD_FLAT | -2.0 | false |
+| thick_hide | Thick Hide | KNOCKBACK_TAKEN_PCT | -0.20 | false |
+
+`CombatSandbox` `preload` 目录并 `_run_session.bind_catalog`。启动断言 `get_count()==10`，10 个 id 各查一次，缺了才 `push_error`。`get_by_id` 找不到返回 null，不刷屏。重复 id 记错误并跳过后到的。
+
+`RunSession` 持有 `PackedStringArray` 已选 id。`restart()` 必须 `clear`。本阶段没有按键/UI `push`。`get_owned_upgrade_ids()` 返回副本。**没有** `add_upgrade` / `apply` / `grant`。
+
+Overlay：`catalog: 10`、`upgrades: 0`。HUD 不显示升级，三块布局不变。R 之后 upgrades 仍是 0。手感与 Day 13 相同：HP 100、Pistol 0.18/8、霰弹 8 粒、步枪 max_spread 11、移速 420、i-frame 0.45、玩家击退 impulse 180。
+
+句读表 P0–P8、三把枪身份、Motor、相机、击退/hitstop、敌人数值、Day 10 gated 修复都没动。
+
+**本阶段不做：** 运行时应用层、三选一弹窗、XP、商店。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 14 才做**10 个升级 Resource 定义；RunSession 可持有已选 id 列表但本阶段恒空、不改枪/HP。仍无三选一弹窗、无 XP、无商店
+- **Day 15 才做**运行时应用层（owned ids → HP/枪/移速）；沙盒可用调试授予 1 条验证，仍无三选一弹窗、无 XP、无商店
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -357,7 +386,7 @@ audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒�
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
 ui/         Hud + game_theme.tres（左下 HP+武器，顶中句读）；DebugOverlay 仍在 debug/
-data/       武器/敌人/升级 Resource（尚未开始）
+data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / Hud / DebugOverlay）
 ```
@@ -374,6 +403,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 14
+## 下一步：Day 15
 
-**Day 14 = 10 个升级 Resource 定义。** RunSession 可持有已选 id 列表，但本阶段恒空、不改枪/HP。仍无三选一弹窗，无 XP，无商店，无第四把枪。
+**Day 15 = 运行时应用层。** owned ids → HP / 枪 / 移速。沙盒可用调试授予 1 条验证。仍无三选一弹窗，无 XP，无商店，无第四把枪。

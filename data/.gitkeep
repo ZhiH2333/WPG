@@ -1,1 +1,1 @@
-武器/敌人/升级 Resource（尚未开始）
+UpgradeDef / UpgradeCatalog（10 条 Resource）。升级是数据，不是效果。禁止 upgrades.json。

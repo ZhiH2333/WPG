@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"steady_rifle"
+title = "Steady Rifle"
+description = "Rifle max spread -2.0"
+kind = 7
+value = -2.00
+stackable = false

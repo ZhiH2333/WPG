@@ -6,8 +6,10 @@ enum Outcome { PLAYING, DEAD, CLEARED }
 
 var _player: Player
 var _encounter: EncounterPhrases
+var _catalog: UpgradeCatalog
 var _outcome: Outcome = Outcome.PLAYING
 var _elapsed_sec: float = 0.0
+var _owned_ids: PackedStringArray = PackedStringArray()
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -15,9 +17,13 @@ func bind_player(player: Player) -> void:
 func bind_encounter(encounter: EncounterPhrases) -> void:
 	_encounter = encounter
 
+func bind_catalog(catalog: UpgradeCatalog) -> void:
+	_catalog = catalog
+
 func restart() -> void:
 	_outcome = Outcome.PLAYING
 	_elapsed_sec = 0.0
+	_owned_ids.clear()
 
 func tick(delta: float) -> void:
 	if _outcome != Outcome.PLAYING:
@@ -50,3 +56,15 @@ func get_outcome_label() -> String:
 	if _outcome == Outcome.CLEARED:
 		return "cleared"
 	return "playing"
+
+func get_catalog() -> UpgradeCatalog:
+	return _catalog
+
+func get_owned_upgrade_ids() -> PackedStringArray:
+	return _owned_ids.duplicate()
+
+func get_owned_count() -> int:
+	return _owned_ids.size()
+
+func has_upgrade(upgrade_id: StringName) -> bool:
+	return String(upgrade_id) in _owned_ids
