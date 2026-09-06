@@ -10,6 +10,7 @@ const REQUIRED_UPGRADE_IDS: PackedStringArray = [
 	"long_shot", "second_skin", "extra_pellets", "steady_rifle", "thick_hide",
 ]
 const GRANT_UPGRADE_ID: StringName = &"max_hp_s"
+const MENU_SCENE := "res://ui/main_menu.tscn"
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -55,6 +56,10 @@ func _process(delta: float) -> void:
 	_run_session.tick(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and _run_session.is_player_dead():
+		get_viewport().set_input_as_handled()
+		get_tree().change_scene_to_file(MENU_SCENE)
+		return
 	if event.is_action_pressed("sandbox_reset"):
 		_reset_sandbox()
 		get_viewport().set_input_as_handled()

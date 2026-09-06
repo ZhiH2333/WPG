@@ -8,7 +8,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `sandbox/combat_sandbox.tscn`。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：先看到居中 `WPG` / Play / Quit。点 Play（或 Enter）才进 `sandbox/combat_sandbox.tscn`。
 
 - 平台：Desktop 为主（同一套战斗规则，手机输入后置）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -427,11 +427,23 @@ HUD 左下 HP 条下面一条 XP 灰盒：`ProgressBarXp` + `Lv.%d  %d/%d`。Ove
 
 HUD 仍四块（武器 / HP / XP / 句读），不要第五块 DEAD。Overlay 增补 `kills: %d`（在 loop 附近）。句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、UpgradeApplier、XP 公式都没改。
 
-**本阶段不做：** 商店、主菜单、设置页。
+**当时不做：** 商店、主菜单、设置页。
+
+## Day 20（已完成）：极简主菜单
+
+启动先到 **极简主菜单**（`ui/main_menu.tscn`，`MainMenu`，根节点 `Control`，不是 CanvasLayer）。点 Play 才进现有 `sandbox/combat_sandbox.tscn`。死亡仍用 Day 19 结算条。R 仍是沙盒内整局重置，**不是**回菜单。禁止 `get_tree().paused`、禁止 `PROCESS_MODE_ALWAYS`、禁止 Autoload 传开局参数、禁止背景图 / sway / emoji、禁止把 CombatSandbox 做成菜单子节点。
+
+居中 VBox：Title `WPG`、Play、Quit。Play / Quit 是 Button（`custom_minimum_size=Vector2(280, 56)`，`mouse_filter=STOP`）。空背景 `mouse_filter=IGNORE`。背景一块 `ColorRect` `Color(0.10, 0.10, 0.12, 1)`。Play → `change_scene_to_file("res://sandbox/combat_sandbox.tscn")`。Quit → `get_tree().quit()`。`_ready` 里 `Play.grab_focus()`，`Input.mouse_mode = MOUSE_MODE_VISIBLE`。键盘走引擎默认 `ui_accept`（Enter/Space）= 点 Play；不要把 `ui_accept` / `ui_cancel` 写进 `project.godot` `[input]`。Theme：`MenuTitle` / `MainMenuButton`（复用 OfferButton 的 styles；Godot 内置 `MenuButton` 控件，不能当 type variation）。禁止脚本 `StyleBoxFlat.new()`。
+
+`project.godot` 主场景改成 `res://ui/main_menu.tscn`。Autoload 仍是 0。菜单没有 DebugOverlay / HUD / 30 个敌人。
+
+从战斗回菜单（本阶段只允许 **死后**）：`CombatSandbox` 在 `ui_cancel`（Esc）且 `is_player_dead()` 时 `change_scene_to_file(MENU_SCENE)`。playing / 弹窗开着 / 人还活着时 Esc 什么都不做。回菜单不要先 `park_all`。R 路径禁止 `change_scene`，仍走 `_reset_sandbox`。结算条 Hint 两行：`R to restart` / `Esc menu`。Play 进沙盒后行为与以前 F5 直进相同（`_bind_runtime` 里已有 `restart`）。
+
+**本阶段不做：** 商店、设置页、活着按 Esc 回菜单。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 20 才做**极简主菜单（Play 进现有 sandbox）。仍无商店、无设置页
+- **Day 21 才做**活着按 Esc 也回菜单（playing 直接卸场景，不要暂停确认框）。仍无商店、无设置页
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -495,10 +507,10 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中句读；句间/升级三选一 layer=20；死亡结算条 layer=15）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中句读；句间/升级三选一 layer=20；死亡结算条 layer=15）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
-sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / DebugOverlay）
+sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / RunSummary / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -513,6 +525,6 @@ sandbox/    主场景（Player / PlayerCamera / AimReticle / Projectiles / Enemy
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 20
+## 下一步：Day 21
 
-**Day 20 = 极简主菜单**（Play 进现有 sandbox）。仍无商店、无设置页。
+**Day 21 = 活着按 Esc 也回菜单**（playing 直接卸场景，不要暂停确认框）。仍无商店、无设置页。

@@ -28,7 +28,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(640, 156)
+custom_minimum_size = Vector2(640, 184)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryPanel"
@@ -72,4 +72,11 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 text = "R to restart"
+horizontal_alignment = 1
+
+[node name="MenuHint" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "Esc menu"
 horizontal_alignment = 1
