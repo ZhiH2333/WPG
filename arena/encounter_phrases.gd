@@ -16,6 +16,20 @@ const P7_NAMES: PackedStringArray = [
 	"RangedRight4", "RangedRight5", "RangedRight6",
 	"RangedTop3", "RangedTop4",
 ]
+const P1_NAMES_DENSE: PackedStringArray = [
+	"MeleeLeft1", "MeleeLeft2", "MeleeLeft3", "MeleeLeft4", "MeleeLeft5", "MeleeLeft6",
+]
+const P3_NAMES_DENSE: PackedStringArray = ["RangedRight1", "RangedRight2", "RangedRight3", "RangedRight4"]
+const P5_NAMES_DENSE: PackedStringArray = [
+	"MeleeBottom1", "MeleeBottom2", "MeleeBottom3", "MeleeBottom4", "MeleeBottom5", "MeleeBottom6", "MeleeBottom7", "MeleeBottom8",
+	"RangedTop1", "RangedTop2", "RangedTop3",
+]
+const P7_NAMES_DENSE: PackedStringArray = [
+	"MeleeLeft7", "MeleeLeft8", "MeleeLeft9", "MeleeLeft10",
+	"MeleeBottom9", "MeleeBottom10",
+	"RangedRight5", "RangedRight6",
+	"RangedTop4",
+]
 
 enum State { RESTING, PLAYING, AWAITING_OFFER, DONE }
 
@@ -89,16 +103,16 @@ func _begin_phrase(index: int) -> void:
 		_begin_rest_or_skip(index)
 		return
 	if index == 1:
-		_start_playing(P1_NAMES, P1_NAMES)
+		_start_playing(_p1_names(), _p1_names())
 		return
 	if index == 3:
 		_start_p3()
 		return
 	if index == 5:
-		_start_playing(P5_NAMES, P5_NAMES)
+		_start_playing(_p5_names(), _p5_names())
 		return
 	if index == 7:
-		_start_playing(P7_NAMES, PackedStringArray())
+		_start_playing(_p7_names(), PackedStringArray())
 		return
 	_state = State.DONE
 	_rest_left = 0.0
@@ -126,9 +140,9 @@ func _start_p3() -> void:
 	_state = State.PLAYING
 	_rest_left = 0.0
 	if not _p3_started:
-		_activate_named(P3_NAMES)
+		_activate_named(_p3_names())
 		_p3_started = true
-	_wait_names = _merged(P1_NAMES, P3_NAMES)
+	_wait_names = _merged(_p1_names(), _p3_names())
 
 func _tick_rest(delta: float) -> void:
 	_rest_left = maxf(0.0, _rest_left - delta)
@@ -150,10 +164,10 @@ func _tick_playing() -> void:
 func _try_overlap_p3() -> void:
 	if _phrase_index != 1 or _p3_started:
 		return
-	var alive_p1: int = _count_alive(P1_NAMES)
-	if alive_p1 <= 0 or alive_p1 > 2:
+	var alive_p1: int = _count_alive(_p1_names())
+	if alive_p1 <= 0 or alive_p1 > _p3_overlap_max():
 		return
-	_activate_named(P3_NAMES)
+	_activate_named(_p3_names())
 	_p3_started = true
 
 func _activate_named(names: PackedStringArray) -> void:
@@ -213,6 +227,36 @@ func _rest_sec() -> float:
 	if _run_session != null:
 		loop = _run_session.get_loop_index()
 	return maxf(0.75, REST_SEC - 0.25 * float(mini(loop, 8)))
+
+func _loop_index() -> int:
+	if _run_session == null:
+		return 0
+	return _run_session.get_loop_index()
+
+func _p1_names() -> PackedStringArray:
+	if _loop_index() == 0:
+		return P1_NAMES
+	return P1_NAMES_DENSE
+
+func _p3_names() -> PackedStringArray:
+	if _loop_index() == 0:
+		return P3_NAMES
+	return P3_NAMES_DENSE
+
+func _p5_names() -> PackedStringArray:
+	if _loop_index() == 0:
+		return P5_NAMES
+	return P5_NAMES_DENSE
+
+func _p7_names() -> PackedStringArray:
+	if _loop_index() == 0:
+		return P7_NAMES
+	return P7_NAMES_DENSE
+
+func _p3_overlap_max() -> int:
+	if _loop_index() == 0:
+		return 2
+	return 3
 
 func _stagger_for_side(side: String, index_in_side: int) -> float:
 	var base_sec: float = 0.0

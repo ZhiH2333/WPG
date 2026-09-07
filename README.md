@@ -539,11 +539,33 @@ R：loop 0，伤害回 8/6。Esc 回菜单再 Play：新局 8/6。HP/移速/rest
 
 句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、加压 HP/移速/rest、HUD 顶中/结算条都没改。
 
-**本阶段不做：** 商店、SpawnBudget、句读加厚、暂停框、第五块 ROUND、多人、模式选择。
+**当时不做：** 商店、SpawnBudget、句读加厚、暂停框、第五块 ROUND、多人、模式选择。
+
+## Day 26（已完成）：句读加厚
+
+第二轮起场上更密。仍是同一批 30 个预放节点、仍 P0–P8、仍按节点名 `activate`。不是新敌人，不是 SpawnBudget，不是改伤害。密度两档：`loop == 0` 瘦表一字不改；`loop >= 1` 走 `_DENSE`。禁止第三套 `loop≥2` 表。`PHRASE_TOTAL` 仍是 8。`get_phrase_label()` 返回字符串一个字都没改。顶中仍 `L0  1/8` / `L1  1/8`。
+
+| | loop0 | loop≥1 |
+|---|---|---|
+| P1 | Left1..4（4） | Left1..6（6） |
+| P3 | Right1..3（3） | Right1..4（4） |
+| P5 | Bottom1..6 + Top1..2（8） | Bottom1..8 + Top1..3（11） |
+| P7 | Left5-10 + Bottom7-10 + Right4-6 + Top3-4（15） | Left7-10 + Bottom9-10 + Right5-6 + Top4（9） |
+| P3 重叠 | P1 活着 ≤2 且 >0 | P1 活着 ≤3 且 >0 |
+
+调度仍走 `_begin_phrase`：0/2/4/6 rest 或 offer；1 用 `_p1_names()`；3 用 `_start_p3`；5 用 `_p5_names()`；7 用 `_p7_names()` 且 wait 空数组、清场靠 `_count_field_alive()`；8 DONE。`_start_playing` / `_start_p3` / `_try_overlap_p3` 全部读 getter，不再直接写 `P1_NAMES`。`_p3_overlap_max()`：loop==0 返回 2，否则返回 3。密度每次读 `RunSession.get_loop_index()`，不缓存一份 loop。
+
+禁止用密度跳过更多三选一。P2/P4/P6 仍是 `AWAITING_OFFER`（P2 仅当 `_p3_started` 才跳过）。不要 P5 重叠进 P3，不要 P7 重叠进 P5。并发上限仍靠手写表：loop≥1 峰值大约 P5=11 或 P1 重叠 P3=3+4=7，不是开局 20M+10R。
+
+HUD / 结算条 / Overlay 格式不动。`phrase_alive` 会自然变大（P1：loop0 起 4，loop≥1 起 6），不要新字段、不要第五块 WAVE。R：restart 回 P0，loop 0，用瘦表。Esc 回菜单再 Play：新局瘦表。`_loop_phrases` 已先 notify 再 `encounter.restart()`，第二轮第一句就会走 DENSE。节点名和坐标没改，不 `instantiate`、不 `queue_free`。
+
+句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、加压 HP/移速/rest/伤害、HUD 顶中/结算条都没改。
+
+**本阶段不做：** 商店、WaveDirector、10 张卡改手感、暂停框、第五块 ROUND、多人、模式选择。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 26 才做** 句读加厚（仍这 30 个节点名换出场或加重叠，不要 WaveDirector、不要新 UI）。仍无商店、无暂停框、无第五块 ROUND、无多人、无模式选择
+- **Day 27 才做** 10 张卡补手感或少量 stackable，仍同一扇 UpgradeOffer，不改三枪 `_ready` 底值。仍无商店、无 WaveDirector、无暂停框、无第五块 ROUND、无多人、无模式选择
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -626,6 +648,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 26
+## 下一步：Day 27
 
-**Day 26 = 句读加厚**（仍这 30 个节点名换出场或加重叠，不要 WaveDirector、不要新 UI）。仍无商店、无暂停框、无第五块 ROUND、无多人、无模式选择。
+**Day 27 = 10 张卡补手感或少量 stackable**，仍同一扇 UpgradeOffer，不改三枪 `_ready` 底值。仍无商店、无 WaveDirector、无暂停框、无第五块 ROUND、无多人、无模式选择。
