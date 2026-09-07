@@ -4,6 +4,8 @@ class_name MeleeEnemy
 ## 走向玩家，Area2D 碰到才造成接触伤害。不射击。廉价正交分离，禁止探查其它敌人。
 @export var contact_damage: int = 8
 
+var _base_contact_damage: int = 0
+
 @onready var _contact_area: Area2D = $ContactArea
 
 func _ready() -> void:
@@ -11,6 +13,7 @@ func _ready() -> void:
 	move_speed = 175.0
 	acceleration = 1400.0
 	super._ready()
+	_base_contact_damage = contact_damage
 	_bind_contact_area()
 
 func get_kind_name() -> String:
@@ -21,6 +24,12 @@ func get_xp_reward() -> int:
 
 func get_hp_per_loop() -> int:
 	return 8
+
+func get_contact_damage_per_loop() -> int:
+	return 2
+
+func _apply_damage_pressure(pressure: int) -> void:
+	contact_damage = _base_contact_damage + pressure * get_contact_damage_per_loop()
 
 func _bind_contact_area() -> void:
 	_contact_area.collision_layer = GameCollisionLayers.MASK_NONE

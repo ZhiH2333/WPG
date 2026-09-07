@@ -12,6 +12,7 @@ class_name RangedEnemy
 var _pool: ProjectilePool
 var _next_fire_at_msec: int = 0
 var _strafe_sign: float = 1.0
+var _base_projectile_damage: int = 0
 
 @onready var _muzzle: Marker2D = $Visual/Muzzle
 
@@ -20,6 +21,7 @@ func _ready() -> void:
 	move_speed = 140.0
 	acceleration = 1200.0
 	super._ready()
+	_base_projectile_damage = projectile_damage
 	_refresh_strafe_sign()
 
 func bind_projectile_pool(pool: ProjectilePool) -> void:
@@ -33,6 +35,12 @@ func get_xp_reward() -> int:
 
 func get_hp_per_loop() -> int:
 	return 6
+
+func get_projectile_damage_per_loop() -> int:
+	return 1
+
+func _apply_damage_pressure(pressure: int) -> void:
+	projectile_damage = _base_projectile_damage + pressure * get_projectile_damage_per_loop()
 
 func _process(delta: float) -> void:
 	super._process(delta)

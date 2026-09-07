@@ -99,6 +99,10 @@ func apply_loop_pressure(loop_index: int) -> void:
 	var pressure: int = clampi(loop_index, 0, 8)
 	max_hp = _base_max_hp + pressure * get_hp_per_loop()
 	move_speed = _base_move_speed * (1.0 + 0.08 * float(pressure))
+	_apply_damage_pressure(pressure)
+
+func _apply_damage_pressure(_pressure: int) -> void:
+	pass
 
 func hold_in_reserve() -> void:
 	_in_reserve = true

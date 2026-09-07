@@ -5,6 +5,7 @@ class_name RunSummary
 var _session: RunSession
 
 @onready var _time_label: Label = $Root/Center/Panel/Column/TimeLabel
+@onready var _loop_label: Label = $Root/Center/Panel/Column/LoopLabel
 @onready var _kills_label: Label = $Root/Center/Panel/Column/KillsLabel
 @onready var _owned_label: Label = $Root/Center/Panel/Column/OwnedLabel
 
@@ -16,6 +17,7 @@ func _process(_delta: float) -> void:
 		visible = false
 		return
 	_time_label.text = "time  %.1fs" % _session.get_elapsed_sec()
+	_loop_label.text = "loop  %d" % _session.get_loop_index()
 	_kills_label.text = "kills  %d" % _session.get_kill_count()
 	_owned_label.text = "owned  %s" % _format_owned()
 	visible = true

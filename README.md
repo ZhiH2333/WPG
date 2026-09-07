@@ -503,11 +503,47 @@ P8 后再开一轮时，**同一批 30 节点**按 `loop_index` 变厚：更高 
 
 句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、加压公式、MainMenu、RunSummary 文案都没改。
 
-**本阶段不做：** 商店、SpawnBudget、结算条 loop 行、暂停框。
+**当时不做：** 商店、SpawnBudget、结算条 loop 行、暂停框。
+
+## Day 24（已完成）：结算条补一行 loop
+
+死后结算条在 `time` 和 `kills` 之间补一行 **`loop  %d`**，与 Overlay / HUD 顶中同一套 `RunSession.get_loop_index()`，**0 起**。禁止写成 `L%d`（那是 HUD 顶中格式）。节点名 `LoopLabel`，`theme_type_variation` 仍 `RunSummaryBody`，`mouse_filter=IGNORE`。场景顺序：Title → TimeLabel → LoopLabel → KillsLabel → OwnedLabel → Hint → MenuHint。Panel `custom_minimum_size=Vector2(640, 208)`。不要全屏、不要 Dimmer、不要 Button。Hint 两行文案不变。
+
+第一轮内死亡：`loop  0`。打完一遍 P8 进入 L1 再死：`loop  1`。活着 playing 时条仍 hidden。R：`restart` 把 loop 清 0，条因未死自己藏。Esc 回菜单再 Play：新局 loop 0。
+
+HUD 信息架构到此冻结：左下武器/HP/XP，顶中 `L%d  %s`，layer 15 结算含 loop，layer 20 三选一。Overlay `loop: %d` 保留。不要给结算条加 level / HP / 当前枪。
+
+句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、加压 HP/移速/rest、HUD 顶中格式都没改。
+
+**当时不做：** 商店、SpawnBudget、加压补伤害、暂停框、第五块 ROUND。
+
+## Day 25（已完成）：加压补伤害
+
+第二轮起近战贴脸更疼、远程弹更疼。同一批 30 节点，同一套 `pressure = clampi(get_loop_index(), 0, 8)`。不是新敌人，不是 SpawnBudget，不是改射速。禁止改近战/远程 `_ready` 身份赋值行。禁止在当前伤害值上 `+=`。`_base_contact_damage` / `_base_projectile_damage` 在 `_ready` 里从导出默认采集（8 和 6）。
+
+| | loop0 | loop1 | loop2 | loop8 |
+|---|---|---|---|---|
+| 近战 contact_damage | 8 | 10 | 12 | 24 |
+| 远程 projectile_damage | 6 | 7 | 8 | 14 |
+
+近战：`contact_damage = _base_contact_damage + pressure * 2`（`get_contact_damage_per_loop()` 返回 2）。
+远程：`projectile_damage = _base_projectile_damage + pressure * 1`（`get_projectile_damage_per_loop()` 返回 1）。
+
+`EnemyBase.apply_loop_pressure` 在 HP/移速两行之后调用 `_apply_damage_pressure(pressure)`；基类空实现。预备役里只改字段、不造成伤害。入场 `reset_for_sandbox` 不重置伤害字段。`_try_hit_player` 仍读 `contact_damage`；`_try_fire` 仍把 `projectile_damage` 传进 `projectile.reset`。
+
+Overlay：`nearest_spd` 旁加 `nearest_dmg: %d`（近战读 `contact_damage`，远程读 `projectile_damage`，没有 nearest 则 0）。不要改 loop/kills 格式。HUD / 结算条 / 顶中 `L%d  %s` 不动。不要第五块 DMG。
+
+R：loop 0，伤害回 8/6。Esc 回菜单再 Play：新局 8/6。HP/移速/rest 仍走 Day 22 公式（近战 loop1：44 HP、175*1.08）。`fire_interval=0.9`、`projectile_speed=420`、knockback、XP 10/12、玩家 `i_frame_sec=0.45` 都没改。
+
+调度顺序未动：`_loop_phrases` 仍是 park → hold → `notify_phrase_loop()`（先 +1）→ `_apply_loop_pressure()` → `EncounterPhrases.restart()`。
+
+句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、加压 HP/移速/rest、HUD 顶中/结算条都没改。
+
+**本阶段不做：** 商店、SpawnBudget、句读加厚、暂停框、第五块 ROUND、多人、模式选择。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 24 才做** 结算条补一行 `loop  %d`（死后也能看见轮次）。仍无商店、无 SpawnBudget、无暂停框、无第五块 ROUND
+- **Day 26 才做** 句读加厚（仍这 30 个节点名换出场或加重叠，不要 WaveDirector、不要新 UI）。仍无商店、无暂停框、无第五块 ROUND、无多人、无模式选择
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -572,7 +608,7 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中 `L0  0/8`；句间/升级三选一 layer=20；死亡结算条 layer=15）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中 `L0  0/8`；句间/升级三选一 layer=20；死亡结算条 layer=15 含 loop）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / RunSummary / DebugOverlay）
@@ -590,6 +626,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 24
+## 下一步：Day 26
 
-**Day 24 = 结算条补一行 `loop  %d`**（死后也能看见轮次）。仍无商店、无 SpawnBudget、无暂停框、无第五块 ROUND。
+**Day 26 = 句读加厚**（仍这 30 个节点名换出场或加重叠，不要 WaveDirector、不要新 UI）。仍无商店、无暂停框、无第五块 ROUND、无多人、无模式选择。
