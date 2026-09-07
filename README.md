@@ -484,11 +484,30 @@ P8 后再开一轮时，**同一批 30 节点**按 `loop_index` 变厚：更高 
 
 句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、MainMenu、RunSummary 文案都没改。
 
-**本阶段不做：** 商店、SpawnBudget、HUD 第五块 LOOP、暂停框。
+**当时不做：** 商店、SpawnBudget、HUD 第五块 LOOP、暂停框。
+
+## Day 23（已完成）：顶中 phrase 旁显示 loop
+
+玩家不看 Overlay 也能知道自己在第几轮。HUD **顶中** 同一块 `PhraseLabel` 拼上 loop：`L%d  %s` % [`RunSession.get_loop_index()`, `EncounterPhrases.get_phrase_label()`]。loop 与 Overlay `loop: %d` 同一套，**0 起**。禁止改 `get_phrase_label()` 的返回字符串。不要新 Label、不要第五信息区、不要 ROUND 横幅、不要 WAVE COMPLETE。
+
+显示合同：
+
+- 开局：`L0  0/8`
+- P1：`L0  1/8`
+- 句间三选一：`L0  offer`（`get_phrase_label` 仍是 `offer`）
+- P8 闪帧：`L0  phrases_done`
+- 第一次 `_loop_phrases` 后的 P0：`L1  0/8`
+- 第二轮 P1：`L1  1/8`
+
+`PhraseLabel` 加宽到 `offset_left=-280` / `offset_right=280`，`pivot_offset=Vector2(280, 20)`，锚点仍顶中 preset 5，`mouse_filter` 仍 IGNORE。左下三行（武器 / HP / XP）不动。Overlay `loop: %d` 保留。RunSummary 本阶段不加 loop 行。R：立刻 `L0  0/8`。Esc 回菜单再 Play：新局 `L0  0/8`。死后顶中仍显示当时的 `L%d  %s`。
+
+句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、加压公式、MainMenu、RunSummary 文案都没改。
+
+**本阶段不做：** 商店、SpawnBudget、结算条 loop 行、暂停框。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 23 才做** HUD 顶中 phrase 旁显示 loop（玩家可见，不是 Overlay 专属）。仍无商店、无 SpawnBudget、无暂停框
+- **Day 24 才做** 结算条补一行 `loop  %d`（死后也能看见轮次）。仍无商店、无 SpawnBudget、无暂停框、无第五块 ROUND
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -553,7 +572,7 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中句读；句间/升级三选一 layer=20；死亡结算条 layer=15）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中 `L0  0/8`；句间/升级三选一 layer=20；死亡结算条 layer=15）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / RunSummary / DebugOverlay）
@@ -571,6 +590,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 23
+## 下一步：Day 24
 
-**Day 23 = HUD 顶中 phrase 旁显示 loop**（玩家可见，不是 Overlay 专属）。仍无商店、无 SpawnBudget、无暂停框。
+**Day 24 = 结算条补一行 `loop  %d`**（死后也能看见轮次）。仍无商店、无 SpawnBudget、无暂停框、无第五块 ROUND。

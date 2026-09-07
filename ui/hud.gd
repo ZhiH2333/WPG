@@ -82,7 +82,10 @@ func _refresh_weapon() -> void:
 	_weapon_label.text = weapon.get_display_name()
 
 func _refresh_phrase() -> void:
-	if _encounter == null:
-		_phrase_label.text = "-"
-		return
-	_phrase_label.text = _encounter.get_phrase_label()
+	var phrase: String = "-"
+	if _encounter != null:
+		phrase = _encounter.get_phrase_label()
+	var loop_index: int = 0
+	if _run_session != null:
+		loop_index = _run_session.get_loop_index()
+	_phrase_label.text = "L%d  %s" % [loop_index, phrase]
