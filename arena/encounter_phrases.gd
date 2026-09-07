@@ -25,11 +25,15 @@ var _rest_left: float = 0.0
 var _p3_started: bool = false
 var _enemies_by_name: Dictionary = {}
 var _wait_names: PackedStringArray = PackedStringArray()
+var _run_session: RunSession
 
 func bind_enemies(enemies: Array[EnemyBase]) -> void:
 	_enemies_by_name.clear()
 	for enemy: EnemyBase in enemies:
 		_enemies_by_name[enemy.name] = enemy
+
+func bind_run_session(session: RunSession) -> void:
+	_run_session = session
 
 func restart() -> void:
 	_p3_started = false
@@ -61,6 +65,9 @@ func acknowledge_offer() -> void:
 
 func get_rest_left() -> float:
 	return _rest_left
+
+func get_rest_sec() -> float:
+	return _rest_sec()
 
 func get_phrase_alive() -> int:
 	return _count_alive(_wait_names)
@@ -104,7 +111,7 @@ func _begin_rest_or_skip(index: int) -> void:
 	_wait_names = PackedStringArray()
 	if index == 0:
 		_state = State.RESTING
-		_rest_left = REST_SEC
+		_rest_left = _rest_sec()
 		return
 	_state = State.AWAITING_OFFER
 	_rest_left = 0.0
@@ -200,6 +207,12 @@ func _side_key_for(spawn: Vector2) -> String:
 	if spawn.x > 400.0:
 		return "right"
 	return "top"
+
+func _rest_sec() -> float:
+	var loop: int = 0
+	if _run_session != null:
+		loop = _run_session.get_loop_index()
+	return maxf(0.75, REST_SEC - 0.25 * float(mini(loop, 8)))
 
 func _stagger_for_side(side: String, index_in_side: int) -> float:
 	var base_sec: float = 0.0

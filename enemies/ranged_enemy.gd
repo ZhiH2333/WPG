@@ -31,6 +31,9 @@ func get_kind_name() -> String:
 func get_xp_reward() -> int:
 	return 12
 
+func get_hp_per_loop() -> int:
+	return 6
+
 func _process(delta: float) -> void:
 	super._process(delta)
 	if is_in_reserve() or _defeated or is_in_hitstop() or is_entering():

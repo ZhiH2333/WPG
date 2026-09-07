@@ -36,6 +36,8 @@ var _spawn_stagger_left_sec: float = 0.0
 var _spawn_stagger_duration_sec: float = 0.0
 var _separation_sign: float = 1.0
 var _alive_color: Color = Color(0.86, 0.22, 0.2, 1)
+var _base_max_hp: int = 0
+var _base_move_speed: float = 0.0
 
 @onready var _visual: Polygon2D = $Visual
 
@@ -48,6 +50,8 @@ func _ready() -> void:
 	_alive_color = _visual.color
 	_separation_sign = 1.0 if (get_index() % 2 == 0) else -1.0
 	_bind_hit_reaction()
+	_base_max_hp = max_hp
+	_base_move_speed = move_speed
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -87,6 +91,14 @@ func get_kind_name() -> String:
 
 func get_xp_reward() -> int:
 	return 0
+
+func get_hp_per_loop() -> int:
+	return 0
+
+func apply_loop_pressure(loop_index: int) -> void:
+	var pressure: int = clampi(loop_index, 0, 8)
+	max_hp = _base_max_hp + pressure * get_hp_per_loop()
+	move_speed = _base_move_speed * (1.0 + 0.08 * float(pressure))
 
 func hold_in_reserve() -> void:
 	_in_reserve = true

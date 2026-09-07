@@ -456,11 +456,39 @@ HUD 仍四块（武器 / HP / XP / 句读），不要第五块 DEAD。Overlay �
 
 句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、XP 公式、MainMenu 布局、`MenuTitle` / `MainMenuButton` 都没改。
 
-**本阶段不做：** 商店、设置页、暂停确认框、轮循环加压。
+**当时不做：** 商店、设置页、暂停确认框、轮循环加压。
+
+## Day 22（已完成）：轮循环加压
+
+P8 后再开一轮时，**同一批 30 节点**按 `loop_index` 变厚：更高 HP、更快移速、更短 P0 rest。不是新敌人，不是商店波，不是 SpawnBudget。禁止改近战/远程 `_ready` 身份赋值行（36/175/28/140 仍是唯一底值源）。禁止在当前 `max_hp` 上 `+=`。加压只打敌人耐久、走近速度、轮间空窗。不要改 contact_damage / projectile_damage / fire_interval / knockback / XP 奖励（仍 10/12）/ 玩家 Motor / 枪 / HP。
+
+加压公式（`pressure = mini(get_loop_index(), 8)`）：
+
+| | loop0 | loop1 | loop2 |
+|---|---|---|---|
+| 近战 max_hp | 36 | 44 | 52 |
+| 远程 max_hp | 28 | 34 | 40 |
+| 近战 move_speed | 175 | 189 | 203 |
+| 远程 move_speed | 140 | 151.2 | 162.4 |
+| P0 rest | 1.50 | 1.25 | 1.00（loop3 起钳 0.75） |
+
+`EnemyBase._ready` 在子类写好身份并 `super._ready()` 之后采集 `_base_max_hp` / `_base_move_speed`。`apply_loop_pressure` 用底值重算。`MeleeEnemy.get_hp_per_loop()` 返回 8，`RangedEnemy` 返回 6。预备役里不改 `_hp`；入场 `reset_for_sandbox` 把 `_hp` 灌到新 `max_hp`。
+
+调度顺序锁死：
+
+1. `_loop_phrases`：`park_all` 两池 → `hold_all_in_reserve` → `notify_phrase_loop()`（先 +1）→ `_apply_loop_pressure()` → `EncounterPhrases.restart()`
+2. `_reset_sandbox`：`RunSession.restart()` 已把 loop 清 0 之后、hold 之后、`encounter.restart` 之前，再 `_apply_loop_pressure()`
+3. `_bind_runtime` 开局：`restart` + hold 之后同样 apply 一次（pressure=0，写回底值）
+
+`EncounterPhrases.bind_run_session`；`REST_SEC` 保持 1.5；index==0 的 rest 用 `_rest_sec()` = `maxf(0.75, 1.5 - 0.25 * pressure)`。P2/P4/P6 仍是 `AWAITING_OFFER`，不缩短。HUD 仍四块，顶中仍是 `get_phrase_label()`。Overlay：`rest_sec` / `nearest_spd`。Esc / R 合同不改；轮循环仍不清 owned / HP / XP / kills。
+
+句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、MainMenu、RunSummary 文案都没改。
+
+**本阶段不做：** 商店、SpawnBudget、HUD 第五块 LOOP、暂停框。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 22 才做**轮循环加压（`loop_index` 提升敌人 HP 或移速，或缩短 rest；同一批 30 节点，不要 SpawnBudget）。仍无商店、无设置页、无暂停确认框
+- **Day 23 才做** HUD 顶中 phrase 旁显示 loop（玩家可见，不是 Overlay 专属）。仍无商店、无 SpawnBudget、无暂停框
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -543,6 +571,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 22
+## 下一步：Day 23
 
-**Day 22 = 轮循环加压**（`loop_index` 提升敌人 HP 或移速，或缩短 rest；同一批 30 节点，不要 SpawnBudget）。仍无商店、无设置页、无暂停确认框。
+**Day 23 = HUD 顶中 phrase 旁显示 loop**（玩家可见，不是 Overlay 专属）。仍无商店、无 SpawnBudget、无暂停框。

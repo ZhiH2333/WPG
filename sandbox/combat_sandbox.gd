@@ -86,8 +86,8 @@ func _bind_runtime() -> void:
 	_enemies = _collect_enemies()
 	_bind_enemies(_enemies)
 	_encounter.bind_enemies(_enemies)
+	_encounter.bind_run_session(_run_session)
 	_hold_all_in_reserve()
-	_encounter.restart()
 	_debug_overlay.bind_enemies(_enemies)
 	_debug_overlay.bind_encounter(_encounter)
 	_hud.bind_player(_player)
@@ -99,6 +99,8 @@ func _bind_runtime() -> void:
 	_run_session.bind_catalog(UPGRADE_CATALOG)
 	_assert_upgrade_catalog()
 	_run_session.restart()
+	_apply_loop_pressure()
+	_encounter.restart()
 	_upgrade_applier.bind_player(_player)
 	_upgrade_applier.bind_session(_run_session)
 	_upgrade_applier.capture_baseline()
@@ -153,8 +155,14 @@ func _loop_phrases() -> void:
 	_projectiles.park_all()
 	_enemy_projectiles.park_all()
 	_hold_all_in_reserve()
-	_encounter.restart()
 	_run_session.notify_phrase_loop()
+	_apply_loop_pressure()
+	_encounter.restart()
+
+func _apply_loop_pressure() -> void:
+	var loop_index: int = _run_session.get_loop_index()
+	for enemy: EnemyBase in _enemies:
+		enemy.apply_loop_pressure(loop_index)
 
 func _reset_sandbox() -> void:
 	if _upgrade_offer.is_open():
@@ -165,6 +173,7 @@ func _reset_sandbox() -> void:
 	_upgrade_applier.apply_owned()
 	_player.reset_for_sandbox()
 	_hold_all_in_reserve()
+	_apply_loop_pressure()
 	_encounter.restart()
 	_debug_overlay.set_last_grant_id("-")
 
