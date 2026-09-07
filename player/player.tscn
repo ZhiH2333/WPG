@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://player/player_input.gd" id="2_input"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://weapons/pistol.gd" id="5_pistol"]
 [ext_resource type="Script" path="res://weapons/shotgun.gd" id="6_shotgun"]
 [ext_resource type="Script" path="res://weapons/rifle.gd" id="7_rifle"]
+[ext_resource type="Script" path="res://weapons/smg.gd" id="11_smg"]
 [ext_resource type="Script" path="res://player/player_health.gd" id="8_health"]
 [ext_resource type="PackedScene" path="res://combat/muzzle_flash.tscn" id="9_flash"]
 [ext_resource type="Script" path="res://player/fire_feedback.gd" id="10_feedback"]
@@ -60,6 +61,9 @@ fire_interval = 0.09
 projectile_speed = 1100.0
 damage = 5
 lifetime = 0.85
+
+[node name="Smg" type="Node" parent="WeaponHost"]
+script = ExtResource("11_smg")
 
 [node name="FireFeedback" type="Node" parent="."]
 script = ExtResource("10_feedback")

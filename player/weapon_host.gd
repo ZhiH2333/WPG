@@ -1,7 +1,7 @@
 extends Node
 class_name WeaponHost
 
-## 切枪不进输入合同三量；只读 1/2/3，转发给当前武器。
+## 切枪不进输入合同三量；只读 1/2/3/4，转发给当前武器。
 var _weapons: Array[Weapon] = []
 var _current_index: int = 0
 var _switch_locked: bool = false
@@ -45,6 +45,13 @@ func get_rifle() -> Rifle:
 			return rifle
 	return null
 
+func get_smg() -> Smg:
+	for weapon: Weapon in _weapons:
+		var smg: Smg = weapon as Smg
+		if smg != null:
+			return smg
+	return null
+
 func get_weapons() -> Array[Weapon]:
 	return _weapons.duplicate()
 
@@ -77,6 +84,9 @@ func _poll_weapon_switch() -> void:
 		return
 	if Input.is_action_just_pressed("weapon_rifle"):
 		_activate_index(2)
+		return
+	if Input.is_action_just_pressed("weapon_smg"):
+		_activate_index(3)
 
 func _collect_weapons() -> void:
 	_weapons.clear()

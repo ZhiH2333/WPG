@@ -4,6 +4,8 @@
 
 保留俯视射击肉鸽的设计方向（波次、构筑、商店），但战斗运行时、输入、反馈和 UI 全部重写。卖点是**打起来有重量**：瞄准、走位、后坐、打空、换弹节拍。不要功能清单比旧作更长。
 
+**玩家是持枪野猪。** 橙灰盒 Player 就是这头猪，枪的幻想是「猪拿枪乱打」，不是猎人进场打野猪。敌人仍是近战/远程两种体型（红三角 / 紫远程），不要改成「猎人」、不要把敌人改名成 pig。注释和文档禁止写成「猎人」「打猪」。
+
 当前仓库从空白 Godot 4.6 工程起步。旧作只允许对照设计，禁止移植其 Autoload、UI 缩放器、自动锁敌开火、云存档、账号、图鉴。
 
 ## 怎么运行
@@ -586,11 +588,33 @@ U 仍只授 `max_hp_s`，现在可叠，连按会多次 +20。三把枪 `_ready`
 
 句读节点名 P0–P8、加压 HP/移速/rest/伤害、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、HUD 顶中/结算条都没改。
 
-**本阶段不做：** 商店、WaveDirector、第四把枪、暂停框、第五块 ROUND、多人、模式选择。
+**当时不做：** 商店、WaveDirector、第四把枪、暂停框、第五块 ROUND、多人、模式选择。
+
+## Day 28（已完成）：第四把枪 Smg
+
+一局里多一种开火手感。HUD 仍一行枪名。玩家是持枪野猪，不是猎人。橙三角剪影本阶段不重画。
+
+`weapons/smg.gd`，`class_name Smg`，节点名 `Smg`，挂在 `player.tscn` 的 WeaponHost 下、Rifle 后面（index 3）。`get_display_name()` 返回 **"Smg"**。
+
+`_ready` 身份（唯一底值源，tscn 不覆盖这四项）：`fire_interval = 0.07`、`projectile_speed = 880.0`、`damage = 4`、`lifetime = 0.65`。1 粒；固定散布 9°（`_spread_deg_for_this_shot` 返回 9.0，不要步枪那套 current_spread 累积）；`_should_reset_cooldown_on_release()` 返回 false（按住连扫，松开不复位）。镜头踢 4 / 后坐 3 / 枪口闪光 0.04s。禁止第 5 把、弹药、换弹、过热条。
+
+切枪：`project.godot` 只加 `weapon_smg`，物理键 **4**。`WeaponHost._poll_weapon_switch` 在 rifle 之后 `_activate_index(3)`。切枪仍不进 `move/aim/fire_held`。不要滚轮、不要 Q/E。三选一 `UpgradeOffer._input` **不读** `weapon_smg`；1/2/3 选卡合同一字不改。弹窗开着时 4 不会选第四张（没有第四张）。
+
+HUD 仍 `get_current_weapon().get_display_name()`。切到 Smg 左下显示 `Smg`。不要第二行、不要 4 个槽。Overlay `weapon` / `spread_deg≈9` / `pellets=1` 自然跟着走。
+
+`SfxPool.play_weapon`：Rifle 判断之后、默认手枪之前走 `play_smg`。复用已有 `_stream_rifle`，pitch `1.12~1.22`，volume_db **-11.0**。禁止新 wav。
+
+`UpgradeApplier` 不为 Smg 加专属合计。`get_weapons()` 顺序变成 4 把，`capture_baseline` 多采一行。Heavy Round / Cadence / Long Shot 通用伤/射速/弹速 Smg 也吃；Extra Pellets / Steady Rifle 仍只打霰弹/步枪。玩家弹池仍 96。
+
+R：仍 activate 当前 index（包括 3）。Esc 回菜单再 Play：WeaponHost 仍从 0 手枪起。橙灰盒 Polygon2D 顶点/颜色没改。
+
+三把枪 `_ready` 身份底值没改。句读、加压、10 张卡、HUD 顶中/结算条都没改。
+
+**本阶段不做：** 商店、WaveDirector、玩家剪影重画、暂停框、第五块 ROUND、五格枪架、多人、局域网房间。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 28 才做** 若一局仍嫌枪少：第四把枪，**仅当** HUD 仍只显示一个枪名、切枪仍 1/2/3（或扩到 4 但不出现五格枪架）。仍无商店、无 WaveDirector、无暂停框、无第五块 ROUND、无多人、无模式选择
+- **Day 29 才做** 商店先不做具体货架，除非明确缺「构筑变厚」；若还不缺商店，则 Day 29 改成 **玩家野猪灰盒剪影**（耳朵/鼻子比例，仍不是原画）。仍无商店刷新、无 WaveDirector、无暂停框、无五格枪架、无多人、无局域网房间
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -615,7 +639,7 @@ fire_held      bool      是否按住开火
 - 按住鼠标左键 → `fire_held`
 - 没有 `aim` action；瞄准用鼠标位置，不锁最近敌人
 - Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
-- 切枪 1/2/3 由 `WeaponHost` 读取，不塞进输入合同三量；弹窗打开时改语义为选左/中/右卡
+- 切枪 1/2/3/4 由 `WeaponHost` 读取，不塞进输入合同三量；弹窗打开时 1/2/3 改语义为选左/中/右卡，4 不选卡
 - 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量
 - 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取，无论死活都卸场景回菜单；不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
@@ -649,7 +673,7 @@ fire_held      bool      是否按住开火
 
 ```text
 player/     玩家场景、PlayerInput、PlayerMotor、PlayerHealth、Muzzle、WeaponHost、FireFeedback
-weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle、Projectile、本局 ProjectilePool
+weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle / Smg、Projectile、本局 ProjectilePool
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
@@ -673,6 +697,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 28
+## 下一步：Day 29
 
-**Day 28 = 若一局仍嫌枪少：第四把枪**，**仅当** HUD 仍只显示一个枪名、切枪仍 1/2/3（或扩到 4 但不出现五格枪架）。仍无商店、无 WaveDirector、无暂停框、无第五块 ROUND、无多人、无模式选择。
+**Day 29 = 商店先不做具体货架，除非明确缺「构筑变厚」；若还不缺商店，则改成玩家野猪灰盒剪影**（耳朵/鼻子比例，仍不是原画）。仍无商店刷新、无 WaveDirector、无暂停框、无五格枪架、无多人、无局域网房间。

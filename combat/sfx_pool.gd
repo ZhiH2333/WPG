@@ -61,12 +61,18 @@ func play_shotgun(world_position: Vector2) -> void:
 func play_rifle(world_position: Vector2) -> void:
 	play(_stream_rifle, randf_range(0.97, 1.03), -8.0, world_position)
 
+func play_smg(world_position: Vector2) -> void:
+	play(_stream_rifle, randf_range(1.12, 1.22), -11.0, world_position)
+
 func play_weapon(weapon: Weapon, world_position: Vector2) -> void:
 	if weapon is Shotgun:
 		play_shotgun(world_position)
 		return
 	if weapon is Rifle:
 		play_rifle(world_position)
+		return
+	if weapon is Smg:
+		play_smg(world_position)
 		return
 	play_pistol(world_position)
 
