@@ -9,4 +9,4 @@ title = "Extra Pellets"
 description = "Shotgun pellets +2"
 kind = 6
 value = 2.0
-stackable = false
+stackable = true

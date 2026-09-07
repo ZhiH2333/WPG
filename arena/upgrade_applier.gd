@@ -4,6 +4,7 @@ class_name UpgradeApplier
 ## 从底值重算 owned 合计。禁止在当前值上累加，禁止 UpgradeDef 自己改枪。
 const MIN_MAX_HP: int = 1
 const MIN_PELLETS: int = 1
+const MAX_PELLETS: int = 14
 const MIN_FIRE_INTERVAL: float = 0.02
 const MIN_MOVE_SPEED: float = 80.0
 const MIN_I_FRAME_SEC: float = 0.05
@@ -122,7 +123,7 @@ func _write_runtime(totals: Dictionary) -> void:
 		weapon.projectile_speed = _base_weapon_projectile_speed[i] + float(totals["projectile_speed_flat"])
 	var shotgun: Shotgun = host.get_shotgun()
 	if shotgun != null:
-		shotgun.pellet_count = maxi(MIN_PELLETS, _base_shotgun_pellets + int(totals["shotgun_pellets_flat"]))
+		shotgun.pellet_count = clampi(_base_shotgun_pellets + int(totals["shotgun_pellets_flat"]), MIN_PELLETS, MAX_PELLETS)
 	var rifle: Rifle = host.get_rifle()
 	if rifle == null:
 		return

@@ -561,11 +561,36 @@ HUD / 结算条 / Overlay 格式不动。`phrase_alive` 会自然变大（P1：l
 
 句读节点名 P0–P8、10 张卡、三把枪 `_ready` 身份、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、加压 HP/移速/rest/伤害、HUD 顶中/结算条都没改。
 
-**本阶段不做：** 商店、WaveDirector、10 张卡改手感、暂停框、第五块 ROUND、多人、模式选择。
+**当时不做：** 商店、WaveDirector、10 张卡改手感、暂停框、第五块 ROUND、多人、模式选择。
+
+## Day 27（已完成）：10 张卡补手感
+
+无限轮打下去时卡还值得拿。id / Kind / title 全部锁死，catalog 仍 10 条。禁止新 `.tres`、禁止删卡、禁止改 `UpgradeDef` enum。同一扇 UpgradeOffer，不要刷新、不要权重。
+
+| id | 改什么 |
+|---|---|
+| max_hp_s | stackable **true**（value 仍 20，description 仍 "Max HP +20"） |
+| extra_pellets | stackable **true**（value 仍 2，description 仍 "Shotgun pellets +2"） |
+| swift | value **0.12**，description **"Move speed +12%"** |
+| heavy_round | value **3**，description **"Damage +3"** |
+| cadence | value **0.15**，description **"Fire rate +15%"** |
+| long_shot | 不动（80 / stackable） |
+| max_hp_m | 不动（40 / unique） |
+| second_skin | 不动（0.10 / unique，禁止改成 stackable） |
+| steady_rifle | 不动（-2.0 / unique） |
+| thick_hide | 不动（-0.20 / unique） |
+
+可叠 6 张：`max_hp_s` / `swift` / `heavy_round` / `cadence` / `long_shot` / `extra_pellets`。unique 仍 4 张。`UpgradeApplier.MAX_PELLETS = 14`；霰弹 `pellet_count = clampi(base + flat, MIN_PELLETS, MAX_PELLETS)`。底值 8，叠三次到 14，第四次 `extra_pellets` 仍可进三选一但粒数停在 14。不要从 `draft_offer` 里按叠次过滤。
+
+U 仍只授 `max_hp_s`，现在可叠，连按会多次 +20。三把枪 `_ready` 底值没改。重算公式除霰弹钳上限外不动。HUD / 结算条 / Overlay `catalog: 10` 不动。owned 出现重复 id 是对的。R：owned 清空，底值写回，粒数回 8。Esc 回菜单再 Play：新局空 owned。
+
+句读节点名 P0–P8、加压 HP/移速/rest/伤害、Motor/相机/击退/hitstop、近战远程 `_ready` 身份行、XP 公式、HUD 顶中/结算条都没改。
+
+**本阶段不做：** 商店、WaveDirector、第四把枪、暂停框、第五块 ROUND、多人、模式选择。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 27 才做** 10 张卡补手感或少量 stackable，仍同一扇 UpgradeOffer，不改三枪 `_ready` 底值。仍无商店、无 WaveDirector、无暂停框、无第五块 ROUND、无多人、无模式选择
+- **Day 28 才做** 若一局仍嫌枪少：第四把枪，**仅当** HUD 仍只显示一个枪名、切枪仍 1/2/3（或扩到 4 但不出现五格枪架）。仍无商店、无 WaveDirector、无暂停框、无第五块 ROUND、无多人、无模式选择
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -648,6 +673,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 27
+## 下一步：Day 28
 
-**Day 27 = 10 张卡补手感或少量 stackable**，仍同一扇 UpgradeOffer，不改三枪 `_ready` 底值。仍无商店、无 WaveDirector、无暂停框、无第五块 ROUND、无多人、无模式选择。
+**Day 28 = 若一局仍嫌枪少：第四把枪**，**仅当** HUD 仍只显示一个枪名、切枪仍 1/2/3（或扩到 4 但不出现五格枪架）。仍无商店、无 WaveDirector、无暂停框、无第五块 ROUND、无多人、无模式选择。

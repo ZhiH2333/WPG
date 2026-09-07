@@ -6,7 +6,7 @@
 script = ExtResource("1_script")
 id = &"swift"
 title = "Swift"
-description = "Move speed +10%"
+description = "Move speed +12%"
 kind = 1
-value = 0.10
+value = 0.12
 stackable = true

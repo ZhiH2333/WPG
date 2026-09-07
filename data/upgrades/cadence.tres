@@ -6,7 +6,7 @@
 script = ExtResource("1_script")
 id = &"cadence"
 title = "Cadence"
-description = "Fire rate +12%"
+description = "Fire rate +15%"
 kind = 3
-value = 0.12
+value = 0.15
 stackable = true

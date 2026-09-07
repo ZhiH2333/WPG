@@ -9,4 +9,4 @@ title = "Vitality I"
 description = "Max HP +20"
 kind = 0
 value = 20.0
-stackable = false
+stackable = true
