@@ -610,11 +610,29 @@ R：仍 activate 当前 index（包括 3）。Esc 回菜单再 Play：WeaponHost
 
 三把枪 `_ready` 身份底值没改。句读、加压、10 张卡、HUD 顶中/结算条都没改。
 
-**本阶段不做：** 商店、WaveDirector、玩家剪影重画、暂停框、第五块 ROUND、五格枪架、多人、局域网房间。
+**当时不做：** 商店、WaveDirector、玩家剪影重画、暂停框、第五块 ROUND、五格枪架、多人、局域网房间。
+
+## Day 29（已完成）：P5 近战精英
+
+一局里多一个高潮目标。仍手写节点名，不是商店，不是剪影日，不是第三种 AI。玩家野猪保持橙三角，美术后置；三角形一直留到接 sprite。敌人仍是红三角近战 / 紫远程，精英也仍是**放大的红三角**，不要画成猎人。
+
+`enemies/elite_melee.gd`，`class_name EliteMelee`，**extends MeleeEnemy**（复用接触伤 / ContactArea）。场景结构抄近战：CharacterBody2D + CollisionShape2D + Visual Polygon2D + ContactArea。沙盒节点名 **EliteBottom1**，`parent=Enemies`，`position=Vector2(0, 400)`（下侧，y=400 > 300 走 bottom；距玩家 ≥400）。不要运行时 `instantiate`。
+
+仍是三角形，只放大、换色：polygon 与近战相同；`Visual.scale = Vector2(1.75, 1.75)`；`Visual.color = Color(0.62, 0.08, 0.10, 1)`；身体半径 28，接触半径 44。禁止 Sprite2D、禁止第二层耳朵。
+
+身份在 `super._ready()` **之后**重写并回写 base（近战 `_ready` 那三行 36/175/1400 不改）：`max_hp=90`、`move_speed=120`、`acceleration=1000`、`knockback_impulse=140`、`contact_damage=14`，然后 `_base_max_hp` / `_base_move_speed` / `_base_contact_damage` / `_hp` 写回。`get_kind_name()="Elite"`，`get_xp_reward()=25`，`get_hp_per_loop()=12`，`get_contact_damage_per_loop()=3`。
+
+加压沿用 `apply_loop_pressure`：loop0 HP90 / 速120 / 接触14；loop1 102 / 129.6 / 17；loop2 114 / 139.2 / 20。
+
+句读：`P5_NAMES` 与 `P5_NAMES_DENSE` **末尾**加 `EliteBottom1`。P1/P3/P7 瘦表和 DENSE 一字不改。`PHRASE_TOTAL` 仍 8。P2/P4/P6 仍三选一。不要把精英放进 P7。人数：loop0 P5=9（6 近战 + 2 远程 + 1 精英）；loop≥1 P5=12。并发仍 ≤12。第一轮 P1 仍 4 只普通近战。
+
+HUD 不加 Boss 条。顶中仍 `L0  5/8`。Overlay 不新字段；靠近精英 `Elite 90`；alive summary 把精英算进 M。预备役 / R / `_loop_phrases` 走同一套 hold。玩家多边形、四把枪 `_ready`、10 张卡都没改。
+
+**本阶段不做：** 商店、金币、WaveDirector、设置页、暂停框、Boss 条、五格枪架、玩家剪影、多人、局域网房间。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 29 才做** 商店先不做具体货架，除非明确缺「构筑变厚」；若还不缺商店，则 Day 29 改成 **玩家野猪灰盒剪影**（耳朵/鼻子比例，仍不是原画）。仍无商店刷新、无 WaveDirector、无暂停框、无五格枪架、无多人、无局域网房间
+- **Day 30 才做** 仍不做商店，除非明确缺构筑；下一刀内容是 **设置页：音量 / 全屏**（主菜单加 Settings，战斗 HUD 锚点不改）。仍无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
 - 主菜单 / 设置 / HUD 壳、虚拟摇杆
@@ -674,7 +692,7 @@ fire_held      bool      是否按住开火
 ```text
 player/     玩家场景、PlayerInput、PlayerMotor、PlayerHealth、Muzzle、WeaponHost、FireFeedback
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle / Smg、Projectile、本局 ProjectilePool
-enemies/    EnemyBase、MeleeEnemy、RangedEnemy；DummyTarget 脚本保留但沙盒不再放置
+enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
@@ -697,6 +715,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 29
+## 下一步：Day 30
 
-**Day 29 = 商店先不做具体货架，除非明确缺「构筑变厚」；若还不缺商店，则改成玩家野猪灰盒剪影**（耳朵/鼻子比例，仍不是原画）。仍无商店刷新、无 WaveDirector、无暂停框、无五格枪架、无多人、无局域网房间。
+**Day 30 = 仍不做商店，除非明确缺构筑；下一刀是设置页：音量 / 全屏**（主菜单加 Settings，战斗 HUD 锚点不改）。仍无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影。

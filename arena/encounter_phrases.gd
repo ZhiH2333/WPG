@@ -9,6 +9,7 @@ const P3_NAMES: PackedStringArray = ["RangedRight1", "RangedRight2", "RangedRigh
 const P5_NAMES: PackedStringArray = [
 	"MeleeBottom1", "MeleeBottom2", "MeleeBottom3", "MeleeBottom4", "MeleeBottom5", "MeleeBottom6",
 	"RangedTop1", "RangedTop2",
+	"EliteBottom1",
 ]
 const P7_NAMES: PackedStringArray = [
 	"MeleeLeft5", "MeleeLeft6", "MeleeLeft7", "MeleeLeft8", "MeleeLeft9", "MeleeLeft10",
@@ -23,6 +24,7 @@ const P3_NAMES_DENSE: PackedStringArray = ["RangedRight1", "RangedRight2", "Rang
 const P5_NAMES_DENSE: PackedStringArray = [
 	"MeleeBottom1", "MeleeBottom2", "MeleeBottom3", "MeleeBottom4", "MeleeBottom5", "MeleeBottom6", "MeleeBottom7", "MeleeBottom8",
 	"RangedTop1", "RangedTop2", "RangedTop3",
+	"EliteBottom1",
 ]
 const P7_NAMES_DENSE: PackedStringArray = [
 	"MeleeLeft7", "MeleeLeft8", "MeleeLeft9", "MeleeLeft10",
