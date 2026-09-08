@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：先看到居中 `WPG` / Play / Quit。点 Play（或 Enter）才进 `sandbox/combat_sandbox.tscn`。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：先看到居中 `WPG` / Play / Settings / Quit。点 Play（或 Enter）才进 `sandbox/combat_sandbox.tscn`。叠层开着时 Enter 不进战斗。
 
 - 平台：Desktop 为主（同一套战斗规则，手机输入后置）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -628,14 +628,32 @@ R：仍 activate 当前 index（包括 3）。Esc 回菜单再 Play：WeaponHost
 
 HUD 不加 Boss 条。顶中仍 `L0  5/8`。Overlay 不新字段；靠近精英 `Elite 90`；alive summary 把精英算进 M。预备役 / R / `_loop_phrases` 走同一套 hold。玩家多边形、四把枪 `_ready`、10 张卡都没改。
 
-**本阶段不做：** 商店、金币、WaveDirector、设置页、暂停框、Boss 条、五格枪架、玩家剪影、多人、局域网房间。
+**当时不做：** 商店、金币、WaveDirector、设置页、暂停框、Boss 条、五格枪架、玩家剪影、多人、局域网房间。
+
+## Day 30（已完成）：主菜单 Settings 叠层
+
+菜单能调 **Master 音量** 和 **全屏**，写到磁盘，战斗场景启动时套用。不是商店，不是顶栏，不是暂停框。战斗 HUD 锚点未改。
+
+`ui/game_settings.gd`，`class_name GameSettings`，`extends Object`，全是 static。不是 Autoload，不要 Node、不要 signal、不要 `get_tree()`。路径 `user://settings.cfg`（ConfigFile）：节 `[audio]` 键 `volume` float 0.0–1.0，默认 **1.0**；节 `[display]` 键 `fullscreen` bool，默认 **false**。缺文件或缺键用默认，不 `push_error`。
+
+接口：`load_from_disk` / `save_to_disk` / `apply` / `get_volume` / `set_volume`（clamp 0..1，不自动 save）/ `is_fullscreen` / `set_fullscreen`。`apply`：`bus = AudioServer.get_bus_index("Master")`；volume≤0.001 则 mute，否则 unmute + `linear_to_db`。全屏 `WINDOW_MODE_FULLSCREEN`，关则 `WINDOW_MODE_WINDOWED`。不要 EXCLUSIVE、不要改 viewport / stretch。不要改 SfxPool 每发 `volume_db`，Master 缩放全部 SFX。
+
+`ui/settings_overlay.tscn` 是 MainMenu 子 Control，与 Center 平级盖在上面。不是独立主场景，不是战斗 CanvasLayer。Play 仍 `change_scene_to_file(SANDBOX_SCENE)`。Dimmer `Color(0,0,0,0.55)`；左侧栏宽 72，A / D 两钮（OfferButton）；右侧 Audio 页 Volume + HSlider（0..1 step 0.01）；Display 页 CheckBox `Fullscreen`；底左 Back。切 A/D 只换右页。visible 开关，禁止 Tween / AnimationPlayer。
+
+滑条 `value_changed` 立刻 `set_volume` + apply 音量（可不 save）；`drag_ended` 或勾选时 `save_to_disk`。全屏勾选立刻 apply + save。预览：叠层上一个 `AudioStreamPlayer`，`drag_ended` 且 volume>0 时播 `res://audio/click.wav`（FileAccess 切片，学 SfxPool）。禁止每帧 play、禁止 new 播放器。
+
+主菜单按钮顺序：Play → **Settings** → Quit。Settings 仍 `MainMenuButton`，`custom_minimum_size=Vector2(280, 56)`。叠层打开：`ui_accept` 不触发 Play；`ui_cancel` 关叠层、Play.grab_focus()。叠层关着 Esc 仍不 quit。战斗里 Esc 仍卸回菜单，不弹设置。MainMenu 与 CombatSandbox 的 `_ready` 都 `load_from_disk` + `apply`（F6 直进沙盒也生效）。
+
+Theme 新增 `SettingsHeader`（font_size=22，HudPhrase 同系颜色）。不要脚本 `StyleBoxFlat.new()`。不要顶栏、不要键位页、不要 BGM 滑条。
+
+**本阶段不做：** 商店、金币、WaveDirector、顶栏、暂停框、Boss 条、五格枪架、玩家剪影、多人、局域网房间、osu Tween。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 30 才做** 仍不做商店，除非明确缺构筑；下一刀内容是 **设置页：音量 / 全屏**（主菜单加 Settings，战斗 HUD 锚点不改）。仍无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影
+- **Day 31 才做** 商店仍可不做；若还不缺构筑，下一刀是 **手机双摇杆**（战斗规则不动，只换输入）。仍无顶栏、无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween
 - 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
 - Arena 波次、升级、商店、存档
-- 主菜单 / 设置 / HUD 壳、虚拟摇杆
+- 虚拟摇杆、顶栏 Toolbar、键位重绑
 - Web 导出妥协、C#、外部 ECS、任何 Autoload
 
 ## 输入合同（全项目唯一，后续沿用）
@@ -697,7 +715,7 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中 `L0  0/8`；句间/升级三选一 layer=20；死亡结算条 layer=15 含 loop）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ SettingsOverlay + GameSettings（user://settings.cfg，不是 Autoload）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中 `L0  0/8`；句间/升级三选一 layer=20；死亡结算条 layer=15 含 loop）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / RunSummary / DebugOverlay）
@@ -715,6 +733,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 30
+## 下一步：Day 31
 
-**Day 30 = 仍不做商店，除非明确缺构筑；下一刀是设置页：音量 / 全屏**（主菜单加 Settings，战斗 HUD 锚点不改）。仍无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影。
+**Day 31 = 商店仍可不做；若还不缺构筑，下一刀是手机双摇杆**（战斗规则不动，只换输入）。仍无顶栏、无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween。

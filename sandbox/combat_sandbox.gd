@@ -34,6 +34,8 @@ var _offer_is_phrase: bool = false
 @onready var _upgrade_applier: UpgradeApplier = $UpgradeApplier
 
 func _ready() -> void:
+	GameSettings.load_from_disk()
+	GameSettings.apply()
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	_apply_wall_layers()
 	_bind_runtime()

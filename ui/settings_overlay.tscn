@@ -1,0 +1,122 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/settings_overlay.gd" id="1_overlay"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+
+[node name="SettingsOverlay" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_overlay")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.55)
+
+[node name="Shell" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 520.0
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Panel" type="PanelContainer" parent="Shell"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme_type_variation = &"RunSummaryPanel"
+
+[node name="Column" type="VBoxContainer" parent="Shell/Panel"]
+layout_mode = 2
+mouse_filter = 0
+theme_override_constants/separation = 16
+
+[node name="Body" type="HBoxContainer" parent="Shell/Panel/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 0
+theme_override_constants/separation = 12
+
+[node name="Sidebar" type="VBoxContainer" parent="Shell/Panel/Column/Body"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+mouse_filter = 0
+theme_override_constants/separation = 8
+
+[node name="AudioButton" type="Button" parent="Shell/Panel/Column/Body/Sidebar"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "A"
+
+[node name="DisplayButton" type="Button" parent="Shell/Panel/Column/Body/Sidebar"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "D"
+
+[node name="Pages" type="MarginContainer" parent="Shell/Panel/Column/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 0
+
+[node name="AudioPage" type="VBoxContainer" parent="Shell/Panel/Column/Body/Pages"]
+layout_mode = 2
+mouse_filter = 0
+theme_override_constants/separation = 12
+
+[node name="VolumeLabel" type="Label" parent="Shell/Panel/Column/Body/Pages/AudioPage"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "Volume"
+
+[node name="VolumeSlider" type="HSlider" parent="Shell/Panel/Column/Body/Pages/AudioPage"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 0
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="DisplayPage" type="VBoxContainer" parent="Shell/Panel/Column/Body/Pages"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+theme_override_constants/separation = 12
+
+[node name="FullscreenCheck" type="CheckBox" parent="Shell/Panel/Column/Body/Pages/DisplayPage"]
+layout_mode = 2
+mouse_filter = 0
+text = "Fullscreen"
+
+[node name="Back" type="Button" parent="Shell/Panel/Column"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Back"
+
+[node name="Preview" type="AudioStreamPlayer" parent="."]
