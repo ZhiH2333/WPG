@@ -3,23 +3,67 @@ class_name PlayerInput
 
 ## 鼠标与玩家过近时不重新归一化，避免 aim_vector 出现 NaN。
 const AIM_DEADZONE_SQ: float = 0.0001
+const DEVICE_KEYBOARD: int = -1
+const STICK_DEADZONE: float = 0.25
+const FIRE_TRIGGER: float = 0.45
+const AIM_LEAD_PX: float = 140.0
+const MOUSE_STEAL_PX: float = 2.0
+## 手柄右摇杆转向的非线性平滑，越大转向越快。alpha = 1 - exp(-AIM_TURN_SMOOTHING * delta)，与相机跟随同一手法。
+const AIM_TURN_SMOOTHING: float = 14.0
+const DPAD_BUTTONS: Array[int] = [
+	JOY_BUTTON_DPAD_LEFT,
+	JOY_BUTTON_DPAD_UP,
+	JOY_BUTTON_DPAD_RIGHT,
+	JOY_BUTTON_DPAD_DOWN,
+]
 
-## 全项目唯一输入合同：只产出 move/aim/fire。切枪由 WeaponHost 另读 1/2/3。
+## 全项目唯一输入合同：键鼠或单把手柄（device_id）。只产出 move/aim/fire。切枪仍由 WeaponHost 另读 1/2/3/4 或该手柄十字键。
 var move_vector: Vector2 = Vector2.ZERO
 var aim_vector: Vector2 = Vector2.RIGHT
 var fire_held: bool = false
 var mouse_world_position: Vector2 = Vector2.ZERO
 var _fire_suppressed: bool = false
 var _need_fire_release: bool = false
+var _device_id: int = DEVICE_KEYBOARD
+var _device_pinned: bool = false
+var _weapon_slot_just_pressed: int = -1
+var _dpad_held: PackedByteArray = PackedByteArray()
+var _last_mouse_world: Vector2 = Vector2.ZERO
+var _has_last_mouse: bool = false
 
 func _enter_tree() -> void:
 	## 小于 0 更早处理，让同一帧的朝向、相机、准星读到本帧输入。
 	process_priority = -100
+	_dpad_held.resize(4)
 
-func _process(_delta: float) -> void:
-	update_input()
+func _process(delta: float) -> void:
+	update_input(delta)
 
-func update_input() -> void:
+func get_device_id() -> int:
+	return _device_id
+
+func set_device_id(id: int) -> void:
+	_device_id = id
+	_device_pinned = true
+
+func get_weapon_slot_just_pressed() -> int:
+	return _weapon_slot_just_pressed
+
+func update_input(delta: float = 0.0) -> void:
+	_weapon_slot_just_pressed = -1
+	if not _device_pinned:
+		_claim_device()
+	if _device_id >= 0 and not _is_joy_connected(_device_id):
+		_device_id = DEVICE_KEYBOARD
+		move_vector = Vector2.ZERO
+		fire_held = false
+		_keep_last_aim()
+		_clear_dpad_held()
+		return
+	if _device_id >= 0:
+		_update_from_joy(delta)
+		return
+	_clear_dpad_held()
 	_update_move_vector()
 	_update_aim_vector()
 	_update_fire_held()
@@ -30,9 +74,118 @@ func set_fire_suppressed(suppressed: bool) -> void:
 		fire_held = false
 		_need_fire_release = true
 		return
-	if Input.is_action_pressed("fire"):
-		_need_fire_release = true
+func _claim_device() -> void:
+	var old_device: int = _device_id
+	if _keyboard_wants_control():
+		_device_id = DEVICE_KEYBOARD
+	else:
+		var claimed: int = DEVICE_KEYBOARD
+		for id: int in Input.get_connected_joypads():
+			if _joy_wants_control(id):
+				claimed = id
+		if claimed != DEVICE_KEYBOARD:
+			_device_id = claimed
+	if _device_id != old_device:
 		fire_held = false
+		_need_fire_release = true
+
+func _keyboard_wants_control() -> bool:
+	if _device_id == DEVICE_KEYBOARD:
+		return false
+	if Input.is_action_pressed("move_left") or Input.is_action_pressed("move_right") or Input.is_action_pressed("move_up") or Input.is_action_pressed("move_down"):
+		return true
+	var viewport: Viewport = get_viewport()
+	if viewport == null:
+		return false
+	var mouse_now: Vector2 = viewport.get_mouse_position()
+	if not _has_last_mouse:
+		_last_mouse_world = mouse_now
+		_has_last_mouse = true
+		return false
+	var moved: bool = mouse_now.distance_to(_last_mouse_world) >= MOUSE_STEAL_PX
+	_last_mouse_world = mouse_now
+	return moved
+
+func _joy_wants_control(id: int) -> bool:
+	if _read_stick(id, JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y).length() >= STICK_DEADZONE:
+		return true
+	if _read_stick(id, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y).length() >= STICK_DEADZONE:
+		return true
+	if _joy_wants_fire(id):
+		return true
+	for slot: int in DPAD_BUTTONS.size():
+		if Input.is_joy_button_pressed(id, DPAD_BUTTONS[slot]):
+			return true
+	return false
+
+func _joy_wants_fire(id: int) -> bool:
+	## Godot 的扳机轴本身就是 0（松开）～1（扣到底），不需要再从 -1~1 重新映射。
+	var trigger: float = Input.get_joy_axis(id, JOY_AXIS_TRIGGER_RIGHT)
+	if trigger >= FIRE_TRIGGER:
+		return true
+	return Input.is_joy_button_pressed(id, JOY_BUTTON_RIGHT_SHOULDER)
+
+func _update_from_joy(delta: float) -> void:
+	var id: int = _device_id
+	move_vector = _read_move_stick(id)
+	var aim: Vector2 = _read_aim_stick(id)
+	if aim.is_zero_approx():
+		_keep_last_aim()
+	else:
+		aim_vector = _turn_aim_toward(aim_vector, aim, delta)
+	var host: Node2D = get_parent() as Node2D
+	if host != null:
+		mouse_world_position = host.global_position + aim_vector * AIM_LEAD_PX
+	_update_dpad_edges(id)
+	if _fire_suppressed:
+		fire_held = false
+		return
+	var want_fire: bool = _joy_wants_fire(id)
+	if _need_fire_release:
+		if want_fire:
+			fire_held = false
+			return
+		_need_fire_release = false
+	fire_held = want_fire
+
+func _read_stick(id: int, x_axis: int, y_axis: int) -> Vector2:
+	return Vector2(Input.get_joy_axis(id, x_axis), Input.get_joy_axis(id, y_axis))
+
+func _read_move_stick(id: int) -> Vector2:
+	var raw: Vector2 = _read_stick(id, JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y)
+	var length: float = raw.length()
+	if length < STICK_DEADZONE:
+		return Vector2.ZERO
+	var scaled: float = clampf((length - STICK_DEADZONE) / (1.0 - STICK_DEADZONE), 0.0, 1.0)
+	return raw * (scaled / length)
+
+func _read_aim_stick(id: int) -> Vector2:
+	var raw: Vector2 = _read_stick(id, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y)
+	if raw.length() < STICK_DEADZONE:
+		return Vector2.ZERO
+	return raw.normalized()
+
+func _turn_aim_toward(current: Vector2, target: Vector2, delta: float) -> Vector2:
+	if delta <= 0.0:
+		return target
+	var alpha: float = 1.0 - exp(-AIM_TURN_SMOOTHING * delta)
+	var eased_angle: float = lerp_angle(current.angle(), target.angle(), alpha)
+	return Vector2.RIGHT.rotated(eased_angle)
+
+func _update_dpad_edges(id: int) -> void:
+	for slot: int in DPAD_BUTTONS.size():
+		var pressed: bool = Input.is_joy_button_pressed(id, DPAD_BUTTONS[slot])
+		var was_held: bool = _dpad_held[slot] != 0
+		if pressed and not was_held and _weapon_slot_just_pressed < 0:
+			_weapon_slot_just_pressed = slot
+		_dpad_held[slot] = 1 if pressed else 0
+
+func _clear_dpad_held() -> void:
+	for slot: int in _dpad_held.size():
+		_dpad_held[slot] = 0
+
+func _is_joy_connected(id: int) -> bool:
+	return Input.get_connected_joypads().has(id)
 
 func _update_move_vector() -> void:
 	move_vector = Input.get_vector("move_left", "move_right", "move_up", "move_down")

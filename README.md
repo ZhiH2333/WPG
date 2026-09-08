@@ -10,9 +10,9 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：先看到居中 `WPG` / Play / Settings / Quit。点 Play（或 Enter）才进 `sandbox/combat_sandbox.tscn`。叠层开着时 Enter 不进战斗。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：先看到居中 `WPG` / Play / Settings / Quit。点 Play（或 Enter）才进 `sandbox/combat_sandbox.tscn`。叠层开着时 Enter 不进战斗。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
 
-- 平台：Desktop 为主（同一套战斗规则，手机输入后置）
+- 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
 - 渲染：桌面 **Forward Plus**（不要用 Web / GL Compatibility 主导架构）
 - 显示：1920×1080，`canvas_items` + `expand`，`content_scale_factor = 1`
@@ -644,16 +644,43 @@ HUD 不加 Boss 条。顶中仍 `L0  5/8`。Overlay 不新字段；靠近精英 
 
 主菜单按钮顺序：Play → **Settings** → Quit。Settings 仍 `MainMenuButton`，`custom_minimum_size=Vector2(280, 56)`。叠层打开：`ui_accept` 不触发 Play；`ui_cancel` 关叠层、Play.grab_focus()。叠层关着 Esc 仍不 quit。战斗里 Esc 仍卸回菜单，不弹设置。MainMenu 与 CombatSandbox 的 `_ready` 都 `load_from_disk` + `apply`（F6 直进沙盒也生效）。
 
-Theme 新增 `SettingsHeader`（font_size=22，HudPhrase 同系颜色）。不要脚本 `StyleBoxFlat.new()`。不要顶栏、不要键位页、不要 BGM 滑条。
+Theme 新增 `SettingsHeader`（font_size=22，HudPhrase 同系颜色）。不要脚本 `StyleBoxFlat.new()`。不要顶栏、不要键位页、不要 BGM 滑条。不要 C 页、不要 `virtual_sticks`。
 
-**本阶段不做：** 商店、金币、WaveDirector、顶栏、暂停框、Boss 条、五格枪架、玩家剪影、多人、局域网房间、osu Tween。
+**当时不做：** 商店、金币、WaveDirector、顶栏、暂停框、Boss 条、五格枪架、玩家剪影、多人、局域网房间、osu Tween、手柄层。
+
+## Day 31（已完成）：手柄按 device_id 拆开
+
+仍单人。左杆走、右杆瞄、扳机/RB 开火、十字键切枪。输入合同未改。不是 2P，不是触控，不是 Autoload，没把手柄写进 InputMap。没把手柄时键鼠和 Day 30 完全一样。
+
+`PlayerInput` 用 `device_id`：`-1` = 键鼠，`>=0` = `Input.get_connected_joypads()` 里的 id。禁止把 Joypad 事件加进 `move_left` / `fire` / `weapon_*`。手柄只走 `get_joy_axis` / `is_joy_button_pressed`。`set_device_id` 留给 Day 34 钉死 P2；Day 31 不钉死，每帧自动认领。
+
+后动者接管：WASD/方向键按下，或鼠标相对上一帧移动 ≥2px → 立刻键鼠。否则扫已连接手柄：左杆/右杆长度 ≥ 0.25，或右扳机 ≥ 0.45，或 RB/十字键按下 → 该 id 接管（多个同时动取列表里后出现的）。拔掉当前手柄：下一帧回到键鼠，`move_vector` 清零，aim 保持上一帧。
+
+键鼠路径一字不改：`get_vector("move_left"... )`、鼠标世界坐标 aim、`fire` action、`_fire_suppressed` / `_need_fire_release`。手柄路径独占三量：左杆径向死区 0.25；右杆过死区才改 `aim_vector`（否则保持上一帧，零则 RIGHT）；`mouse_world_position = 玩家 + aim * 140`；开火 = 右扳机映射到 0..1 ≥ 0.45 或 `JOY_BUTTON_RIGHT_SHOULDER`。关卡时若扳机/RB 仍按着，必须 `_need_fire_release`。
+
+切枪：键盘 1/2/3/4 仍由 `WeaponHost` 读现有 action。十字键只认当前 `_device_id`：左=手枪、上=霰弹、右=步枪、下=Smg。`get_weapon_slot_just_pressed()` 自己做边沿，0..3 否则 -1。`_switch_suppressed` / `_switch_locked` 仍生效。
+
+三选一：键盘 1/2/3 不改。`UpgradeOffer.bind_player_input`；打开时槽 0/1/2 选卡，**下键（3）不选卡**。扳机在 offer lock 期间被 suppressed。
+
+Start 与 Esc 相同回菜单。B 走引擎默认 `ui_cancel`。R / U 仍只认键盘。Overlay 多一行 `device: kbm` 或 `device: pad%d`。HUD 锚点未改。设置仍只有 A 音量 / D 全屏。`settings.cfg` 仍只有 audio.volume 与 display.fullscreen。禁止 TouchStick、禁止 Virtual Sticks、禁止设置 C 页。
+
+**已知问题修复（2026-09-08 12:17）**：
+1. **手柄无法移动 + 鼠标进窗口乱射**：鼠标窃取逻辑改为先检查 WASD，再检查鼠标真实移动（第一次进入窗口不触发）。设备切换时强制清空 `fire_held` 和 `_need_fire_release`，避免射击状态遗留
+2. **corrupt.wav 导入错误**：在 `DesignReference/.gdignore` 标记该目录不被 Godot 导入
+3. **调试工具**：战斗中按 **G** 显示手柄原始输入（摇杆、扳机、十字键、死区阈值）
+
+**已知问题修复（2026-09-08 12:27）**：
+1. **RT 短按/长按不分**：`_joy_wants_fire` 之前把扳机轴按摇杆的 `-1~1` 重新映射成 `(trigger+1)*0.5`，但 Godot 的 `JOY_AXIS_TRIGGER_RIGHT` 本身就是 `0`（松开）～`1`（扣到底）。松开时旧公式算出 `0.5`，已经超过 `FIRE_TRIGGER=0.45` 阈值，等于扳机常年“半按着”，短按/长按测不出来。现在直接读原始轴值，不再重新映射
+2. **右摇杆瞄准瞬间掉头**：`_read_aim_stick` 之前直接把摇杆方向 `normalized()` 写进 `aim_vector`，方向反打时准星瞬间从一侧闪到另一侧。新增 `_turn_aim_toward`，用与相机跟随同一手法的指数缓动（`alpha = 1 - exp(-AIM_TURN_SMOOTHING * delta)`，`AIM_TURN_SMOOTHING=14`）把 `aim_vector` 的角度平滑转过去，而不是瞬间赋值。鼠标瞄准不受影响，仍然 1:1 跟手
+
+**本阶段不做：** 商店、金币、顶栏、暂停框、Boss 条、五格枪架、玩家剪影、多人、分屏、局域网、osu Tween、触控、Virtual Sticks。
 
 ## 明确不做（直到后续对应日）
 
-- **Day 31 才做** 商店仍可不做；若还不缺构筑，下一刀是 **手机双摇杆**（战斗规则不动，只换输入）。仍无顶栏、无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween
-- 死亡碎裂粒子、掉落物、精英/Boss、敌人对象池、EnemyManager
-- Arena 波次、升级、商店、存档
-- 虚拟摇杆、顶栏 Toolbar、键位重绑
+- **Day 32 才做** 商店仍可不做；若还不缺构筑，下一刀仍是 **商店金（先一行 gold）**。手机触控整包仍后置到全部做完之后。仍无顶栏、无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween、无 Virtual Sticks
+- 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
+- Arena 波次、商店、存档
+- 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
 - Web 导出妥协、C#、外部 ECS、任何 Autoload
 
 ## 输入合同（全项目唯一，后续沿用）
@@ -676,15 +703,17 @@ fire_held      bool      是否按住开火
 - 没有 `aim` action；瞄准用鼠标位置，不锁最近敌人
 - Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
 - 切枪 1/2/3/4 由 `WeaponHost` 读取，不塞进输入合同三量；弹窗打开时 1/2/3 改语义为选左/中/右卡，4 不选卡
-- 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量
-- 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取，无论死活都卸场景回菜单；不塞进输入合同三量
+- 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量；不要手柄映射
+- 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取，无论死活都卸场景回菜单；手柄 Start / B 同样回菜单；不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
 
-手机双摇杆是后续阶段；不要做 Input Autoload。输入组件挂在玩家节点上。
+手柄（`device_id >= 0`）独占合同三量：左杆走、右杆瞄、右扳机/RB 开火；十字键切 1/2/3/4。Y 轴不自己取负。没手柄时走上面键鼠路径。禁止把 Joy 写进 InputMap。不要做 Input Autoload。输入组件挂在玩家节点上。
+
+手机触控（双摇杆、设置里 Virtual Sticks）整包后置到内容 / 壳 / 美术 / 局域网都做完之后再调。禁止加 `TouchStick` / 触摸层 / 设置 C 页。
 
 ## 禁止事项（旧作不要带进新仓库）
 
-- 自动锁最近敌人；没目标就 `return`；PC 自动开火；手机「自动射击」开关；桌面虚拟摇杆
+- 自动锁最近敌人；没目标就 `return`；PC 自动开火；手机「自动射击」开关；桌面虚拟摇杆；把 Joypad 写进 `move_left` 让所有手柄一起推 P1
 - 子弹从身体/武器节点中心出，而不是枪口
 - 用 Timer 节点做射速；等下一个 timeout 才出第一发
 - 把弹池做成 Autoload；每发 `instantiate`/`queue_free`；池满删天上的弹
@@ -708,14 +737,14 @@ fire_held      bool      是否按住开火
 场景和脚本放在同一功能目录，不要按「脚本仓库 / 场景仓库」切开：
 
 ```text
-player/     玩家场景、PlayerInput、PlayerMotor、PlayerHealth、Muzzle、WeaponHost、FireFeedback
+player/     玩家场景、PlayerInput（键鼠或单把手柄 device_id）、PlayerMotor、PlayerHealth、Muzzle、WeaponHost、FireFeedback
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle / Smg、Projectile、本局 ProjectilePool
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ SettingsOverlay + GameSettings（user://settings.cfg，不是 Autoload）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中 `L0  0/8`；句间/升级三选一 layer=20；死亡结算条 layer=15 含 loop）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ SettingsOverlay + GameSettings（user://settings.cfg 仅 audio/display，不是 Autoload）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中 `L0  0/8`；句间/升级三选一 layer=20；死亡结算条 layer=15 含 loop）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / RunSummary / DebugOverlay）
@@ -733,6 +762,22 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 脚本一律走 `GameCollisionLayers`，禁止写裸数字 `1/2/4/8`。
 
-## 下一步：Day 31
+## 剩余顺序
 
-**Day 31 = 商店仍可不做；若还不缺构筑，下一刀是手机双摇杆**（战斗规则不动，只换输入）。仍无顶栏、无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween。
+手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。
+
+| 顺序 | 仓库里做什么 | 玩家会感到什么 | 先不要做 |
+|---|---|---|---|
+| **31（已完成）** | 输入按 `device_id` 拆开 | 插手柄也能单人打 | 分屏、2P、**任何触控 / 虚拟摇杆** |
+| **32** | 商店——等明确缺构筑；先一行 gold | 有地方花钱 | 刷新、第三扇窗 |
+| 33 | 点 Play 出模式窗（Solo 能进，Infinite 仍是这局，Multi 可灰） | 有「无限」这个名字 | 每日挑战、排行榜 |
+| 34 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
+| 35 | osu 式菜单壳：底栏三 icon、瘦顶栏（设置/Home）、叠层非线性缓动 | 标题/设置开始像 osu；**战斗 HUD 锚点不改、顶栏不进沙盒** | Wiki/Chat/Profile、五格枪架、重排血条 |
+| 36 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
+| 37 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
+| 38+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
+| **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
+
+## 下一步：Day 32
+
+**Day 32 = 商店仍可不做；若还不缺构筑，下一刀仍是商店金（先一行 gold）。** 手机触控整包仍后置到全部做完之后。仍无顶栏、无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween、无 Virtual Sticks。

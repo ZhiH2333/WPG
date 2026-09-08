@@ -42,6 +42,9 @@ func _ready() -> void:
 	_bind_window_cursor()
 	_sync_system_cursor()
 
+	var gamepad_debug: Node = preload("res://debug/test_gamepad.gd").new()
+	add_child(gamepad_debug)
+
 func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -60,6 +63,11 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		get_tree().change_scene_to_file(MENU_SCENE)
+		return
+	var joy_button: InputEventJoypadButton = event as InputEventJoypadButton
+	if joy_button != null and joy_button.pressed and joy_button.button_index == JOY_BUTTON_START:
 		get_viewport().set_input_as_handled()
 		get_tree().change_scene_to_file(MENU_SCENE)
 		return
@@ -108,6 +116,7 @@ func _bind_runtime() -> void:
 	_upgrade_applier.capture_baseline()
 	_upgrade_applier.apply_owned()
 	_upgrade_offer.bind_session(_run_session)
+	_upgrade_offer.bind_player_input(player_input)
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
 	_run_summary.bind_run_session(_run_session)
 	_debug_overlay.bind_run_session(_run_session)

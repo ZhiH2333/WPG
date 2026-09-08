@@ -9,6 +9,7 @@ var _open: bool = false
 var _cards: Array[Button] = []
 var _titles: Array[Label] = []
 var _descs: Array[Label] = []
+var _player_input: PlayerInput
 
 @onready var _card_root: HBoxContainer = $Root/Center/Column/Cards
 
@@ -37,6 +38,9 @@ func _ready() -> void:
 func bind_session(_session: RunSession) -> void:
 	pass
 
+func bind_player_input(player_input: PlayerInput) -> void:
+	_player_input = player_input
+
 func is_open() -> bool:
 	return _open
 
@@ -59,6 +63,13 @@ func get_offer_ids_label() -> String:
 	for def: UpgradeDef in _defs:
 		parts.append(String(def.id))
 	return ",".join(parts)
+
+func _process(_delta: float) -> void:
+	if not _open or _player_input == null:
+		return
+	var slot: int = _player_input.get_weapon_slot_just_pressed()
+	if slot >= 0 and slot <= 2:
+		_pick_index(slot)
 
 func _input(event: InputEvent) -> void:
 	if not _open:

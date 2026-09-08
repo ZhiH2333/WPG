@@ -1,17 +1,19 @@
 extends Node
 class_name WeaponHost
 
-## 切枪不进输入合同三量；只读 1/2/3/4，转发给当前武器。
+## 切枪不进输入合同三量；只读 1/2/3/4 或当前手柄十字键，转发给当前武器。
 var _weapons: Array[Weapon] = []
 var _current_index: int = 0
 var _switch_locked: bool = false
 var _switch_suppressed: bool = false
+var _player_input: PlayerInput
 
 func _ready() -> void:
 	_collect_weapons()
 	_activate_index(0)
 
 func bind_player_input(player_input: PlayerInput) -> void:
+	_player_input = player_input
 	for weapon: Weapon in _weapons:
 		weapon.bind_player_input(player_input)
 
@@ -87,6 +89,12 @@ func _poll_weapon_switch() -> void:
 		return
 	if Input.is_action_just_pressed("weapon_smg"):
 		_activate_index(3)
+		return
+	if _player_input == null:
+		return
+	var slot: int = _player_input.get_weapon_slot_just_pressed()
+	if slot >= 0:
+		_activate_index(slot)
 
 func _collect_weapons() -> void:
 	_weapons.clear()
