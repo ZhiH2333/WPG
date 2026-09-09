@@ -1,9 +1,17 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://ui/mode_overlay.tscn" id="4_mode"]
+[ext_resource type="Shader" path="res://ui/menu_blur.gdshader" id="5_blur"]
+[ext_resource type="Texture2D" path="res://images/mainmenu.png" id="6_bg"]
+[ext_resource type="AudioStream" path="res://audio/main.mp3" id="7_music"]
+
+[sub_resource type="ShaderMaterial" id="mat_blur"]
+shader = ExtResource("5_blur")
+shader_parameter/blur_amount = 0.0
+shader_parameter/dim_amount = 0.0
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -16,7 +24,7 @@ mouse_filter = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_menu")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -24,9 +32,21 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.1, 0.1, 0.12, 1)
+texture = ExtResource("6_bg")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Vignette" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.02, 0.05, 0.22)
+
+[node name="Center" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -35,25 +55,68 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Column" type="VBoxContainer" parent="Center"]
-layout_mode = 2
+[node name="Logo" type="Button" parent="Center"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.42
+anchor_right = 0.5
+anchor_bottom = 0.42
+offset_left = -120.0
+offset_top = -120.0
+offset_right = 120.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(120, 120)
+mouse_filter = 0
+theme_type_variation = &"LogoButton"
+text = "wpg!"
+
+[node name="Buttons" type="HBoxContainer" parent="Center"]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.68
+anchor_right = 0.5
+anchor_bottom = 0.68
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 20
 alignment = 1
 
-[node name="Title" type="Label" parent="Center/Column"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"MenuTitle"
-text = "WPG"
-horizontal_alignment = 1
-
-[node name="Play" type="Button" parent="Center/Column"]
-custom_minimum_size = Vector2(280, 56)
+[node name="Play" type="Button" parent="Center/Buttons"]
+custom_minimum_size = Vector2(190, 54)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"MainMenuButton"
+theme_type_variation = &"PillPink"
 text = "Play"
+
+[node name="Settings" type="Button" parent="Center/Buttons"]
+custom_minimum_size = Vector2(190, 54)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "Settings"
+
+[node name="Quit" type="Button" parent="Center/Buttons"]
+custom_minimum_size = Vector2(190, 54)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillRed"
+text = "Quit"
+
+[node name="BlurLayer" type="ColorRect" parent="."]
+material = SubResource("mat_blur")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="TopBar" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -81,47 +144,16 @@ mouse_filter = 0
 theme_type_variation = &"BarButton"
 text = "Settings"
 
-[node name="BottomBar" type="PanelContainer" parent="."]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -64.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 0
-theme_type_variation = &"BarPanel"
+[node name="Music" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_music")
+volume_db = -6.0
+autoplay = true
 
-[node name="Row" type="HBoxContainer" parent="BottomBar"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
+[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 
-[node name="PlayButton" type="Button" parent="BottomBar/Row"]
-custom_minimum_size = Vector2(150, 44)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 0
-theme_type_variation = &"BarButton"
-text = "Play"
+[node name="ClickSfx" type="AudioStreamPlayer" parent="."]
 
-[node name="SettingsButton" type="Button" parent="BottomBar/Row"]
-custom_minimum_size = Vector2(150, 44)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 0
-theme_type_variation = &"BarButton"
-text = "Settings"
-
-[node name="QuitButton" type="Button" parent="BottomBar/Row"]
-custom_minimum_size = Vector2(150, 44)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 0
-theme_type_variation = &"BarButton"
-text = "Quit"
+[node name="BackSfx" type="AudioStreamPlayer" parent="."]
 
 [node name="SettingsOverlay" parent="." instance=ExtResource("3_overlay")]
 layout_mode = 1

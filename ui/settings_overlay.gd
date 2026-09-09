@@ -51,9 +51,16 @@ func close() -> void:
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_close_animation()
-	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
-	if play != null:
+	_refocus_menu()
+
+func _refocus_menu() -> void:
+	var play: Button = get_parent().get_node_or_null("Center/Buttons/Play") as Button
+	if play != null and play.is_visible_in_tree():
 		play.grab_focus()
+		return
+	var logo: Button = get_parent().get_node_or_null("Center/Logo") as Button
+	if logo != null:
+		logo.grab_focus()
 
 func _play_open_animation() -> void:
 	UiAnim.kill_tween(_anim_tween)

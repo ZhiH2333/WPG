@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：先看到居中 `WPG` / Play / Settings / Quit。点 Play（或 Enter）弹出 Solo / Infinite / Multi；Solo 与 Infinite 都进同一个 `sandbox/combat_sandbox.tscn`，Multi 灰掉。设置叠层开着时 Enter 不进战斗、不开模式窗。模式窗开着 Esc / Back 回到标题。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央一颗粉色圆形 `wpg!` Logo（osu 式）。点 Logo（或 Enter）展开居中的 Play / Settings / Quit 三颗药丸按钮；再点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡（Multi 灰掉），Solo 与 Infinite 都进同一个 `sandbox/combat_sandbox.tscn`。任何叠层打开时背景模糊压暗、音乐衰减。设置叠层开着时 Enter 不进战斗、不开模式窗。Esc 逐层返回：叠层 → 收起按钮 → 标题。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -724,9 +724,19 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 **本阶段不做：** 2P、房间、ENet、Wiki/Chat/Profile、五格枪架、重排血条、每日挑战、排行榜、Virtual Sticks、手机触控。
 
+## Day 35（已完成）：osu 式主题回炉
+
+整套 Theme 回炉重做：所有 StyleBox 圆角化（卡片 16px、面板 18px、药丸按钮 27px），配色从橙灰换成 osu 粉紫系（主粉 `#FF66AB`、深梅紫底、蓝色 XP 条），卡片 hover 带粉色描边 + 粉色柔光阴影。主菜单彻底重排：底栏删掉，`images/mainmenu.png` 全屏铺满做背景，中央一颗 240px 粉色圆形 `wpg!` Logo（白描边 + 粉光晕，进场 OutBack 弹出），点击后 Logo 微缩、Play（粉）/ Settings（紫灰）/ Quit（红）三颗药丸按钮在屏幕中央错峰「长」出来——就是 osu 的 ButtonSystem 流程。瘦顶栏（Home / Settings）保留。
+
+`audio/main.mp3` 作为主题音乐循环播放；打开任何叠层时音乐从 -6dB 缓动衰减到 -16dB，同时 `ui/menu_blur.gdshader`（screen texture mip LOD 模糊 + 压暗，指数平滑追目标）把背景和 Logo 一起糊掉，叠层自身保持清晰，关掉后平滑恢复。osu 仓库里没有可用的 UI 音效（在独立的 osu-resources 包里），所以用脚本合成了三个同风格短音：`ui_hover.wav`（轻 tick）、`ui_click.wav`（软 pop，1500→850Hz 下滑）、`ui_back.wav`（低 pop），主菜单树里所有按钮统一接线：hover/focus 出 tick，确认出 click，Back / Home / Quit 出低 pop。
+
+技术上仍守规矩：styleboxes 全在 `game_theme.tres`（新增 `LogoButton` / `PillPink` / `PillNeutral` / `PillRed` 变体与默认 `Button` 圆角样式），禁止脚本 `StyleBoxFlat.new()`；音乐衰减与模糊在 `_process` 里指数平滑，不依赖动画时长；`is_open()` 等逻辑开关仍瞬时生效，输入锁不受动画影响；无 Autoload，无暂停树。战斗侧只吃到主题红利（圆角血条 / 圆角卡片），HUD 锚点与玩法零改动。
+
+**本阶段不做：** 正式战斗 sprite、字体替换、Logo 呼吸/节拍动画、视差背景、2P、房间、ENet、每日挑战、排行榜、Virtual Sticks、手机触控。
+
 ## 明确不做（直到后续对应日）
 
-- **Day 35 起接美术**（三角换正式 sprite）。**多人（同机 2P / 局域网）现在才排上：Day 37 同机 2P、Day 38+ 局域网。** 手机触控整包仍后置。仍无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表
+- **Day 36 起接美术**（三角换正式 sprite）。**多人（同机 2P / 局域网）现在才排上：Day 38 同机 2P、Day 39+ 局域网。** 手机触控整包仍后置。仍无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
 - Arena 波次、商店、存档
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -813,7 +823,7 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景；Player / Player
 
 ## 剩余顺序
 
-手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。Day 33 点 Play 出模式窗已落地。**多人（同机 2P / 局域网）整包挪到菜单壳做完之后。**
+手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。Day 33 点 Play 出模式窗已落地。Day 35 osu 式主题回炉已落地（圆角粉紫 Theme、背景图 + 主题音乐 + 模糊衰减、合成点击音效）。**多人（同机 2P / 局域网）整包挪到菜单壳做完之后。**
 
 | 顺序 | 仓库里做什么 | 玩家会感到什么 | 先不要做 |
 |---|---|---|---|
@@ -827,6 +837,6 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景；Player / Player
 | 38+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 35
+## 下一步：Day 36
 
-**Day 35 = 接美术**：三角换成正式野猪 / 近战 / 远程 / 精英 sprite，不为了图改玩法。之后 Day 36 地板/火花池/死亡碎裂/BGM，Day 37 同机 2P 试水，Day 38+ 局域网房间。仍无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks。
+**Day 36 = 接美术**：三角换成正式野猪 / 近战 / 远程 / 精英 sprite，不为了图改玩法。之后 Day 37 地板/火花池/死亡碎裂/战斗 BGM，Day 38 同机 2P 试水，Day 39+ 局域网房间。仍无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks。

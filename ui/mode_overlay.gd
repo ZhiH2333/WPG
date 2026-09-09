@@ -61,9 +61,16 @@ func close() -> void:
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.exit_overlay(self, self)
 	_anim_tween.finished.connect(_finish_close)
-	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
-	if play != null:
+	_refocus_menu()
+
+func _refocus_menu() -> void:
+	var play: Button = get_parent().get_node_or_null("Center/Buttons/Play") as Button
+	if play != null and play.is_visible_in_tree():
 		play.grab_focus()
+		return
+	var logo: Button = get_parent().get_node_or_null("Center/Logo") as Button
+	if logo != null:
+		logo.grab_focus()
 
 func _finish_close() -> void:
 	visible = false
