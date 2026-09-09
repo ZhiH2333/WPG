@@ -1,12 +1,16 @@
 extends Control
 class_name SettingsOverlay
 
-## 主菜单设置叠层：Master 音量 + 全屏。瞬间 visible，禁止 Tween。
+## 主菜单设置叠层：Master 音量 + 全屏。osu 式左侧滑入（OutQuint），逻辑开关仍瞬时生效。
 const MIX_RATE: int = 22050
 const WAV_HEADER_BYTES: int = 44
+const SHELL_WIDTH: float = 520.0
 
 var _open: bool = false
+var _anim_tween: Tween
 
+@onready var _dimmer: ColorRect = $Dimmer
+@onready var _shell: Control = $Shell
 @onready var _audio_button: Button = $Shell/Panel/Column/Body/Sidebar/AudioButton
 @onready var _display_button: Button = $Shell/Panel/Column/Body/Sidebar/DisplayButton
 @onready var _audio_page: VBoxContainer = $Shell/Panel/Column/Body/Pages/AudioPage
@@ -38,17 +42,36 @@ func open() -> void:
 	_open = true
 	visible = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_play_open_animation()
 	_volume_slider.grab_focus()
 
 func close() -> void:
 	if not _open:
 		return
 	_open = false
-	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_close_animation()
 	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
 	if play != null:
 		play.grab_focus()
+
+func _play_open_animation() -> void:
+	UiAnim.kill_tween(_anim_tween)
+	_shell.offset_left = -SHELL_WIDTH
+	_shell.offset_right = 0.0
+	_dimmer.modulate.a = 0.0
+	_anim_tween = create_tween().set_parallel(true)
+	_anim_tween.tween_property(_shell, "offset_left", 0.0, UiAnim.PANEL_MOVE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(_shell, "offset_right", SHELL_WIDTH, UiAnim.PANEL_MOVE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(_dimmer, "modulate:a", 1.0, UiAnim.DIMMER_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+
+func _play_close_animation() -> void:
+	UiAnim.kill_tween(_anim_tween)
+	_anim_tween = create_tween().set_parallel(true)
+	_anim_tween.tween_property(_shell, "offset_left", -SHELL_WIDTH, UiAnim.PANEL_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(_shell, "offset_right", 0.0, UiAnim.PANEL_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(_dimmer, "modulate:a", 0.0, UiAnim.PANEL_EXIT_SEC * 0.5).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	_anim_tween.finished.connect(hide)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _open:

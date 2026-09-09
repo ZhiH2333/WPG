@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：先看到居中 `WPG` / Play / Settings / Quit。点 Play（或 Enter）才进 `sandbox/combat_sandbox.tscn`。叠层开着时 Enter 不进战斗。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：先看到居中 `WPG` / Play / Settings / Quit。点 Play（或 Enter）弹出 Solo / Infinite / Multi；Solo 与 Infinite 都进同一个 `sandbox/combat_sandbox.tscn`，Multi 灰掉。设置叠层开着时 Enter 不进战斗、不开模式窗。模式窗开着 Esc / Back 回到标题。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -696,9 +696,37 @@ HUD：BottomLeft 最下面 `GoldLabel`（`HudWeapon`，`gold  %d`）。`offset_t
 
 **本阶段不做：** 刷新商店、第三扇窗、金币掉落、WAVE COMPLETE、顶栏、模式窗、暂停框、Boss 条、五格枪架、玩家剪影、多人、局域网、osu Tween、Virtual Sticks。
 
+## Day 33（已完成）：点 Play 出模式窗
+
+不是局域网周，不是 2P，不是顶栏。点 Play 不再立刻开打：标题还在，上面盖一层半透明，中央三张卡。Solo 与 Infinite 进入**同一个** `res://sandbox/combat_sandbox.tscn`（现有无限 loop 局）。Infinite 只是给这局一个名字，不要第二张地图、不要第二套刷怪、不要 loop 上限。Multi 看得见但 `disabled`，点不了，不要房间、不要「连接失败」。
+
+`ui/mode_overlay.tscn` 是 MainMenu 子 Control，与 SettingsOverlay 平级、后声明盖在上面。不是独立主场景，不是战斗 CanvasLayer。禁止 Autoload，禁止 `LaunchIntent` / GameMode 静态单例，本阶段不传 mode 参数。
+
+`ModeOverlay`：`is_open` / `open`（visible=true，Solo.grab_focus）/ `close`；信号只有 `selected_solo` 与 `selected_infinite`，没有 `selected_multi`。Dimmer `Color(0,0,0,0.55)`，`mouse_filter=STOP`。中央 HBox 三张 `OfferButton`，`custom_minimum_size=Vector2(240, 200)`，间距 24。文案锁死：Solo `The run you already know`；Infinite `Same loop. No extra map`；Multi `Coming later`（disabled，无 tooltip）。底左 Back。visible 开关，禁止 Tween / AnimationPlayer / 平行四边形。
+
+MainMenu：`_on_play_pressed` 若 Settings 开着则 return，否则 `_mode_overlay.open()`。Solo / Infinite 都走 `_enter_sandbox()` → 现有 `change_scene_to_file(SANDBOX_SCENE)`。`ui_accept`：Settings 开着忽略；模式开着让按钮自己吃；两者都关才打开模式窗，**不要**直接进沙盒。`ui_cancel`：先关 Settings，否则关模式窗并 Play.grab_focus()；都关则不 quit。键盘 1=Solo、2=Infinite、3 忽略。十字键左/右只在 Solo 与 Infinite 之间换焦点（跳过 Multi）；A 确认；B / Start / Esc 关叠层。
+
+CombatSandbox **未改**。HUD / 结算条 / 三选一 / 商店 / 四把枪 / 句读 / 加压 / gold 全部不动。没有顶栏、没有底栏三 icon。
+
+Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `StyleBoxFlat.new()`。
+
+**本阶段不做：** 2P、房间、ENet、顶栏、底栏三 icon、osu Tween、每日挑战、Playlists、排行榜、LaunchIntent、Virtual Sticks。
+
+## Day 34（已完成）：osu 式菜单壳 + 叠层非线性缓动
+
+玩家打开游戏的第一眼开始像 osu：顶部一条瘦顶栏（Home / Settings）从上滑入，底部一条底栏（Play / Settings / Quit）从下滑入，中央 Title 与 Play 错峰淡入。点 Play，三张模式卡不再瞬间蹦出来，而是带 0.06s 错峰、OutBack 微缩放地「长」出来；打开 Settings，整块面板从左侧 OutQuint 滑入（520px，0.45s），Esc 关掉时滑回去。战斗里：升级三选一和商店的卡片同样错峰进场、快速淡出；血条和 XP 条不再瞬跳，而是指数缓动追目标；死亡结算面板缩放弹出。
+
+新增 `ui/ui_anim.gd`（`UiAnim`，static 工具类，同 `GameSettings` 模式，非 Autoload）：进场 OutQuint / OutBack、退场 InQuint，透明度时长约为位移一半，错峰 0.06s——这三条就是 osu!lazer 的动效骨架。**动效只改装饰（modulate / scale / offset），`is_open()` 等逻辑开关仍瞬时生效**，输入锁、关店走火防抖、句间流程全部不受动画时长影响。每个叠层持有自己的 `_anim_tween`，重复开关先 `kill_tween` 再起新的，不会叠加。
+
+菜单壳：`main_menu.tscn` 中央 Column 只剩 Title + Play；新增 `TopBar`（44px，Home / Settings）与 `BottomBar`（64px，Play / Settings / Quit），都是 `BarPanel` + `BarButton`（Theme 新增，styleboxes 全在 .tres，禁止脚本 `StyleBoxFlat.new()`）。Home 关掉一切叠层回到 Play 焦点。顶栏只在主菜单场景，**不进沙盒**；战斗 HUD 锚点一根没动，只有条值缓动。
+
+卡片容器子级不能 tween `position`（HBox 会重排回去），所以卡片用 `modulate` + `scale`（pivot 取 `custom_minimum_size` 一半）；Settings Shell 是普通 Control 子级，滑动改 `offset_left/right`，布局安全。
+
+**本阶段不做：** 2P、房间、ENet、Wiki/Chat/Profile、五格枪架、重排血条、每日挑战、排行榜、Virtual Sticks、手机触控。
+
 ## 明确不做（直到后续对应日）
 
-- **Day 33 才做** 点 Play 出模式窗（Solo 能进，Infinite 仍是这局，Multi 可灰）。手机触控整包仍后置。仍无顶栏、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween、无 Virtual Sticks
+- **Day 35 起接美术**（三角换正式 sprite）。**多人（同机 2P / 局域网）现在才排上：Day 37 同机 2P、Day 38+ 局域网。** 手机触控整包仍后置。仍无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
 - Arena 波次、商店、存档
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -765,10 +793,10 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ SettingsOverlay + GameSettings（user://settings.cfg 仅 audio/display，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary + game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `L0  0/8`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡结算条 layer=15 含 loop/gold）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + GameSettings（user://settings.cfg 仅 audio/display，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary + game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `L0  0/8`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡结算条 layer=15 含 loop/gold）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
-sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / DebugOverlay）
+sandbox/    CombatSandbox（Solo / Infinite 进入同一场景；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -785,20 +813,20 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 ## 剩余顺序
 
-手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。
+手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。Day 33 点 Play 出模式窗已落地。**多人（同机 2P / 局域网）整包挪到菜单壳做完之后。**
 
 | 顺序 | 仓库里做什么 | 玩家会感到什么 | 先不要做 |
 |---|---|---|---|
 | **31（已完成）** | 输入按 `device_id` 拆开 | 插手柄也能单人打 | 分屏、2P、**任何触控 / 虚拟摇杆** |
 | **32（已完成）** | 本局金币 + P8 后商店买一张已有升级或 Skip | 打死人攒钱，轮与轮之间能花掉 | 刷新、第三扇窗、掉落硬币 |
-| 33 | 点 Play 出模式窗（Solo 能进，Infinite 仍是这局，Multi 可灰） | 有「无限」这个名字 | 每日挑战、排行榜 |
-| 34 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
-| 35 | osu 式菜单壳：底栏三 icon、瘦顶栏（设置/Home）、叠层非线性缓动 | 标题/设置开始像 osu；**战斗 HUD 锚点不改、顶栏不进沙盒** | Wiki/Chat/Profile、五格枪架、重排血条 |
-| 36 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
-| 37 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
+| **33（已完成）** | 点 Play 出模式窗；Solo / Infinite 进同一 CombatSandbox；Multi 灰掉预留 | 有「无限」这个名字；点进去还是现在这局 | 每日挑战、排行榜、2P、房间 |
+| **34（已完成）** | osu 式菜单壳：底栏三 icon、瘦顶栏（设置/Home）、叠层非线性缓动（`UiAnim`） | 标题/设置开始像 osu；开关窗有呼吸感；血条会滑 | Wiki/Chat/Profile、五格枪架、重排血条、2P |
+| 35 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
+| 36 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
+| 37 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
 | 38+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 33
+## 下一步：Day 35
 
-**Day 33 = 点 Play 出模式窗（Solo 能进，Infinite 仍是这局，Multi 可灰）。** 手机触控整包仍后置。仍无顶栏、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween、无 Virtual Sticks。
+**Day 35 = 接美术**：三角换成正式野猪 / 近战 / 远程 / 精英 sprite，不为了图改玩法。之后 Day 36 地板/火花池/死亡碎裂/BGM，Day 37 同机 2P 试水，Day 38+ 局域网房间。仍无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks。

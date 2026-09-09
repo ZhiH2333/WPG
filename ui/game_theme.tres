@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=9 format=3]
+[gd_resource type="Theme" load_steps=13 format=3]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
 bg_color = Color(1, 0.62, 0.18, 1)
@@ -47,6 +47,34 @@ border_color = Color(1, 0.62, 0.18, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xp_fill"]
 bg_color = Color(0.38, 0.72, 0.95, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_panel"]
+content_margin_left = 16.0
+content_margin_top = 4.0
+content_margin_right = 16.0
+content_margin_bottom = 4.0
+bg_color = Color(0.055, 0.055, 0.075, 0.94)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_btn_normal"]
+content_margin_left = 18.0
+content_margin_top = 6.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_btn_hover"]
+content_margin_left = 18.0
+content_margin_top = 6.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0.08)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_btn_pressed"]
+content_margin_left = 18.0
+content_margin_top = 6.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 0.62, 0.18, 0.25)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_summary_panel"]
 content_margin_left = 16.0
@@ -126,6 +154,16 @@ RunSummaryHint/constants/outline_size = 4
 RunSummaryHint/font_sizes/font_size = 16
 RunSummaryPanel/base_type = &"PanelContainer"
 RunSummaryPanel/styles/panel = SubResource("StyleBoxFlat_summary_panel")
+BarPanel/base_type = &"PanelContainer"
+BarPanel/styles/panel = SubResource("StyleBoxFlat_bar_panel")
+BarButton/base_type = &"Button"
+BarButton/colors/font_color = Color(0.9, 0.9, 0.88, 1)
+BarButton/font_sizes/font_size = 16
+BarButton/styles/disabled = SubResource("StyleBoxFlat_bar_btn_normal")
+BarButton/styles/focus = SubResource("StyleBoxFlat_bar_btn_hover")
+BarButton/styles/hover = SubResource("StyleBoxFlat_bar_btn_hover")
+BarButton/styles/normal = SubResource("StyleBoxFlat_bar_btn_normal")
+BarButton/styles/pressed = SubResource("StyleBoxFlat_bar_btn_pressed")
 MenuTitle/base_type = &"Label"
 MenuTitle/colors/font_color = Color(0.95, 0.95, 0.9, 1)
 MenuTitle/colors/font_outline_color = Color(0, 0, 0, 0.85)
@@ -144,3 +182,8 @@ SettingsHeader/colors/font_color = Color(0.95, 0.95, 0.9, 1)
 SettingsHeader/colors/font_outline_color = Color(0, 0, 0, 0.85)
 SettingsHeader/constants/outline_size = 6
 SettingsHeader/font_sizes/font_size = 22
+ModeTitle/base_type = &"Label"
+ModeTitle/colors/font_color = Color(0.95, 0.95, 0.9, 1)
+ModeTitle/colors/font_outline_color = Color(0, 0, 0, 0.85)
+ModeTitle/constants/outline_size = 8
+ModeTitle/font_sizes/font_size = 26

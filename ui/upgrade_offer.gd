@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name UpgradeOffer
 
-## 句间三选一。只负责展示与点选，不自己 grant。禁止暂停场景树。
+## 句间三选一。只负责展示与点选，不自己 grant。禁止暂停场景树。卡片 osu 式错峰进场，逻辑开关仍瞬时。
 signal picked(upgrade_id: StringName)
 
 var _defs: Array[UpgradeDef] = []
@@ -10,7 +10,11 @@ var _cards: Array[Button] = []
 var _titles: Array[Label] = []
 var _descs: Array[Label] = []
 var _player_input: PlayerInput
+var _anim_tween: Tween
 
+@onready var _root: Control = $Root
+@onready var _dimmer: ColorRect = $Root/Dimmer
+@onready var _center: CenterContainer = $Root/Center
 @onready var _card_root: HBoxContainer = $Root/Center/Column/Cards
 
 func _ready() -> void:
@@ -45,14 +49,27 @@ func is_open() -> bool:
 	return _open
 
 func present(defs: Array[UpgradeDef]) -> void:
+	UiAnim.kill_tween(_anim_tween)
 	_defs = defs.duplicate()
 	_open = not _defs.is_empty()
 	visible = _open
+	_root.modulate.a = 1.0
 	_refresh_cards()
+	if not _open:
+		return
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _center, _cards)
 
 func close() -> void:
 	_open = false
+	if not visible:
+		return
+	UiAnim.kill_tween(_anim_tween)
+	_anim_tween = UiAnim.exit_overlay(self, _root)
+	_anim_tween.finished.connect(_finish_close)
+
+func _finish_close() -> void:
 	visible = false
+	_root.modulate.a = 1.0
 	_defs.clear()
 	_refresh_cards()
 

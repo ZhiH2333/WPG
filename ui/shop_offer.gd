@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name ShopOffer
 
-## P8 后买一张已有升级或 Skip。只展示与点选，不自己 spend。禁止暂停场景树。
+## P8 后买一张已有升级或 Skip。只展示与点选，不自己 spend。禁止暂停场景树。卡片 osu 式错峰进场，逻辑开关仍瞬时。
 signal bought(upgrade_id: StringName)
 signal skipped
 
@@ -14,7 +14,11 @@ var _costs: Array[Label] = []
 var _player_input: PlayerInput
 var _session: RunSession
 var _presented_gold: int = 0
+var _anim_tween: Tween
 
+@onready var _root: Control = $Root
+@onready var _dimmer: ColorRect = $Root/Dimmer
+@onready var _center: CenterContainer = $Root/Center
 @onready var _gold_label: Label = $Root/Center/Column/GoldLabel
 @onready var _skip_button: Button = $Root/Center/Column/Skip
 
@@ -56,15 +60,28 @@ func is_open() -> bool:
 	return _open
 
 func present(defs: Array[UpgradeDef], gold: int) -> void:
+	UiAnim.kill_tween(_anim_tween)
 	_defs = defs.duplicate()
 	_presented_gold = gold
 	_open = not _defs.is_empty()
 	visible = _open
+	_root.modulate.a = 1.0
 	_refresh_cards()
+	if not _open:
+		return
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _center, _cards)
 
 func close() -> void:
 	_open = false
+	if not visible:
+		return
+	UiAnim.kill_tween(_anim_tween)
+	_anim_tween = UiAnim.exit_overlay(self, _root)
+	_anim_tween.finished.connect(_finish_close)
+
+func _finish_close() -> void:
 	visible = false
+	_root.modulate.a = 1.0
 	_defs.clear()
 	_refresh_cards()
 

@@ -2,7 +2,9 @@ extends CanvasLayer
 class_name Hud
 
 ## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。只读 getter，禁止自管一份 HP。
+## 血条/XP 条数值用指数缓动追目标（osu 式），数字仍瞬时；锚点布局不改。
 const HP_LOW_THRESHOLD: int = 20
+const BAR_SMOOTHING: float = 10.0
 const FILL_STYLE_NORMAL: StringName = &""
 const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
 
@@ -32,14 +34,14 @@ func bind_encounter(encounter: EncounterPhrases) -> void:
 func bind_run_session(session: RunSession) -> void:
 	_run_session = session
 
-func _process(_delta: float) -> void:
-	_refresh_hp()
-	_refresh_xp()
+func _process(delta: float) -> void:
+	_refresh_hp(delta)
+	_refresh_xp(delta)
 	_refresh_gold()
 	_refresh_weapon()
 	_refresh_phrase()
 
-func _refresh_hp() -> void:
+func _refresh_hp(delta: float) -> void:
 	var hp: int = 0
 	var max_hp: int = 100
 	if _player != null:
@@ -47,11 +49,11 @@ func _refresh_hp() -> void:
 		hp = health.get_hp()
 		max_hp = health.get_max_hp()
 	_hp_bar.max_value = float(max_hp)
-	_hp_bar.value = float(hp)
+	_hp_bar.value = _approach_bar(_hp_bar.value, float(hp), delta)
 	_hp_label.text = "%d/%d" % [hp, max_hp]
 	_apply_hp_fill(hp)
 
-func _refresh_xp() -> void:
+func _refresh_xp(delta: float) -> void:
 	var level: int = 1
 	var xp: int = 0
 	var need: int = 30
@@ -60,8 +62,13 @@ func _refresh_xp() -> void:
 		xp = _run_session.get_xp()
 		need = _run_session.get_xp_to_next()
 	_xp_bar.max_value = float(need)
-	_xp_bar.value = float(xp)
+	_xp_bar.value = _approach_bar(_xp_bar.value, float(xp), delta)
 	_xp_label.text = "Lv.%d  %d/%d" % [level, xp, need]
+
+func _approach_bar(current: float, target: float, delta: float) -> float:
+	if absf(target - current) < 0.5:
+		return target
+	return lerpf(current, target, 1.0 - exp(-BAR_SMOOTHING * delta))
 
 func _refresh_gold() -> void:
 	var gold: int = 0
