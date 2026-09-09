@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=34 format=3]
+[gd_resource type="Theme" load_steps=35 format=3]
 
 [sub_resource type="StyleBoxFlat" id="sb_hp_bg"]
 bg_color = Color(0.09, 0.075, 0.105, 0.85)
@@ -98,17 +98,19 @@ corner_radius_top_right = 16
 corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
 
+[sub_resource type="StyleBoxEmpty" id="sb_empty"]
+
 [sub_resource type="StyleBoxFlat" id="sb_bar_panel"]
-content_margin_left = 16.0
-content_margin_top = 4.0
+content_margin_left = 12.0
+content_margin_top = 0.0
 content_margin_right = 16.0
-content_margin_bottom = 4.0
-bg_color = Color(0.06, 0.05, 0.08, 0.88)
+content_margin_bottom = 0.0
+bg_color = Color(0.04, 0.04, 0.05, 0.94)
 
 [sub_resource type="StyleBoxFlat" id="sb_bar_btn_normal"]
-content_margin_left = 18.0
+content_margin_left = 10.0
 content_margin_top = 6.0
-content_margin_right = 18.0
+content_margin_right = 10.0
 content_margin_bottom = 6.0
 bg_color = Color(1, 1, 1, 0)
 corner_radius_top_left = 8
@@ -117,9 +119,9 @@ corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="sb_bar_btn_hover"]
-content_margin_left = 18.0
+content_margin_left = 10.0
 content_margin_top = 6.0
-content_margin_right = 18.0
+content_margin_right = 10.0
 content_margin_bottom = 6.0
 bg_color = Color(1, 1, 1, 0.1)
 corner_radius_top_left = 8
@@ -128,9 +130,9 @@ corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="sb_bar_btn_pressed"]
-content_margin_left = 18.0
+content_margin_left = 10.0
 content_margin_top = 6.0
-content_margin_right = 18.0
+content_margin_right = 10.0
 content_margin_bottom = 6.0
 bg_color = Color(1, 0.4, 0.67, 0.35)
 corner_radius_top_left = 8
@@ -522,3 +524,35 @@ ModeTitle/colors/font_color = Color(0.97, 0.94, 0.96, 1)
 ModeTitle/colors/font_outline_color = Color(0, 0, 0, 0.5)
 ModeTitle/constants/outline_size = 4
 ModeTitle/font_sizes/font_size = 26
+EmptyButton/base_type = &"Button"
+EmptyButton/colors/font_color = Color(1, 1, 1, 1)
+EmptyButton/styles/disabled = SubResource("sb_empty")
+EmptyButton/styles/focus = SubResource("sb_empty")
+EmptyButton/styles/hover = SubResource("sb_empty")
+EmptyButton/styles/normal = SubResource("sb_empty")
+EmptyButton/styles/pressed = SubResource("sb_empty")
+IconBarButton/base_type = &"Button"
+IconBarButton/colors/font_color = Color(1, 1, 1, 1)
+IconBarButton/styles/disabled = SubResource("sb_bar_btn_normal")
+IconBarButton/styles/focus = SubResource("sb_focus_bar")
+IconBarButton/styles/hover = SubResource("sb_bar_btn_hover")
+IconBarButton/styles/normal = SubResource("sb_bar_btn_normal")
+IconBarButton/styles/pressed = SubResource("sb_bar_btn_pressed")
+StripCaption/base_type = &"Label"
+StripCaption/colors/font_color = Color(1, 1, 1, 1)
+StripCaption/colors/font_outline_color = Color(0, 0, 0, 0)
+StripCaption/colors/font_shadow_color = Color(0, 0, 0, 0)
+StripCaption/constants/outline_size = 1
+StripCaption/constants/shadow_offset_x = 0
+StripCaption/constants/shadow_offset_y = 0
+StripCaption/font_sizes/font_size = 18
+ClockLabel/base_type = &"Label"
+ClockLabel/colors/font_color = Color(0.97, 0.96, 0.98, 1)
+ClockLabel/colors/font_outline_color = Color(0, 0, 0, 0.4)
+ClockLabel/constants/outline_size = 2
+ClockLabel/font_sizes/font_size = 22
+ProfileName/base_type = &"Label"
+ProfileName/colors/font_color = Color(0.93, 0.9, 0.93, 1)
+ProfileName/colors/font_outline_color = Color(0, 0, 0, 0.4)
+ProfileName/constants/outline_size = 2
+ProfileName/font_sizes/font_size = 15

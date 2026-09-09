@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央一颗粉色圆形 `wpg!` Logo（osu 式）。点 Logo（或 Enter）展开居中的 Play / Settings / Quit 三颗药丸按钮；再点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡（Multi 灰掉），Solo 与 Infinite 都进同一个 `sandbox/combat_sandbox.tscn`。任何叠层打开时背景模糊压暗、音乐衰减。设置叠层开着时 Enter 不进战斗、不开模式窗。Esc 逐层返回：叠层 → 收起按钮 → 标题。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 关掉叠层。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -726,7 +726,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## Day 35（已完成）：osu 式主题回炉
 
-整套 Theme 回炉重做：所有 StyleBox 圆角化（卡片 16px、面板 18px、药丸按钮 27px），配色从橙灰换成 osu 粉紫系（主粉 `#FF66AB`、深梅紫底、蓝色 XP 条），卡片 hover 带粉色描边 + 粉色柔光阴影。主菜单彻底重排：底栏删掉，`images/mainmenu.png` 全屏铺满做背景，中央一颗 240px 粉色圆形 `wpg!` Logo（白描边 + 粉光晕，进场 OutBack 弹出），点击后 Logo 微缩、Play（粉）/ Settings（紫灰）/ Quit（红）三颗药丸按钮在屏幕中央错峰「长」出来——就是 osu 的 ButtonSystem 流程。瘦顶栏（Home / Settings）保留。
+整套 Theme 回炉重做：所有 StyleBox 圆角化（卡片 16px、面板 18px、药丸按钮 27px），配色从橙灰换成 osu 粉紫系（主粉 `#FF66AB`、深梅紫底、蓝色 XP 条），卡片 hover 带粉色描边 + 粉色柔光阴影。主菜单彻底重排：底栏删掉，`images/mainmenu.png` 全屏铺满做背景，中央一颗 240px 粉色圆形 `wpg!` Logo（白描边 + 粉光晕，进场 OutBack 弹出），随后改成字标 `images/logo.png` 在上、Settings / Play / Exit 三颗平行四边形按钮并排在下。顶栏改成 osu toolbar：左设置/主页图标，右 Profile + 实时时钟。
 
 `audio/main.mp3` 作为主题音乐循环播放；打开任何叠层时音乐从 -6dB 缓动衰减到 -16dB，同时 `ui/menu_blur.gdshader`（screen texture mip LOD 模糊 + 压暗，指数平滑追目标）把背景和 Logo 一起糊掉，叠层自身保持清晰，关掉后平滑恢复。osu 仓库里没有可用的 UI 音效（在独立的 osu-resources 包里），所以用脚本合成了三个同风格短音：`ui_hover.wav`（轻 tick）、`ui_click.wav`（软 pop，1500→850Hz 下滑）、`ui_back.wav`（低 pop），主菜单树里所有按钮统一接线：hover/focus 出 tick，确认出 click，Back / Home / Quit 出低 pop。
 

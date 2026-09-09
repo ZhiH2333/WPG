@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
@@ -7,11 +7,37 @@
 [ext_resource type="Shader" path="res://ui/menu_blur.gdshader" id="5_blur"]
 [ext_resource type="Texture2D" path="res://images/mainmenu.png" id="6_bg"]
 [ext_resource type="AudioStream" path="res://audio/main.mp3" id="7_music"]
+[ext_resource type="Texture2D" path="res://images/logo.png" id="8_logo"]
+[ext_resource type="Shader" path="res://ui/menu_shear.gdshader" id="9_shear"]
+[ext_resource type="Texture2D" path="res://ui/icons/gear.png" id="10_gear"]
+[ext_resource type="Texture2D" path="res://ui/icons/home.png" id="11_home"]
+[ext_resource type="Texture2D" path="res://ui/icons/play.png" id="12_play"]
+[ext_resource type="Texture2D" path="res://ui/icons/quit.png" id="13_quit"]
+[ext_resource type="Texture2D" path="res://ui/icons/clock.png" id="14_clock"]
+[ext_resource type="Texture2D" path="res://ui/icons/avatar.png" id="15_avatar"]
 
 [sub_resource type="ShaderMaterial" id="mat_blur"]
 shader = ExtResource("5_blur")
 shader_parameter/blur_amount = 0.0
 shader_parameter/dim_amount = 0.0
+
+[sub_resource type="ShaderMaterial" id="mat_settings"]
+shader = ExtResource("9_shear")
+shader_parameter/fill_color = Color(0.18, 0.17, 0.2, 0.92)
+shader_parameter/shear = 0.16
+shader_parameter/hover = 0.0
+
+[sub_resource type="ShaderMaterial" id="mat_play"]
+shader = ExtResource("9_shear")
+shader_parameter/fill_color = Color(0.62, 0.3, 0.74, 0.92)
+shader_parameter/shear = 0.16
+shader_parameter/hover = 0.0
+
+[sub_resource type="ShaderMaterial" id="mat_quit"]
+shader = ExtResource("9_shear")
+shader_parameter/fill_color = Color(0.93, 0.32, 0.55, 0.92)
+shader_parameter/shear = 0.16
+shader_parameter/hover = 0.0
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -46,7 +72,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.03, 0.02, 0.05, 0.22)
 
-[node name="Center" type="Control" parent="."]
+[node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -55,58 +81,185 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Logo" type="Button" parent="Center"]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.5
-anchor_top = 0.42
-anchor_right = 0.5
-anchor_bottom = 0.42
-offset_left = -120.0
-offset_top = -120.0
-offset_right = 120.0
-offset_bottom = 120.0
-grow_horizontal = 2
-grow_vertical = 2
-pivot_offset = Vector2(120, 120)
-mouse_filter = 0
-theme_type_variation = &"LogoButton"
-text = "wpg!"
+[node name="Column" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 36
+alignment = 1
 
-[node name="Buttons" type="HBoxContainer" parent="Center"]
-visible = false
+[node name="Logo" type="TextureButton" parent="Center/Column"]
+custom_minimum_size = Vector2(720, 162)
+layout_mode = 2
+size_flags_horizontal = 4
+pivot_offset = Vector2(360, 81)
+mouse_filter = 0
+theme_type_variation = &"EmptyButton"
+texture_normal = ExtResource("8_logo")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Buttons" type="HBoxContainer" parent="Center/Column"]
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_override_constants/separation = 36
+alignment = 1
+
+[node name="Settings" type="Button" parent="Center/Column/Buttons"]
+custom_minimum_size = Vector2(280, 124)
+layout_mode = 2
+pivot_offset = Vector2(140, 62)
+mouse_filter = 0
+theme_type_variation = &"EmptyButton"
+
+[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Settings"]
+material = SubResource("mat_settings")
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.5
-anchor_top = 0.68
-anchor_right = 0.5
-anchor_bottom = 0.68
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 20
+
+[node name="Content" type="VBoxContainer" parent="Center/Column/Buttons/Settings"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = -16.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Play" type="Button" parent="Center/Buttons"]
-custom_minimum_size = Vector2(190, 54)
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Settings/Content"]
+custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"PillPink"
-text = "Play"
+size_flags_horizontal = 4
+mouse_filter = 2
+texture = ExtResource("10_gear")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Settings" type="Button" parent="Center/Buttons"]
-custom_minimum_size = Vector2(190, 54)
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Settings/Content"]
 layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"PillNeutral"
-text = "Settings"
+mouse_filter = 2
+theme_type_variation = &"StripCaption"
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_constants/outline_size = 1
+theme_override_font_sizes/font_size = 20
+text = "settings"
+horizontal_alignment = 1
 
-[node name="Quit" type="Button" parent="Center/Buttons"]
-custom_minimum_size = Vector2(190, 54)
+[node name="Play" type="Button" parent="Center/Column/Buttons"]
+custom_minimum_size = Vector2(280, 124)
 layout_mode = 2
+pivot_offset = Vector2(140, 62)
 mouse_filter = 0
-theme_type_variation = &"PillRed"
-text = "Quit"
+theme_type_variation = &"EmptyButton"
+
+[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Play"]
+material = SubResource("mat_play")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Content" type="VBoxContainer" parent="Center/Column/Buttons/Play"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = -16.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Play/Content"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+texture = ExtResource("12_play")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Play/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StripCaption"
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_constants/outline_size = 1
+theme_override_font_sizes/font_size = 20
+text = "play"
+horizontal_alignment = 1
+
+[node name="Quit" type="Button" parent="Center/Column/Buttons"]
+custom_minimum_size = Vector2(280, 124)
+layout_mode = 2
+pivot_offset = Vector2(140, 62)
+mouse_filter = 0
+theme_type_variation = &"EmptyButton"
+
+[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Quit"]
+material = SubResource("mat_quit")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Content" type="VBoxContainer" parent="Center/Column/Buttons/Quit"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = -16.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Quit/Content"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+texture = ExtResource("13_quit")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Quit/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StripCaption"
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_constants/outline_size = 1
+theme_override_font_sizes/font_size = 20
+text = "exit"
+horizontal_alignment = 1
 
 [node name="BlurLayer" type="ColorRect" parent="."]
 material = SubResource("mat_blur")
@@ -122,7 +275,7 @@ mouse_filter = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 44.0
+offset_bottom = 48.0
 grow_horizontal = 2
 mouse_filter = 0
 theme_type_variation = &"BarPanel"
@@ -130,19 +283,87 @@ theme_type_variation = &"BarPanel"
 [node name="Row" type="HBoxContainer" parent="TopBar"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
-
-[node name="HomeButton" type="Button" parent="TopBar/Row"]
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"BarButton"
-text = "Home"
+theme_override_constants/separation = 4
+alignment = 1
 
 [node name="SettingsButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(44, 40)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 0
-theme_type_variation = &"BarButton"
-text = "Settings"
+theme_type_variation = &"IconBarButton"
+theme_override_constants/icon_max_width = 22
+icon = ExtResource("10_gear")
+expand_icon = true
+
+[node name="HomeButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(44, 40)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"IconBarButton"
+theme_override_constants/icon_max_width = 22
+icon = ExtResource("11_home")
+expand_icon = true
+
+[node name="Spacer" type="Control" parent="TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Profile" type="HBoxContainer" parent="TopBar/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("15_avatar")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="TopBar/Row/Profile"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ProfileName"
+text = "Player"
+vertical_alignment = 1
+
+[node name="Sep" type="ColorRect" parent="TopBar/Row"]
+custom_minimum_size = Vector2(1, 22)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+color = Color(1, 1, 1, 0.22)
+
+[node name="TimeBox" type="HBoxContainer" parent="TopBar/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="ClockIcon" type="TextureRect" parent="TopBar/Row/TimeBox"]
+modulate = Color(1, 0.4, 0.67, 1)
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("14_clock")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Clock" type="Label" parent="TopBar/Row/TimeBox"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ClockLabel"
+text = "00:00:00"
+vertical_alignment = 1
 
 [node name="Music" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("7_music")
