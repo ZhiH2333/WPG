@@ -24,6 +24,7 @@ var _offer_is_phrase: bool = false
 @onready var _debug_overlay: DebugOverlay = $DebugOverlay
 @onready var _hud: Hud = $Hud
 @onready var _upgrade_offer: UpgradeOffer = $UpgradeOffer
+@onready var _shop_offer: ShopOffer = $ShopOffer
 @onready var _run_summary: RunSummary = $RunSummary
 @onready var _projectiles: ProjectilePool = $Projectiles
 @onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
@@ -49,15 +50,17 @@ func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _process(delta: float) -> void:
-	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
+	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
 		_encounter.tick(delta)
-	if _run_session.is_playing() and _encounter.is_awaiting_offer() and not _upgrade_offer.is_open():
+	if _run_session.is_playing() and _encounter.is_awaiting_offer() and not _upgrade_offer.is_open() and not _shop_offer.is_open():
 		_open_offer_if_needed()
-	elif _run_session.is_playing() and _run_session.has_pending_level() and not _upgrade_offer.is_open() and not _encounter.is_awaiting_offer() and not _player.is_defeated():
+	elif _run_session.is_playing() and _run_session.has_pending_level() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _player.is_defeated():
 		_open_level_offer_if_needed()
 	if _upgrade_offer.is_open() and _player.is_defeated():
 		_abort_offer()
-	if _run_session.is_playing() and not _player.is_defeated() and _encounter.is_done() and not _upgrade_offer.is_open() and not _run_session.has_pending_level():
+	if _shop_offer.is_open() and _player.is_defeated():
+		_abort_shop()
+	if _run_session.is_playing() and not _player.is_defeated() and _encounter.is_done() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _run_session.has_pending_level():
 		_loop_phrases()
 	_run_session.tick(delta)
 
@@ -118,6 +121,10 @@ func _bind_runtime() -> void:
 	_upgrade_offer.bind_session(_run_session)
 	_upgrade_offer.bind_player_input(player_input)
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
+	_shop_offer.bind_session(_run_session)
+	_shop_offer.bind_player_input(player_input)
+	_shop_offer.bought.connect(_on_shop_bought)
+	_shop_offer.skipped.connect(_on_shop_skipped)
 	_run_summary.bind_run_session(_run_session)
 	_debug_overlay.bind_run_session(_run_session)
 	_debug_overlay.bind_upgrade_offer(_upgrade_offer)
@@ -147,9 +154,9 @@ func _on_enemy_defeated(enemy: EnemyBase) -> void:
 		return
 	_run_session.note_kill()
 	var reward: int = enemy.get_xp_reward()
-	if reward <= 0:
-		return
-	_run_session.add_xp(reward)
+	if reward > 0:
+		_run_session.add_xp(reward)
+	_run_session.add_gold(enemy.get_gold_reward())
 
 func _assert_upgrade_catalog() -> void:
 	if UPGRADE_CATALOG.get_count() != 10:
@@ -166,6 +173,14 @@ func _loop_phrases() -> void:
 	_projectiles.park_all()
 	_enemy_projectiles.park_all()
 	_hold_all_in_reserve()
+	var defs: Array[UpgradeDef] = _run_session.draft_offer(3)
+	if defs.is_empty():
+		_finish_loop_after_shop()
+		return
+	_shop_offer.present(defs, _run_session.get_gold())
+	_set_offer_input_lock(true)
+
+func _finish_loop_after_shop() -> void:
 	_run_session.notify_phrase_loop()
 	_apply_loop_pressure()
 	_encounter.restart()
@@ -178,6 +193,8 @@ func _apply_loop_pressure() -> void:
 func _reset_sandbox() -> void:
 	if _upgrade_offer.is_open():
 		_close_offer()
+	if _shop_offer.is_open():
+		_close_shop()
 	_projectiles.park_all()
 	_enemy_projectiles.park_all()
 	_run_session.restart()
@@ -189,7 +206,7 @@ func _reset_sandbox() -> void:
 	_debug_overlay.set_last_grant_id("-")
 
 func _try_debug_grant() -> void:
-	if _upgrade_offer.is_open():
+	if _upgrade_offer.is_open() or _shop_offer.is_open():
 		return
 	if _player.is_defeated():
 		return
@@ -246,6 +263,40 @@ func _close_offer() -> void:
 	_upgrade_offer.close()
 	_set_offer_input_lock(false)
 
+func _on_shop_bought(upgrade_id: StringName) -> void:
+	if not _shop_offer.is_open():
+		return
+	if _player.is_defeated() or not _run_session.is_playing():
+		_abort_shop()
+		return
+	var cost: int = _run_session.get_shop_cost(upgrade_id)
+	if _run_session.get_gold() < cost:
+		return
+	if not _run_session.try_grant(upgrade_id):
+		return
+	if not _run_session.try_spend(cost):
+		push_error("商店扣款失败：upgrade=%s cost=%d gold=%d" % [String(upgrade_id), cost, _run_session.get_gold()])
+		return
+	_upgrade_applier.apply_owned()
+	_debug_overlay.set_last_grant_id(String(upgrade_id))
+	_close_shop()
+	_finish_loop_after_shop()
+
+func _on_shop_skipped() -> void:
+	if not _shop_offer.is_open():
+		return
+	_close_shop()
+	if _player.is_defeated() or not _run_session.is_playing():
+		return
+	_finish_loop_after_shop()
+
+func _abort_shop() -> void:
+	_close_shop()
+
+func _close_shop() -> void:
+	_shop_offer.close()
+	_set_offer_input_lock(false)
+
 func _set_offer_input_lock(locked: bool) -> void:
 	_player.get_player_input().set_fire_suppressed(locked)
 	_player.get_weapon_host().set_switch_suppressed(locked)
@@ -272,7 +323,7 @@ func _on_window_mouse_exited() -> void:
 	_sync_system_cursor()
 
 func _sync_system_cursor() -> void:
-	if _upgrade_offer.is_open():
+	if _upgrade_offer.is_open() or _shop_offer.is_open():
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_aim_reticle.visible = false
 		return

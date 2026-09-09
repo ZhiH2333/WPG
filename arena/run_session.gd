@@ -1,11 +1,24 @@
 extends Node
 class_name RunSession
 
-## 本局状态：只观察玩家是否死亡。禁止镜像 HP，禁止暂停场景树。P8 后仍 playing，由沙盒再开一轮。XP 只活在本节点。
+## 本局状态：只观察玩家是否死亡。禁止镜像 HP，禁止暂停场景树。P8 后仍 playing，由沙盒再开一轮。XP 与 gold 只活在本节点。
 enum Outcome { PLAYING, DEAD, CLEARED }
 
 const XP_BASE: int = 30
 const XP_PER_LEVEL: int = 15
+const SHOP_COSTS: Dictionary = {
+	"max_hp_s": 25,
+	"max_hp_m": 50,
+	"swift": 30,
+	"heavy_round": 30,
+	"cadence": 30,
+	"long_shot": 25,
+	"second_skin": 45,
+	"extra_pellets": 30,
+	"steady_rifle": 30,
+	"thick_hide": 30,
+}
+const SHOP_COST_FALLBACK: int = 30
 
 var _player: Player
 var _encounter: EncounterPhrases
@@ -19,6 +32,7 @@ var _level: int = 1
 var _xp: int = 0
 var _pending_level: int = 0
 var _kill_count: int = 0
+var _gold: int = 0
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -102,6 +116,28 @@ func note_kill() -> void:
 func get_kill_count() -> int:
 	return _kill_count
 
+func add_gold(amount: int) -> void:
+	if amount <= 0:
+		return
+	if _outcome != Outcome.PLAYING:
+		return
+	_gold += amount
+
+func get_gold() -> int:
+	return _gold
+
+func try_spend(amount: int) -> bool:
+	if amount <= 0 or _gold < amount:
+		return false
+	_gold -= amount
+	return true
+
+func get_shop_cost(upgrade_id: StringName) -> int:
+	var key: String = String(upgrade_id)
+	if not SHOP_COSTS.has(key):
+		return SHOP_COST_FALLBACK
+	return int(SHOP_COSTS[key])
+
 func restart() -> void:
 	_outcome = Outcome.PLAYING
 	_elapsed_sec = 0.0
@@ -111,6 +147,7 @@ func restart() -> void:
 	_xp = 0
 	_pending_level = 0
 	_kill_count = 0
+	_gold = 0
 	_rng.randomize()
 
 func tick(delta: float) -> void:

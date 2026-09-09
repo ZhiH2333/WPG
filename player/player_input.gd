@@ -74,6 +74,15 @@ func set_fire_suppressed(suppressed: bool) -> void:
 		fire_held = false
 		_need_fire_release = true
 		return
+	if _device_id == DEVICE_KEYBOARD:
+		if Input.is_action_pressed("fire"):
+			_need_fire_release = true
+			fire_held = false
+		return
+	if _device_id >= 0 and _joy_wants_fire(_device_id):
+		_need_fire_release = true
+		fire_held = false
+
 func _claim_device() -> void:
 	var old_device: int = _device_id
 	if _keyboard_wants_control():

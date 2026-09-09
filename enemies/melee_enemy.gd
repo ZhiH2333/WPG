@@ -22,6 +22,9 @@ func get_kind_name() -> String:
 func get_xp_reward() -> int:
 	return 10
 
+func get_gold_reward() -> int:
+	return 3
+
 func get_hp_per_loop() -> int:
 	return 8
 

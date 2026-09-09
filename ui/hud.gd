@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name Hud
 
-## 最小战斗 HUD：左下 HP+武器+XP，顶中句读。只读 getter，禁止自管一份 HP。
+## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。只读 getter，禁止自管一份 HP。
 const HP_LOW_THRESHOLD: int = 20
 const FILL_STYLE_NORMAL: StringName = &""
 const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
@@ -17,6 +17,7 @@ var _hp_is_low: bool = false
 @onready var _xp_bar: ProgressBar = $Root/BottomLeft/XpRow/XpBar
 @onready var _xp_label: Label = $Root/BottomLeft/XpRow/XpLabel
 @onready var _weapon_label: Label = $Root/BottomLeft/WeaponLabel
+@onready var _gold_label: Label = $Root/BottomLeft/GoldLabel
 @onready var _phrase_label: Label = $Root/PhraseLabel
 
 func bind_player(player: Player) -> void:
@@ -34,6 +35,7 @@ func bind_run_session(session: RunSession) -> void:
 func _process(_delta: float) -> void:
 	_refresh_hp()
 	_refresh_xp()
+	_refresh_gold()
 	_refresh_weapon()
 	_refresh_phrase()
 
@@ -60,6 +62,12 @@ func _refresh_xp() -> void:
 	_xp_bar.max_value = float(need)
 	_xp_bar.value = float(xp)
 	_xp_label.text = "Lv.%d  %d/%d" % [level, xp, need]
+
+func _refresh_gold() -> void:
+	var gold: int = 0
+	if _run_session != null:
+		gold = _run_session.get_gold()
+	_gold_label.text = "gold  %d" % gold
 
 func _apply_hp_fill(hp: int) -> void:
 	var is_low: bool = hp <= HP_LOW_THRESHOLD

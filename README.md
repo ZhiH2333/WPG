@@ -675,9 +675,30 @@ Start 与 Esc 相同回菜单。B 走引擎默认 `ui_cancel`。R / U 仍只认�
 
 **本阶段不做：** 商店、金币、顶栏、暂停框、Boss 条、五格枪架、玩家剪影、多人、分屏、局域网、osu Tween、触控、Virtual Sticks。
 
+
+## Day 32（已完成）：本局金币 + P8 后商店
+
+不是刷新店，不是 Autoload 钱包，不是掉落物。玩家打死人会攒钱，轮与轮之间能花掉。P2/P4/P6 三选一仍免费，不扣 gold。设置仍只有音量/全屏。金币不进 `settings.cfg`。
+
+金币只活在 `RunSession`，和 XP 一样。`add_gold` 仅 playing 且 amount>0。`try_spend`：amount≤0 或不够则 false。`restart()` 把 `_gold` 清零。价格表只活在 `RunSession.SHOP_COSTS`：max_hp_s 25、max_hp_m 50、swift 30、heavy_round 30、cadence 30、long_shot 25、second_skin 45、extra_pellets 30、steady_rifle 30、thick_hide 30；找不到 id 则 30。不要改 10 个 `.tres` 的 value。
+
+击杀：`CombatSandbox._on_enemy_defeated` 在 note_kill / add_xp **之后** `add_gold(enemy.get_gold_reward())`。XP 公式一字不改。`get_gold_reward`：EnemyBase 0、近战 3、远程 4、精英 **8**（EliteMelee 必须 override，否则会变成 3）。不要按 loop 加钱。没有金币实体、没有磁铁。
+
+商店时机：改 `_loop_phrases`，**不要**立刻 `notify_phrase_loop`。顺序：park 两套弹 → hold 预备役 → **打开商店**（loop_index 仍是刚打完的那一轮）→ 买一张或 Skip → 关店 → 现有 `notify_phrase_loop` → `_apply_loop_pressure` → `encounter.restart`。0 张可上架则不弹窗，立刻走后面三步。上架复用 `draft_offer(3)`。每次最多买 1 张或 Skip。禁止刷新、禁止连买三张、禁止第三扇窗。
+
+买：`get_gold()>=cost` → `try_grant` → `try_spend`；spend 失败 `push_error` 且不关店。Skip 不 grant、不 spend，关店并开下一轮。店开时走现有 `_set_offer_input_lock(true)`。U 在商店打开时无效。死亡则关店、不买、不 `notify_phrase_loop`。商店与 UpgradeOffer 互斥。
+
+`ui/shop_offer.tscn`：Dimmer + 三张卡 + 标题 `SHOP` + `gold  %d` + Skip。layer=20。买不起的卡 `disabled=true`；1/2/3 或十字键 0/1/2 忽略该 index。Skip：鼠标、键盘 4、十字键下。不要 Tween。
+
+HUD：BottomLeft 最下面 `GoldLabel`（`HudWeapon`，`gold  %d`）。`offset_top` -140 → **-176**。PhraseLabel 锚点一字不改。结算条 Kills 与 Owned 之间加 `gold  %d`，Panel 高 208 → 232。Overlay 加 `gold: %d`。主菜单不要商店钮。
+
+`PlayerInput.set_fire_suppressed(false)`：若键鼠 fire 仍按下，或手柄 `_joy_wants_fire`，则 `_need_fire_release=true` 且 `fire_held=false`，关店不走火。device_id / 摇杆平滑未改。
+
+**本阶段不做：** 刷新商店、第三扇窗、金币掉落、WAVE COMPLETE、顶栏、模式窗、暂停框、Boss 条、五格枪架、玩家剪影、多人、局域网、osu Tween、Virtual Sticks。
+
 ## 明确不做（直到后续对应日）
 
-- **Day 32 才做** 商店仍可不做；若还不缺构筑，下一刀仍是 **商店金（先一行 gold）**。手机触控整包仍后置到全部做完之后。仍无顶栏、无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween、无 Virtual Sticks
+- **Day 33 才做** 点 Play 出模式窗（Solo 能进，Infinite 仍是这局，Multi 可灰）。手机触控整包仍后置。仍无顶栏、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween、无 Virtual Sticks
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
 - Arena 波次、商店、存档
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -744,10 +765,10 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ SettingsOverlay + GameSettings（user://settings.cfg 仅 audio/display，不是 Autoload）+ Hud + UpgradeOffer + RunSummary + game_theme.tres（左下 HP+武器+XP，顶中 `L0  0/8`；句间/升级三选一 layer=20；死亡结算条 layer=15 含 loop）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ SettingsOverlay + GameSettings（user://settings.cfg 仅 audio/display，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary + game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `L0  0/8`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡结算条 layer=15 含 loop/gold）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
-sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / RunSummary / DebugOverlay）
+sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -764,12 +785,12 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 
 ## 剩余顺序
 
-手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。
+手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。
 
 | 顺序 | 仓库里做什么 | 玩家会感到什么 | 先不要做 |
 |---|---|---|---|
 | **31（已完成）** | 输入按 `device_id` 拆开 | 插手柄也能单人打 | 分屏、2P、**任何触控 / 虚拟摇杆** |
-| **32** | 商店——等明确缺构筑；先一行 gold | 有地方花钱 | 刷新、第三扇窗 |
+| **32（已完成）** | 本局金币 + P8 后商店买一张已有升级或 Skip | 打死人攒钱，轮与轮之间能花掉 | 刷新、第三扇窗、掉落硬币 |
 | 33 | 点 Play 出模式窗（Solo 能进，Infinite 仍是这局，Multi 可灰） | 有「无限」这个名字 | 每日挑战、排行榜 |
 | 34 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
 | 35 | osu 式菜单壳：底栏三 icon、瘦顶栏（设置/Home）、叠层非线性缓动 | 标题/设置开始像 osu；**战斗 HUD 锚点不改、顶栏不进沙盒** | Wiki/Chat/Profile、五格枪架、重排血条 |
@@ -778,6 +799,6 @@ sandbox/    CombatSandbox（Play 后进入；Player / PlayerCamera / AimReticle 
 | 38+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 32
+## 下一步：Day 33
 
-**Day 32 = 商店仍可不做；若还不缺构筑，下一刀仍是商店金（先一行 gold）。** 手机触控整包仍后置到全部做完之后。仍无顶栏、无金币、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween、无 Virtual Sticks。
+**Day 33 = 点 Play 出模式窗（Solo 能进，Infinite 仍是这局，Multi 可灰）。** 手机触控整包仍后置。仍无顶栏、无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无多人、无局域网、无玩家剪影、无 osu Tween、无 Virtual Sticks。

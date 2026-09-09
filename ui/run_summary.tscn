@@ -28,7 +28,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(640, 208)
+custom_minimum_size = Vector2(640, 232)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryPanel"
@@ -65,6 +65,13 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryBody"
 text = "kills  0"
+horizontal_alignment = 1
+
+[node name="GoldLabel" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "gold  0"
 horizontal_alignment = 1
 
 [node name="OwnedLabel" type="Label" parent="Root/Center/Panel/Column"]

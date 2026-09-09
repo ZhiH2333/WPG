@@ -25,7 +25,7 @@ anchor_top = 1.0
 anchor_right = 0.0
 anchor_bottom = 1.0
 offset_left = 32.0
-offset_top = -140.0
+offset_top = -176.0
 offset_right = 432.0
 offset_bottom = -32.0
 grow_horizontal = 1
@@ -79,6 +79,12 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"HudWeapon"
 text = "Lv.1  0/30"
+
+[node name="GoldLabel" type="Label" parent="Root/BottomLeft"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudWeapon"
+text = "gold  0"
 
 [node name="PhraseLabel" type="Label" parent="Root"]
 layout_mode = 1
