@@ -526,6 +526,7 @@ ModeTitle/constants/outline_size = 4
 ModeTitle/font_sizes/font_size = 26
 EmptyButton/base_type = &"Button"
 EmptyButton/colors/font_color = Color(1, 1, 1, 1)
+EmptyButton/font_sizes/font_size = 18
 EmptyButton/styles/disabled = SubResource("sb_empty")
 EmptyButton/styles/focus = SubResource("sb_empty")
 EmptyButton/styles/hover = SubResource("sb_empty")

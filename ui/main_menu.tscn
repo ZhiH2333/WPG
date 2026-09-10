@@ -122,32 +122,38 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Content" type="VBoxContainer" parent="Center/Column/Buttons/Settings"]
+[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Settings"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 14.0
 offset_right = -16.0
-offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+
+[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Settings/Content"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Settings/Content"]
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Settings/Content/Inner"]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_horizontal = 4
+size_flags_vertical = 4
 mouse_filter = 2
 texture = ExtResource("10_gear")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Settings/Content"]
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Settings/Content/Inner"]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"StripCaption"
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
@@ -156,6 +162,7 @@ theme_override_constants/outline_size = 1
 theme_override_font_sizes/font_size = 20
 text = "settings"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Play" type="Button" parent="Center/Column/Buttons"]
 custom_minimum_size = Vector2(280, 124)
@@ -174,32 +181,38 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Content" type="VBoxContainer" parent="Center/Column/Buttons/Play"]
+[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Play"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 14.0
 offset_right = -16.0
-offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+
+[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Play/Content"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Play/Content"]
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Play/Content/Inner"]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_horizontal = 4
+size_flags_vertical = 4
 mouse_filter = 2
 texture = ExtResource("12_play")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Play/Content"]
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Play/Content/Inner"]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"StripCaption"
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
@@ -208,6 +221,7 @@ theme_override_constants/outline_size = 1
 theme_override_font_sizes/font_size = 20
 text = "play"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Quit" type="Button" parent="Center/Column/Buttons"]
 custom_minimum_size = Vector2(280, 124)
@@ -226,32 +240,38 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Content" type="VBoxContainer" parent="Center/Column/Buttons/Quit"]
+[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Quit"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 14.0
 offset_right = -16.0
-offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+
+[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Quit/Content"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Quit/Content"]
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Quit/Content/Inner"]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_horizontal = 4
+size_flags_vertical = 4
 mouse_filter = 2
 texture = ExtResource("13_quit")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Quit/Content"]
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Quit/Content/Inner"]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"StripCaption"
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
@@ -260,6 +280,7 @@ theme_override_constants/outline_size = 1
 theme_override_font_sizes/font_size = 20
 text = "exit"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="BlurLayer" type="ColorRect" parent="."]
 material = SubResource("mat_blur")
