@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -17,6 +17,7 @@
 [ext_resource type="PackedScene" path="res://ui/upgrade_offer.tscn" id="14_offer"]
 [ext_resource type="PackedScene" path="res://ui/run_summary.tscn" id="15_summary"]
 [ext_resource type="PackedScene" path="res://ui/shop_offer.tscn" id="17_shop"]
+[ext_resource type="PackedScene" path="res://ui/pause_overlay.tscn" id="18_pause"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -209,3 +210,5 @@ script = ExtResource("13_applier")
 [node name="ShopOffer" parent="." instance=ExtResource("17_shop")]
 
 [node name="DebugOverlay" parent="." instance=ExtResource("3_debug")]
+
+[node name="PauseOverlay" parent="." instance=ExtResource("18_pause")]

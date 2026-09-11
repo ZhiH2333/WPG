@@ -33,6 +33,7 @@ var _offer_is_phrase: bool = false
 @onready var _encounter: EncounterPhrases = $EncounterPhrases
 @onready var _run_session: RunSession = $RunSession
 @onready var _upgrade_applier: UpgradeApplier = $UpgradeApplier
+@onready var _pause_overlay: PauseOverlay = $PauseOverlay
 
 func _ready() -> void:
 	GameSettings.load_from_disk()
@@ -47,9 +48,14 @@ func _ready() -> void:
 	add_child(gamepad_debug)
 
 func _exit_tree() -> void:
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		tree.paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _process(delta: float) -> void:
+	if _pause_overlay.is_open():
+		return
 	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
 		_encounter.tick(delta)
 	if _run_session.is_playing() and _encounter.is_awaiting_offer() and not _upgrade_offer.is_open() and not _shop_offer.is_open():
@@ -65,20 +71,19 @@ func _process(delta: float) -> void:
 	_run_session.tick(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
+	if _is_pause_toggle(event):
 		get_viewport().set_input_as_handled()
-		get_tree().change_scene_to_file(MENU_SCENE)
-		return
-	var joy_button: InputEventJoypadButton = event as InputEventJoypadButton
-	if joy_button != null and joy_button.pressed and joy_button.button_index == JOY_BUTTON_START:
-		get_viewport().set_input_as_handled()
-		get_tree().change_scene_to_file(MENU_SCENE)
+		_on_pause_toggle()
 		return
 	if event.is_action_pressed("sandbox_reset"):
+		if _pause_overlay.is_open():
+			return
 		_reset_sandbox()
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("debug_grant_upgrade"):
+		if _pause_overlay.is_open():
+			return
 		_try_debug_grant()
 		get_viewport().set_input_as_handled()
 
@@ -125,6 +130,10 @@ func _bind_runtime() -> void:
 	_shop_offer.bind_player_input(player_input)
 	_shop_offer.bought.connect(_on_shop_bought)
 	_shop_offer.skipped.connect(_on_shop_skipped)
+	_pause_overlay.bind_run_session(_run_session)
+	_pause_overlay.resumed.connect(_on_pause_resumed)
+	_pause_overlay.retried.connect(_on_pause_retried)
+	_pause_overlay.quit_pressed.connect(_on_pause_quit)
 	_run_summary.bind_run_session(_run_session)
 	_debug_overlay.bind_run_session(_run_session)
 	_debug_overlay.bind_upgrade_offer(_upgrade_offer)
@@ -206,7 +215,7 @@ func _reset_sandbox() -> void:
 	_debug_overlay.set_last_grant_id("-")
 
 func _try_debug_grant() -> void:
-	if _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open():
 		return
 	if _player.is_defeated():
 		return
@@ -323,7 +332,7 @@ func _on_window_mouse_exited() -> void:
 	_sync_system_cursor()
 
 func _sync_system_cursor() -> void:
-	if _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open():
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_aim_reticle.visible = false
 		return
@@ -341,3 +350,33 @@ func _apply_wall_layers() -> void:
 			continue
 		body.collision_layer = GameCollisionLayers.MASK_WALL
 		body.collision_mask = GameCollisionLayers.MASK_NONE
+
+func _is_pause_toggle(event: InputEvent) -> bool:
+	if event.is_action_pressed("ui_cancel"):
+		return true
+	var joy_button: InputEventJoypadButton = event as InputEventJoypadButton
+	if joy_button != null and joy_button.pressed and joy_button.button_index == JOY_BUTTON_START:
+		return true
+	return false
+
+func _on_pause_toggle() -> void:
+	if _pause_overlay.is_open():
+		return
+	if _player.is_defeated() or _upgrade_offer.is_open() or _shop_offer.is_open():
+		get_tree().change_scene_to_file(MENU_SCENE)
+		return
+	_set_offer_input_lock(true)
+	_pause_overlay.open()
+
+func _on_pause_resumed() -> void:
+	_set_offer_input_lock(false)
+
+func _on_pause_retried() -> void:
+	_reset_sandbox()
+	_pause_overlay.close()
+
+func _on_pause_quit() -> void:
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		tree.paused = false
+	get_tree().change_scene_to_file(MENU_SCENE)

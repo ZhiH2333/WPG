@@ -1,0 +1,195 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://ui/pause_overlay.gd" id="1_pause"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+[ext_resource type="Shader" path="res://ui/menu_shear.gdshader" id="3_shear"]
+
+[sub_resource type="ShaderMaterial" id="mat_continue"]
+shader = ExtResource("3_shear")
+shader_parameter/fill_color = Color(0.55, 0.78, 0.22, 0.95)
+shader_parameter/shear = 0.16
+shader_parameter/hover = 0.0
+
+[sub_resource type="ShaderMaterial" id="mat_retry"]
+shader = ExtResource("3_shear")
+shader_parameter/fill_color = Color(0.92, 0.68, 0.16, 0.95)
+shader_parameter/shear = 0.16
+shader_parameter/hover = 0.0
+
+[sub_resource type="ShaderMaterial" id="mat_quit"]
+shader = ExtResource("3_shear")
+shader_parameter/fill_color = Color(0.67, 0.11, 0.15, 0.95)
+shader_parameter/shear = 0.16
+shader_parameter/hover = 0.0
+
+[node name="PauseOverlay" type="CanvasLayer"]
+process_mode = 3
+layer = 25
+visible = false
+script = ExtResource("1_pause")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Dimmer" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="Root/Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Title" type="Label" parent="Root/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PauseTitle"
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="Continue" type="Button" parent="Root/Center/Column"]
+custom_minimum_size = Vector2(760, 80)
+layout_mode = 2
+pivot_offset = Vector2(380, 40)
+mouse_filter = 0
+theme_type_variation = &"EmptyButton"
+focus_neighbor_top = NodePath("../Quit")
+focus_neighbor_bottom = NodePath("../Retry")
+focus_neighbor_left = NodePath(".")
+focus_neighbor_right = NodePath(".")
+focus_next = NodePath("../Retry")
+focus_previous = NodePath("../Quit")
+
+[node name="Bg" type="ColorRect" parent="Root/Center/Column/Continue"]
+material = SubResource("mat_continue")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Caption" type="Label" parent="Root/Center/Column/Continue"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"StripCaption"
+theme_override_font_sizes/font_size = 32
+text = "Continue"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Retry" type="Button" parent="Root/Center/Column"]
+custom_minimum_size = Vector2(760, 80)
+layout_mode = 2
+pivot_offset = Vector2(380, 40)
+mouse_filter = 0
+theme_type_variation = &"EmptyButton"
+focus_neighbor_top = NodePath("../Continue")
+focus_neighbor_bottom = NodePath("../Quit")
+focus_neighbor_left = NodePath(".")
+focus_neighbor_right = NodePath(".")
+focus_next = NodePath("../Quit")
+focus_previous = NodePath("../Continue")
+
+[node name="Bg" type="ColorRect" parent="Root/Center/Column/Retry"]
+material = SubResource("mat_retry")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Caption" type="Label" parent="Root/Center/Column/Retry"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"StripCaption"
+theme_override_font_sizes/font_size = 32
+text = "Retry"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Quit" type="Button" parent="Root/Center/Column"]
+custom_minimum_size = Vector2(760, 80)
+layout_mode = 2
+pivot_offset = Vector2(380, 40)
+mouse_filter = 0
+theme_type_variation = &"EmptyButton"
+focus_neighbor_top = NodePath("../Retry")
+focus_neighbor_bottom = NodePath("../Continue")
+focus_neighbor_left = NodePath(".")
+focus_neighbor_right = NodePath(".")
+focus_next = NodePath("../Continue")
+focus_previous = NodePath("../Retry")
+
+[node name="Bg" type="ColorRect" parent="Root/Center/Column/Quit"]
+material = SubResource("mat_quit")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Caption" type="Label" parent="Root/Center/Column/Quit"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"StripCaption"
+theme_override_font_sizes/font_size = 32
+text = "Quit"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Stats" type="Label" parent="Root/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "loop  0    gold  0    kills  0"
+horizontal_alignment = 1
+
+[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+process_mode = 3
+
+[node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+process_mode = 3

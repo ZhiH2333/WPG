@@ -15,8 +15,10 @@ const CARD_STAGGER_SEC: float = 0.06
 const MENU_ITEM_FADE_SEC: float = 0.35
 const MENU_ITEM_STAGGER_SEC: float = 0.07
 
-static func enter_overlay(host: Node, dimmer: CanvasItem, content: CanvasItem, cards: Array) -> Tween:
+static func enter_overlay(host: Node, dimmer: CanvasItem, content: CanvasItem, cards: Array, ignore_pause: bool = false) -> Tween:
 	var tween: Tween = host.create_tween().set_parallel(true)
+	if ignore_pause:
+		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	if dimmer != null:
 		dimmer.modulate.a = 0.0
 		tween.tween_property(dimmer, "modulate:a", 1.0, DIMMER_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
@@ -26,8 +28,10 @@ static func enter_overlay(host: Node, dimmer: CanvasItem, content: CanvasItem, c
 	_append_card_entries(tween, cards)
 	return tween
 
-static func exit_overlay(host: Node, root: CanvasItem) -> Tween:
+static func exit_overlay(host: Node, root: CanvasItem, ignore_pause: bool = false) -> Tween:
 	var tween: Tween = host.create_tween()
+	if ignore_pause:
+		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.tween_property(root, "modulate:a", 0.0, OVERLAY_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 	return tween
 

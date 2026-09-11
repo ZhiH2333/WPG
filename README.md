@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 关掉叠层。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 关掉叠层。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；已死或弹窗开着时 Esc 仍立刻回主菜单。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -736,11 +736,21 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 36 起接美术**（三角换正式 sprite）。**多人（同机 2P / 局域网）现在才排上：Day 38 同机 2P、Day 39+ 局域网。** 手机触控整包仍后置。仍无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表
+- **Day 37 起接美术**（三角换正式 sprite）。**多人（同机 2P / 局域网）现在才排上：Day 39 同机 2P、Day 40+ 局域网。** 手机触控整包仍后置。仍无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表、无存档
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
-- Arena 波次、商店、存档
+- Arena 波次、跨局存档
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
 - Web 导出妥协、C#、外部 ECS、任何 Autoload
+
+## Day 36（已完成）：战斗暂停叠层
+
+活着且三选一/商店都关着时，Esc（引擎默认 `ui_cancel`）或手柄 Start 打开 `PauseOverlay`（`ui/pause_overlay.tscn`，CanvasLayer layer=25，`PROCESS_MODE_ALWAYS`）。这是仓库里**唯一**允许 `get_tree().paused = true` 的地方。Continue / 再按 Esc / Start = 继续；Retry = `_reset_sandbox`（与 R 同一条路）然后关掉暂停；Quit = 先把 `paused` 解开再 `change_scene_to_file(MENU_SCENE)`。已死、三选一开着、商店开着时 Esc 仍立刻回菜单，本局丢弃，不走暂停。
+
+三条平行四边形按钮沿用主菜单 shear：绿 Continue、橙 Retry、红 Quit。标题 `PAUSED`，底下 `loop / gold / kills`。进场 `UiAnim.enter_overlay(..., ignore_pause=true)`，退场 0.15s；逻辑上 open/close 仍瞬时生效。点击空白不继续。不要 AcceptDialog / ConfirmationDialog。不要把 `ui_cancel` / `ui_accept` 写入 `project.godot` `[input]`。暂停开着时 R / U 无效。开火和切枪被 `set_fire_suppressed` / `set_switch_suppressed` 锁住。离开沙盒时 `_exit_tree` 必须把 `paused` 解开，避免主菜单冻住。
+
+禁止 `Engine.time_scale`。禁止第二个暂停壳。禁止暂停时句读/商店/升级继续推进。
+
+**当时不做：** 存档、暂停里改设置、WaveDirector、Boss 条、五格枪架、玩家剪影、Virtual Sticks、接美术。
 
 ## 输入合同（全项目唯一，后续沿用）
 
@@ -763,7 +773,7 @@ fire_held      bool      是否按住开火
 - Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
 - 切枪 1/2/3/4 由 `WeaponHost` 读取，不塞进输入合同三量；弹窗打开时 1/2/3 改语义为选左/中/右卡，4 不选卡
 - 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量；不要手柄映射
-- 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取，无论死活都卸场景回菜单；手柄 Start / B 同样回菜单；不塞进输入合同三量
+- 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取：活着且三选一/商店都关着时打开 `PauseOverlay`；已死、三选一开着或商店开着时立刻卸回主菜单。手柄 Start 同样。暂停开着时 Esc / Start 走 Continue。不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
 
 手柄（`device_id >= 0`）独占合同三量：左杆走、右杆瞄、右扳机/RB 开火；十字键切 1/2/3/4。Y 轴不自己取负。没手柄时走上面键鼠路径。禁止把 Joy 写进 InputMap。不要做 Input Autoload。输入组件挂在玩家节点上。
@@ -803,10 +813,10 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + GameSettings（user://settings.cfg 仅 audio/display，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary + game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `L0  0/8`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡结算条 layer=15 含 loop/gold）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + GameSettings（user://settings.cfg 仅 audio/display，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary + PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `L0  0/8`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡结算条 layer=15 含 loop/gold；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
-sandbox/    CombatSandbox（Solo / Infinite 进入同一场景；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / DebugOverlay）
+sandbox/    CombatSandbox（Solo / Infinite 进入同一场景；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -831,12 +841,14 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景；Player / Player
 | **32（已完成）** | 本局金币 + P8 后商店买一张已有升级或 Skip | 打死人攒钱，轮与轮之间能花掉 | 刷新、第三扇窗、掉落硬币 |
 | **33（已完成）** | 点 Play 出模式窗；Solo / Infinite 进同一 CombatSandbox；Multi 灰掉预留 | 有「无限」这个名字；点进去还是现在这局 | 每日挑战、排行榜、2P、房间 |
 | **34（已完成）** | osu 式菜单壳：底栏三 icon、瘦顶栏（设置/Home）、叠层非线性缓动（`UiAnim`） | 标题/设置开始像 osu；开关窗有呼吸感；血条会滑 | Wiki/Chat/Profile、五格枪架、重排血条、2P |
-| 35 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
-| 36 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
-| 37 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
-| 38+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
+| **35（已完成）** | osu 式主题回炉 | 标题/设置开始像 osu | Wiki/Chat/Profile、五格枪架、2P |
+| **36（已完成）** | 战斗暂停叠层：Esc 开 PAUSED，Continue / Retry / Quit | 活着能停；死了或弹窗开着仍回菜单 | 存档、暂停里改设置 |
+| 37 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
+| 38 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
+| 39 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
+| 40+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 36
+## 下一步：Day 37
 
-**Day 36 = 接美术**：三角换成正式野猪 / 近战 / 远程 / 精英 sprite，不为了图改玩法。之后 Day 37 地板/火花池/死亡碎裂/战斗 BGM，Day 38 同机 2P 试水，Day 39+ 局域网房间。仍无 WaveDirector、无暂停框、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks。
+**Day 37 = 接美术**：三角换成正式野猪 / 近战 / 远程 / 精英 sprite，不为了图改玩法。之后 Day 38 地板/火花池/死亡碎裂/战斗 BGM，Day 39 同机 2P 试水，Day 40+ 局域网房间。仍无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无存档。
