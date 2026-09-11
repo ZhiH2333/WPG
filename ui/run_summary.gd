@@ -12,6 +12,7 @@ var _anim_tween: Tween
 @onready var _kills_label: Label = $Root/Center/Panel/Column/KillsLabel
 @onready var _gold_label: Label = $Root/Center/Panel/Column/GoldLabel
 @onready var _owned_label: Label = $Root/Center/Panel/Column/OwnedLabel
+@onready var _best_label: Label = $Root/Center/Panel/Column/BestLabel
 
 func bind_run_session(session: RunSession) -> void:
 	_session = session
@@ -26,6 +27,7 @@ func _process(_delta: float) -> void:
 	_kills_label.text = "kills  %d" % _session.get_kill_count()
 	_gold_label.text = "gold  %d" % _session.get_gold()
 	_owned_label.text = "owned  %s" % _format_owned()
+	_best_label.text = "best  %d" % GameProgress.get_best_loop()
 	visible = true
 	if not _shown:
 		_shown = true

@@ -16,6 +16,7 @@ const MENU_SCENE := "res://ui/main_menu.tscn"
 var _mouse_inside_window: bool = true
 var _enemies: Array[EnemyBase] = []
 var _offer_is_phrase: bool = false
+var _progress_written: bool = false
 
 @onready var _walls: Node2D = $Walls
 @onready var _player: Player = $Player
@@ -69,6 +70,8 @@ func _process(delta: float) -> void:
 	if _run_session.is_playing() and not _player.is_defeated() and _encounter.is_done() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _run_session.has_pending_level():
 		_loop_phrases()
 	_run_session.tick(delta)
+	if _run_session.is_player_dead():
+		_record_progress_if_needed()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_pause_toggle(event):
@@ -213,6 +216,7 @@ func _reset_sandbox() -> void:
 	_apply_loop_pressure()
 	_encounter.restart()
 	_debug_overlay.set_last_grant_id("-")
+	_progress_written = false
 
 func _try_debug_grant() -> void:
 	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open():
@@ -363,7 +367,7 @@ func _on_pause_toggle() -> void:
 	if _pause_overlay.is_open():
 		return
 	if _player.is_defeated() or _upgrade_offer.is_open() or _shop_offer.is_open():
-		get_tree().change_scene_to_file(MENU_SCENE)
+		_return_to_menu()
 		return
 	_set_offer_input_lock(true)
 	_pause_overlay.open()
@@ -376,6 +380,16 @@ func _on_pause_retried() -> void:
 	_pause_overlay.close()
 
 func _on_pause_quit() -> void:
+	_return_to_menu()
+
+func _record_progress_if_needed() -> void:
+	if _progress_written:
+		return
+	GameProgress.record_run(_run_session)
+	_progress_written = true
+
+func _return_to_menu() -> void:
+	_record_progress_if_needed()
 	var tree: SceneTree = get_tree()
 	if tree != null:
 		tree.paused = false

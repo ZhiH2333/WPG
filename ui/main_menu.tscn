@@ -1,9 +1,10 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://ui/mode_overlay.tscn" id="4_mode"]
+[ext_resource type="PackedScene" path="res://ui/profile_overlay.tscn" id="16_profile"]
 [ext_resource type="Shader" path="res://ui/menu_blur.gdshader" id="5_blur"]
 [ext_resource type="Texture2D" path="res://images/mainmenu.png" id="6_bg"]
 [ext_resource type="AudioStream" path="res://audio/main.mp3" id="7_music"]
@@ -332,13 +333,25 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="Profile" type="HBoxContainer" parent="TopBar/Row"]
+[node name="Profile" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(148, 40)
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"EmptyButton"
+
+[node name="Layout" type="HBoxContainer" parent="TopBar/Row/Profile"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
+alignment = 1
 
-[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile"]
+[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile/Layout"]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 size_flags_vertical = 4
@@ -347,12 +360,12 @@ texture = ExtResource("15_avatar")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Name" type="Label" parent="TopBar/Row/Profile"]
+[node name="Name" type="Label" parent="TopBar/Row/Profile/Layout"]
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"ProfileName"
-text = "Player"
+text = "best  0"
 vertical_alignment = 1
 
 [node name="Sep" type="ColorRect" parent="TopBar/Row"]
@@ -406,6 +419,14 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ModeOverlay" parent="." instance=ExtResource("4_mode")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ProfileOverlay" parent="." instance=ExtResource("16_profile")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

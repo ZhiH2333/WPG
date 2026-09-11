@@ -35,10 +35,14 @@ var _hover_tweens: Dictionary = {}
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
 @onready var _overlay: SettingsOverlay = $SettingsOverlay
 @onready var _mode_overlay: ModeOverlay = $ModeOverlay
+@onready var _profile_overlay: ProfileOverlay = $ProfileOverlay
+@onready var _profile_button: Button = $TopBar/Row/Profile
+@onready var _profile_name: Label = $TopBar/Row/Profile/Layout/Name
 
 func _ready() -> void:
 	GameSettings.load_from_disk()
 	GameSettings.apply()
+	GameProgress.load_from_disk()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_hover_sfx.stream = _load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = _load_wav("res://audio/ui_click.wav")
@@ -50,6 +54,7 @@ func _ready() -> void:
 	_top_settings_button.pressed.connect(_on_settings_pressed)
 	_home_button.pressed.connect(_on_home_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
+	_profile_button.pressed.connect(_on_profile_pressed)
 	_mode_overlay.selected_solo.connect(_enter_sandbox)
 	_mode_overlay.selected_infinite.connect(_enter_sandbox)
 	_wire_strip_hover(_settings_button)
@@ -57,6 +62,7 @@ func _ready() -> void:
 	_wire_strip_hover(_quit_button)
 	_wire_button_sounds()
 	_refresh_clock(true)
+	_refresh_profile_name()
 	_play_enter_animation()
 	_play_button.grab_focus()
 
@@ -78,6 +84,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _mode_overlay.is_open():
 			get_viewport().set_input_as_handled()
 			_mode_overlay.close()
+			return
+		if _profile_overlay.is_open():
+			get_viewport().set_input_as_handled()
+			_profile_overlay.close()
+			return
 		return
 	if event.is_action_pressed("ui_accept"):
 		if _any_overlay_open():
@@ -86,11 +97,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_mode_overlay.open()
 
 func _any_overlay_open() -> bool:
-	return _overlay.is_open() or _mode_overlay.is_open()
+	return _overlay.is_open() or _mode_overlay.is_open() or _profile_overlay.is_open()
 
 func _on_play_pressed() -> void:
 	if _overlay.is_open():
 		return
+	if _profile_overlay.is_open():
+		_profile_overlay.close()
 	_mode_overlay.open()
 
 func _enter_sandbox() -> void:
@@ -99,14 +112,28 @@ func _enter_sandbox() -> void:
 func _on_settings_pressed() -> void:
 	if _mode_overlay.is_open():
 		_mode_overlay.close()
+	if _profile_overlay.is_open():
+		_profile_overlay.close()
 	_overlay.open()
+
+func _on_profile_pressed() -> void:
+	if _overlay.is_open():
+		_overlay.close()
+	if _mode_overlay.is_open():
+		_mode_overlay.close()
+	_profile_overlay.open()
 
 func _on_home_pressed() -> void:
 	if _overlay.is_open():
 		_overlay.close()
 	if _mode_overlay.is_open():
 		_mode_overlay.close()
+	if _profile_overlay.is_open():
+		_profile_overlay.close()
 	_play_button.grab_focus()
+
+func _refresh_profile_name() -> void:
+	_profile_name.text = "best  %d" % GameProgress.get_best_loop()
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
