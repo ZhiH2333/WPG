@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 关掉叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；已死或弹窗开着时 Esc 仍立刻回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标与 Day 30 相同；插一把手柄则左杆走、右杆瞄、扳机开火。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 关掉叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；已死或弹窗开着时 Esc 仍立刻回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 39 = 游戏性加厚，只挑一块**（Dash 或 冲锋敌人 或 4 张新卡）。**Day 40 起接美术**。多人 Day 42 同机 2P、Day 43+ 局域网。手机触控整包仍后置。仍无槽位、无钱包、无中途续打、无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表、无换三角
+- **Day 40 = 冲锋敌人**（有了 Dash，侧闪才有对手）。**Day 41 起接美术**。多人 Day 43 同机 2P、Day 44+ 局域网。手机触控整包仍后置。仍无槽位、无钱包、无中途续打、无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表、无换三角、无 4 张新卡
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -791,6 +791,18 @@ HUD：Solo `L%d/%d  %s`（分母 `GameLaunch.SOLO_LOOP_GOAL`）；Infinite 仍 `
 
 **当时不做：** 槽位、钱包、Dash、新敌人、Boss、第五把枪、换三角、2P、WaveDirector、把 CLEARED 做成新场景。
 
+## Day 39（已完成）：Dash
+
+`player/player_dash.gd`（`class_name PlayerDash`，`extends Node`）挂在 `player.tscn` 上，与 Motor / Health 平级。不要把冲刺写进 `player.gd` 上帝对象，不要写进 Motor。
+
+数字锁死：210px / 0.12s / 冷却 0.90s（从起冲那一帧起算，含冲刺本身）/ 镜头踢 3。方向：`move_vector` 非零用它，否则 `aim_vector`（至少 `RIGHT`）。穿怪（mask 仍是 wall），不穿墙。冲刺全程 `PlayerHealth.apply_damage` 再挡 `is_dashing()`，不改 `is_invincible()` 语义。不 hitstop，不用 `Engine.time_scale`。
+
+输入：`project.godot` `[input] dash` 只绑键盘 Space。手柄 `device_id >= 0` 读 A（`JOY_BUTTON_A`）边沿，不要写进 InputMap。`PlayerInput.dash_just_pressed` 每帧开头清 false，不进三量。`set_dash_suppressed` 与开火/切枪一起锁。三选一 / 商店 / 暂停 / 已死 / CLEARED 空格不冲。冲的时候仍能瞄准、仍能开枪。
+
+表现：Visual `modulate = Color(1.35, 1.35, 1.45, 1)`，结束恢复 WHITE。不要 tween scale。SfxPool `play_dash` 复用 `_stream_click`（pitch 0.62，volume -8）。DebugOverlay `god:` 旁 `dash: ready` / `dash: 0.42`。战斗 HUD 不加 Dash 条。R / Retry 清冲刺与冷却。F4 无敌与 Dash 独立。
+
+**当时不做：** 冲锋敌人、4 张新卡、Boss、第五把枪、Dash 冷却条、换三角、2P、WaveDirector。
+
 ## 输入合同（全项目唯一，后续沿用）
 
 只产出三个量，全游戏共用：
@@ -814,6 +826,7 @@ fire_held      bool      是否按住开火
 - 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量；不要手柄映射
 - 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取：活着且三选一/商店都关着时打开 `PauseOverlay`；已死、已通关、三选一开着或商店开着时立刻卸回主菜单。手柄 Start 同样。暂停开着时 Esc / Start 走 Continue。不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
+- Dash `dash`（键盘 Space）由 `PlayerInput.dash_just_pressed` 产出，不进三量。手柄 A（`JOY_BUTTON_A`）边沿自读，不要写进 InputMap。弹窗 / 商店锁 `set_dash_suppressed`
 - 开发者 F4 / F3 用 `InputEventKey.physical_keycode`（`KEY_F4` / `KEY_F3`），不写入 `[input]`。仅 debug 构建；暂停 / 三选一 / 商店开着时无效
 
 手柄（`device_id >= 0`）独占合同三量：左杆走、右杆瞄、右扳机/RB 开火；十字键切 1/2/3/4。Y 轴不自己取负。没手柄时走上面键鼠路径。禁止把 Joy 写进 InputMap。不要做 Input Autoload。输入组件挂在玩家节点上。
@@ -846,7 +859,7 @@ fire_held      bool      是否按住开火
 场景和脚本放在同一功能目录，不要按「脚本仓库 / 场景仓库」切开：
 
 ```text
-player/     玩家场景、PlayerInput（键鼠或单把手柄 device_id）、PlayerMotor、PlayerHealth、Muzzle、WeaponHost、FireFeedback
+player/     玩家场景、PlayerInput（键鼠或单把手柄 device_id）、PlayerMotor、PlayerHealth、PlayerDash（空格 / 手柄 A 短冲刺）、Muzzle、WeaponHost、FireFeedback
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle / Smg、Projectile、本局 ProjectilePool
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
@@ -885,13 +898,14 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` �
 | **36（已完成）** | 战斗暂停叠层：Esc 开 PAUSED，Continue / Retry / Quit | 活着能停；死了或弹窗开着仍回菜单 | 存档、暂停里改设置 |
 | **37（已完成）** | 跨局成绩 `user://progress.cfg`（best / last / runs）；死亡或回菜单写一次；顶栏 Profile 叠层 | 关掉再开还记得打到第几轮；死亡条有 best | 中途续打、槽位、钱包、Autoload |
 | **38（已完成）** | Solo 20 轮终点（`SOLO_LOOP_GOAL = 20`）出 CLEARED；Infinite 仍无限；F4 无敌秒杀、F3 跳最后一轮 | Solo 打完能停；顶中有 `/20` | 改 Infinite、loop 2、换三角 |
-| 39 | 游戏性加厚：只挑一块（Dash / 冲锋敌人 / 4 张新卡） | 这一局更好玩一点 | 三块一起做、换三角 |
-| 40 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
-| 41 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
-| 42 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
-| 43+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
+| **39（已完成）** | Dash：空格 / 手柄 A，210px / 0.12s / 冷却 0.9s；穿怪不穿墙 | 贴脸能闪一下 | Dash 条、冲刺伤害、穿墙 |
+| 40 | 冲锋敌人（有了 Dash，侧闪才有对手） | 有东西朝你冲过来 | 4 张新卡、换三角 |
+| 41 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
+| 42 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
+| 43 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
+| 44+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 39
+## 下一步：Day 40
 
-**Day 39 = 游戏性加厚，只挑一块**（Dash 或 冲锋敌人 或 4 张新卡）。不是 loop 2，不是美术周，不是 Boss 周。之后 Day 40 接美术，Day 41 地板/火花池/死亡碎裂/战斗 BGM，Day 42 同机 2P 试水，Day 43+ 局域网房间。仍无槽位、无钱包、无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 2P、无 Virtual Sticks、无换三角。
+**Day 40 = 冲锋敌人**（有了 Dash，侧闪才有对手）。不是 4 张新卡，不是美术周，不是 Boss 周。之后 Day 41 接美术，Day 42 地板/火花池/死亡碎裂/战斗 BGM，Day 43 同机 2P 试水，Day 44+ 局域网房间。仍无 4 张新卡、无 Boss 条、无五格枪架、无玩家剪影、无 2P、无 Virtual Sticks、无换三角。

@@ -17,27 +17,36 @@ const DPAD_BUTTONS: Array[int] = [
 	JOY_BUTTON_DPAD_DOWN,
 ]
 
-## 全项目唯一输入合同：键鼠或单把手柄（device_id）。只产出 move/aim/fire。切枪仍由 WeaponHost 另读 1/2/3/4 或该手柄十字键。
+## 全项目唯一输入合同：键鼠或单把手柄（device_id）。只产出 move/aim/fire。切枪仍由 WeaponHost 另读 1/2/3/4 或该手柄十字键。Dash 不进三量。
 var move_vector: Vector2 = Vector2.ZERO
 var aim_vector: Vector2 = Vector2.RIGHT
 var fire_held: bool = false
+var dash_just_pressed: bool = false
 var mouse_world_position: Vector2 = Vector2.ZERO
 var _fire_suppressed: bool = false
+var _dash_suppressed: bool = false
 var _need_fire_release: bool = false
 var _device_id: int = DEVICE_KEYBOARD
 var _device_pinned: bool = false
 var _weapon_slot_just_pressed: int = -1
 var _dpad_held: PackedByteArray = PackedByteArray()
+var _joy_a_held: bool = false
+var _need_dash_release: bool = false
 var _last_mouse_world: Vector2 = Vector2.ZERO
 var _has_last_mouse: bool = false
 
 func _enter_tree() -> void:
 	## 小于 0 更早处理，让同一帧的朝向、相机、准星读到本帧输入。
 	process_priority = -100
+	process_physics_priority = -100
 	_dpad_held.resize(4)
 
 func _process(delta: float) -> void:
 	update_input(delta)
+
+func _physics_process(_delta: float) -> void:
+	dash_just_pressed = false
+	_update_dash_pressed()
 
 func get_device_id() -> int:
 	return _device_id
@@ -57,6 +66,7 @@ func update_input(delta: float = 0.0) -> void:
 		_device_id = DEVICE_KEYBOARD
 		move_vector = Vector2.ZERO
 		fire_held = false
+		_joy_a_held = false
 		_keep_last_aim()
 		_clear_dpad_held()
 		return
@@ -64,6 +74,7 @@ func update_input(delta: float = 0.0) -> void:
 		_update_from_joy(delta)
 		return
 	_clear_dpad_held()
+	_joy_a_held = false
 	_update_move_vector()
 	_update_aim_vector()
 	_update_fire_held()
@@ -82,6 +93,19 @@ func set_fire_suppressed(suppressed: bool) -> void:
 	if _device_id >= 0 and _joy_wants_fire(_device_id):
 		_need_fire_release = true
 		fire_held = false
+
+func set_dash_suppressed(suppressed: bool) -> void:
+	_dash_suppressed = suppressed
+	if suppressed:
+		dash_just_pressed = false
+		_need_dash_release = true
+		return
+	if _is_dash_held():
+		_need_dash_release = true
+		dash_just_pressed = false
+
+func is_dash_suppressed() -> bool:
+	return _dash_suppressed
 
 func _claim_device() -> void:
 	var old_device: int = _device_id
@@ -121,6 +145,8 @@ func _joy_wants_control(id: int) -> bool:
 	if _read_stick(id, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y).length() >= STICK_DEADZONE:
 		return true
 	if _joy_wants_fire(id):
+		return true
+	if Input.is_joy_button_pressed(id, JOY_BUTTON_A):
 		return true
 	for slot: int in DPAD_BUTTONS.size():
 		if Input.is_joy_button_pressed(id, DPAD_BUTTONS[slot]):
@@ -225,3 +251,26 @@ func _update_fire_held() -> void:
 			return
 		_need_fire_release = false
 	fire_held = pressed
+
+func _is_dash_held() -> bool:
+	if _device_id >= 0:
+		return Input.is_joy_button_pressed(_device_id, JOY_BUTTON_A)
+	return Input.is_action_pressed("dash")
+
+func _update_dash_pressed() -> void:
+	var edge: bool = false
+	if _device_id >= 0:
+		var pressed: bool = Input.is_joy_button_pressed(_device_id, JOY_BUTTON_A)
+		edge = pressed and not _joy_a_held
+		_joy_a_held = pressed
+	else:
+		edge = Input.is_action_just_pressed("dash")
+	if _dash_suppressed:
+		dash_just_pressed = false
+		return
+	if _need_dash_release:
+		if _is_dash_held():
+			dash_just_pressed = false
+			return
+		_need_dash_release = false
+	dash_just_pressed = edge

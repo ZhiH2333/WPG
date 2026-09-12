@@ -86,7 +86,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\ngrant: U\ngod: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -130,6 +130,7 @@ func _compose_status_text() -> String:
 		_read_catalog_count(),
 		_read_owned_upgrades(),
 		_read_god_label(),
+		_read_dash_label(),
 		_last_grant_id,
 		_read_offer_state(),
 		_read_offer_ids(),
@@ -289,6 +290,14 @@ func _read_god_label() -> String:
 	if _player.get_player_health().is_debug_god():
 		return "on"
 	return "off"
+
+func _read_dash_label() -> String:
+	if _player == null:
+		return "ready"
+	var left: float = _player.get_player_dash().get_cooldown_left()
+	if left <= 0.0:
+		return "ready"
+	return "%.2f" % left
 
 func _read_offer_state() -> String:
 	if _upgrade_offer == null or not _upgrade_offer.is_open():

@@ -13,6 +13,7 @@ var _hit_reaction: HitReaction
 @onready var _player_input: PlayerInput = $PlayerInput
 @onready var _player_motor: PlayerMotor = $PlayerMotor
 @onready var _player_health: PlayerHealth = $PlayerHealth
+@onready var _player_dash: PlayerDash = $PlayerDash
 @onready var _visual: Node2D = $Visual
 @onready var _muzzle: Marker2D = $Visual/Muzzle
 @onready var _weapon_host: WeaponHost = $WeaponHost
@@ -23,6 +24,7 @@ func _ready() -> void:
 	collision_layer = GameCollisionLayers.MASK_PLAYER
 	collision_mask = GameCollisionLayers.MASK_WALL
 	_weapon_host.bind_player_input(_player_input)
+	_player_dash.bind_player_input(_player_input)
 	_bind_hit_reaction()
 
 func get_player_input() -> PlayerInput:
@@ -33,6 +35,9 @@ func get_player_health() -> PlayerHealth:
 
 func get_player_motor() -> PlayerMotor:
 	return _player_motor
+
+func get_player_dash() -> PlayerDash:
+	return _player_dash
 
 func get_weapon_host() -> WeaponHost:
 	return _weapon_host
@@ -46,14 +51,19 @@ func get_muzzle_global_position() -> Vector2:
 func is_defeated() -> bool:
 	return _player_health.is_defeated()
 
+func is_dashing() -> bool:
+	return _player_dash.is_dashing()
+
 func bind_projectile_pool(pool: ProjectilePool) -> void:
 	_weapon_host.bind_projectile_pool(pool)
 
 func bind_sfx_pool(sfx_pool: SfxPool) -> void:
 	_fire_feedback.bind_sfx_pool(sfx_pool)
+	_player_dash.bind_sfx_pool(sfx_pool)
 
 func bind_player_camera(player_camera: PlayerCamera) -> void:
 	_fire_feedback.bind_camera(player_camera)
+	_player_dash.bind_player_camera(player_camera)
 
 func notify_shot_fired(aim: Vector2, weapon: Weapon) -> void:
 	_fire_feedback.play_shot(aim, weapon)
@@ -77,6 +87,9 @@ func apply_hit_knockback(hit_direction: Vector2) -> void:
 	if speed > knockback_max_speed:
 		_knockback_velocity = _knockback_velocity * (knockback_max_speed / speed)
 
+func clear_knockback() -> void:
+	_knockback_velocity = Vector2.ZERO
+
 func play_hit_reaction(hit_direction: Vector2) -> void:
 	_hit_reaction.play(hit_direction)
 
@@ -88,12 +101,14 @@ func on_defeated() -> void:
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
 	_weapon_host.deactivate_all()
+	_player_dash.reset_for_sandbox()
 
 func reset_for_sandbox() -> void:
 	global_position = Vector2.ZERO
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
 	_player_health.reset_for_sandbox()
+	_player_dash.reset_for_sandbox()
 	_hit_reaction.reset()
 	_fire_feedback.stop_recoil()
 	_weapon_host.reset_after_player_revive()
@@ -107,9 +122,16 @@ func _physics_process(delta: float) -> void:
 	if is_defeated():
 		velocity = Vector2.ZERO
 		return
+	_player_dash.try_dash()
 	_apply_motor(delta)
 
 func _apply_motor(delta: float) -> void:
+	var was_dashing: bool = _player_dash.is_dashing()
+	var dash_velocity: Vector2 = _player_dash.tick(delta, velocity)
+	if was_dashing:
+		velocity = dash_velocity
+		move_and_slide()
+		return
 	var motor_current: Vector2 = velocity - _knockback_velocity
 	var motor_velocity: Vector2 = _player_motor.tick(delta, motor_current, _player_input.move_vector)
 	_knockback_velocity = _knockback_velocity.move_toward(Vector2.ZERO, KNOCKBACK_DAMPING * delta)

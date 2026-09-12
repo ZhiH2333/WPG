@@ -33,6 +33,9 @@ func bind_visual(visual: Node2D) -> void:
 func play(hit_direction: Vector2) -> void:
 	if _dead or _visual == null:
 		return
+	var player: Player = get_parent() as Player
+	if player != null and player.is_dashing():
+		return
 	var direction: Vector2 = _normalize_or_right(hit_direction)
 	_visual.scale = _squash_scale_for(direction)
 	_extra_tilt = _tilt_for(direction)

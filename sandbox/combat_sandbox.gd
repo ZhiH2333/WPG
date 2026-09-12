@@ -326,6 +326,7 @@ func _close_shop() -> void:
 
 func _set_offer_input_lock(locked: bool) -> void:
 	_player.get_player_input().set_fire_suppressed(locked)
+	_player.get_player_input().set_dash_suppressed(locked)
 	_player.get_weapon_host().set_switch_suppressed(locked)
 	if locked:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

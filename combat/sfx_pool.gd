@@ -88,6 +88,9 @@ func play_hurt(world_position: Vector2) -> void:
 func play_click(world_position: Vector2) -> void:
 	play(_stream_click, 1.0, -8.0, world_position)
 
+func play_dash(world_position: Vector2) -> void:
+	play(_stream_click, 0.62, -8.0, world_position)
+
 func play_enemy_shot(world_position: Vector2) -> void:
 	play(_stream_enemy_shot, 0.94, -7.0, world_position)
 

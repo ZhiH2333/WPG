@@ -62,7 +62,7 @@ func reset_for_sandbox() -> void:
 	_visual.modulate = Color.WHITE
 
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
-	if _defeated or _i_frame_left_sec > 0.0 or amount <= 0 or _debug_god:
+	if _defeated or _i_frame_left_sec > 0.0 or amount <= 0 or _debug_god or _player.is_dashing():
 		return
 	var direction: Vector2 = _resolve_hit_direction(hit_direction, hit_position)
 	_hp = maxi(0, _hp - amount)
@@ -100,6 +100,8 @@ func _start_flash() -> void:
 
 func _restore_color() -> void:
 	if _visual == null:
+		return
+	if _player != null and _player.is_dashing():
 		return
 	_visual.modulate = Color.WHITE
 	if _defeated:

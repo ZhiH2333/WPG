@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://player/player_input.gd" id="2_input"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://weapons/rifle.gd" id="7_rifle"]
 [ext_resource type="Script" path="res://weapons/smg.gd" id="11_smg"]
 [ext_resource type="Script" path="res://player/player_health.gd" id="8_health"]
+[ext_resource type="Script" path="res://player/player_dash.gd" id="12_dash"]
 [ext_resource type="PackedScene" path="res://combat/muzzle_flash.tscn" id="9_flash"]
 [ext_resource type="Script" path="res://player/fire_feedback.gd" id="10_feedback"]
 
@@ -41,6 +42,9 @@ script = ExtResource("3_motor")
 
 [node name="PlayerHealth" type="Node" parent="."]
 script = ExtResource("8_health")
+
+[node name="PlayerDash" type="Node" parent="."]
+script = ExtResource("12_dash")
 
 [node name="WeaponHost" type="Node" parent="."]
 script = ExtResource("4_host")
