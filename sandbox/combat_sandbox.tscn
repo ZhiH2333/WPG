@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://enemies/ranged_enemy.tscn" id="8_ranged"]
 [ext_resource type="PackedScene" path="res://enemies/elite_melee.tscn" id="16_elite"]
 [ext_resource type="PackedScene" path="res://enemies/charger_enemy.tscn" id="19_charger"]
+[ext_resource type="PackedScene" path="res://enemies/boss_enemy.tscn" id="20_boss"]
 [ext_resource type="Script" path="res://combat/sfx_pool.gd" id="9_sfx"]
 [ext_resource type="Script" path="res://arena/encounter_phrases.gd" id="10_encounter"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="11_hud"]
@@ -183,6 +184,9 @@ position = Vector2(500, 220)
 
 [node name="ChargerRight2" parent="Enemies" instance=ExtResource("19_charger")]
 position = Vector2(540, 280)
+
+[node name="BossCenter1" parent="Enemies" instance=ExtResource("20_boss")]
+position = Vector2(0, -360)
 
 [node name="Projectiles" type="Node2D" parent="."]
 script = ExtResource("6_pool")

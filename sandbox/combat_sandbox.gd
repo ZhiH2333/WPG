@@ -165,6 +165,9 @@ func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 		var ranged: RangedEnemy = enemy as RangedEnemy
 		if ranged != null:
 			ranged.bind_projectile_pool(_enemy_projectiles)
+		var boss: BossEnemy = enemy as BossEnemy
+		if boss != null:
+			boss.bind_projectile_pool(_enemy_projectiles)
 
 func _on_enemy_defeated(enemy: EnemyBase) -> void:
 	if not _run_session.is_playing() or _player.is_defeated():
@@ -423,6 +426,10 @@ func _try_debug_hotkeys(event: InputEvent) -> void:
 	if key.physical_keycode == KEY_F3:
 		get_viewport().set_input_as_handled()
 		_debug_jump_final_loop()
+		return
+	if key.physical_keycode == KEY_F2:
+		get_viewport().set_input_as_handled()
+		_debug_jump_boss()
 
 func _toggle_god_mode() -> void:
 	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
@@ -443,6 +450,18 @@ func _debug_jump_final_loop() -> void:
 	_enemy_projectiles.park_all()
 	_hold_all_in_reserve()
 	_encounter.restart()
+
+func _debug_jump_boss() -> void:
+	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+		return
+	if not _run_session.is_playing() or _run_session.is_cleared():
+		return
+	if _player.is_defeated():
+		return
+	_projectiles.park_all()
+	_enemy_projectiles.park_all()
+	_hold_all_in_reserve()
+	_encounter.debug_begin_boss()
 
 func _tick_god_mode_kills() -> void:
 	if not _god_mode:

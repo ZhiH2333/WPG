@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 41 = 一只 Boss 句**（P7 后或独立高潮，不要五格枪架）。接美术仍后置。多人 Day 43 同机 2P、Day 44+ 局域网。手机触控整包仍后置。仍无槽位、无钱包、无中途续打、无 WaveDirector、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表、无换三角、无 4 张新卡
+- **Day 42 = 接美术**：三角换成猪（终于看起来像猪；不要为了图改手感）。多人 Day 43 同机 2P、Day 44+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无槽位、无钱包、无中途续打
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -819,6 +819,22 @@ DebugOverlay 活着摘要改成 `%dM+%dR+%dC`（Elite 仍算 M）。战斗 HUD �
 
 **当时不做：** 4 张新卡、Boss、第五把枪、换三角、2P、WaveDirector、新 wav、Dash 条。
 
+## Day 41（已完成）：一只 Boss 句
+
+`enemies/boss_enemy.gd`（`class_name BossEnemy`，`extends EnemyBase`，不要 `extends MeleeEnemy` / Charger / Elite）+ `boss_enemy.tscn`。P7 leftover 清场之后、商店之前，场上只剩一只大紫三角。无血条、无召唤、无阶段。不要 4 张新卡，不要换三角。
+
+沙盒 `Enemies` 下预放 `BossCenter1 (0, -360)`，开局 `hold_in_reserve`，禁止运行时 instantiate。x=0、y=-360 走现有 top stagger（0.08 底）。
+
+句读：`PHRASE_TOTAL = 9`。index 8 = `_start_playing(["BossCenter1"], ["BossCenter1"])`；P7 清完仍 `_begin_phrase(8)`，现在 8 是 Boss 不是 DONE。打死走 index 9 → DONE → 现有商店。`P1` / `P3` / `P5` / `P7` 名字表一字不改。每一轮都出 Boss（含 loop 0）。顶中分母 9；Boss 在场 `get_phrase_label()` 返回 `boss`，不是 `8/9`。P0 显示 `0/9`。
+
+数字锁死：max_hp 220、SEEK 110、acceleration 900、knockback 90、贴脸 16、冲撞 26、charge 480px/s / 400px、windup 0.70s、recover 0.70s、扇形 windup 0.40s / 5 发 / ±18°、弹速 400、弹伤 10、寿命 1.3、视觉 1.6、射程 [160, 560]、XP 60、gold 18。加压只加 HP（+24/loop）和接触/冲撞（+3）与弹伤（+2），cap 仍 8。charge_speed / windup / distance / volley_count 不随 loop 变。
+
+AI 只活在本脚本：`SEEK` → `WINDUP_CHARGE`（顿住对准，scale 2.2×(1.18, 0.88)）→ 结束那一帧锁方向 `CHARGE`（`velocity = dir * 480`，不 steer、不分离、忽略击退；hitstop 仍能打断）→ 走满 400px / 撞墙 / 打到玩家一次 → `RECOVER` → `WINDUP_VOLLEY` → 同一帧 5 发扇形弹（中间对准玩家）→ SEEK。玩家已死任何状态都 steer 到 0。起冲 `play_charge`；命中才 `apply_kick(dir, 7)`；扇形弹 `play_enemy_shot` 一次，不踢镜头。敌人弹池走现有 `bind_projectile_pool`。
+
+DebugOverlay 活着摘要 `%dM+%dR+%dC+%dB`（判定顺序 Charger → Boss → Melee → 其余 R；Elite 仍算 M）。战斗 HUD 不加 Boss 条。F2（debug，`KEY_F2`，不写入 `[input]`）跳到 Boss 句，不改 loop_index。F3 仍跳 L19 并从 P0 重来。F4 仍秒杀含 Boss。Solo 第 20 轮仍是 Boss → 商店 → CLEARED。
+
+**当时不做：** 4 张新卡、Boss 条、召唤小兵、换三角、2P、WaveDirector、新 wav、五格枪架。
+
 ## 输入合同（全项目唯一，后续沿用）
 
 只产出三个量，全游戏共用：
@@ -843,7 +859,7 @@ fire_held      bool      是否按住开火
 - 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取：活着且三选一/商店都关着时打开 `PauseOverlay`；已死、已通关、三选一开着或商店开着时立刻卸回主菜单。手柄 Start 同样。暂停开着时 Esc / Start 走 Continue。不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
 - Dash `dash`（键盘 Space）由 `PlayerInput.dash_just_pressed` 产出，不进三量。手柄 A（`JOY_BUTTON_A`）边沿自读，不要写进 InputMap。弹窗 / 商店锁 `set_dash_suppressed`
-- 开发者 F4 / F3 用 `InputEventKey.physical_keycode`（`KEY_F4` / `KEY_F3`），不写入 `[input]`。仅 debug 构建；暂停 / 三选一 / 商店开着时无效
+- 开发者 F4 / F3 / F2 用 `InputEventKey.physical_keycode`（`KEY_F4` / `KEY_F3` / `KEY_F2`），不写入 `[input]`。仅 debug 构建；暂停 / 三选一 / 商店开着时无效。F2 跳到当前 loop 的 Boss 句，不改 loop_index
 
 手柄（`device_id >= 0`）独占合同三量：左杆走、右杆瞄、右扳机/RB 开火；十字键切 1/2/3/4。Y 轴不自己取负。没手柄时走上面键鼠路径。禁止把 Joy 写进 InputMap。不要做 Input Autoload。输入组件挂在玩家节点上。
 
@@ -877,12 +893,12 @@ fire_held      bool      是否按住开火
 ```text
 player/     玩家场景、PlayerInput（键鼠或单把手柄 device_id）、PlayerMotor、PlayerHealth、PlayerDash（空格 / 手柄 A 短冲刺）、Muzzle、WeaponHost、FireFeedback
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle / Smg、Projectile、本局 ProjectilePool
-enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee、ChargerEnemy（黄三角直线冲锋）；DummyTarget 脚本保留但沙盒不再放置
+enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee、ChargerEnemy（黄三角直线冲锋）、BossEnemy（P7 后大紫三角，无血条无召唤）；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
-arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
+arena/      EncounterPhrases 手写句读（P0–P7 + Boss，PHRASE_TOTAL=9）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode 交接，不是 Autoload）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 Solo `L0/20  0/8` / Infinite `L0  0/8`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode 交接，不是 Autoload）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 Solo `L0/20  0/9` / Infinite `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` 一次；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
@@ -916,12 +932,12 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` �
 | **38（已完成）** | Solo 20 轮终点（`SOLO_LOOP_GOAL = 20`）出 CLEARED；Infinite 仍无限；F4 无敌秒杀、F3 跳最后一轮 | Solo 打完能停；顶中有 `/20` | 改 Infinite、loop 2、换三角 |
 | **39（已完成）** | Dash：空格 / 手柄 A，210px / 0.12s / 冷却 0.9s；穿怪不穿墙 | 贴脸能闪一下 | Dash 条、冲刺伤害、穿墙 |
 | **40（已完成）** | 冲锋敌人：黄三角直线撞，逼你用 Dash | 贴脸必须侧闪 | 4 张新卡、换三角 |
-| 41 | 一只 Boss 句（P7 后或独立高潮） | 一轮里有一次必须认真打的高潮 | 五格枪架、4 张新卡、换三角 |
-| 42 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
+| **41（已完成）** | 一只 Boss 句：P7 后大紫三角，无血条、无召唤 | 一轮有一次必须认真打的高潮 | 五格枪架、4 张新卡、换三角 |
+| 42 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
 | 43 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
 | 44+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 41
+## 下一步：Day 42
 
-**Day 41 = 一只 Boss 句**（P7 后或独立高潮，不要五格枪架）。不是 4 张新卡，不是美术周，不是换三角。之后接美术、地板/火花池/死亡碎裂/战斗 BGM，Day 43 同机 2P 试水，Day 44+ 局域网房间。仍无 4 张新卡、无换三角、无 2P、无 Virtual Sticks、无 WaveDirector。
+**Day 42 = 接美术**：三角换成猪（终于看起来像猪；不要为了图改手感）。不是 4 张新卡，不是 Boss 条，不是换手感。之后地板/火花池/死亡碎裂/战斗 BGM，Day 43 同机 2P 试水，Day 44+ 局域网房间。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector。

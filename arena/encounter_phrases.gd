@@ -3,7 +3,7 @@ class_name EncounterPhrases
 
 ## 手写战场句读：hold / activate 已有节点。禁止预算、权重随机、WaveDirector。
 const REST_SEC: float = 1.5
-const PHRASE_TOTAL: int = 8
+const PHRASE_TOTAL: int = 9
 const P1_NAMES: PackedStringArray = ["MeleeLeft1", "MeleeLeft2", "MeleeLeft3", "MeleeLeft4"]
 const P3_NAMES: PackedStringArray = ["RangedRight1", "RangedRight2", "RangedRight3"]
 const P5_NAMES: PackedStringArray = [
@@ -58,6 +58,10 @@ func restart() -> void:
 	_wait_names = PackedStringArray()
 	_begin_phrase(0)
 
+func debug_begin_boss() -> void:
+	_p3_started = true
+	_begin_phrase(8)
+
 func tick(delta: float) -> void:
 	if _state == State.AWAITING_OFFER:
 		return
@@ -97,8 +101,10 @@ func get_phrase_label() -> String:
 		return "offer"
 	if _state == State.RESTING:
 		if _phrase_index == 0:
-			return "0/8"
+			return "0/%d" % PHRASE_TOTAL
 		return "rest"
+	if _phrase_index == 8:
+		return "boss"
 	return "%d/%d" % [_phrase_index, PHRASE_TOTAL]
 
 func _begin_phrase(index: int) -> void:
@@ -117,6 +123,9 @@ func _begin_phrase(index: int) -> void:
 		return
 	if index == 7:
 		_start_playing(_p7_names(), PackedStringArray())
+		return
+	if index == 8:
+		_start_playing(PackedStringArray(["BossCenter1"]), PackedStringArray(["BossCenter1"]))
 		return
 	_state = State.DONE
 	_rest_left = 0.0
