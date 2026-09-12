@@ -339,6 +339,11 @@ func _read_nearest_damage() -> int:
 	var nearest: EnemyBase = _find_nearest_enemy()
 	if nearest == null:
 		return 0
+	var charger: ChargerEnemy = nearest as ChargerEnemy
+	if charger != null:
+		if charger.is_charging():
+			return charger.charge_damage
+		return charger.contact_damage
 	var melee: MeleeEnemy = nearest as MeleeEnemy
 	if melee != null:
 		return melee.contact_damage
@@ -350,14 +355,17 @@ func _read_nearest_damage() -> int:
 func _format_alive_summary() -> String:
 	var melee_alive: int = 0
 	var ranged_alive: int = 0
+	var charger_alive: int = 0
 	for enemy: EnemyBase in _enemies:
 		if enemy.is_in_reserve() or enemy.is_defeated():
 			continue
-		if enemy is MeleeEnemy:
+		if enemy is ChargerEnemy:
+			charger_alive += 1
+		elif enemy is MeleeEnemy:
 			melee_alive += 1
 		else:
 			ranged_alive += 1
-	return "%dM+%dR" % [melee_alive, ranged_alive]
+	return "%dM+%dR+%dC" % [melee_alive, ranged_alive, charger_alive]
 
 func _count_dead_enemies() -> int:
 	var dead: int = 0

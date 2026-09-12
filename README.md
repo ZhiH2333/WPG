@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 40 = 冲锋敌人**（有了 Dash，侧闪才有对手）。**Day 41 起接美术**。多人 Day 43 同机 2P、Day 44+ 局域网。手机触控整包仍后置。仍无槽位、无钱包、无中途续打、无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表、无换三角、无 4 张新卡
+- **Day 41 = 一只 Boss 句**（P7 后或独立高潮，不要五格枪架）。接美术仍后置。多人 Day 43 同机 2P、Day 44+ 局域网。手机触控整包仍后置。仍无槽位、无钱包、无中途续打、无 WaveDirector、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表、无换三角、无 4 张新卡
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -803,6 +803,22 @@ HUD：Solo `L%d/%d  %s`（分母 `GameLaunch.SOLO_LOOP_GOAL`）；Infinite 仍 `
 
 **当时不做：** 冲锋敌人、4 张新卡、Boss、第五把枪、Dash 冷却条、换三角、2P、WaveDirector。
 
+## Day 40（已完成）：冲锋敌人
+
+`enemies/charger_enemy.gd`（`class_name ChargerEnemy`，`extends EnemyBase`，不要 `extends MeleeEnemy`）+ `charger_enemy.tscn`。黄三角直线撞，逼你用 Dash。不要 4 张新卡，不要 Boss，不要换三角。
+
+沙盒 `Enemies` 下预放 `ChargerRight1 (500, 220)` / `ChargerRight2 (540, 280)`，开局 `hold_in_reserve`，禁止运行时 instantiate。x>400 走现有右侧 stagger。
+
+句读只改两处：`P5_NAMES` 末尾加 `ChargerRight1`（loop0 P5 = 6 近战 + 2 远程 + 1 精英 + 1 冲锋 = 10）；`P7_NAMES_DENSE` 末尾加两只（loop≥1 leftover 9+2=11）。`P1` / `P3` / `P5_NAMES_DENSE`（仍 12）/ `P7_NAMES` 一字不改。第一波仍是教学用普通近战。
+
+数字锁死：max_hp 44、SEEK 160、acceleration 1600、knockback 200、贴脸 8、冲撞 16、charge 520px/s / 380px、windup 0.45s、recover 0.55s、冷却 1.60s（从 RECOVER 结束起算）、射程 [180, 520]、XP 16、gold 5。加压只加 HP（+8/loop）和两种伤害（+2/loop），cap 仍 8。charge_speed / windup / distance 不随 loop 变。
+
+AI 只活在本脚本：`SEEK` → 距离在带内且冷却好了进 `WINDUP`（顿住对准，scale `(1.25, 0.85)`）→ 结束那一帧锁方向进 `CHARGE`（`velocity = dir * 520`，不 steer、不分离、忽略击退；hitstop 仍能打断）→ 走满 380px / 撞墙 / 打到玩家一次 → `RECOVER` 摩擦停下再 SEEK。玩家已死任何状态都 steer 到 0。Visual：WINDUP `Color(1.6, 1.45, 0.7, 1)`，CHARGE `Color(1.55, 1.35, 0.45, 1)`。起冲 `SfxPool.play_charge` 复用 click（pitch 0.48，-6dB）；命中才 `apply_kick(dir, 5)`，起冲不踢。
+
+DebugOverlay 活着摘要改成 `%dM+%dR+%dC`（Elite 仍算 M）。战斗 HUD 不加 CHARGER。空格 / F4 / F3 / R 行为不变；冲锋怪吃 F4 秒杀。
+
+**当时不做：** 4 张新卡、Boss、第五把枪、换三角、2P、WaveDirector、新 wav、Dash 条。
+
 ## 输入合同（全项目唯一，后续沿用）
 
 只产出三个量，全游戏共用：
@@ -861,7 +877,7 @@ fire_held      bool      是否按住开火
 ```text
 player/     玩家场景、PlayerInput（键鼠或单把手柄 device_id）、PlayerMotor、PlayerHealth、PlayerDash（空格 / 手柄 A 短冲刺）、Muzzle、WeaponHost、FireFeedback
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle / Smg、Projectile、本局 ProjectilePool
-enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee；DummyTarget 脚本保留但沙盒不再放置
+enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee、ChargerEnemy（黄三角直线冲锋）；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
@@ -899,13 +915,13 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` �
 | **37（已完成）** | 跨局成绩 `user://progress.cfg`（best / last / runs）；死亡或回菜单写一次；顶栏 Profile 叠层 | 关掉再开还记得打到第几轮；死亡条有 best | 中途续打、槽位、钱包、Autoload |
 | **38（已完成）** | Solo 20 轮终点（`SOLO_LOOP_GOAL = 20`）出 CLEARED；Infinite 仍无限；F4 无敌秒杀、F3 跳最后一轮 | Solo 打完能停；顶中有 `/20` | 改 Infinite、loop 2、换三角 |
 | **39（已完成）** | Dash：空格 / 手柄 A，210px / 0.12s / 冷却 0.9s；穿怪不穿墙 | 贴脸能闪一下 | Dash 条、冲刺伤害、穿墙 |
-| 40 | 冲锋敌人（有了 Dash，侧闪才有对手） | 有东西朝你冲过来 | 4 张新卡、换三角 |
-| 41 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
+| **40（已完成）** | 冲锋敌人：黄三角直线撞，逼你用 Dash | 贴脸必须侧闪 | 4 张新卡、换三角 |
+| 41 | 一只 Boss 句（P7 后或独立高潮） | 一轮里有一次必须认真打的高潮 | 五格枪架、4 张新卡、换三角 |
 | 42 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
 | 43 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
 | 44+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 40
+## 下一步：Day 41
 
-**Day 40 = 冲锋敌人**（有了 Dash，侧闪才有对手）。不是 4 张新卡，不是美术周，不是 Boss 周。之后 Day 41 接美术，Day 42 地板/火花池/死亡碎裂/战斗 BGM，Day 43 同机 2P 试水，Day 44+ 局域网房间。仍无 4 张新卡、无 Boss 条、无五格枪架、无玩家剪影、无 2P、无 Virtual Sticks、无换三角。
+**Day 41 = 一只 Boss 句**（P7 后或独立高潮，不要五格枪架）。不是 4 张新卡，不是美术周，不是换三角。之后接美术、地板/火花池/死亡碎裂/战斗 BGM，Day 43 同机 2P 试水，Day 44+ 局域网房间。仍无 4 张新卡、无换三角、无 2P、无 Virtual Sticks、无 WaveDirector。

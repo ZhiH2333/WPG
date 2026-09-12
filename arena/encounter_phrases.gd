@@ -10,6 +10,7 @@ const P5_NAMES: PackedStringArray = [
 	"MeleeBottom1", "MeleeBottom2", "MeleeBottom3", "MeleeBottom4", "MeleeBottom5", "MeleeBottom6",
 	"RangedTop1", "RangedTop2",
 	"EliteBottom1",
+	"ChargerRight1",
 ]
 const P7_NAMES: PackedStringArray = [
 	"MeleeLeft5", "MeleeLeft6", "MeleeLeft7", "MeleeLeft8", "MeleeLeft9", "MeleeLeft10",
@@ -31,6 +32,7 @@ const P7_NAMES_DENSE: PackedStringArray = [
 	"MeleeBottom9", "MeleeBottom10",
 	"RangedRight5", "RangedRight6",
 	"RangedTop4",
+	"ChargerRight1", "ChargerRight2",
 ]
 
 enum State { RESTING, PLAYING, AWAITING_OFFER, DONE }
