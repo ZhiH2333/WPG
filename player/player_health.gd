@@ -14,6 +14,7 @@ var _defeated: bool = false
 var _i_frame_left_sec: float = 0.0
 var _flash_left_sec: float = 0.0
 var _alive_color: Color = Color(1, 0.62, 0.18, 1)
+var _debug_god: bool = false
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual: Polygon2D = get_parent().get_node("Visual") as Polygon2D
@@ -44,6 +45,12 @@ func is_defeated() -> bool:
 func is_invincible() -> bool:
 	return _i_frame_left_sec > 0.0
 
+func set_debug_god(enabled: bool) -> void:
+	_debug_god = enabled
+
+func is_debug_god() -> bool:
+	return _debug_god
+
 func reset_for_sandbox() -> void:
 	_hp = max_hp
 	_defeated = false
@@ -55,7 +62,7 @@ func reset_for_sandbox() -> void:
 	_visual.modulate = Color.WHITE
 
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
-	if _defeated or _i_frame_left_sec > 0.0 or amount <= 0:
+	if _defeated or _i_frame_left_sec > 0.0 or amount <= 0 or _debug_god:
 		return
 	var direction: Vector2 = _resolve_hit_direction(hit_direction, hit_position)
 	_hp = maxi(0, _hp - amount)

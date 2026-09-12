@@ -24,6 +24,7 @@ var _player: Player
 var _encounter: EncounterPhrases
 var _catalog: UpgradeCatalog
 var _outcome: Outcome = Outcome.PLAYING
+var _solo: bool = false
 var _elapsed_sec: float = 0.0
 var _owned_ids: PackedStringArray = PackedStringArray()
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -42,6 +43,12 @@ func bind_encounter(encounter: EncounterPhrases) -> void:
 
 func bind_catalog(catalog: UpgradeCatalog) -> void:
 	_catalog = catalog
+
+func configure_mode(solo: bool) -> void:
+	_solo = solo
+
+func is_solo() -> bool:
+	return _solo
 
 func try_grant(upgrade_id: StringName) -> bool:
 	if _catalog == null:
@@ -77,6 +84,9 @@ func notify_phrase_loop() -> void:
 
 func get_loop_index() -> int:
 	return _loop_index
+
+func debug_set_loop_index(value: int) -> void:
+	_loop_index = clampi(value, 0, 99)
 
 func add_xp(amount: int) -> void:
 	if amount <= 0:
@@ -169,6 +179,12 @@ func is_player_dead() -> bool:
 
 func is_cleared() -> bool:
 	return _outcome == Outcome.CLEARED
+
+func mark_cleared() -> void:
+	if _outcome != Outcome.PLAYING:
+		return
+	_outcome = Outcome.CLEARED
+	_pending_level = 0
 
 func get_elapsed_sec() -> float:
 	return _elapsed_sec

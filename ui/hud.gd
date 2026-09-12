@@ -103,4 +103,7 @@ func _refresh_phrase() -> void:
 	var loop_index: int = 0
 	if _run_session != null:
 		loop_index = _run_session.get_loop_index()
+	if _run_session != null and _run_session.is_solo():
+		_phrase_label.text = "L%d/%d  %s" % [loop_index, GameLaunch.SOLO_LOOP_GOAL, phrase]
+		return
 	_phrase_label.text = "L%d  %s" % [loop_index, phrase]

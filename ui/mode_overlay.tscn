@@ -72,7 +72,7 @@ autowrap_mode = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "The run you already know"
+text = "20 loops. Then CLEARED"
 autowrap_mode = 2
 
 [node name="Infinite" type="Button" parent="Center/Cards"]
@@ -107,7 +107,7 @@ autowrap_mode = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "Same loop. No extra map"
+text = "No finish line"
 autowrap_mode = 2
 
 [node name="Multi" type="Button" parent="Center/Cards"]

@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 38 = Solo 真正有终点**（Infinite 仍无限）。**Day 39 起接美术**。多人 Day 41 同机 2P、Day 42+ 局域网。手机触控整包仍后置。仍无槽位、无钱包、无中途续打、无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表、无换三角
+- **Day 39 = 游戏性加厚，只挑一块**（Dash 或 冲锋敌人 或 4 张新卡）。**Day 40 起接美术**。多人 Day 42 同机 2P、Day 43+ 局域网。手机触控整包仍后置。仍无槽位、无钱包、无中途续打、无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 Virtual Sticks、无房间列表、无换三角
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -768,6 +768,29 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 **当时不做：** Solo 终点（CLEARED）、接美术、槽位、钱包、WaveDirector、Boss 条、五格枪架、玩家剪影、2P、Virtual Sticks、换三角。
 
+## Day 38（已完成）：Solo 20 轮终点
+
+`ui/game_launch.gd`（`class_name GameLaunch`，`extends Object`，全是 static）把模式一次性带进沙盒。不是 Autoload，不是 Node，禁止 `get_tree()`。不要写进 `progress.cfg` / `settings.cfg`。
+
+接口锁死：`enum Mode { SOLO, INFINITE }`，`SOLO_LOOP_GOAL = 20`（硬锁 20，不是 loop 2，不要 export）。内部默认 Infinite。菜单点 Solo 先 `set_mode(SOLO)` 再切场景；点 Infinite 先 `set_mode(INFINITE)`。两张卡不再共用一个 `_enter_sandbox`。沙盒 `_ready` 调一次 `take_mode()` 交给 `RunSession.configure_mode`，Launch 立刻打回 Infinite。F6 / 下一次没点卡的进入都是 Infinite。Retry / R 不再 take；本局 mode 活在 `RunSession._solo` 上，`restart()` 不清 mode。
+
+Solo：打完 20 轮（L0 到 L19 各一轮 P0–P8，第 20 轮的 P8 商店买完或 Skip）后，通关判定只活在 `CombatSandbox._finish_loop_after_shop()`：先 `notify_phrase_loop()`（19→20，best 才能记到 20），再 `mark_cleared()`。两套弹 `park_all`，敌人预备役，`_set_offer_input_lock(true)`，人还活着但不能开枪。不要 `get_tree().paused`，不要新场景。Infinite 的 `is_solo()` 为 false，loop 20/21/… 照旧加压（内部仍 cap 8）+ `encounter.restart()`，永远没有 CLEARED。
+
+结算条：`is_player_dead() or is_cleared()` 才显示。标题脚本写 `CLEARED`（Theme `ClearedTitle`，绿字 `Color(0.55, 0.78, 0.22, 1)`）或 `DEAD`（仍 `RunSummaryTitle`）。数字行照旧 time/loop/kills/gold/owned/best。Hint 仍是 R to restart + Esc menu。Panel 高 256 不加。禁止按钮、禁止全屏 Dimmer、禁止 paused。
+
+HUD：Solo `L%d/%d  %s`（分母 `GameLaunch.SOLO_LOOP_GOAL`）；Infinite 仍 `L%d  %s`。PhraseLabel 锚点、左下枪/血/XP/gold 一个像素都不要挪。Esc / Start 在 CLEARED 上与死亡同等：回菜单并写盘，不要 PAUSED。活着打到一半仍开暂停。R 重开仍是同一 mode；若 F4 之前是开的，R 之后仍无敌。
+
+写盘：`_process` 里 `is_player_dead() or is_cleared()` 都走 `_record_progress_if_needed()`。Quit / 死了 Esc / 店开着 Esc 仍走 `_return_to_menu()`。Continue / Retry / R 不写；R 与 Retry 把 `_progress_written = false`。`_exit_tree` 仍不写盘。不要新增 `progress.cfg` 键（没有 `solo_clears`）。
+
+模式卡文案：Solo `20 loops. Then CLEARED`；Infinite `No finish line`；Multi 仍 `Coming later`。
+
+开发者调试（不是玩家功能，仅 `OS.is_debug_build()`，不写入 `[input]`）：
+- F4（`KEY_F4`）切换无敌秒杀：`PlayerHealth.set_debug_god`；`apply_damage` 在 i-frame 判断里再挡 `_debug_god`，不掉血、不闪白。秒杀只打场上「不在预备役、未死亡」的敌人，走现有击杀链（XP/gold）。三选一和商店仍要手点。再按 F4 关掉。暂停 / 三选一 / 商店开着时无效。
+- F3（`KEY_F3`）仅 Solo 且 playing 且没 CLEARED：跳到第 20 轮开头（`debug_set_loop_index(19)`），顶中 `L19/20`。Infinite / 已死 / 已通关无效。
+- DebugOverlay 在 `grant: U` 旁加 `god: on` / `god: off`。不要战斗顶中写 GOD。
+
+**当时不做：** 槽位、钱包、Dash、新敌人、Boss、第五把枪、换三角、2P、WaveDirector、把 CLEARED 做成新场景。
+
 ## 输入合同（全项目唯一，后续沿用）
 
 只产出三个量，全游戏共用：
@@ -789,8 +812,9 @@ fire_held      bool      是否按住开火
 - Motor **只读** `move_vector`；相机 / 准星 **只读** `aim_vector` 与 `mouse_world_position`；当前武器 **只读** `fire_held` 与 `aim_vector`。禁止武器自己 `is_action_pressed("fire")`
 - 切枪 1/2/3/4 由 `WeaponHost` 读取，不塞进输入合同三量；弹窗打开时 1/2/3 改语义为选左/中/右卡，4 不选卡
 - 沙盒重置 `R`（`sandbox_reset`）由 `CombatSandbox` 读取，不塞进输入合同三量；不要手柄映射
-- 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取：活着且三选一/商店都关着时打开 `PauseOverlay`；已死、三选一开着或商店开着时立刻卸回主菜单。手柄 Start 同样。暂停开着时 Esc / Start 走 Continue。不塞进输入合同三量
+- 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取：活着且三选一/商店都关着时打开 `PauseOverlay`；已死、已通关、三选一开着或商店开着时立刻卸回主菜单。手柄 Start 同样。暂停开着时 Esc / Start 走 Continue。不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
+- 开发者 F4 / F3 用 `InputEventKey.physical_keycode`（`KEY_F4` / `KEY_F3`），不写入 `[input]`。仅 debug 构建；暂停 / 三选一 / 商店开着时无效
 
 手柄（`device_id >= 0`）独占合同三量：左杆走、右杆瞄、右扳机/RB 开火；十字键切 1/2/3/4。Y 轴不自己取负。没手柄时走上面键鼠路径。禁止把 Joy 写进 InputMap。不要做 Input Autoload。输入组件挂在玩家节点上。
 
@@ -829,10 +853,10 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
 arena/      EncounterPhrases 手写句读（P0–P8）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（死亡条含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `L0  0/8`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode 交接，不是 Autoload）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 Solo `L0/20  0/8` / Infinite `L0  0/8`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
-sandbox/    CombatSandbox（Solo / Infinite 进入同一场景；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
+sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` 一次；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -860,13 +884,14 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景；Player / Player
 | **35（已完成）** | osu 式主题回炉 | 标题/设置开始像 osu | Wiki/Chat/Profile、五格枪架、2P |
 | **36（已完成）** | 战斗暂停叠层：Esc 开 PAUSED，Continue / Retry / Quit | 活着能停；死了或弹窗开着仍回菜单 | 存档、暂停里改设置 |
 | **37（已完成）** | 跨局成绩 `user://progress.cfg`（best / last / runs）；死亡或回菜单写一次；顶栏 Profile 叠层 | 关掉再开还记得打到第几轮；死亡条有 best | 中途续打、槽位、钱包、Autoload |
-| 38 | Solo 真正有终点（建议 loop 2 清完出 CLEARED）；Infinite 仍无限 | Solo 打完能停 | 改 Infinite、换三角 |
-| 39 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
-| 40 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
-| 41 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
-| 42+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
+| **38（已完成）** | Solo 20 轮终点（`SOLO_LOOP_GOAL = 20`）出 CLEARED；Infinite 仍无限；F4 无敌秒杀、F3 跳最后一轮 | Solo 打完能停；顶中有 `/20` | 改 Infinite、loop 2、换三角 |
+| 39 | 游戏性加厚：只挑一块（Dash / 冲锋敌人 / 4 张新卡） | 这一局更好玩一点 | 三块一起做、换三角 |
+| 40 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
+| 41 | 地板、火花池、死亡碎裂、BGM | 打中更脆 | 用特效冒充新玩法 |
+| 42 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
+| 43+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 38
+## 下一步：Day 39
 
-**Day 38 = Solo 真正有终点**（建议 loop 2 清完出 `CLEARED`）；Infinite 保持现有无限。之后 Day 39 接美术，Day 40 地板/火花池/死亡碎裂/战斗 BGM，Day 41 同机 2P 试水，Day 42+ 局域网房间。仍无槽位、无钱包、无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 2P、无 Virtual Sticks、无换三角。
+**Day 39 = 游戏性加厚，只挑一块**（Dash 或 冲锋敌人 或 4 张新卡）。不是 loop 2，不是美术周，不是 Boss 周。之后 Day 40 接美术，Day 41 地板/火花池/死亡碎裂/战斗 BGM，Day 42 同机 2P 试水，Day 43+ 局域网房间。仍无槽位、无钱包、无 WaveDirector、无 Boss 条、无五格枪架、无玩家剪影、无 2P、无 Virtual Sticks、无换三角。

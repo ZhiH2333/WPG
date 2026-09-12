@@ -17,6 +17,7 @@ var _mouse_inside_window: bool = true
 var _enemies: Array[EnemyBase] = []
 var _offer_is_phrase: bool = false
 var _progress_written: bool = false
+var _god_mode: bool = false
 
 @onready var _walls: Node2D = $Walls
 @onready var _player: Player = $Player
@@ -57,6 +58,7 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	if _pause_overlay.is_open():
 		return
+	_tick_god_mode_kills()
 	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
 		_encounter.tick(delta)
 	if _run_session.is_playing() and _encounter.is_awaiting_offer() and not _upgrade_offer.is_open() and not _shop_offer.is_open():
@@ -70,7 +72,7 @@ func _process(delta: float) -> void:
 	if _run_session.is_playing() and not _player.is_defeated() and _encounter.is_done() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _run_session.has_pending_level():
 		_loop_phrases()
 	_run_session.tick(delta)
-	if _run_session.is_player_dead():
+	if _run_session.is_player_dead() or _run_session.is_cleared():
 		_record_progress_if_needed()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -89,6 +91,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		_try_debug_grant()
 		get_viewport().set_input_as_handled()
+		return
+	_try_debug_hotkeys(event)
 
 func _bind_runtime() -> void:
 	var player_input: PlayerInput = _player.get_player_input()
@@ -119,6 +123,7 @@ func _bind_runtime() -> void:
 	_run_session.bind_encounter(_encounter)
 	_run_session.bind_catalog(UPGRADE_CATALOG)
 	_assert_upgrade_catalog()
+	_run_session.configure_mode(GameLaunch.take_mode() == GameLaunch.Mode.SOLO)
 	_run_session.restart()
 	_apply_loop_pressure()
 	_encounter.restart()
@@ -194,6 +199,14 @@ func _loop_phrases() -> void:
 
 func _finish_loop_after_shop() -> void:
 	_run_session.notify_phrase_loop()
+	if _run_session.is_solo() and _run_session.get_loop_index() >= GameLaunch.SOLO_LOOP_GOAL:
+		_run_session.mark_cleared()
+		_projectiles.park_all()
+		_enemy_projectiles.park_all()
+		_hold_all_in_reserve()
+		_set_offer_input_lock(true)
+		_record_progress_if_needed()
+		return
 	_apply_loop_pressure()
 	_encounter.restart()
 
@@ -217,6 +230,7 @@ func _reset_sandbox() -> void:
 	_encounter.restart()
 	_debug_overlay.set_last_grant_id("-")
 	_progress_written = false
+	_set_offer_input_lock(false)
 
 func _try_debug_grant() -> void:
 	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open():
@@ -336,7 +350,7 @@ func _on_window_mouse_exited() -> void:
 	_sync_system_cursor()
 
 func _sync_system_cursor() -> void:
-	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open():
+	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _run_session.is_cleared():
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_aim_reticle.visible = false
 		return
@@ -366,7 +380,7 @@ func _is_pause_toggle(event: InputEvent) -> bool:
 func _on_pause_toggle() -> void:
 	if _pause_overlay.is_open():
 		return
-	if _player.is_defeated() or _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _player.is_defeated() or _run_session.is_cleared() or _upgrade_offer.is_open() or _shop_offer.is_open():
 		_return_to_menu()
 		return
 	_set_offer_input_lock(true)
@@ -394,3 +408,49 @@ func _return_to_menu() -> void:
 	if tree != null:
 		tree.paused = false
 	get_tree().change_scene_to_file(MENU_SCENE)
+
+func _try_debug_hotkeys(event: InputEvent) -> void:
+	if not OS.is_debug_build():
+		return
+	var key: InputEventKey = event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return
+	if key.physical_keycode == KEY_F4:
+		get_viewport().set_input_as_handled()
+		_toggle_god_mode()
+		return
+	if key.physical_keycode == KEY_F3:
+		get_viewport().set_input_as_handled()
+		_debug_jump_final_loop()
+
+func _toggle_god_mode() -> void:
+	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+		return
+	_god_mode = not _god_mode
+	_player.get_player_health().set_debug_god(_god_mode)
+
+func _debug_jump_final_loop() -> void:
+	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+		return
+	if not _run_session.is_solo() or not _run_session.is_playing() or _run_session.is_cleared():
+		return
+	if _player.is_defeated():
+		return
+	_run_session.debug_set_loop_index(19)
+	_apply_loop_pressure()
+	_projectiles.park_all()
+	_enemy_projectiles.park_all()
+	_hold_all_in_reserve()
+	_encounter.restart()
+
+func _tick_god_mode_kills() -> void:
+	if not _god_mode:
+		return
+	if not _run_session.is_playing() or _player.is_defeated() or _run_session.is_cleared():
+		return
+	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open():
+		return
+	for enemy: EnemyBase in _enemies:
+		if enemy.is_in_reserve() or enemy.is_defeated():
+			continue
+		enemy.apply_damage(enemy.get_hp(), enemy.global_position, Vector2.RIGHT)

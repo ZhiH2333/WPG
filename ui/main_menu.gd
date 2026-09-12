@@ -55,8 +55,8 @@ func _ready() -> void:
 	_home_button.pressed.connect(_on_home_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_profile_button.pressed.connect(_on_profile_pressed)
-	_mode_overlay.selected_solo.connect(_enter_sandbox)
-	_mode_overlay.selected_infinite.connect(_enter_sandbox)
+	_mode_overlay.selected_solo.connect(_enter_solo)
+	_mode_overlay.selected_infinite.connect(_enter_infinite)
 	_wire_strip_hover(_settings_button)
 	_wire_strip_hover(_play_button)
 	_wire_strip_hover(_quit_button)
@@ -106,7 +106,12 @@ func _on_play_pressed() -> void:
 		_profile_overlay.close()
 	_mode_overlay.open()
 
-func _enter_sandbox() -> void:
+func _enter_solo() -> void:
+	GameLaunch.set_mode(GameLaunch.Mode.SOLO)
+	get_tree().change_scene_to_file(SANDBOX_SCENE)
+
+func _enter_infinite() -> void:
+	GameLaunch.set_mode(GameLaunch.Mode.INFINITE)
 	get_tree().change_scene_to_file(SANDBOX_SCENE)
 
 func _on_settings_pressed() -> void:
