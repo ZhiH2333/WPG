@@ -1,8 +1,8 @@
 extends MeleeEnemy
 class_name EliteMelee
 
-## 放大的近战精英：更肉、更慢、贴脸更疼。仍是红三角，不是猎人。
-const VISUAL_SCALE := Vector2(1.75, 1.75)
+## 放大的近战精英：更肉、更慢、贴脸更疼。复用 melee.png 放大，不是猎人。
+const VISUAL_SCALE := FacingContract.ELITE_BASE_SCALE
 
 func _ready() -> void:
 	super._ready()
@@ -16,6 +16,13 @@ func _ready() -> void:
 	_base_contact_damage = contact_damage
 	_hp = max_hp
 	_restore_visual_scale()
+
+func _base_visual_scale() -> Vector2:
+	return FacingContract.ELITE_BASE_SCALE
+
+func _setup_visual() -> void:
+	super._setup_visual()
+	_visual.scale = FacingContract.ELITE_BASE_SCALE
 
 func get_kind_name() -> String:
 	return "Elite"

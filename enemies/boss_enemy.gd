@@ -4,7 +4,6 @@ class_name BossEnemy
 ## 一轮一次高潮：先冲再喷扇形弹。无阶段、无召唤。状态只活在本脚本。
 enum BossState { SEEK, WINDUP_CHARGE, CHARGE, RECOVER, WINDUP_VOLLEY }
 
-const VISUAL_SCALE := Vector2(2.2, 2.2)
 const WINDUP_CHARGE_STRETCH := Vector2(1.18, 0.88)
 const WINDUP_CHARGE_MODULATE := Color(1.45, 0.85, 1.7, 1)
 const CHARGE_MODULATE := Color(1.35, 0.55, 1.55, 1)
@@ -58,6 +57,22 @@ func bind_projectile_pool(pool: ProjectilePool) -> void:
 
 func get_kind_name() -> String:
 	return "Boss"
+
+func _native_faces_right() -> bool:
+	return FacingContract.BOSS_NATIVE_FACES_RIGHT
+
+func _base_visual_scale() -> Vector2:
+	return FacingContract.BOSS_BASE_SCALE
+
+func _setup_visual() -> void:
+	_visual.texture = load(FacingContract.BOSS_TEXTURE) as Texture2D
+	_visual.centered = true
+	_visual.scale = FacingContract.BOSS_BASE_SCALE
+
+func _apply_flip(flip_h: bool) -> void:
+	super._apply_flip(flip_h)
+	if _muzzle != null:
+		_muzzle.position.x = absf(_muzzle.position.x) * (-1.0 if flip_h else 1.0)
 
 func get_xp_reward() -> int:
 	return 60
@@ -235,9 +250,7 @@ func _fire_volley() -> void:
 
 func _face_player() -> void:
 	if _boss_state == BossState.CHARGE:
-		if _charge_dir.is_zero_approx():
-			return
-		_hit_reaction.apply_facing(_charge_dir.angle())
+		_update_facing(_charge_dir.x)
 		return
 	super._face_player()
 
@@ -292,18 +305,18 @@ func _refresh_boss_visual() -> void:
 		return
 	if _boss_state == BossState.WINDUP_CHARGE:
 		_visual.modulate = WINDUP_CHARGE_MODULATE
-		_visual.scale = VISUAL_SCALE * WINDUP_CHARGE_STRETCH
+		_visual.scale = _base_visual_scale() * WINDUP_CHARGE_STRETCH
 		return
 	if _boss_state == BossState.CHARGE:
 		_visual.modulate = CHARGE_MODULATE
-		_visual.scale = VISUAL_SCALE
+		_visual.scale = _base_visual_scale()
 		return
 	if _boss_state == BossState.WINDUP_VOLLEY:
 		_visual.modulate = VOLLEY_MODULATE
-		_visual.scale = VISUAL_SCALE
+		_visual.scale = _base_visual_scale()
 		return
 	_visual.modulate = Color.WHITE
-	_visual.scale = VISUAL_SCALE
+	_visual.scale = _base_visual_scale()
 
 func _reset_boss_logic() -> void:
 	_boss_state = BossState.SEEK
@@ -316,7 +329,7 @@ func _reset_boss_logic() -> void:
 func _restore_visual_scale() -> void:
 	if _visual == null or _defeated:
 		return
-	_visual.scale = VISUAL_SCALE
+	_visual.scale = _base_visual_scale()
 	_visual.modulate = Color.WHITE
 
 func _begin_enter() -> void:
@@ -324,7 +337,7 @@ func _begin_enter() -> void:
 	if _spawn_stagger_left_sec <= 0.0:
 		_restore_visual_scale()
 		return
-	_visual.scale = ENTER_SCALE_FROM * VISUAL_SCALE.x
+	_visual.scale = _base_visual_scale() * ENTER_SCALE_FROM
 
 func _finish_entering() -> void:
 	super._finish_entering()
@@ -334,7 +347,7 @@ func _update_enter_scale() -> void:
 	if _defeated or _spawn_stagger_duration_sec <= 0.0 or _spawn_stagger_left_sec <= 0.0:
 		return
 	var t: float = 1.0 - (_spawn_stagger_left_sec / _spawn_stagger_duration_sec)
-	_visual.scale = (ENTER_SCALE_FROM * VISUAL_SCALE.x).lerp(VISUAL_SCALE, clampf(t, 0.0, 1.0))
+	_visual.scale = (_base_visual_scale() * ENTER_SCALE_FROM).lerp(_base_visual_scale(), clampf(t, 0.0, 1.0))
 
 func _on_defeated() -> void:
 	_reset_boss_logic()
@@ -351,6 +364,6 @@ func _on_reset_for_sandbox() -> void:
 	_contact_area.monitoring = true
 	_contact_area.set_deferred("monitoring", true)
 	if is_entering():
-		_visual.scale = ENTER_SCALE_FROM * VISUAL_SCALE.x
+		_visual.scale = _base_visual_scale() * ENTER_SCALE_FROM
 		return
 	_restore_visual_scale()

@@ -13,16 +13,13 @@ var _hp: int = 100
 var _defeated: bool = false
 var _i_frame_left_sec: float = 0.0
 var _flash_left_sec: float = 0.0
-var _alive_color: Color = Color(1, 0.62, 0.18, 1)
 var _debug_god: bool = false
 
 @onready var _player: Player = get_parent() as Player
-@onready var _visual: Polygon2D = get_parent().get_node("Visual") as Polygon2D
+@onready var _visual: Node2D = get_parent().get_node("Visual") as Node2D
 
 func _ready() -> void:
 	_hp = max_hp
-	if _visual != null:
-		_alive_color = _visual.color
 
 func get_hp() -> int:
 	return _hp
@@ -58,7 +55,6 @@ func reset_for_sandbox() -> void:
 	_flash_left_sec = 0.0
 	if _visual == null:
 		return
-	_visual.color = _alive_color
 	_visual.modulate = Color.WHITE
 
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
@@ -103,21 +99,19 @@ func _restore_color() -> void:
 		return
 	if _player != null and _player.is_dashing():
 		return
-	_visual.modulate = Color.WHITE
 	if _defeated:
-		_visual.color = DEAD_COLOR
+		_visual.modulate = DEAD_COLOR
 		return
-	_visual.color = _alive_color
+	_visual.modulate = Color.WHITE
 
 func _defeat() -> void:
 	_defeated = true
 	_i_frame_left_sec = 0.0
-	if _visual != null:
-		_visual.color = DEAD_COLOR
-		_visual.modulate = Color.WHITE
 	if _player != null:
 		_player.begin_death_pose()
 		_player.on_defeated()
+	if _visual != null:
+		_visual.modulate = DEAD_COLOR
 
 func _resolve_hit_direction(hit_direction: Vector2, hit_position: Vector2) -> Vector2:
 	if not hit_direction.is_zero_approx():

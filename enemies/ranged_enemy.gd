@@ -30,6 +30,22 @@ func bind_projectile_pool(pool: ProjectilePool) -> void:
 func get_kind_name() -> String:
 	return "Ranged"
 
+func _native_faces_right() -> bool:
+	return FacingContract.RANGED_NATIVE_FACES_RIGHT
+
+func _base_visual_scale() -> Vector2:
+	return FacingContract.RANGED_BASE_SCALE
+
+func _setup_visual() -> void:
+	_visual.texture = load(FacingContract.RANGED_TEXTURE) as Texture2D
+	_visual.centered = true
+	_visual.scale = FacingContract.RANGED_BASE_SCALE
+
+func _apply_flip(flip_h: bool) -> void:
+	super._apply_flip(flip_h)
+	if _muzzle != null:
+		_muzzle.position.x = absf(_muzzle.position.x) * (-1.0 if flip_h else 1.0)
+
 func get_xp_reward() -> int:
 	return 12
 

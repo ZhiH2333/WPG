@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://player/player_input.gd" id="2_input"]
@@ -12,6 +12,11 @@
 [ext_resource type="Script" path="res://player/player_dash.gd" id="12_dash"]
 [ext_resource type="PackedScene" path="res://combat/muzzle_flash.tscn" id="9_flash"]
 [ext_resource type="Script" path="res://player/fire_feedback.gd" id="10_feedback"]
+[ext_resource type="Script" path="res://player/player_weapon_visual.gd" id="13_gunvisual"]
+[ext_resource type="Texture2D" path="res://images/weapons/pistol.png" id="14_pistol_tex"]
+[ext_resource type="Texture2D" path="res://images/weapons/shotgun.png" id="15_shotgun_tex"]
+[ext_resource type="Texture2D" path="res://images/weapons/rifle.png" id="16_rifle_tex"]
+[ext_resource type="Texture2D" path="res://images/weapons/smg.png" id="17_smg_tex"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 20.0
@@ -25,14 +30,37 @@ script = ExtResource("1_player")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_body")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(1, 0.62, 0.18, 1)
-polygon = PackedVector2Array(24, 0, -16, -18, -8, 0, -16, 18)
+[node name="Visual" type="Node2D" parent="."]
 
-[node name="Muzzle" type="Marker2D" parent="Visual"]
-position = Vector2(28, 0)
+[node name="Body" type="Sprite2D" parent="Visual"]
 
-[node name="MuzzleFlash" parent="Visual/Muzzle" instance=ExtResource("9_flash")]
+[node name="Guns" type="Node2D" parent="Visual"]
+position = Vector2(4, 2)
+script = ExtResource("13_gunvisual")
+
+[node name="PistolSprite" type="Sprite2D" parent="Visual/Guns"]
+scale = Vector2(0.36, 0.36)
+texture = ExtResource("14_pistol_tex")
+
+[node name="ShotgunSprite" type="Sprite2D" parent="Visual/Guns"]
+visible = false
+scale = Vector2(0.40, 0.40)
+texture = ExtResource("15_shotgun_tex")
+
+[node name="RifleSprite" type="Sprite2D" parent="Visual/Guns"]
+visible = false
+scale = Vector2(0.44, 0.44)
+texture = ExtResource("16_rifle_tex")
+
+[node name="SmgSprite" type="Sprite2D" parent="Visual/Guns"]
+visible = false
+scale = Vector2(0.36, 0.36)
+texture = ExtResource("17_smg_tex")
+
+[node name="Muzzle" type="Marker2D" parent="Visual/Guns"]
+position = Vector2(59, 13)
+
+[node name="MuzzleFlash" parent="Visual/Guns/Muzzle" instance=ExtResource("9_flash")]
 
 [node name="PlayerInput" type="Node" parent="."]
 script = ExtResource("2_input")

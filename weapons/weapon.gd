@@ -32,6 +32,10 @@ func bind_projectile_pool(pool: ProjectilePool) -> void:
 func get_display_name() -> String:
 	return "Weapon"
 
+## Guns 本地坐标（Guns 自身转向瞄准方向）。基类默认手枪枪口，各枪覆盖。
+func get_muzzle_local_offset() -> Vector2:
+	return Vector2(59, 13)
+
 func get_cooldown_remaining_sec() -> float:
 	var remaining_msec: int = maxi(0, _next_fire_at_msec - Time.get_ticks_msec())
 	return float(remaining_msec) / 1000.0

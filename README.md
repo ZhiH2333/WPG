@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 42 = 接美术**：三角换成猪（终于看起来像猪；不要为了图改手感）。多人 Day 43 同机 2P、Day 44+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无槽位、无钱包、无中途续打
+- **Day 42（已完成）= 接美术第一步**：英文改名 + 朝向合同 + 主角换成 `images/player.png` + 自生成四把枪外观；敌人仍三角，图已改英文名、朝向已锁，enemies/** 今天一行没改。**Day 43 = 敌人换 sprite**（melee/ranged/charger/boss，FLIP 不要转圈；精英复用 melee.png 放大；不要为了图改 AI）。多人 Day 44 同机 2P、Day 45+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无槽位、无钱包、无中途续打
 - 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -834,6 +834,22 @@ AI 只活在本脚本：`SEEK` → `WINDUP_CHARGE`（顿住对准，scale 2.2×(
 DebugOverlay 活着摘要 `%dM+%dR+%dC+%dB`（判定顺序 Charger → Boss → Melee → 其余 R；Elite 仍算 M）。战斗 HUD 不加 Boss 条。F2（debug，`KEY_F2`，不写入 `[input]`）跳到 Boss 句，不改 loop_index。F3 仍跳 L19 并从 P0 重来。F4 仍秒杀含 Boss。Solo 第 20 轮仍是 Boss → 商店 → CLEARED。
 
 **当时不做：** 4 张新卡、Boss 条、召唤小兵、换三角、2P、WaveDirector、新 wav、五格枪架。
+
+## Day 42（已完成）：英文改名 + 朝向合同 + 主角/四枪换图
+
+`images/` 改名（文件系统改名，不拷贝、不重绘）：`wpc.PNG → player.png`、`近战.png → melee.png`、`远程.png → ranged.png`、`冲锋.png → charger.png`；删掉旧 `wpc.PNG.import` 让 Godot 重新生成。`logo.png` / `mainmenu.png` / `boss.png` 不动。`images/` 里不再有中文文件名，代码和 `.tscn` 里也没有中文贴图路径。
+
+`player/facing_contract.gd`（`class_name FacingContract`，`extends Object`，全是 const，不 `get_tree()`，不是 Autoload）锁死朝向合同：玩家是 **SPIN**（`Body.rotation` 预旋转抵消原图鼻子偏移，再让整根 `Visual.rotation = aim.angle()`）；近战/远程/冲锋/Boss 四张图是 **FLIP**（只用 `Sprite2D.flip_h`，禁止 `Visual.scale.x = -1`）。今天只有 `player.gd` 读 `PLAYER_*`；四条敌人路径和 `*_NATIVE_FACES_RIGHT` 先写好常量，`enemies/**` 一行没改，留给 Day 43。
+
+`player/player.tscn`：`Visual` 从 `Polygon2D` 改成 `Node2D`，是面向 / 后坐 / squash / Dash modulate / 死亡塌缩唯一根，节点名锁死不变。子节点：`Body`（`Sprite2D`，`texture` / `rotation` / `scale` 由 `player.gd` 的 `_setup_body_visual()` 从 `FacingContract` 读出赋值，不在 `.tscn` 里存第二份数字：`texture = PLAYER_TEXTURE`、`rotation = deg_to_rad(-PLAYER_FACE_OFFSET_DEG)` 即 -40°、`scale = PLAYER_BODY_SCALE` 即 `(0.05, 0.05)`）；`Guns`（`Node2D`，本地坐标 `Vector2(4, 2)`，挂 `player/player_weapon_visual.gd` 的 `PlayerWeaponVisual`）下挂四个 `Sprite2D`：`PistolSprite` / `ShotgunSprite`（初始 `visible=false`）/ `RifleSprite`（`visible=false`）/ `SmgSprite`（`visible=false`），缩放分别 `0.36` / `0.40` / `0.44` / `0.36`；`Muzzle` 仍是 `Visual` 的直接子节点（不是 `Guns` 的子节点），`FireFeedback` / `Weapon._try_fire` 的路径一行没改。`CollisionShape2D` 半径仍 20。
+
+四把枪贴图是本地程序生成的透明 PNG（`images/weapons/pistol.png` / `shotgun.png` / `rifle.png` / `smg.png`，枪管朝纹理 +X，不是网图、不是 Polygon2D/ColorRect 冒充）。`PlayerWeaponVisual` 不读 Input，只问 `WeaponHost.get_current_weapon()`：`refresh()` 只显示当前枪的 `Sprite2D`、其余三把 `visible=false`，并把 `Visual/Muzzle.position` 写成当前枪的 `get_muzzle_local_offset()`；`hide_all()` 把四把全部藏起来。`WeaponHost._activate_index` 末尾、`reset_after_player_revive` 末尾各调一次 `refresh()`，`deactivate_all()` 调 `hide_all()`（都走 `get_node`，不是信号总线、不是 Autoload）。`weapons/weapon.gd` 基类新增 `get_muzzle_local_offset()`（默认手枪 `(59, 13)`），四把枪各自覆盖：`Pistol (59, 13)` / `Shotgun (77, 15)` / `Rifle (91, 12)` / `Smg (65, 13)`；四枪 `_ready()` 里的射速/伤害/弹速一个数字没动，`Weapon._try_fire` 的出弹公式一行没改（仍从 `_player.get_muzzle_global_position()` 出弹）。
+
+`player/player_health.gd` 的 `_visual` 类型改成 `Node2D`，删掉所有 `Polygon2D.color` 读写（`Sprite2D` / `Node2D` 没有 `color`）。受击闪白仍 `modulate = Color(2.2, 2.2, 2.2, 1)`；Dash 中 `_restore_color()` 早退不盖 Dash 的 modulate；死亡改成 `modulate = DEAD_COLOR`（灰），不再写 `.color`；`reset_for_sandbox` 只恢复 `modulate = Color.WHITE`。`HitReaction` / `FireFeedback` / `PlayerDash` 一行没改，仍绑同一个 `Visual` 节点，squash 数字、Dash 210px/0.12s/0.90s、后坐像素全部不变。
+
+敌人这天已接上贴图：`melee_enemy.tscn` / `elite_melee.tscn` / `ranged_enemy.tscn` / `charger_enemy.tscn` / `boss_enemy.tscn` 的 `Visual` 全部改成 `Sprite2D`，走 `FacingContract` 的 FLIP 合同（见下方修复说明）。
+
+**当时不做：** Boss 条、4 张新卡、第五把枪、五格枪架、HUD 枪图标、走路循环/AnimationPlayer 状态机、地板、火花池、死亡碎裂、战斗 BGM、2P、ENet、触控、Virtual Sticks、WaveDirector。
 
 ## 输入合同（全项目唯一，后续沿用）
 
@@ -933,11 +949,15 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` �
 | **39（已完成）** | Dash：空格 / 手柄 A，210px / 0.12s / 冷却 0.9s；穿怪不穿墙 | 贴脸能闪一下 | Dash 条、冲刺伤害、穿墙 |
 | **40（已完成）** | 冲锋敌人：黄三角直线撞，逼你用 Dash | 贴脸必须侧闪 | 4 张新卡、换三角 |
 | **41（已完成）** | 一只 Boss 句：P7 后大紫三角，无血条、无召唤 | 一轮有一次必须认真打的高潮 | 五格枪架、4 张新卡、换三角 |
-| 42 | 接美术：三角换成正式野猪 / 近战 / 远程 / 精英 sprite | 终于看起来像猪 | 为了图改玩法 |
-| 43 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
-| 44+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
+| **42（已完成）** | 接美术第一步：英文改名 + 朝向合同 + 主角换成 player.png + 自生成四把枪外观 | 终于是猪了，枪也换了样子 | 为了图改手感 |
+| **43（已完成）** | 敌人换 sprite：melee / ranged / charger / boss（FLIP，精英复用 melee 放大）；顺带修正枪跟鼠标转、猪身体不转 | 敌人也不再是三角，猪身体不再乱转 | 为了图改 AI、新怪、换三角改数字 |
+| 44 | 地板 / 火花池 / 死亡碎裂 / 战斗 BGM | 场景不再是空气墙，打击更有存在感 | 波次表、商店、精英/Boss 数值改动、新怪 |
+| 45 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
+| 46+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 42
+## 下一步：Day 44
 
-**Day 42 = 接美术**：三角换成猪（终于看起来像猪；不要为了图改手感）。不是 4 张新卡，不是 Boss 条，不是换手感。之后地板/火花池/死亡碎裂/战斗 BGM，Day 43 同机 2P 试水，Day 44+ 局域网房间。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector。
+**Day 43 = 敌人换 sprite（已完成，随本次修复一并落地）**：`melee.png` / `ranged.png` / `charger.png` / `boss.png` 接进 `enemies/**`，走 `FacingContract` 的 FLIP 合同（`Sprite2D.flip_h`，禁止 360° 转圈那种 SPIN 用法）；近战精英复用 `melee.png` 放大，不单独出精英图。同一次修复顺带纠正了玩家朝向：`Guns` 独立转向鼠标，`Body` 固定不转。
+
+**Day 44 = 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**：给场景补地板贴图、命中火花池化、敌人死亡碎裂反馈、战斗 BGM。不要为了这些改 AI、不要改身份数字。之后 Day 45 同机 2P 试水，Day 46+ 局域网房间。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。

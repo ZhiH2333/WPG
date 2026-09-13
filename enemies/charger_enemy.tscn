@@ -17,9 +17,7 @@ script = ExtResource("1_charger")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_body")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.95, 0.72, 0.12, 1)
-polygon = PackedVector2Array(26, 0, -14, -12, -6, 0, -14, 12)
+[node name="Visual" type="Sprite2D" parent="."]
 
 [node name="ContactArea" type="Area2D" parent="."]
 collision_layer = 0

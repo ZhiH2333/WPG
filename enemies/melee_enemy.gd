@@ -19,6 +19,17 @@ func _ready() -> void:
 func get_kind_name() -> String:
 	return "Melee"
 
+func _native_faces_right() -> bool:
+	return FacingContract.MELEE_NATIVE_FACES_RIGHT
+
+func _base_visual_scale() -> Vector2:
+	return FacingContract.MELEE_BASE_SCALE
+
+func _setup_visual() -> void:
+	_visual.texture = load(FacingContract.MELEE_TEXTURE) as Texture2D
+	_visual.centered = true
+	_visual.scale = FacingContract.MELEE_BASE_SCALE
+
 func get_xp_reward() -> int:
 	return 10
 

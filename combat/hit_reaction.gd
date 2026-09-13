@@ -13,6 +13,7 @@ const DEATH_UPRIGHT_SCALE := Vector2(1.08, 0.78)
 
 var _visual: Node2D
 var _base_rotation: float = 0.0
+var _base_scale := Vector2.ONE
 var _extra_tilt: float = 0.0
 var _recover_from_scale: Vector2 = Vector2.ONE
 var _recover_from_tilt: float = 0.0
@@ -29,6 +30,7 @@ func bind_visual(visual: Node2D) -> void:
 	if _visual == null:
 		return
 	_base_rotation = _visual.rotation
+	_base_scale = _visual.scale
 
 func play(hit_direction: Vector2) -> void:
 	if _dead or _visual == null:
@@ -37,7 +39,7 @@ func play(hit_direction: Vector2) -> void:
 	if player != null and player.is_dashing():
 		return
 	var direction: Vector2 = _normalize_or_right(hit_direction)
-	_visual.scale = _squash_scale_for(direction)
+	_visual.scale = _squash_scale_for(direction) * _base_scale
 	_extra_tilt = _tilt_for(direction)
 	_recover_from_scale = _visual.scale
 	_recover_from_tilt = _extra_tilt
@@ -53,10 +55,10 @@ func begin_death(collapse: bool) -> void:
 	_death_from_tilt = _extra_tilt
 	_death_left_sec = DEATH_POSE_SEC
 	if collapse:
-		_death_to_scale = DEATH_COLLAPSE_SCALE
+		_death_to_scale = DEATH_COLLAPSE_SCALE * _base_scale
 		_death_to_tilt = deg_to_rad(DEATH_COLLAPSE_TILT_DEG) * _tilt_sign(_extra_tilt, _base_rotation)
 	else:
-		_death_to_scale = DEATH_UPRIGHT_SCALE
+		_death_to_scale = DEATH_UPRIGHT_SCALE * _base_scale
 		_death_to_tilt = 0.0
 
 func apply_facing(base_rotation: float) -> void:
@@ -73,15 +75,15 @@ func reset() -> void:
 	_recover_left_sec = 0.0
 	_death_left_sec = 0.0
 	_extra_tilt = 0.0
-	_recover_from_scale = Vector2.ONE
+	_recover_from_scale = _base_scale
 	_recover_from_tilt = 0.0
-	_death_from_scale = Vector2.ONE
+	_death_from_scale = _base_scale
 	_death_from_tilt = 0.0
-	_death_to_scale = Vector2.ONE
+	_death_to_scale = _base_scale
 	_death_to_tilt = 0.0
 	if _visual == null:
 		return
-	_visual.scale = Vector2.ONE
+	_visual.scale = _base_scale
 	_sync_rotation()
 
 func _process(delta: float) -> void:
@@ -97,10 +99,10 @@ func _tick_recover(delta: float) -> void:
 		return
 	_recover_left_sec = maxf(0.0, _recover_left_sec - delta)
 	var alpha: float = 1.0 - (_recover_left_sec / RECOVER_SEC)
-	_visual.scale = _recover_from_scale.lerp(Vector2.ONE, alpha)
+	_visual.scale = _recover_from_scale.lerp(_base_scale, alpha)
 	_extra_tilt = lerpf(_recover_from_tilt, 0.0, alpha)
 	if _recover_left_sec <= 0.0:
-		_visual.scale = Vector2.ONE
+		_visual.scale = _base_scale
 		_extra_tilt = 0.0
 	_sync_rotation()
 

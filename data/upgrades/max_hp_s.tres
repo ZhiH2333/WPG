@@ -1,12 +1,11 @@
-[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://c1sytokfhvx0t"]
 
-[ext_resource type="Script" path="res://data/upgrade_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
 id = &"max_hp_s"
 title = "Vitality I"
 description = "Max HP +20"
-kind = 0
 value = 20.0
 stackable = true

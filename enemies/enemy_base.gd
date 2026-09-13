@@ -6,10 +6,11 @@ class_name EnemyBase
 signal defeated
 const DAMAGE_NUMBER_SCENE: PackedScene = preload("res://combat/damage_number.tscn")
 const FLASH_DURATION_SEC: float = 0.1
-const DEAD_COLOR: Color = Color(0.42, 0.42, 0.44, 1)
+const DEAD_COLOR: Color = Color(0.42, 0.42, 0.44, 0.38)
 const DEATH_SLIDE_STOP_SPEED: float = 12.0
 const ENTER_SCALE_FROM := Vector2(0.4, 0.4)
 const SEPARATION_PIXELS: float = 40.0
+const FACE_DEADZONE_PX: float = 2.0
 
 @export var max_hp: int = 36
 @export var move_speed: float = 175.0
@@ -35,11 +36,11 @@ var _spawn_position: Vector2 = Vector2.ZERO
 var _spawn_stagger_left_sec: float = 0.0
 var _spawn_stagger_duration_sec: float = 0.0
 var _separation_sign: float = 1.0
-var _alive_color: Color = Color(0.86, 0.22, 0.2, 1)
 var _base_max_hp: int = 0
 var _base_move_speed: float = 0.0
+var _flip_h: bool = false
 
-@onready var _visual: Polygon2D = $Visual
+@onready var _visual: Sprite2D = $Visual
 
 func _ready() -> void:
 	motion_mode = MOTION_MODE_FLOATING
@@ -47,8 +48,8 @@ func _ready() -> void:
 	collision_mask = GameCollisionLayers.MASK_WALL
 	_hp = max_hp
 	_spawn_position = global_position
-	_alive_color = _visual.color
 	_separation_sign = 1.0 if (get_index() % 2 == 0) else -1.0
+	_setup_visual()
 	_bind_hit_reaction()
 	_base_max_hp = max_hp
 	_base_move_speed = move_speed
@@ -89,6 +90,19 @@ func get_knockback_speed() -> float:
 func get_kind_name() -> String:
 	return "Enemy"
 
+func _native_faces_right() -> bool:
+	return true
+
+func _base_visual_scale() -> Vector2:
+	return Vector2.ONE
+
+func _setup_visual() -> void:
+	pass
+
+func _apply_flip(flip_h: bool) -> void:
+	if _visual != null:
+		_visual.flip_h = flip_h
+
 func get_xp_reward() -> int:
 	return 0
 
@@ -122,9 +136,8 @@ func hold_in_reserve() -> void:
 	collision_layer = GameCollisionLayers.MASK_NONE
 	collision_mask = GameCollisionLayers.MASK_NONE
 	visible = false
-	_visual.color = _alive_color
 	_visual.modulate = Color.WHITE
-	_visual.scale = Vector2.ONE
+	_visual.scale = _base_visual_scale()
 	if _hit_reaction != null:
 		_hit_reaction.reset()
 	set_physics_process(false)
@@ -152,7 +165,6 @@ func reset_for_sandbox(spawn_position: Vector2) -> void:
 	collision_layer = GameCollisionLayers.MASK_ENEMY
 	collision_mask = GameCollisionLayers.MASK_WALL
 	visible = true
-	_visual.color = _alive_color
 	_visual.modulate = Color.WHITE
 	_hit_reaction.reset()
 	_begin_enter()
@@ -243,9 +255,12 @@ func _to_player() -> Vector2:
 
 func _face_player() -> void:
 	var to_player: Vector2 = _to_player()
-	if to_player.is_zero_approx():
-		return
-	_hit_reaction.apply_facing(to_player.angle())
+	_update_facing(to_player.x)
+
+func _update_facing(dx: float) -> void:
+	if absf(dx) > FACE_DEADZONE_PX:
+		_flip_h = (dx > 0.0) != _native_faces_right()
+	_apply_flip(_flip_h)
 
 func _tick_flash(delta: float) -> void:
 	if _flash_left_sec <= 0.0:
@@ -259,17 +274,14 @@ func _start_flash() -> void:
 	_visual.modulate = Color(2.2, 2.2, 2.2, 1)
 
 func _restore_color() -> void:
-	_visual.modulate = Color.WHITE
-	if _defeated:
-		_visual.color = DEAD_COLOR
+	_visual.modulate = DEAD_COLOR if _defeated else Color.WHITE
 
 func _defeat() -> void:
 	_defeated = true
 	_spawn_stagger_left_sec = 0.0
 	collision_layer = GameCollisionLayers.MASK_NONE
 	collision_mask = GameCollisionLayers.MASK_NONE
-	_visual.color = DEAD_COLOR
-	_visual.modulate = Color.WHITE
+	_visual.modulate = DEAD_COLOR
 	_hit_reaction.begin_death(true)
 	_on_defeated()
 	defeated.emit()
@@ -342,14 +354,14 @@ func _begin_enter() -> void:
 	_spawn_stagger_duration_sec = spawn_stagger_sec
 	_spawn_stagger_left_sec = spawn_stagger_sec
 	if _spawn_stagger_left_sec <= 0.0:
-		_visual.scale = Vector2.ONE
+		_visual.scale = _base_visual_scale()
 		return
-	_visual.scale = ENTER_SCALE_FROM
+	_visual.scale = _base_visual_scale() * ENTER_SCALE_FROM
 
 func _finish_entering() -> void:
 	_spawn_stagger_left_sec = 0.0
 	if _visual != null and not _defeated:
-		_visual.scale = Vector2.ONE
+		_visual.scale = _base_visual_scale()
 
 func _tick_spawn_stagger(delta: float) -> void:
 	if _spawn_stagger_left_sec <= 0.0:
@@ -362,4 +374,4 @@ func _update_enter_scale() -> void:
 	if _defeated or _spawn_stagger_duration_sec <= 0.0 or _spawn_stagger_left_sec <= 0.0:
 		return
 	var t: float = 1.0 - (_spawn_stagger_left_sec / _spawn_stagger_duration_sec)
-	_visual.scale = ENTER_SCALE_FROM.lerp(Vector2.ONE, clampf(t, 0.0, 1.0))
+	_visual.scale = (_base_visual_scale() * ENTER_SCALE_FROM).lerp(_base_visual_scale(), clampf(t, 0.0, 1.0))

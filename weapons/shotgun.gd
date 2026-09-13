@@ -16,6 +16,9 @@ func _ready() -> void:
 func get_display_name() -> String:
 	return "Shotgun"
 
+func get_muzzle_local_offset() -> Vector2:
+	return Vector2(77, 15)
+
 func _should_reset_cooldown_on_release() -> bool:
 	return false
 

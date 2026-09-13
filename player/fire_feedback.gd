@@ -12,8 +12,8 @@ var _recoil_left_sec: float = 0.0
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual: Node2D = get_parent().get_node("Visual") as Node2D
-@onready var _muzzle: Marker2D = get_parent().get_node("Visual/Muzzle") as Marker2D
-@onready var _muzzle_flash: MuzzleFlash = get_parent().get_node("Visual/Muzzle/MuzzleFlash") as MuzzleFlash
+@onready var _muzzle: Marker2D = get_parent().get_node("Visual/Guns/Muzzle") as Marker2D
+@onready var _muzzle_flash: MuzzleFlash = get_parent().get_node("Visual/Guns/Muzzle/MuzzleFlash") as MuzzleFlash
 
 func bind_camera(player_camera: PlayerCamera) -> void:
 	_camera = player_camera

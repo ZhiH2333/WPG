@@ -17,9 +17,7 @@ script = ExtResource("1_melee")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_body")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.86, 0.22, 0.2, 1)
-polygon = PackedVector2Array(22, 0, -16, -16, -8, 0, -16, 16)
+[node name="Visual" type="Sprite2D" parent="."]
 
 [node name="ContactArea" type="Area2D" parent="."]
 collision_layer = 0

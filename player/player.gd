@@ -15,7 +15,9 @@ var _hit_reaction: HitReaction
 @onready var _player_health: PlayerHealth = $PlayerHealth
 @onready var _player_dash: PlayerDash = $PlayerDash
 @onready var _visual: Node2D = $Visual
-@onready var _muzzle: Marker2D = $Visual/Muzzle
+@onready var _body: Sprite2D = $Visual/Body
+@onready var _guns: Node2D = $Visual/Guns
+@onready var _muzzle: Marker2D = $Visual/Guns/Muzzle
 @onready var _weapon_host: WeaponHost = $WeaponHost
 @onready var _fire_feedback: FireFeedback = $FireFeedback
 
@@ -23,9 +25,16 @@ func _ready() -> void:
 	motion_mode = MOTION_MODE_FLOATING
 	collision_layer = GameCollisionLayers.MASK_PLAYER
 	collision_mask = GameCollisionLayers.MASK_WALL
+	_setup_body_visual()
 	_weapon_host.bind_player_input(_player_input)
 	_player_dash.bind_player_input(_player_input)
 	_bind_hit_reaction()
+
+func _setup_body_visual() -> void:
+	_body.texture = load(FacingContract.PLAYER_TEXTURE) as Texture2D
+	_body.centered = true
+	_body.rotation = 0.0
+	_body.scale = FacingContract.PLAYER_BODY_SCALE
 
 func get_player_input() -> PlayerInput:
 	return _player_input
@@ -142,7 +151,7 @@ func _face_aim() -> void:
 	var aim: Vector2 = _player_input.aim_vector
 	if aim.is_zero_approx():
 		return
-	_hit_reaction.apply_facing(aim.angle())
+	_guns.rotation = aim.angle()
 
 func _bind_hit_reaction() -> void:
 	_hit_reaction = HitReaction.new()

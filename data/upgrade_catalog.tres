@@ -1,17 +1,18 @@
-[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=12 format=3]
+[gd_resource type="Resource" script_class="UpgradeCatalog" format=3 uid="uid://dlogb2ceriql2"]
 
-[ext_resource type="Script" path="res://data/upgrade_catalog.gd" id="1_script"]
-[ext_resource type="Resource" path="res://data/upgrades/max_hp_s.tres" id="2_max_hp_s"]
-[ext_resource type="Resource" path="res://data/upgrades/max_hp_m.tres" id="3_max_hp_m"]
-[ext_resource type="Resource" path="res://data/upgrades/swift.tres" id="4_swift"]
-[ext_resource type="Resource" path="res://data/upgrades/heavy_round.tres" id="5_heavy_round"]
-[ext_resource type="Resource" path="res://data/upgrades/cadence.tres" id="6_cadence"]
-[ext_resource type="Resource" path="res://data/upgrades/long_shot.tres" id="7_long_shot"]
-[ext_resource type="Resource" path="res://data/upgrades/second_skin.tres" id="8_second_skin"]
-[ext_resource type="Resource" path="res://data/upgrades/extra_pellets.tres" id="9_extra_pellets"]
-[ext_resource type="Resource" path="res://data/upgrades/steady_rifle.tres" id="10_steady_rifle"]
-[ext_resource type="Resource" path="res://data/upgrades/thick_hide.tres" id="11_thick_hide"]
+[ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_fa0af"]
+[ext_resource type="Script" uid="uid://bhvtwsfupk840" path="res://data/upgrade_catalog.gd" id="1_script"]
+[ext_resource type="Resource" uid="uid://c1sytokfhvx0t" path="res://data/upgrades/max_hp_s.tres" id="2_max_hp_s"]
+[ext_resource type="Resource" uid="uid://ruvg2y4mxhug" path="res://data/upgrades/max_hp_m.tres" id="3_max_hp_m"]
+[ext_resource type="Resource" uid="uid://bgr75r715sait" path="res://data/upgrades/swift.tres" id="4_swift"]
+[ext_resource type="Resource" uid="uid://b70pka08e58vf" path="res://data/upgrades/heavy_round.tres" id="5_heavy_round"]
+[ext_resource type="Resource" uid="uid://njtiggqyujua" path="res://data/upgrades/cadence.tres" id="6_cadence"]
+[ext_resource type="Resource" uid="uid://nqi1mivyruru" path="res://data/upgrades/long_shot.tres" id="7_long_shot"]
+[ext_resource type="Resource" uid="uid://c7kiixfdleuxn" path="res://data/upgrades/second_skin.tres" id="8_second_skin"]
+[ext_resource type="Resource" uid="uid://bs1k7qqljskll" path="res://data/upgrades/extra_pellets.tres" id="9_extra_pellets"]
+[ext_resource type="Resource" uid="uid://delwybcsdjocb" path="res://data/upgrades/steady_rifle.tres" id="10_steady_rifle"]
+[ext_resource type="Resource" uid="uid://ds0x7gsu6xmv" path="res://data/upgrades/thick_hide.tres" id="11_thick_hide"]
 
 [resource]
 script = ExtResource("1_script")
-entries = Array[UpgradeDef]([ExtResource("2_max_hp_s"), ExtResource("3_max_hp_m"), ExtResource("4_swift"), ExtResource("5_heavy_round"), ExtResource("6_cadence"), ExtResource("7_long_shot"), ExtResource("8_second_skin"), ExtResource("9_extra_pellets"), ExtResource("10_steady_rifle"), ExtResource("11_thick_hide")])
+entries = Array[ExtResource("1_fa0af")]([ExtResource("2_max_hp_s"), ExtResource("3_max_hp_m"), ExtResource("4_swift"), ExtResource("5_heavy_round"), ExtResource("6_cadence"), ExtResource("7_long_shot"), ExtResource("8_second_skin"), ExtResource("9_extra_pellets"), ExtResource("10_steady_rifle"), ExtResource("11_thick_hide")])

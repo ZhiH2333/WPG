@@ -43,6 +43,17 @@ func _ready() -> void:
 func get_kind_name() -> String:
 	return "Charger"
 
+func _native_faces_right() -> bool:
+	return FacingContract.CHARGER_NATIVE_FACES_RIGHT
+
+func _base_visual_scale() -> Vector2:
+	return FacingContract.CHARGER_BASE_SCALE
+
+func _setup_visual() -> void:
+	_visual.texture = load(FacingContract.CHARGER_TEXTURE) as Texture2D
+	_visual.centered = true
+	_visual.scale = FacingContract.CHARGER_BASE_SCALE
+
 func get_xp_reward() -> int:
 	return 16
 
@@ -171,9 +182,7 @@ func _lock_charge_dir() -> Vector2:
 
 func _face_player() -> void:
 	if _charge_state == ChargeState.CHARGE:
-		if _charge_dir.is_zero_approx():
-			return
-		_hit_reaction.apply_facing(_charge_dir.angle())
+		_update_facing(_charge_dir.x)
 		return
 	super._face_player()
 
@@ -228,14 +237,14 @@ func _refresh_charge_visual() -> void:
 		return
 	if _charge_state == ChargeState.WINDUP:
 		_visual.modulate = WINDUP_MODULATE
-		_visual.scale = WINDUP_SCALE
+		_visual.scale = _base_visual_scale() * WINDUP_SCALE
 		return
 	if _charge_state == ChargeState.CHARGE:
 		_visual.modulate = CHARGE_MODULATE
-		_visual.scale = Vector2.ONE
+		_visual.scale = _base_visual_scale()
 		return
 	_visual.modulate = Color.WHITE
-	_visual.scale = Vector2.ONE
+	_visual.scale = _base_visual_scale()
 
 func _reset_charge_logic() -> void:
 	_charge_state = ChargeState.SEEK

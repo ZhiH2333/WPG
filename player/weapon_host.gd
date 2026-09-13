@@ -7,8 +7,10 @@ var _current_index: int = 0
 var _switch_locked: bool = false
 var _switch_suppressed: bool = false
 var _player_input: PlayerInput
+var _weapon_visual: PlayerWeaponVisual
 
 func _ready() -> void:
+	_weapon_visual = get_node_or_null("../Visual/Guns") as PlayerWeaponVisual
 	_collect_weapons()
 	_activate_index(0)
 
@@ -64,11 +66,15 @@ func deactivate_all() -> void:
 	_switch_locked = true
 	for weapon: Weapon in _weapons:
 		weapon.set_active(false)
+	if _weapon_visual != null:
+		_weapon_visual.hide_all()
 
 func reset_after_player_revive() -> void:
 	_switch_locked = false
 	for i: int in _weapons.size():
 		_weapons[i].set_active(i == _current_index)
+	if _weapon_visual != null:
+		_weapon_visual.refresh()
 
 func _process(_delta: float) -> void:
 	_poll_weapon_switch()
@@ -111,3 +117,5 @@ func _activate_index(index: int) -> void:
 	_current_index = index
 	for i: int in _weapons.size():
 		_weapons[i].set_active(i == index)
+	if _weapon_visual != null:
+		_weapon_visual.refresh()

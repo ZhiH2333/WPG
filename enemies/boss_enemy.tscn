@@ -17,10 +17,7 @@ script = ExtResource("1_boss")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_body")
 
-[node name="Visual" type="Polygon2D" parent="."]
-scale = Vector2(2.2, 2.2)
-color = Color(0.42, 0.10, 0.58, 1)
-polygon = PackedVector2Array(28, 0, -18, -18, -8, 0, -18, 18)
+[node name="Visual" type="Sprite2D" parent="."]
 
 [node name="Muzzle" type="Marker2D" parent="Visual"]
 position = Vector2(32, 0)

@@ -20,6 +20,9 @@ func _ready() -> void:
 func get_display_name() -> String:
 	return "Rifle"
 
+func get_muzzle_local_offset() -> Vector2:
+	return Vector2(91, 12)
+
 func get_current_spread_deg() -> float:
 	return _current_spread_deg
 

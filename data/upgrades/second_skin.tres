@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="UpgradeDef" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://c7kiixfdleuxn"]
 
-[ext_resource type="Script" path="res://data/upgrade_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
@@ -8,5 +8,4 @@ id = &"second_skin"
 title = "Second Skin"
 description = "I-frames +0.10s"
 kind = 5
-value = 0.10
-stackable = false
+value = 0.1
