@@ -194,7 +194,7 @@ Day 4 当时 capacity = 64。Day 5 提到 96。禁止每发 instantiate/queue_fr
 - 受击踢沿 `hit_direction`：敌人 2、击杀 4、玩家 6。玩家无 hitstop，移动仍跟手。局部 hitstop 仍只冻被打中的那只敌人。
 - 枪口闪光：`Visual/Muzzle/MuzzleFlash` 唯一节点 show/hide，手枪 ~50ms，霰弹更大 ~70ms，步枪更短更窄 ~35ms。禁止每发 instantiate 闪光。
 - 枪身短后坐：只平移 Visual.position（`-aim * 4/6/3 px`），0.1s 弹回。不改碰撞、不用 `HitReaction.play` 冒充后坐。
-- 命中火花：接触点沿 `-hit` 微喷，0.08s `queue_free`。墙和肉都可以。不是 GPUParticles。
+- 命中火花：接触点沿 `-hit` 微喷，当时 0.08s `queue_free`（Day 44 改为本局池 64）。墙和肉都可以。不是 GPUParticles。
 - `SfxPool` 挂在 `CombatSandbox` 上，**不是 Autoload**。8 个 `AudioStreamPlayer2D` 轮询，全忙抢最老。程序生成短 WAV（手枪短促、霰弹低沉一爆、步枪连点、敌人弹更闷、拒发咔）。池满拒发走 click，不当枪声。
 
 Overlay 增补 `shake_offset` / `shake_speed`。三把枪身份、Motor 420、`look_ahead=100`、`follow_smoothing=8`、击退/hitstop 初值未改。
@@ -224,7 +224,7 @@ Overlay 增补 `shake_offset` / `shake_speed`。三把枪身份、Motor 420、`l
 - Overlay：`enemies_alive` 动态摘要（开局 `20M+10R`）、`fps` / **`fps_min_2s` / `fps_avg_2s`**（2 秒滚动窗，20 个 0.1s 桶累加，不每帧推 1000 个样本）、`ai_stagger: off`、`reset: R`。不刷 30 条 HP。
 - 压测方法：开局 30 人全活，步枪对人群扫 **22 秒**（允许被打、允许死、可按 R 再测）。读 Overlay 的 `fps_min_2s` / `fps_avg_2s`，不用感觉当结论。关 vsync 以外的额外 cap（测试脚本关 vsync；工程未设 `Engine.max_fps`）。
 - **结论（headless / vsync off / 22s 步枪扫）：`fps_min_2s = 145`，`fps_avg_2s = 145`。门槛是 `fps_min_2s ≥ 55`，达标。**
-- **Gated 修复：一项都没做。** 禁止「顺便」上 AI 分频。未做火花/数字池、未做偶数/奇数物理帧跳过 `_tick_ai`、未建 EnemyManager、未改 `physics_ticks_per_second`、未改 `time_scale`。命中火花仍是每发 instantiate / 0.08s `queue_free`。尸体仍 `set_physics_process(false)` 留场。R 重置同一批 30 个节点，禁止 `reload_current_scene()`。
+- **Gated 修复（当时一项都没做）。** 禁止「顺便」上 AI 分频。当时未做火花/数字池、未做偶数/奇数物理帧跳过 `_tick_ai`、未建 EnemyManager、未改 `physics_ticks_per_second`、未改 `time_scale`。火花池化挪到 Day 44。尸体仍 `set_physics_process(false)` 留场。R 重置同一批 30 个节点，禁止 `reload_current_scene()`。
 
 三把枪身份、Motor 420、`look_ahead=100`、`follow_smoothing=8`、shake、击退/hitstop 初值未改。
 
@@ -736,8 +736,8 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 42（已完成）= 接美术第一步**：英文改名 + 朝向合同 + 主角换成 `images/player.png` + 自生成四把枪外观；敌人仍三角，图已改英文名、朝向已锁，enemies/** 今天一行没改。**Day 43 = 敌人换 sprite**（melee/ranged/charger/boss，FLIP 不要转圈；精英复用 melee.png 放大；不要为了图改 AI）。多人 Day 44 同机 2P、Day 45+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无槽位、无钱包、无中途续打
-- 死亡碎裂粒子、掉落物、敌人对象池、EnemyManager
+- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。多人 Day 45 同机 2P、Day 46+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无槽位、无钱包、无中途续打
+- GPUParticles2D 死亡粒子海、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
 - Web 导出妥协、C#、外部 ECS、任何 Autoload
@@ -910,14 +910,14 @@ fire_held      bool      是否按住开火
 player/     玩家场景、PlayerInput（键鼠或单把手柄 device_id）、PlayerMotor、PlayerHealth、PlayerDash（空格 / 手柄 A 短冲刺）、Muzzle、WeaponHost、FireFeedback
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle / Smg、Projectile、本局 ProjectilePool
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee、ChargerEnemy（黄三角直线冲锋）、BossEnemy（P7 后大紫三角，无血条无召唤）；DummyTarget 脚本保留但沙盒不再放置
-combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、SfxPool
-audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）
+combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、HitSparkPool、DeathShard、DeathShardPool、SfxPool
+audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）+ 菜单 main.mp3 + 战斗 combat.mp3
 arena/      EncounterPhrases 手写句读（P0–P7 + Boss，PHRASE_TOTAL=9）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
 ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode 交接，不是 Autoload）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 Solo `L0/20  0/9` / Infinite `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
-sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` 一次；Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
+sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` 一次；Floor 平铺地砖 / Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / HitSparks / DeathShards / CombatMusic / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -951,13 +951,26 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` �
 | **41（已完成）** | 一只 Boss 句：P7 后大紫三角，无血条、无召唤 | 一轮有一次必须认真打的高潮 | 五格枪架、4 张新卡、换三角 |
 | **42（已完成）** | 接美术第一步：英文改名 + 朝向合同 + 主角换成 player.png + 自生成四把枪外观 | 终于是猪了，枪也换了样子 | 为了图改手感 |
 | **43（已完成）** | 敌人换 sprite：melee / ranged / charger / boss（FLIP，精英复用 melee 放大）；顺带修正枪跟鼠标转、猪身体不转 | 敌人也不再是三角，猪身体不再乱转 | 为了图改 AI、新怪、换三角改数字 |
-| 44 | 地板 / 火花池 / 死亡碎裂 / 战斗 BGM | 场景不再是空气墙，打击更有存在感 | 波次表、商店、精英/Boss 数值改动、新怪 |
+| **44（已完成）** | 地板 / 火花池 / 死亡碎裂 / 战斗 BGM | 场景不再是空气墙，打击更有存在感 | 波次表、商店、精英/Boss 数值改动、新怪 |
 | 45 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
 | 46+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
-## 下一步：Day 44
+## Day 44（已完成）：地板 / 火花池 / 死亡碎裂 / 战斗 BGM
 
-**Day 43 = 敌人换 sprite（已完成，随本次修复一并落地）**：`melee.png` / `ranged.png` / `charger.png` / `boss.png` 接进 `enemies/**`，走 `FacingContract` 的 FLIP 合同（`Sprite2D.flip_h`，禁止 360° 转圈那种 SPIN 用法）；近战精英复用 `melee.png` 放大，不单独出精英图。同一次修复顺带纠正了玩家朝向：`Guns` 独立转向鼠标，`Body` 固定不转。
+场景不再是空气墙，打击更有存在感。不改 AI、不改四把枪/敌人 `_ready` 身份、不改 Motor / 相机 / 击退 / hitstop / XP / gold / 加压、不改 HUD 锚点。Autoload 仍为 0。
 
-**Day 44 = 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**：给场景补地板贴图、命中火花池化、敌人死亡碎裂反馈、战斗 BGM。不要为了这些改 AI、不要改身份数字。之后 Day 45 同机 2P 试水，Day 46+ 局域网房间。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。
+- **地板**：`sandbox/arena_floor.gd`（`class_name ArenaFloor`）挂在节点名仍叫 `Floor` 的 `Sprite2D` 上，`z_index = -10`，`centered` 覆盖 `Rect2(-800,-450,1600,900)`。运行时生成一次 256×256 可平铺 `ImageTexture`（深灰紫底 + 弱噪声 + 淡网格），`texture_repeat` + `region`，不要 1000 个 Sprite 拼地砖，不要 `NoiseTexture2D` 每帧重算。墙碰撞尺寸未改，不是 TileMap 导航。
+- **火花池 64**：`combat/hit_spark_pool.gd`（`class_name HitSparkPool`）挂在 `CombatSandbox/HitSparks`。合同抄 `ProjectilePool`：`setup` / `acquire` / `release` / `park_all`。`HitSpark.play()` 重置 age/alpha/scale/位置/方向；寿命仍 `LIFE_SEC=0.08`、`SPRAY_SPEED=140`，到点 `pool.release(self)`，禁止 `queue_free`。池满这一发不出火花，禁止删天上正在飞的火花。`CombatSandbox._bind_runtime` 在两套弹池 `setup` 之后遍历子节点 `Projectile.bind_spark_pool`，禁止每发 `get_node` / group 扫描。
+- **死亡碎裂 6 片 / 池 64**：`combat/death_shard.gd` + `death_shard.tscn` + `death_shard_pool.gd`。3 顶点 Polygon2D（约 8～12px），死亡灰 `Color(0.50, 0.48, 0.50, 1)`，沿飞出方向平移 + 自旋，0.28s 淡出后 release。不碰撞、不 mask、不是 GPUParticles2D。`EnemyBase._defeat` 仍变灰 + `HitReaction.begin_death(true)` + 留场，然后 `_spawn_death_shards()` 从池里喷最多 6 片；池不够就有几片出几片，禁止为了凑 6 再 `instantiate`。预备役/未击败不喷。玩家 `PlayerHealth` / `HitReaction` 玩家路径一字不改：被打死仍只轻微压扁，不碎。Boss/精英不必换色。
+- **park**：`_loop_phrases`、`_finish_loop_after_shop` 的 CLEARED 分支、`_reset_sandbox`（以及 F2/F3）都走 `_park_combat_pools()`，两套弹 + 火花 + 碎片一起收回，避免下一句读场上残留特效。
+- **战斗 BGM**：`CombatSandbox/CombatMusic` 是 `AudioStreamPlayer`（不是 2D），流 `res://audio/combat.mp3`（从 `main.mp3` 复制的独立文件）。脚本里 `stream.loop = true`，`volume_db = -10.0`。`process_mode` 默认 INHERIT，暂停树就停曲，Continue 后续播。`_ready` 里 `play()`。不要 `PROCESS_MODE_ALWAYS`，不要 Autoload 音乐管理器，不要在三选一/商店时淡出，死亡/CLEARED 不停曲。Esc 回菜单靠卸场景停；主菜单继续播 `main.mp3`，两首不会叠。Master 音量仍只走 `GameSettings` 总线，不要第二套滑条。
+- **Overlay**：增补 `spark_active` / `spark_free` / `shard_active` / `shard_free`。R 之后两池 `active=0`。不要 Theme/缩放器，不要第五块 HUD。
+
+**当时不做：** 同机 2P、局域网/ENet、房间浏览器、4 张新卡、Boss 血条、五格枪架、伤害数字池、金币掉落物、键位重绑、Music/SFX 分轨滑条、任何 Autoload、WaveDirector、触控、`GPUParticles2D`、敌人 `queue_free`。
+
+## 下一步：Day 45
+
+**Day 44 = 地板 / 火花池 / 死亡碎裂 / 战斗 BGM（已完成）**：场景有可平铺地砖；命中火花走本局池 64；敌人死亡额外喷 6 片碎块但尸体仍留场；玩家不碎；战斗 BGM 循环且随暂停停曲。不要为了这些改 AI、不要改身份数字。
+
+**Day 45 = 同机 2P 试水**。之后 Day 46+ 局域网房间。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。

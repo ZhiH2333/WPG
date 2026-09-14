@@ -4,6 +4,11 @@ class_name CombatSandbox
 const PROJECTILE_SCENE: PackedScene = preload("res://weapons/projectile.tscn")
 const POOL_CAPACITY: int = 96
 const ENEMY_POOL_CAPACITY: int = 64
+const HIT_SPARK_SCENE: PackedScene = preload("res://combat/hit_spark.tscn")
+const HIT_SPARK_CAPACITY: int = 64
+const DEATH_SHARD_SCENE: PackedScene = preload("res://combat/death_shard.tscn")
+const DEATH_SHARD_CAPACITY: int = 64
+const COMBAT_MUSIC_DB: float = -10.0
 const UPGRADE_CATALOG: UpgradeCatalog = preload("res://data/upgrade_catalog.tres")
 const REQUIRED_UPGRADE_IDS: PackedStringArray = [
 	"max_hp_s", "max_hp_m", "swift", "heavy_round", "cadence",
@@ -30,8 +35,11 @@ var _god_mode: bool = false
 @onready var _run_summary: RunSummary = $RunSummary
 @onready var _projectiles: ProjectilePool = $Projectiles
 @onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
+@onready var _hit_sparks: HitSparkPool = $HitSparks
+@onready var _death_shards: DeathShardPool = $DeathShards
 @onready var _enemies_root: Node2D = $Enemies
 @onready var _sfx_pool: SfxPool = $SfxPool
+@onready var _combat_music: AudioStreamPlayer = $CombatMusic
 @onready var _encounter: EncounterPhrases = $EncounterPhrases
 @onready var _run_session: RunSession = $RunSession
 @onready var _upgrade_applier: UpgradeApplier = $UpgradeApplier
@@ -40,6 +48,7 @@ var _god_mode: bool = false
 func _ready() -> void:
 	GameSettings.load_from_disk()
 	GameSettings.apply()
+	_start_combat_music()
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	_apply_wall_layers()
 	_bind_runtime()
@@ -94,10 +103,35 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	_try_debug_hotkeys(event)
 
+func _park_combat_pools() -> void:
+	_projectiles.park_all()
+	_enemy_projectiles.park_all()
+	_hit_sparks.park_all()
+	_death_shards.park_all()
+
+func _bind_projectile_sparks(pool: ProjectilePool) -> void:
+	for child: Node in pool.get_children():
+		var projectile: Projectile = child as Projectile
+		if projectile == null:
+			continue
+		projectile.bind_spark_pool(_hit_sparks)
+
+func _start_combat_music() -> void:
+	var mp3: AudioStreamMP3 = _combat_music.stream as AudioStreamMP3
+	if mp3 != null:
+		mp3.loop = true
+	_combat_music.volume_db = COMBAT_MUSIC_DB
+	if not _combat_music.playing:
+		_combat_music.play()
+
 func _bind_runtime() -> void:
 	var player_input: PlayerInput = _player.get_player_input()
 	_projectiles.setup(_projectiles, PROJECTILE_SCENE, POOL_CAPACITY)
 	_enemy_projectiles.setup(_enemy_projectiles, PROJECTILE_SCENE, ENEMY_POOL_CAPACITY)
+	_hit_sparks.setup(_hit_sparks, HIT_SPARK_SCENE, HIT_SPARK_CAPACITY)
+	_death_shards.setup(_death_shards, DEATH_SHARD_SCENE, DEATH_SHARD_CAPACITY)
+	_bind_projectile_sparks(_projectiles)
+	_bind_projectile_sparks(_enemy_projectiles)
 	_player.bind_projectile_pool(_projectiles)
 	_player.bind_sfx_pool(_sfx_pool)
 	_player.bind_player_camera(_player_camera)
@@ -108,6 +142,8 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_weapon_host(_player.get_weapon_host())
 	_debug_overlay.bind_projectile_pool(_projectiles)
 	_debug_overlay.bind_enemy_projectile_pool(_enemy_projectiles)
+	_debug_overlay.bind_hit_spark_pool(_hit_sparks)
+	_debug_overlay.bind_death_shard_pool(_death_shards)
 	_enemies = _collect_enemies()
 	_bind_enemies(_enemies)
 	_encounter.bind_enemies(_enemies)
@@ -160,6 +196,7 @@ func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 		enemy.bind_player(_player)
 		enemy.bind_sfx_pool(_sfx_pool)
 		enemy.bind_player_camera(_player_camera)
+		enemy.bind_shard_pool(_death_shards)
 		if not enemy.defeated.is_connected(_on_enemy_defeated):
 			enemy.defeated.connect(_on_enemy_defeated.bind(enemy))
 		var ranged: RangedEnemy = enemy as RangedEnemy
@@ -190,8 +227,7 @@ func _hold_all_in_reserve() -> void:
 		enemy.hold_in_reserve()
 
 func _loop_phrases() -> void:
-	_projectiles.park_all()
-	_enemy_projectiles.park_all()
+	_park_combat_pools()
 	_hold_all_in_reserve()
 	var defs: Array[UpgradeDef] = _run_session.draft_offer(3)
 	if defs.is_empty():
@@ -204,8 +240,7 @@ func _finish_loop_after_shop() -> void:
 	_run_session.notify_phrase_loop()
 	if _run_session.is_solo() and _run_session.get_loop_index() >= GameLaunch.SOLO_LOOP_GOAL:
 		_run_session.mark_cleared()
-		_projectiles.park_all()
-		_enemy_projectiles.park_all()
+		_park_combat_pools()
 		_hold_all_in_reserve()
 		_set_offer_input_lock(true)
 		_record_progress_if_needed()
@@ -223,8 +258,7 @@ func _reset_sandbox() -> void:
 		_close_offer()
 	if _shop_offer.is_open():
 		_close_shop()
-	_projectiles.park_all()
-	_enemy_projectiles.park_all()
+	_park_combat_pools()
 	_run_session.restart()
 	_upgrade_applier.apply_owned()
 	_player.reset_for_sandbox()
@@ -446,8 +480,7 @@ func _debug_jump_final_loop() -> void:
 		return
 	_run_session.debug_set_loop_index(19)
 	_apply_loop_pressure()
-	_projectiles.park_all()
-	_enemy_projectiles.park_all()
+	_park_combat_pools()
 	_hold_all_in_reserve()
 	_encounter.restart()
 
@@ -458,8 +491,7 @@ func _debug_jump_boss() -> void:
 		return
 	if _player.is_defeated():
 		return
-	_projectiles.park_all()
-	_enemy_projectiles.park_all()
+	_park_combat_pools()
 	_hold_all_in_reserve()
 	_encounter.debug_begin_boss()
 

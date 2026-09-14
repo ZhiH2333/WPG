@@ -11,6 +11,7 @@ const DEATH_SLIDE_STOP_SPEED: float = 12.0
 const ENTER_SCALE_FROM := Vector2(0.4, 0.4)
 const SEPARATION_PIXELS: float = 40.0
 const FACE_DEADZONE_PX: float = 2.0
+const DEATH_SHARD_COUNT: int = 6
 
 @export var max_hp: int = 36
 @export var move_speed: float = 175.0
@@ -32,6 +33,7 @@ var _was_in_hitstop: bool = false
 var _hit_reaction: HitReaction
 var _sfx_pool: SfxPool
 var _player_camera: PlayerCamera
+var _shard_pool: DeathShardPool
 var _spawn_position: Vector2 = Vector2.ZERO
 var _spawn_stagger_left_sec: float = 0.0
 var _spawn_stagger_duration_sec: float = 0.0
@@ -62,6 +64,9 @@ func bind_sfx_pool(sfx_pool: SfxPool) -> void:
 
 func bind_player_camera(player_camera: PlayerCamera) -> void:
 	_player_camera = player_camera
+
+func bind_shard_pool(pool: DeathShardPool) -> void:
+	_shard_pool = pool
 
 func get_hp() -> int:
 	return _hp
@@ -283,11 +288,28 @@ func _defeat() -> void:
 	collision_mask = GameCollisionLayers.MASK_NONE
 	_visual.modulate = DEAD_COLOR
 	_hit_reaction.begin_death(true)
+	_spawn_death_shards()
 	_on_defeated()
 	defeated.emit()
 
 func _on_defeated() -> void:
 	pass
+
+func _spawn_death_shards() -> void:
+	if _in_reserve or not _defeated:
+		return
+	if _shard_pool == null:
+		return
+	var origin: Vector2 = global_position
+	var base_angle: float = 0.0
+	if not _knockback_velocity.is_zero_approx():
+		base_angle = _knockback_velocity.angle()
+	for i: int in DEATH_SHARD_COUNT:
+		var shard: DeathShard = _shard_pool.acquire()
+		if shard == null:
+			return
+		var angle: float = base_angle + float(i) * TAU / float(DEATH_SHARD_COUNT)
+		shard.play(origin, Vector2.from_angle(angle))
 
 func _spawn_damage_number(amount: int, hit_position: Vector2) -> void:
 	var number: DamageNumber = DAMAGE_NUMBER_SCENE.instantiate() as DamageNumber

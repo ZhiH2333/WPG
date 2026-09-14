@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -20,6 +20,10 @@
 [ext_resource type="PackedScene" path="res://ui/run_summary.tscn" id="15_summary"]
 [ext_resource type="PackedScene" path="res://ui/shop_offer.tscn" id="17_shop"]
 [ext_resource type="PackedScene" path="res://ui/pause_overlay.tscn" id="18_pause"]
+[ext_resource type="Script" path="res://sandbox/arena_floor.gd" id="21_floor"]
+[ext_resource type="Script" path="res://combat/hit_spark_pool.gd" id="22_spark_pool"]
+[ext_resource type="Script" path="res://combat/death_shard_pool.gd" id="23_shard_pool"]
+[ext_resource type="AudioStream" path="res://audio/combat.mp3" id="24_music"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -30,9 +34,13 @@ size = Vector2(40, 980)
 [node name="CombatSandbox" type="Node2D"]
 script = ExtResource("1_sandbox")
 
-[node name="Floor" type="Polygon2D" parent="."]
-color = Color(0.38, 0.38, 0.4, 1)
-polygon = PackedVector2Array(-800, -450, 800, -450, 800, 450, -800, 450)
+[node name="Floor" type="Sprite2D" parent="."]
+z_index = -10
+centered = true
+texture_repeat = 2
+region_enabled = true
+region_rect = Rect2(0, 0, 1600, 900)
+script = ExtResource("21_floor")
 
 [node name="Walls" type="Node2D" parent="."]
 
@@ -196,6 +204,16 @@ script = ExtResource("6_pool")
 
 [node name="SfxPool" type="Node2D" parent="."]
 script = ExtResource("9_sfx")
+
+[node name="HitSparks" type="Node2D" parent="."]
+script = ExtResource("22_spark_pool")
+
+[node name="DeathShards" type="Node2D" parent="."]
+script = ExtResource("23_shard_pool")
+
+[node name="CombatMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("24_music")
+volume_db = -10.0
 
 [node name="EncounterPhrases" type="Node" parent="."]
 script = ExtResource("10_encounter")

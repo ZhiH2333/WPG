@@ -11,6 +11,8 @@ var _player_camera: PlayerCamera
 var _weapon_host: WeaponHost
 var _pool: ProjectilePool
 var _enemy_pool: ProjectilePool
+var _spark_pool: HitSparkPool
+var _shard_pool: DeathShardPool
 var _enemies: Array[EnemyBase] = []
 var _encounter: EncounterPhrases
 var _run_session: RunSession
@@ -51,6 +53,12 @@ func bind_projectile_pool(pool: ProjectilePool) -> void:
 func bind_enemy_projectile_pool(pool: ProjectilePool) -> void:
 	_enemy_pool = pool
 
+func bind_hit_spark_pool(pool: HitSparkPool) -> void:
+	_spark_pool = pool
+
+func bind_death_shard_pool(pool: DeathShardPool) -> void:
+	_shard_pool = pool
+
 func bind_enemies(enemies: Array[EnemyBase]) -> void:
 	_enemies = enemies
 
@@ -86,7 +94,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nspark_active: %d\nspark_free: %d\nshard_active: %d\nshard_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -107,6 +115,10 @@ func _compose_status_text() -> String:
 		_read_pool_free(),
 		_read_enemy_active(),
 		_read_enemy_free(),
+		_read_spark_active(),
+		_read_spark_free(),
+		_read_shard_active(),
+		_read_shard_free(),
 		_read_refused(weapon),
 		_format_alive_summary(),
 		_count_dead_enemies(),
@@ -215,6 +227,26 @@ func _read_enemy_free() -> int:
 	if _enemy_pool == null:
 		return 0
 	return _enemy_pool.get_free_count()
+
+func _read_spark_active() -> int:
+	if _spark_pool == null:
+		return 0
+	return _spark_pool.get_active_count()
+
+func _read_spark_free() -> int:
+	if _spark_pool == null:
+		return 0
+	return _spark_pool.get_free_count()
+
+func _read_shard_active() -> int:
+	if _shard_pool == null:
+		return 0
+	return _shard_pool.get_active_count()
+
+func _read_shard_free() -> int:
+	if _shard_pool == null:
+		return 0
+	return _shard_pool.get_free_count()
 
 func _read_refused(weapon: Weapon) -> int:
 	if weapon == null:
