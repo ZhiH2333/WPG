@@ -23,7 +23,7 @@
 [ext_resource type="Script" path="res://sandbox/arena_floor.gd" id="21_floor"]
 [ext_resource type="Script" path="res://combat/hit_spark_pool.gd" id="22_spark_pool"]
 [ext_resource type="Script" path="res://combat/death_shard_pool.gd" id="23_shard_pool"]
-[ext_resource type="AudioStream" path="res://audio/combat.mp3" id="24_music"]
+[ext_resource type="AudioStream" path="res://audio/war.mp3" id="24_music"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -246,7 +246,7 @@ script = ExtResource("23_shard_pool")
 
 [node name="CombatMusic" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("24_music")
-volume_db = -10.0
+volume_db = -22.0
 
 [node name="EncounterPhrases" type="Node" parent="."]
 script = ExtResource("10_encounter")

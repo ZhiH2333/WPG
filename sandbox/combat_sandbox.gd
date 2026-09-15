@@ -8,7 +8,7 @@ const HIT_SPARK_SCENE: PackedScene = preload("res://combat/hit_spark.tscn")
 const HIT_SPARK_CAPACITY: int = 64
 const DEATH_SHARD_SCENE: PackedScene = preload("res://combat/death_shard.tscn")
 const DEATH_SHARD_CAPACITY: int = 64
-const COMBAT_MUSIC_DB: float = -10.0
+const COMBAT_MUSIC_DB: float = -22.0
 const UPGRADE_CATALOG: UpgradeCatalog = preload("res://data/upgrade_catalog.tres")
 const REQUIRED_UPGRADE_IDS: PackedStringArray = [
 	"max_hp_s", "max_hp_m", "swift", "heavy_round", "cadence",
