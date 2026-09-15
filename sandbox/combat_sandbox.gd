@@ -22,6 +22,7 @@ var _mouse_inside_window: bool = true
 var _enemies: Array[EnemyBase] = []
 var _offer_is_phrase: bool = false
 var _progress_written: bool = false
+var _record_id: String = ""
 var _god_mode: bool = false
 
 @onready var _walls: Node2D = $Walls
@@ -160,6 +161,7 @@ func _bind_runtime() -> void:
 	_run_session.bind_catalog(UPGRADE_CATALOG)
 	_assert_upgrade_catalog()
 	_run_session.configure_mode(GameLaunch.take_mode() == GameLaunch.Mode.SOLO)
+	_bind_playable_record()
 	_run_session.restart()
 	_apply_loop_pressure()
 	_encounter.restart()
@@ -181,6 +183,7 @@ func _bind_runtime() -> void:
 	_run_summary.bind_run_session(_run_session)
 	_debug_overlay.bind_run_session(_run_session)
 	_debug_overlay.bind_upgrade_offer(_upgrade_offer)
+	_debug_overlay.bind_record_id(_record_id)
 	_debug_overlay.set_last_grant_id("-")
 
 func _collect_enemies() -> Array[EnemyBase]:
@@ -434,10 +437,25 @@ func _on_pause_retried() -> void:
 func _on_pause_quit() -> void:
 	_return_to_menu()
 
+func _bind_playable_record() -> void:
+	GameRecords.load_from_disk()
+	_record_id = GameLaunch.take_active_record_id()
+	if _record_id.is_empty() or GameRecords.get_record(_record_id) == null:
+		var loop_goal: int = GameLaunch.SOLO_LOOP_GOAL if _run_session.is_solo() else 0
+		_record_id = GameRecords.ensure_playable_record("boar", loop_goal).id
+
+func _record_outcome() -> String:
+	if _run_session.is_cleared():
+		return "cleared"
+	if _run_session.is_player_dead():
+		return "dead"
+	return "quit"
+
 func _record_progress_if_needed() -> void:
 	if _progress_written:
 		return
 	GameProgress.record_run(_run_session)
+	GameRecords.append_run_result(_record_id, _run_session, _record_outcome())
 	_progress_written = true
 
 func _return_to_menu() -> void:

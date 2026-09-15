@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 关掉叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；已死或弹窗开着时 Esc 仍立刻回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 Solo / Infinite / Multi 模式卡。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 关掉叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；已死或弹窗开着时 Esc 仍立刻回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。主菜单仍是 Solo / Infinite / Multi 三选一，没有档位列表。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。多人 Day 45 同机 2P、Day 46+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无槽位、无钱包、无中途续打
+- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。下一步不是 2P：Day 46 CharacterDef → Day 47 RecordSelector → Day 48 WinnerPage v2，再 Day 49 同机 2P、Day 50+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打、无 RecordSelector UI
 - GPUParticles2D 死亡粒子海、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -914,7 +914,7 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/SMG/命中/击杀/受伤/拒发/敌人弹）+ 菜单 main.mp3 + 战斗 war.mp3
 arena/      EncounterPhrases 手写句读（P0–P7 + Boss，PHRASE_TOTAL=9）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode 交接，不是 Autoload）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 Solo `L0/20  0/9` / Infinite `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，隐式 boar 档，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 Solo `L0/20  0/9` / Infinite `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
 debug/      DebugOverlay
 sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` 一次；Floor 平铺地砖 / Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / HitSparks / DeathShards / CombatMusic / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
@@ -952,25 +952,45 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` �
 | **42（已完成）** | 接美术第一步：英文改名 + 朝向合同 + 主角换成 player.png + 自生成四把枪外观 | 终于是猪了，枪也换了样子 | 为了图改手感 |
 | **43（已完成）** | 敌人换 sprite：melee / ranged / charger / boss（FLIP，精英复用 melee 放大）；顺带修正枪跟鼠标转、猪身体不转 | 敌人也不再是三角，猪身体不再乱转 | 为了图改 AI、新怪、换三角改数字 |
 | **44（已完成）** | 地板 / 火花池 / 死亡碎裂 / 战斗 BGM | 场景不再是空气墙，打击更有存在感 | 波次表、商店、精英/Boss 数值改动、新怪 |
-| 45 | 同机 2P 试水 | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
-| 46+ | 局域网房间，最多 5 头猪，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
+| **45（已完成）** | Arc A `GameRecords`：`user://records.json`，上限 12，每局新开只记结果 | 档位数据立住；菜单仍是 Solo / Infinite 三选一；Profile 仍读 progress.cfg | RecordSelector UI、野鸡数值、WinnerPage、2P |
+| **46** | Arc B `CharacterDef`：野猪 / 野鸡底值 | 两套身份数字，卡池仍共用 | 骨骼、专属卡池、2P |
+| **47** | Arc C RecordSelector 取代 ModeOverlay；`loop_goal` 滑杆 | Play 进档位列表；选已有档直接开打 | 中途续档、Multi 进 Record |
+| **48** | Arc D WinnerPage v2：独立结算 + 本档历史对比 | 死 / 通关有分数和对比榜 | 云同步、成就 |
+| **49** | 同机 2P 试水（每人各自选角色） | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
+| **50+** | 局域网房间，最多 5 头猪/鸡，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
 ## Day 44（已完成）：地板 / 火花池 / 死亡碎裂 / 战斗 BGM
 
 场景不再是空气墙，打击更有存在感。不改 AI、不改四把枪/敌人 `_ready` 身份、不改 Motor / 相机 / 击退 / hitstop / XP / gold / 加压、不改 HUD 锚点。Autoload 仍为 0。
 
-- **地板**：`sandbox/arena_floor.gd`（`class_name ArenaFloor`）挂在节点名仍叫 `Floor` 的 `Sprite2D` 上，`z_index = -10`，`centered` 覆盖 `Rect2(-800,-450,1600,900)`。运行时生成一次 256×256 可平铺 `ImageTexture`（深灰紫底 + 弱噪声 + 淡网格），`texture_repeat` + `region`，不要 1000 个 Sprite 拼地砖，不要 `NoiseTexture2D` 每帧重算。墙碰撞尺寸未改，不是 TileMap 导航。
+- **地板**：`sandbox/arena_floor.gd`（`class_name ArenaFloor`）挂在节点名仍叫 `Floor` 的 `Sprite2D` 上，`z_index = -10`，`centered` 覆盖 `Rect2(-800,-450,1600,900)`。运行时生成一次 64×64 可平铺 `ImageTexture`（冷色勾缝石砖：缝 `Color(0.10, 0.11, 0.13)`、砖 `Color(0.17, 0.19, 0.23)`，`TEXTURE_FILTER_NEAREST`），`texture_repeat` + `region` 覆盖 1600×900，不要 1000 个 Sprite 拼地砖，不要 `NoiseTexture2D`，不要 `images/floor.png`。墙碰撞尺寸未改，不是 TileMap 导航。
 - **火花池 64**：`combat/hit_spark_pool.gd`（`class_name HitSparkPool`）挂在 `CombatSandbox/HitSparks`。合同抄 `ProjectilePool`：`setup` / `acquire` / `release` / `park_all`。`HitSpark.play()` 重置 age/alpha/scale/位置/方向；寿命仍 `LIFE_SEC=0.08`、`SPRAY_SPEED=140`，到点 `pool.release(self)`，禁止 `queue_free`。池满这一发不出火花，禁止删天上正在飞的火花。`CombatSandbox._bind_runtime` 在两套弹池 `setup` 之后遍历子节点 `Projectile.bind_spark_pool`，禁止每发 `get_node` / group 扫描。
-- **死亡碎裂 6 片 / 池 64**：`combat/death_shard.gd` + `death_shard.tscn` + `death_shard_pool.gd`。3 顶点 Polygon2D（约 8～12px），死亡灰 `Color(0.50, 0.48, 0.50, 1)`，沿飞出方向平移 + 自旋，0.28s 淡出后 release。不碰撞、不 mask、不是 GPUParticles2D。`EnemyBase._defeat` 仍变灰 + `HitReaction.begin_death(true)` + 留场，然后 `_spawn_death_shards()` 从池里喷最多 6 片；池不够就有几片出几片，禁止为了凑 6 再 `instantiate`。预备役/未击败不喷。玩家 `PlayerHealth` / `HitReaction` 玩家路径一字不改：被打死仍只轻微压扁，不碎。Boss/精英不必换色。
+- **死亡碎裂 6 片 / 池 64**：`combat/death_shard.gd` + `death_shard.tscn` + `death_shard_pool.gd`。3 顶点 Polygon2D（约 8～12px），棕 `Color(0.62, 0.46, 0.34, 1)`，沿飞出方向平移 + 自旋，0.28s 淡出后 release。不碰撞、不 mask、不是 GPUParticles2D。`EnemyBase._defeat` 仍变灰 + `HitReaction.begin_death(true)` + 留场，然后 `_spawn_death_shards()` 从池里喷最多 6 片；池不够就有几片出几片，禁止为了凑 6 再 `instantiate`。预备役/未击败不喷。玩家 `PlayerHealth` / `HitReaction` 玩家路径一字不改：被打死仍只轻微压扁，不碎。Boss/精英不必换色。
 - **park**：`_loop_phrases`、`_finish_loop_after_shop` 的 CLEARED 分支、`_reset_sandbox`（以及 F2/F3）都走 `_park_combat_pools()`，两套弹 + 火花 + 碎片一起收回，避免下一句读场上残留特效。
-- **战斗 BGM**：`CombatSandbox/CombatMusic` 是 `AudioStreamPlayer`（不是 2D），流 `res://audio/war.mp3`。脚本里 `stream.loop = true`，`volume_db = -22.0`（床底，比枪声低约 10dB，避免和子弹糊在一起）。`process_mode` 默认 INHERIT，暂停树就停曲，Continue 后续播。`_ready` 里 `play()`。不要 `PROCESS_MODE_ALWAYS`，不要 Autoload 音乐管理器，不要在三选一/商店时淡出，死亡/CLEARED 不停曲。Esc 回菜单靠卸场景停；主菜单继续播 `main.mp3`，两首不会叠。Master 音量仍只走 `GameSettings` 总线，不要第二套滑条。
+- **战斗 BGM**：`CombatSandbox/CombatMusic` 是 `AudioStreamPlayer`（不是 2D），流 `res://audio/war.mp3`（不要 `combat.mp3`）。脚本里 `stream.loop = true`，`volume_db = -22.0`（床底，比枪声低约 10dB，避免和子弹糊在一起）。`process_mode` 默认 INHERIT，暂停树就停曲，Continue 后续播。`_ready` 里 `play()`。不要 `PROCESS_MODE_ALWAYS`，不要 Autoload 音乐管理器，不要在三选一/商店时淡出，死亡/CLEARED 不停曲。Esc 回菜单靠卸场景停；主菜单继续播 `main.mp3`，两首不会叠。Master 音量仍只走 `GameSettings` 总线，不要第二套滑条。
 - **Overlay**：增补 `spark_active` / `spark_free` / `shard_active` / `shard_free`。R 之后两池 `active=0`。不要 Theme/缩放器，不要第五块 HUD。
 
 **当时不做：** 同机 2P、局域网/ENet、房间浏览器、4 张新卡、Boss 血条、五格枪架、伤害数字池、金币掉落物、键位重绑、Music/SFX 分轨滑条、任何 Autoload、WaveDirector、触控、`GPUParticles2D`、敌人 `queue_free`。
 
-## 下一步：Day 45
+## Day 45（已完成）：档位数据层 GameRecords
 
-**Day 44 = 地板 / 火花池 / 死亡碎裂 / 战斗 BGM（已完成）**：场景有可平铺地砖；命中火花走本局池 64；敌人死亡额外喷 6 片碎块但尸体仍留场；玩家不碎；战斗 BGM 循环且随暂停停曲。不要为了这些改 AI、不要改身份数字。
+档位数据立住，菜单外观不变。Play 仍打开 ModeOverlay 三选一；没有 RecordSelector、没有选人、没有删除按钮。Profile 仍只读 `user://progress.cfg`。每局永远新开，history 只记结果字典，不写 HP / 句读 / 弹池 / 升级过程。Autoload 仍为 0。`settings.cfg` 一字不改。
 
-**Day 45 = 同机 2P 试水**。之后 Day 46+ 局域网房间。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。
+- `ui/game_record.gd`（`class_name GameRecord`，`extends RefCounted`）：`to_dictionary` / `from_dictionary`。非法 `character_id` 打回 `boar`，只接受 `boar` / `chicken`。`loop_goal < 0` 打回 0。history 最多 10 条。不是 Resource，没有 `.tres`。
+- `ui/game_records.gd`（`class_name GameRecords`，`extends Object`，全 static）：`user://records.json`，`save_version=1`。上限 `MAX_RECORDS=12`。`create_record` 满员返回 `null`，禁止删旧档腾位。`delete_record` 必须写盘，本阶段无按钮调用。原子写：先 `records.json.tmp`，flush/close 后 `DirAccess.rename`。损坏或缺文件 → 空列表，不 `push_error`。
+- 算分只活在 `GameRecords.compute_score`：`loop * 1000 + kills * 5 + gold * 2 + floor(time_sec) + (cleared ? 5000 : 0)`。quit / dead 没有 +5000。history 按 score 降序，最多 10 条；`best_score` 是该档见过的最大分（被裁掉的低分不影响 best）。
+- 隐式档：没有 RecordSelector 时 Solo → `loop_goal=20` 的 boar 档，Infinite → `loop_goal=0`。同一 `character_id` + 同一 loop_goal 桶复用 `created_at` 最早的一条。本阶段 create / ensure 只写 `character_id=boar`。沙盒 CLEARED 仍读 `GameLaunch.SOLO_LOOP_GOAL`，不读 `record.loop_goal`。
+- `GameLaunch` 增补一次性 `active_record_id`（`set` / `take`，take 后打回 `""`）。本阶段 MainMenu 不 set，留给 Arc C。只传 id，不塞 Record 对象。
+- `CombatSandbox`：`take_mode` 之后 `take_active_record_id`；空或找不到则 `ensure_playable_record`。R / Retry 不换档、不 take Launch。`_record_progress_if_needed` 先 `GameProgress.record_run` 再 `GameRecords.append_run_result`。Continue / Retry / R 两套都不写；`_progress_written` 挡住死亡条停着看时每帧 append。`_exit_tree` 仍不写盘。
+- F6 直进沙盒走 Infinite 隐式档；`append_run_result` / `ensure` 开头 `load_from_disk`，不会用内存空档盖掉已有 Solo history。
+- `DebugOverlay` 增补 `record` 末 6 位、`hist`、`best`、`goal`。不要 Theme/缩放器，不要第五块 HUD。
+- 第一次进沙盒后 `user://records.json` 存在。再打同一模式只往同一档 history 追加，不新增 records 条数。
+
+**当时不做：** RecordSelector / New Record Editor、CharacterDef / 野鸡数值 / 换玩家贴图、WinnerPage v2、独立结算全屏、本地化 `tr()`、同机 2P、局域网、中途续打、任何 Autoload。
+
+## 下一步：Day 46（Arc B CharacterDef）
+
+**Day 45 = Arc A `GameRecords`（已完成）**：`user://records.json` 立住；Solo / Infinite 各复用一个隐式 boar 档；局末双写 `progress.cfg` + `records.json`；菜单仍是三选一，Profile 仍读 progress.cfg；每局新开不续打。
+
+**Day 46 = Arc B `CharacterDef`**：野猪 / 野鸡底值。不要做骨骼走路循环、不要做 RecordSelector、不要做 WinnerPage、不要做 2P。之后 Arc C RecordSelector → Arc D WinnerPage v2，再才是同机 2P / 局域网。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。

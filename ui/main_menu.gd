@@ -43,6 +43,7 @@ func _ready() -> void:
 	GameSettings.load_from_disk()
 	GameSettings.apply()
 	GameProgress.load_from_disk()
+	GameRecords.load_from_disk()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_hover_sfx.stream = _load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = _load_wav("res://audio/ui_click.wav")
