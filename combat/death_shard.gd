@@ -5,7 +5,7 @@ class_name DeathShard
 const LIFE_SEC: float = 0.28
 const FLY_SPEED: float = 220.0
 const SPIN_RAD_PER_SEC: float = 12.0
-const SHARD_COLOR := Color(0.50, 0.48, 0.50, 1)
+const SHARD_COLOR := Color(0.62, 0.46, 0.34, 1)
 
 var _pool: DeathShardPool
 var _age_sec: float = 0.0

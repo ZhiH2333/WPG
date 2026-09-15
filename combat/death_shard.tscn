@@ -5,6 +5,10 @@
 [node name="DeathShard" type="Node2D"]
 script = ExtResource("1_shard")
 
+[node name="Outline" type="Polygon2D" parent="."]
+color = Color(0.16, 0.1, 0.07, 1)
+polygon = PackedVector2Array(11, 0, -5, -4, -5, 4)
+
 [node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.5, 0.48, 0.5, 1)
+color = Color(0.62, 0.46, 0.34, 1)
 polygon = PackedVector2Array(8, 0, -4, -3, -4, 3)
