@@ -28,7 +28,7 @@ func bind_player(player: Player) -> void:
 	_player = player
 	if _player == null:
 		return
-	global_position = get_look_target()
+	global_position = get_look_target().round()
 
 func get_look_target() -> Vector2:
 	if _player == null:
@@ -62,6 +62,7 @@ func _follow_look_target(delta: float) -> void:
 		return
 	var look_target: Vector2 = get_look_target()
 	var alpha: float = 1.0 - exp(-follow_smoothing * delta)
-	global_position = global_position.lerp(look_target, alpha)
+	var follow: Vector2 = global_position.lerp(look_target, alpha)
 	_shake_offset = _shake_offset.move_toward(Vector2.ZERO, shake_decay * delta)
-	global_position += _shake_offset
+	# NEAREST 平铺地砖在亚像素镜头下勾缝会闪；shake 一并取整。
+	global_position = (follow + _shake_offset).round()

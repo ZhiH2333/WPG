@@ -195,7 +195,7 @@ Day 4 当时 capacity = 64。Day 5 提到 96。禁止每发 instantiate/queue_fr
 - 枪口闪光：`Visual/Muzzle/MuzzleFlash` 唯一节点 show/hide，手枪 ~50ms，霰弹更大 ~70ms，步枪更短更窄 ~35ms。禁止每发 instantiate 闪光。
 - 枪身短后坐：只平移 Visual.position（`-aim * 4/6/3 px`），0.1s 弹回。不改碰撞、不用 `HitReaction.play` 冒充后坐。
 - 命中火花：接触点沿 `-hit` 微喷，当时 0.08s `queue_free`（Day 44 改为本局池 64）。墙和肉都可以。不是 GPUParticles。
-- `SfxPool` 挂在 `CombatSandbox` 上，**不是 Autoload**。8 个 `AudioStreamPlayer2D` 轮询，全忙抢最老。程序生成短 WAV（手枪短促、霰弹低沉一爆、步枪连点、SMG 单独一条、敌人弹更闷、拒发咔）。枪声走粉噪/棕噪 + 低频枪身，合成后低通，不再用白噪嘶声。池满拒发走 click，不当枪声。
+- `SfxPool` 挂在 `CombatSandbox` 上，**不是 Autoload**。8 个 `AudioStreamPlayer2D` 轮询，全忙抢最老。程序生成短 WAV（手枪短促、霰弹低沉一爆、步枪连点、敌人弹更闷、拒发咔）。池满拒发走 click，不当枪声。
 
 Overlay 增补 `shake_offset` / `shake_speed`。三把枪身份、Motor 420、`look_ahead=100`、`follow_smoothing=8`、击退/hitstop 初值未改。
 
@@ -602,7 +602,7 @@ U 仍只授 `max_hp_s`，现在可叠，连按会多次 +20。三把枪 `_ready`
 
 HUD 仍 `get_current_weapon().get_display_name()`。切到 Smg 左下显示 `Smg`。不要第二行、不要 4 个槽。Overlay `weapon` / `spread_deg≈9` / `pellets=1` 自然跟着走。
 
-`SfxPool.play_weapon`：Rifle 判断之后、默认手枪之前走 `play_smg`。独立 `audio/smg.wav`，pitch `0.98~1.03`，volume_db **-10.0**。不要再把步枪 pitch-up 当 SMG。
+`SfxPool.play_weapon`：Rifle 判断之后、默认手枪之前走 `play_smg`。复用已有 `_stream_rifle`，pitch `1.12~1.22`，volume_db **-11.0**。禁止新 wav。
 
 `UpgradeApplier` 不为 Smg 加专属合计。`get_weapons()` 顺序变成 4 把，`capture_baseline` 多采一行。Heavy Round / Cadence / Long Shot 通用伤/射速/弹速 Smg 也吃；Extra Pellets / Steady Rifle 仍只打霰弹/步枪。玩家弹池仍 96。
 
@@ -911,7 +911,7 @@ player/     玩家场景、PlayerInput（键鼠或单把手柄 device_id）、Pl
 weapons/    Weapon 薄基类、Pistol / Shotgun / Rifle / Smg、Projectile、本局 ProjectilePool
 enemies/    EnemyBase、MeleeEnemy、RangedEnemy、EliteMelee、ChargerEnemy（黄三角直线冲锋）、BossEnemy（P7 后大紫三角，无血条无召唤）；DummyTarget 脚本保留但沙盒不再放置
 combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpark、HitSparkPool、DeathShard、DeathShardPool、SfxPool
-audio/      程序生成短 WAV（手枪/霰弹/步枪/SMG/命中/击杀/受伤/拒发/敌人弹）+ 菜单 main.mp3 + 战斗 war.mp3
+audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）+ 菜单 main.mp3 + 战斗 war.mp3
 arena/      EncounterPhrases 手写句读（P0–P7 + Boss，PHRASE_TOTAL=9）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
 ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，隐式 boar 档，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 Solo `L0/20  0/9` / Infinite `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
