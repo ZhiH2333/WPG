@@ -12,7 +12,6 @@ var _started_msec: PackedInt32Array = PackedInt32Array()
 var _stream_pistol: AudioStreamWAV
 var _stream_shotgun: AudioStreamWAV
 var _stream_rifle: AudioStreamWAV
-var _stream_smg: AudioStreamWAV
 var _stream_hit: AudioStreamWAV
 var _stream_kill: AudioStreamWAV
 var _stream_hurt: AudioStreamWAV
@@ -23,7 +22,6 @@ func _ready() -> void:
 	_stream_pistol = _load_wav("res://audio/pistol.wav")
 	_stream_shotgun = _load_wav("res://audio/shotgun.wav")
 	_stream_rifle = _load_wav("res://audio/rifle.wav")
-	_stream_smg = _load_wav("res://audio/smg.wav")
 	_stream_hit = _load_wav("res://audio/hit.wav")
 	_stream_kill = _load_wav("res://audio/kill.wav")
 	_stream_hurt = _load_wav("res://audio/hurt.wav")
@@ -55,16 +53,16 @@ func play(stream: AudioStream, pitch_scale: float, volume_db: float, world_posit
 	voice.play()
 
 func play_pistol(world_position: Vector2) -> void:
-	play(_stream_pistol, randf_range(0.98, 1.02), -6.0, world_position)
+	play(_stream_pistol, 1.0, -6.0, world_position)
 
 func play_shotgun(world_position: Vector2) -> void:
-	play(_stream_shotgun, 1.0, -6.0, world_position)
+	play(_stream_shotgun, 1.0, -1.5, world_position)
 
 func play_rifle(world_position: Vector2) -> void:
-	play(_stream_rifle, randf_range(0.97, 1.03), -7.0, world_position)
+	play(_stream_rifle, randf_range(0.97, 1.03), -8.0, world_position)
 
 func play_smg(world_position: Vector2) -> void:
-	play(_stream_smg, randf_range(0.98, 1.03), -10.0, world_position)
+	play(_stream_rifle, randf_range(1.12, 1.22), -11.0, world_position)
 
 func play_weapon(weapon: Weapon, world_position: Vector2) -> void:
 	if weapon is Shotgun:
