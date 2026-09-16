@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。下一步不是 2P：Day 46 CharacterDef → Day 47 RecordSelector → Day 48 WinnerPage v2，再 Day 49 同机 2P、Day 50+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打、无 RecordSelector UI
+- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。下一步不是 2P：Day 47 RecordSelector → Day 48 WinnerPage v2，再 Day 49 同机 2P、Day 50+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打、无 RecordSelector UI
 - GPUParticles2D 死亡粒子海、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -875,7 +875,7 @@ fire_held      bool      是否按住开火
 - 沙盒 Esc（`ui_cancel`，引擎默认，不写入 `project.godot`）由 `CombatSandbox` 读取：活着且三选一/商店都关着时打开 `PauseOverlay`；已死、已通关、三选一开着或商店开着时立刻卸回主菜单。手柄 Start 同样。暂停开着时 Esc / Start 走 Continue。不塞进输入合同三量
 - 调试授予 `U`（`debug_grant_upgrade`）由 `CombatSandbox` 读取，不塞进输入合同三量；只授 `max_hp_s`
 - Dash `dash`（键盘 Space）由 `PlayerInput.dash_just_pressed` 产出，不进三量。手柄 A（`JOY_BUTTON_A`）边沿自读，不要写进 InputMap。弹窗 / 商店锁 `set_dash_suppressed`
-- 开发者 F4 / F3 / F2 用 `InputEventKey.physical_keycode`（`KEY_F4` / `KEY_F3` / `KEY_F2`），不写入 `[input]`。仅 debug 构建；暂停 / 三选一 / 商店开着时无效。F2 跳到当前 loop 的 Boss 句，不改 loop_index
+- 开发者 F4 / F3 / F2 / F1 用 `InputEventKey.physical_keycode`（`KEY_F4` / `KEY_F3` / `KEY_F2` / `KEY_F1`），不写入 `[input]`。仅 debug 构建；暂停 / 三选一 / 商店开着时无效。F2 跳到当前 loop 的 Boss 句，不改 loop_index。F1 在 boar / chicken 底值之间切换，不改 `_record_id`、不写 `records.json`
 
 手柄（`device_id >= 0`）独占合同三量：左杆走、右杆瞄、右扳机/RB 开火；十字键切 1/2/3/4。Y 轴不自己取负。没手柄时走上面键鼠路径。禁止把 Joy 写进 InputMap。不要做 Input Autoload。输入组件挂在玩家节点上。
 
@@ -915,7 +915,7 @@ audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒�
 arena/      EncounterPhrases 手写句读（P0–P7 + Boss，PHRASE_TOTAL=9）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
 ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeOverlay（Play 后三张卡，Solo/Infinite 进同一沙盒，Multi 灰）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，隐式 boar 档，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 Solo `L0/20  0/9` / Infinite `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
-data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；升级是数据不是效果
+data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；CharacterDef + CharacterCatalog.tres + data/characters/ 野猪/野鸡底值；升级从角色底值重算
 debug/      DebugOverlay
 sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` 一次；Floor 平铺地砖 / Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / HitSparks / DeathShards / CombatMusic / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
 ```
@@ -953,7 +953,7 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` �
 | **43（已完成）** | 敌人换 sprite：melee / ranged / charger / boss（FLIP，精英复用 melee 放大）；顺带修正枪跟鼠标转、猪身体不转 | 敌人也不再是三角，猪身体不再乱转 | 为了图改 AI、新怪、换三角改数字 |
 | **44（已完成）** | 地板 / 火花池 / 死亡碎裂 / 战斗 BGM | 场景不再是空气墙，打击更有存在感 | 波次表、商店、精英/Boss 数值改动、新怪 |
 | **45（已完成）** | Arc A `GameRecords`：`user://records.json`，上限 12，每局新开只记结果 | 档位数据立住；菜单仍是 Solo / Infinite 三选一；Profile 仍读 progress.cfg | RecordSelector UI、野鸡数值、WinnerPage、2P |
-| **46** | Arc B `CharacterDef`：野猪 / 野鸡底值 | 两套身份数字，卡池仍共用 | 骨骼、专属卡池、2P |
+| **46（已完成）** | Arc B `CharacterDef`：野猪 / 野鸡底值 | 两套身份数字，卡池仍共用；菜单仍三选一、隐式档仍 boar | 骨骼、专属卡池、2P |
 | **47** | Arc C RecordSelector 取代 ModeOverlay；`loop_goal` 滑杆 | Play 进档位列表；选已有档直接开打 | 中途续档、Multi 进 Record |
 | **48** | Arc D WinnerPage v2：独立结算 + 本档历史对比 | 死 / 通关有分数和对比榜 | 云同步、成就 |
 | **49** | 同机 2P 试水（每人各自选角色） | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
@@ -989,8 +989,24 @@ sandbox/    CombatSandbox（Solo / Infinite 进入同一场景，`take_mode()` �
 
 **当时不做：** RecordSelector / New Record Editor、CharacterDef / 野鸡数值 / 换玩家贴图、WinnerPage v2、独立结算全屏、本地化 `tr()`、同机 2P、局域网、中途续打、任何 Autoload。
 
-## 下一步：Day 46（Arc B CharacterDef）
+## Day 46（已完成）：角色底值 CharacterDef
 
-**Day 45 = Arc A `GameRecords`（已完成）**：`user://records.json` 立住；Solo / Infinite 各复用一个隐式 boar 档；局末双写 `progress.cfg` + `records.json`；菜单仍是三选一，Profile 仍读 progress.cfg；每局新开不续打。
+角色底值是数据，升级从角色底值重算。菜单仍是 Solo / Infinite / Multi 三选一，没有选人页。隐式档 `WRITE_CHARACTER_ID` 仍只写出 `boar`，所以正常 Play 仍是野猪手感。鸡贴图走 `res://images/chik.png`，没有骨骼、没有第二套场景。Dash 仍是 210px / 0.12s / 0.90s。Autoload 仍为 0。10 张升级仍共用 `UpgradeCatalog`，不按角色过滤。
 
-**Day 46 = Arc B `CharacterDef`**：野猪 / 野鸡底值。不要做骨骼走路循环、不要做 RecordSelector、不要做 WinnerPage、不要做 2P。之后 Arc C RecordSelector → Arc D WinnerPage v2，再才是同机 2P / 局域网。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。
+- `data/character_def.gd`（`class_name CharacterDef`，`extends Resource`）：HP / 移速 / 加速度组 / i-frame / hurtbox / body_scale / `body_texture`。禁止枪伤害、Dash 数字、knockback_impulse、skeleton_scene。
+- `data/character_catalog.gd`（`class_name CharacterCatalog`，`extends Resource`）：`get_count` / `get_all` / `get_by_id`。重复 id `push_error` 并跳过后到的；空 id 返回 null。
+- `data/characters/boar.tres`：HP 100、速 420、半径 20、`body_scale=(0.065,0.065)`、贴图 `player.png`，现有基线原样迁移。
+- `data/characters/chicken.tres`：HP 80、速 480、半径 16、`body_scale=(0.052,0.052)`（0.065×16/20）、贴图 `images/chik.png`。
+- `data/character_catalog.tres`：entries 只有这两条。
+- `Player.apply_character`：写 HP/i-frame/Motor 底值、运行时覆盖 `CircleShape2D.radius`、`Visual/Body.scale` 和 `Body.texture`。换身份满血，不走 `apply_max_hp` 差值治疗。`reset_for_sandbox` 不把半径/移速/贴图打回场景导出值。Player 不 preload 某一份 `.tres`。
+- `UpgradeApplier.capture_baseline()` 仍从 Player 运行时读取。顺序锁死：`apply_character` → `capture_baseline` → `apply_owned`。swift 乘在该角色自己的 `base_move_speed` 上。
+- `CombatSandbox`：`_bind_playable_record` 之后、`capture_baseline` 之前 `_apply_record_character()`。R / Retry 不重新 `apply_character`。debug 构建 F1 在 boar/chicken 之间切换本局角色，已有升级保留在新底值上，不改档、不写盘。
+- `DebugOverlay` 增补 `char: boar` / `char: chicken`。不要第五块 HUD。
+
+**当时不做：** RecordSelector / New Record Editor、WinnerPage v2、Skeleton2D 走路循环、鸡专属卡池 / 主动技能 / 二段跳、同机 2P、局域网、中途续打、任何 Autoload。
+
+## 下一步：Day 47（Arc C RecordSelector）
+
+**Day 46 = Arc B `CharacterDef`（已完成）**：猪/鸡底值立住；升级从角色底值重算；F1 仅 debug 换鸡（贴图 `chik.png`）；菜单仍三选一；隐式档仍 boar；无骨骼。
+
+**Day 47 = Arc C RecordSelector**：取代 ModeOverlay 三张卡，Play 进档位列表，`loop_goal` 滑杆。不要做中途续档、不要做 WinnerPage、不要做 2P。之后 Arc D WinnerPage v2，再才是同机 2P / 局域网。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。

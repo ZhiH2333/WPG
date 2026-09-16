@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CharacterCatalog" format=3]
+
+[ext_resource type="Script" path="res://data/character_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://data/character_catalog.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/characters/boar.tres" id="2_boar"]
+[ext_resource type="Resource" path="res://data/characters/chicken.tres" id="3_chicken"]
+
+[resource]
+script = ExtResource("1_script")
+entries = Array[ExtResource("1_def")]([ExtResource("2_boar"), ExtResource("3_chicken")])

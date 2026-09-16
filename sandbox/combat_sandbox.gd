@@ -10,6 +10,7 @@ const DEATH_SHARD_SCENE: PackedScene = preload("res://combat/death_shard.tscn")
 const DEATH_SHARD_CAPACITY: int = 64
 const COMBAT_MUSIC_DB: float = -22.0
 const UPGRADE_CATALOG: UpgradeCatalog = preload("res://data/upgrade_catalog.tres")
+const CHARACTER_CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const REQUIRED_UPGRADE_IDS: PackedStringArray = [
 	"max_hp_s", "max_hp_m", "swift", "heavy_round", "cadence",
 	"long_shot", "second_skin", "extra_pellets", "steady_rifle", "thick_hide",
@@ -162,6 +163,7 @@ func _bind_runtime() -> void:
 	_assert_upgrade_catalog()
 	_run_session.configure_mode(GameLaunch.take_mode() == GameLaunch.Mode.SOLO)
 	_bind_playable_record()
+	_apply_record_character()
 	_run_session.restart()
 	_apply_loop_pressure()
 	_encounter.restart()
@@ -437,6 +439,16 @@ func _on_pause_retried() -> void:
 func _on_pause_quit() -> void:
 	_return_to_menu()
 
+func _apply_record_character() -> void:
+	var record: GameRecord = GameRecords.get_record(_record_id)
+	var character_id: String = "boar"
+	if record != null:
+		character_id = record.character_id
+	var def: CharacterDef = CHARACTER_CATALOG.get_by_id(StringName(character_id))
+	if def == null:
+		def = CHARACTER_CATALOG.get_by_id(&"boar")
+	_player.apply_character(def)
+
 func _bind_playable_record() -> void:
 	GameRecords.load_from_disk()
 	_record_id = GameLaunch.take_active_record_id()
@@ -471,6 +483,10 @@ func _try_debug_hotkeys(event: InputEvent) -> void:
 	var key: InputEventKey = event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
+	if key.physical_keycode == KEY_F1:
+		get_viewport().set_input_as_handled()
+		_debug_swap_character()
+		return
 	if key.physical_keycode == KEY_F4:
 		get_viewport().set_input_as_handled()
 		_toggle_god_mode()
@@ -482,6 +498,20 @@ func _try_debug_hotkeys(event: InputEvent) -> void:
 	if key.physical_keycode == KEY_F2:
 		get_viewport().set_input_as_handled()
 		_debug_jump_boss()
+
+func _debug_swap_character() -> void:
+	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+		return
+	var next_id: StringName = &"chicken"
+	if _player.get_character_id() == "chicken":
+		next_id = &"boar"
+	var def: CharacterDef = CHARACTER_CATALOG.get_by_id(next_id)
+	if def == null:
+		return
+	_player.apply_character(def)
+	_upgrade_applier.capture_baseline()
+	_upgrade_applier.apply_owned()
+	_player.get_player_health().fill_hp()
 
 func _toggle_god_mode() -> void:
 	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():

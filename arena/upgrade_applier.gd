@@ -35,6 +35,8 @@ func capture_baseline() -> void:
 	_base_max_hp = health.max_hp
 	_base_i_frame_sec = health.i_frame_sec
 	_base_move_speed = _player.get_player_motor().move_speed
+	if _captured:
+		return
 	_base_knockback_impulse = _player.knockback_impulse
 	_base_weapon_damage = PackedInt32Array()
 	_base_weapon_fire_interval = PackedFloat32Array()

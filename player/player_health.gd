@@ -27,6 +27,17 @@ func get_hp() -> int:
 func get_max_hp() -> int:
 	return max_hp
 
+func set_full_max_hp(new_max: int) -> void:
+	max_hp = maxi(1, new_max)
+	if _defeated:
+		return
+	_hp = max_hp
+
+func fill_hp() -> void:
+	if _defeated:
+		return
+	_hp = max_hp
+
 func apply_max_hp(new_max: int) -> void:
 	new_max = maxi(1, new_max)
 	var delta: int = new_max - max_hp

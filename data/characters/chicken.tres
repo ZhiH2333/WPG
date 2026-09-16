@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://data/character_def.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dqo6ddvnmnobq" path="res://images/chik.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"chicken"
+display_name = "Chicken"
+description = "Hard to hit."
+base_max_hp = 80
+base_move_speed = 480.0
+base_acceleration = 2400.0
+base_deceleration = 3200.0
+base_friction = 1800.0
+base_turn_angle_degrees = 90.0
+base_i_frame_sec = 0.45
+hurtbox_radius = 16.0
+body_scale = Vector2(0.052, 0.052)
+body_texture = ExtResource("2_tex")

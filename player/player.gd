@@ -8,6 +8,7 @@ const KNOCKBACK_DAMPING: float = 1800.0
 @export var knockback_max_speed: float = 260.0
 
 var _knockback_velocity: Vector2 = Vector2.ZERO
+var _character_id: String = "boar"
 var _hit_reaction: HitReaction
 
 @onready var _player_input: PlayerInput = $PlayerInput
@@ -20,6 +21,7 @@ var _hit_reaction: HitReaction
 @onready var _muzzle: Marker2D = $Visual/Guns/Muzzle
 @onready var _weapon_host: WeaponHost = $WeaponHost
 @onready var _fire_feedback: FireFeedback = $FireFeedback
+@onready var _hurtbox: CollisionShape2D = $CollisionShape2D
 
 func _ready() -> void:
 	motion_mode = MOTION_MODE_FLOATING
@@ -50,6 +52,23 @@ func get_player_dash() -> PlayerDash:
 
 func get_weapon_host() -> WeaponHost:
 	return _weapon_host
+
+func get_character_id() -> String:
+	return _character_id
+
+func apply_character(def: CharacterDef) -> void:
+	if def == null:
+		return
+	_character_id = String(def.id)
+	_player_health.set_full_max_hp(def.base_max_hp)
+	_player_health.i_frame_sec = def.base_i_frame_sec
+	_player_motor.move_speed = def.base_move_speed
+	_player_motor.acceleration = def.base_acceleration
+	_player_motor.deceleration = def.base_deceleration
+	_player_motor.friction = def.base_friction
+	_player_motor.turn_angle_degrees = def.base_turn_angle_degrees
+	_apply_hurtbox_radius(def.hurtbox_radius)
+	_apply_body_visual(def)
 
 func get_pistol() -> Pistol:
 	return _weapon_host.get_pistol()
@@ -158,3 +177,16 @@ func _bind_hit_reaction() -> void:
 	_hit_reaction.name = "HitReaction"
 	add_child(_hit_reaction)
 	_hit_reaction.bind_visual(_visual)
+
+func _apply_hurtbox_radius(radius: float) -> void:
+	var circle: CircleShape2D = _hurtbox.shape as CircleShape2D
+	if circle == null:
+		return
+	circle.radius = radius
+
+func _apply_body_visual(def: CharacterDef) -> void:
+	var texture: Texture2D = def.body_texture
+	if texture == null:
+		texture = load(FacingContract.PLAYER_TEXTURE) as Texture2D
+	_body.texture = texture
+	_body.scale = def.body_scale
