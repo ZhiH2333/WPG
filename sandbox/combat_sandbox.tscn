@@ -17,7 +17,7 @@
 [ext_resource type="Script" path="res://arena/run_session.gd" id="12_run"]
 [ext_resource type="Script" path="res://arena/upgrade_applier.gd" id="13_applier"]
 [ext_resource type="PackedScene" path="res://ui/upgrade_offer.tscn" id="14_offer"]
-[ext_resource type="PackedScene" path="res://ui/run_summary.tscn" id="15_summary"]
+[ext_resource type="PackedScene" path="res://ui/winner_page.tscn" id="15_winner"]
 [ext_resource type="PackedScene" path="res://ui/shop_offer.tscn" id="17_shop"]
 [ext_resource type="PackedScene" path="res://ui/pause_overlay.tscn" id="18_pause"]
 [ext_resource type="Script" path="res://sandbox/arena_floor.gd" id="21_floor"]
@@ -265,7 +265,7 @@ script = ExtResource("13_applier")
 
 [node name="Hud" parent="." instance=ExtResource("11_hud")]
 
-[node name="RunSummary" parent="." instance=ExtResource("15_summary")]
+[node name="WinnerPage" parent="." instance=ExtResource("15_winner")]
 
 [node name="UpgradeOffer" parent="." instance=ExtResource("14_offer")]
 

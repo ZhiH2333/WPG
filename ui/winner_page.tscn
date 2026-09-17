@@ -1,0 +1,179 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/winner_page.gd" id="1_winner"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+
+[node name="WinnerPage" type="CanvasLayer"]
+layer = 22
+visible = false
+script = ExtResource("1_winner")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Dimmer" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.45)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root/Center"]
+custom_minimum_size = Vector2(1080, 560)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"RunSummaryPanel"
+
+[node name="Column" type="VBoxContainer" parent="Root/Center/Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Body" type="HBoxContainer" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 32
+
+[node name="Left" type="VBoxContainer" parent="Root/Center/Panel/Column/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryTitle"
+text = "DEAD"
+
+[node name="RecordName" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "-"
+
+[node name="Score" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"WinnerScore"
+text = "score  0"
+
+[node name="NewBest" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"WinnerNewBest"
+text = "NEW BEST"
+
+[node name="LoopBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "loop  0  ×1000  =  0"
+
+[node name="KillsBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "kills  0  ×5  =  0"
+
+[node name="GoldBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "gold  0  ×2  =  0"
+
+[node name="TimeBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "time  0.0s  →  0"
+
+[node name="ClearedBonus" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "cleared  +5000"
+
+[node name="Summary" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "loop  0    kills  0    gold  0    time  0.0s    owned  -"
+autowrap_mode = 2
+
+[node name="Right" type="VBoxContainer" parent="Root/Center/Panel/Column/Body"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="HistTitle" type="Label" parent="Root/Center/Panel/Column/Body/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "THIS RECORD"
+
+[node name="HistList" type="VBoxContainer" parent="Root/Center/Panel/Column/Body/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="HistEmpty" type="Label" parent="Root/Center/Panel/Column/Body/Right"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"WinnerHist"
+text = "-"
+
+[node name="Rank" type="Label" parent="Root/Center/Panel/Column/Body/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+text = "rank  -"
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Retry" type="Button" parent="Root/Center/Panel/Column/Buttons"]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "Retry"
+
+[node name="Menu" type="Button" parent="Root/Center/Panel/Column/Buttons"]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "Menu"
+
+[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="ClickSfx" type="AudioStreamPlayer" parent="."]

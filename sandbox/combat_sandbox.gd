@@ -25,6 +25,8 @@ var _offer_is_phrase: bool = false
 var _progress_written: bool = false
 var _record_id: String = ""
 var _god_mode: bool = false
+var _leaving: bool = false
+var _reset_frame: int = -1
 
 @onready var _walls: Node2D = $Walls
 @onready var _player: Player = $Player
@@ -34,7 +36,7 @@ var _god_mode: bool = false
 @onready var _hud: Hud = $Hud
 @onready var _upgrade_offer: UpgradeOffer = $UpgradeOffer
 @onready var _shop_offer: ShopOffer = $ShopOffer
-@onready var _run_summary: RunSummary = $RunSummary
+@onready var _winner_page: WinnerPage = $WinnerPage
 @onready var _projectiles: ProjectilePool = $Projectiles
 @onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
 @onready var _hit_sparks: HitSparkPool = $HitSparks
@@ -84,7 +86,7 @@ func _process(delta: float) -> void:
 		_loop_phrases()
 	_run_session.tick(delta)
 	if _run_session.is_player_dead() or _run_session.is_cleared():
-		_record_progress_if_needed()
+		_show_winner_if_needed()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_pause_toggle(event):
@@ -94,11 +96,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("sandbox_reset"):
 		if _pause_overlay.is_open():
 			return
-		_reset_sandbox()
 		get_viewport().set_input_as_handled()
+		if _winner_page.is_open():
+			_on_winner_retry()
+			return
+		_reset_sandbox()
 		return
 	if event.is_action_pressed("debug_grant_upgrade"):
-		if _pause_overlay.is_open():
+		if _pause_overlay.is_open() or _winner_page.is_open():
 			return
 		_try_debug_grant()
 		get_viewport().set_input_as_handled()
@@ -182,9 +187,11 @@ func _bind_runtime() -> void:
 	_pause_overlay.resumed.connect(_on_pause_resumed)
 	_pause_overlay.retried.connect(_on_pause_retried)
 	_pause_overlay.quit_pressed.connect(_on_pause_quit)
-	_run_summary.bind_run_session(_run_session)
+	_winner_page.retry_pressed.connect(_on_winner_retry)
+	_winner_page.menu_pressed.connect(_on_winner_menu)
 	_debug_overlay.bind_run_session(_run_session)
 	_debug_overlay.bind_upgrade_offer(_upgrade_offer)
+	_debug_overlay.bind_winner_page(_winner_page)
 	_debug_overlay.bind_record_id(_record_id)
 	_debug_overlay.set_last_grant_id("-")
 
@@ -248,7 +255,7 @@ func _finish_loop_after_shop() -> void:
 		_park_combat_pools()
 		_hold_all_in_reserve()
 		_set_offer_input_lock(true)
-		_record_progress_if_needed()
+		_show_winner_if_needed()
 		return
 	_apply_loop_pressure()
 	_encounter.restart()
@@ -259,6 +266,12 @@ func _apply_loop_pressure() -> void:
 		enemy.apply_loop_pressure(loop_index)
 
 func _reset_sandbox() -> void:
+	var frame: int = Engine.get_process_frames()
+	if _reset_frame == frame:
+		return
+	_reset_frame = frame
+	if _winner_page.is_open():
+		_winner_page.close()
 	if _upgrade_offer.is_open():
 		_close_offer()
 	if _shop_offer.is_open():
@@ -275,7 +288,7 @@ func _reset_sandbox() -> void:
 	_set_offer_input_lock(false)
 
 func _try_debug_grant() -> void:
-	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open():
+	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _winner_page.is_open():
 		return
 	if _player.is_defeated():
 		return
@@ -393,7 +406,7 @@ func _on_window_mouse_exited() -> void:
 	_sync_system_cursor()
 
 func _sync_system_cursor() -> void:
-	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _run_session.is_cleared():
+	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _winner_page.is_open() or _run_session.is_player_dead() or _run_session.is_cleared():
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_aim_reticle.visible = false
 		return
@@ -423,7 +436,7 @@ func _is_pause_toggle(event: InputEvent) -> bool:
 func _on_pause_toggle() -> void:
 	if _pause_overlay.is_open():
 		return
-	if _player.is_defeated() or _run_session.is_cleared() or _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _winner_page.is_open() or _player.is_defeated() or _run_session.is_cleared() or _upgrade_offer.is_open() or _shop_offer.is_open():
 		_return_to_menu()
 		return
 	_set_offer_input_lock(true)
@@ -469,6 +482,28 @@ func _record_outcome() -> String:
 		return "dead"
 	return "quit"
 
+func _show_winner_if_needed() -> void:
+	if _winner_page.is_open():
+		return
+	GameRecords.load_from_disk()
+	var previous_best: int = 0
+	var record: GameRecord = GameRecords.get_record(_record_id)
+	if record != null:
+		previous_best = record.best_score
+	_record_progress_if_needed()
+	_winner_page.present(_record_id, _run_session, previous_best)
+	_set_offer_input_lock(true)
+	_sync_system_cursor()
+
+func _on_winner_retry() -> void:
+	if not _winner_page.is_open():
+		return
+	_winner_page.close()
+	_reset_sandbox()
+
+func _on_winner_menu() -> void:
+	_return_to_menu()
+
 func _record_progress_if_needed() -> void:
 	if _progress_written:
 		return
@@ -477,6 +512,9 @@ func _record_progress_if_needed() -> void:
 	_progress_written = true
 
 func _return_to_menu() -> void:
+	if _leaving:
+		return
+	_leaving = true
 	_record_progress_if_needed()
 	var tree: SceneTree = get_tree()
 	if tree != null:
@@ -506,7 +544,7 @@ func _try_debug_hotkeys(event: InputEvent) -> void:
 		_debug_jump_boss()
 
 func _debug_swap_character() -> void:
-	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _pause_overlay.is_open() or _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
 		return
 	var next_id: StringName = &"chicken"
 	if _player.get_character_id() == "chicken":
@@ -520,13 +558,13 @@ func _debug_swap_character() -> void:
 	_player.get_player_health().fill_hp()
 
 func _toggle_god_mode() -> void:
-	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _pause_overlay.is_open() or _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
 		return
 	_god_mode = not _god_mode
 	_player.get_player_health().set_debug_god(_god_mode)
 
 func _debug_jump_final_loop() -> void:
-	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _pause_overlay.is_open() or _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
 		return
 	if _run_session.get_loop_goal() <= 0 or not _run_session.is_playing() or _run_session.is_cleared():
 		return
@@ -539,7 +577,7 @@ func _debug_jump_final_loop() -> void:
 	_encounter.restart()
 
 func _debug_jump_boss() -> void:
-	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _pause_overlay.is_open() or _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
 		return
 	if not _run_session.is_playing() or _run_session.is_cleared():
 		return
@@ -554,7 +592,7 @@ func _tick_god_mode_kills() -> void:
 		return
 	if not _run_session.is_playing() or _player.is_defeated() or _run_session.is_cleared():
 		return
-	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open():
+	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _winner_page.is_open():
 		return
 	for enemy: EnemyBase in _enemies:
 		if enemy.is_in_reserve() or enemy.is_defeated():

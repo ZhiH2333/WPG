@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出档位列表（RecordSelector）。空档时只有 “+ New Record”；点已有档直接进沙盒；新建档时选野猪/野鸡和 loop 目标（滑杆 0=Inf，默认 20）。没有 Solo / Infinite / Multi 三张卡，Multi 不进这套 UI。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；已死或弹窗开着时 Esc 仍立刻回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出档位列表（RecordSelector）。空档时只有 “+ New Record”；点已有档直接进沙盒；新建档时选野猪/野鸡和 loop 目标（滑杆 0=Inf，默认 20）。没有 Solo / Infinite / Multi 三张卡，Multi 不进这套 UI。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。**Day 47（已完成）= RecordSelector**。下一步不是 2P：Day 48 WinnerPage v2，再 Day 49 同机 2P、Day 50+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打、无 WinnerPage
+- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。**Day 47（已完成）= RecordSelector**。**Day 48（已完成）= WinnerPage v2**。下一步才是 Day 49 同机 2P、Day 50+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打
 - GPUParticles2D 死亡粒子海、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -914,10 +914,10 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）+ 菜单 main.mp3 + 战斗 war.mp3
 arena/      EncounterPhrases 手写句读（P0–P7 + Boss，PHRASE_TOTAL=9）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ RecordSelector（Play 后档位列表 + New Record 编辑态，无灰 Multi 卡）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs，仍只读 progress.cfg）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload；进沙盒只传 id）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，可写 boar/chicken，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + RunSummary（DEAD / CLEARED，含 best）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `loop_goal>0` 时 `L0/5  0/9`，否则 `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关结算条 layer=15 含 loop/gold/best；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ RecordSelector（Play 后档位列表 + New Record 编辑态，无灰 Multi 卡）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs，仍只读 progress.cfg）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload；进沙盒只传 id）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，可写 boar/chicken，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + WinnerPage（layer=22，DEAD/CLEARED，分数拆解 + 本档 Top 10 + Retry/Menu）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `loop_goal>0` 时 `L0/5  0/9`，否则 `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关 WinnerPage layer=22 含拆解与本档历史；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；CharacterDef + CharacterCatalog.tres + data/characters/ 野猪/野鸡底值；升级从角色底值重算
 debug/      DebugOverlay
-sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite 隐式 boar；Floor 平铺地砖 / Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / HitSparks / DeathShards / CombatMusic / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / RunSummary / PauseOverlay / DebugOverlay）
+sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite 隐式 boar；Floor 平铺地砖 / Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / HitSparks / DeathShards / CombatMusic / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / WinnerPage / PauseOverlay / DebugOverlay）
 ```
 
 ## 碰撞层
@@ -955,7 +955,7 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 | **45（已完成）** | Arc A `GameRecords`：`user://records.json`，上限 12，每局新开只记结果 | 档位数据立住；菜单仍是 Solo / Infinite 三选一；Profile 仍读 progress.cfg | RecordSelector UI、野鸡数值、WinnerPage、2P |
 | **46（已完成）** | Arc B `CharacterDef`：野猪 / 野鸡底值 | 两套身份数字，卡池仍共用；菜单仍三选一、隐式档仍 boar | 骨骼、专属卡池、2P |
 | **47（已完成）** | Arc C RecordSelector 取代 ModeOverlay；`loop_goal` 滑杆 | Play 进档位列表；选已有档直接开打；建档可选猪/鸡 | 中途续档、Multi 进 Record |
-| **48** | Arc D WinnerPage v2：独立结算 + 本档历史对比 | 死 / 通关有分数和对比榜 | 云同步、成就 |
+| **48（已完成）** | Arc D WinnerPage v2：独立结算 + 本档历史对比 | 死 / 通关有分数拆解和本档 Top 10 | 云同步、成就 |
 | **49** | 同机 2P 试水（每人各自选角色） | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
 | **50+** | 局域网房间，最多 5 头猪/鸡，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
@@ -1023,8 +1023,25 @@ Play 进档位列表，不再弹出 Solo / Infinite / Multi 三张卡。点已�
 
 **当时不做：** WinnerPage v2、独立结算全屏、中途续打、同机 2P、局域网、骨骼走路、鸡专属卡池、第二份 player 场景、任何 Autoload。
 
-## 下一步：Day 48（Arc D WinnerPage v2）
+## Day 48（已完成）：WinnerPage v2
 
-**Day 47 = Arc C RecordSelector（已完成）**：Play 进档位列表；建档可选猪/鸡和 loop 目标；CLEARED 读档内目标；Multi 仍不进 Record。
+死了或通关不再是一条只读小条。`WinnerPage` 是独立 tscn，以 CanvasLayer layer=22 叠在沙盒上，不 `change_scene` 到结算页，不卸沙盒。碎块还在飞。Retry 走 `_reset_sandbox()`。仓库里唯一 `get_tree().paused = true` 仍是 PauseOverlay。Autoload 仍为 0。算分公式未改。Profile 仍只读 `progress.cfg`。已删除 `RunSummary`。
 
-**Day 48 = Arc D WinnerPage v2**：独立结算 + 本档历史对比。不要做云同步、不要做 2P、不要做中途续打。之后才是同机 2P / 局域网。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。
+- `ui/winner_page.gd`（`class_name WinnerPage`）+ `ui/winner_page.tscn`：信号 `retry_pressed` / `menu_pressed`。`present(record_id, session, previous_best)` 一次填死所有 Label，禁止 `_process` 轮询分数。Dimmer `Color(0,0,0,0.45)`。进场 `UiAnim.enter_overlay`，逻辑开关瞬时。PROCESS_MODE_INHERIT。
+- 只在 DEAD / CLEARED 弹出。活着暂停 Quit → `_record_progress_if_needed()`（outcome=quit）→ 主菜单，不 present。
+- 沙盒先读 `previous_best`，再 `GameProgress.record_run` + `GameRecords.append_run_result`，再 present。NEW BEST 用 `this_score > previous_best`，不要用写盘后的 `record.best_score`。
+- 分数只调 `GameRecords.compute_score`：`loop*1000 + kills*5 + gold*2 + floori(time_sec) + (cleared?5000:0)`。WinnerPage 不再写一份。
+- 左列：CLEARED / DEAD、档名、大分、可选 NEW BEST、四行拆解、通关才 `cleared  +5000`、汇总 loop/kills/gold/time/owned。
+- 右列 THIS RECORD：本档 history 最多 10 行 `#N  score   Lloop  DEAD|CLEARED|QUIT  time`；用 timestamp+score 高亮本局（并列取第一条匹配）；`rank  %d / %d`。不跨档、不读 progress.cfg。
+- 底排 Retry（PillPink，默认焦点）/ Menu（PillNeutral）。R = Retry；Esc / Start = Menu。hover/click 复用现有 wav。
+- R / Retry 不换档、不 take Launch、不重新 configure_mode。Esc 在 Winner 开着回菜单，不开暂停。
+- DebugOverlay 增补 `score` / `winner: on|off`。战斗 HUD 不加结算数字。
+- 已删除 `ui/run_summary.gd` / `ui/run_summary.tscn`。Theme 的 RunSummary* / ClearedTitle 保留给 WinnerPage 用。
+
+**当时不做：** 同机 2P、局域网、云同步、成就、排行榜、截图分享、中途续打、Autoload、分数滚动动画、全屏 HTML 结算、独立 BGM、`tr()`。
+
+## 下一步：Day 49（同机 2P）
+
+**Day 48 = Arc D WinnerPage v2（已完成）**：独立结算叠在沙盒上；先 previous_best 再双写；只 DEAD/CLEARED；活着 Quit 不进页；公式未改；Profile 仍 progress.cfg。
+
+**Day 49 = 同机 2P 试水**（每人各自选角色）。不要做房间浏览器、不要做 5 人、不要做局域网。之后才是 Day 50+ 局域网。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。
