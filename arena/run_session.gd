@@ -24,7 +24,7 @@ var _player: Player
 var _encounter: EncounterPhrases
 var _catalog: UpgradeCatalog
 var _outcome: Outcome = Outcome.PLAYING
-var _solo: bool = false
+var _loop_goal: int = 0
 var _elapsed_sec: float = 0.0
 var _owned_ids: PackedStringArray = PackedStringArray()
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -44,11 +44,14 @@ func bind_encounter(encounter: EncounterPhrases) -> void:
 func bind_catalog(catalog: UpgradeCatalog) -> void:
 	_catalog = catalog
 
-func configure_mode(solo: bool) -> void:
-	_solo = solo
+func configure_mode(loop_goal: int) -> void:
+	_loop_goal = maxi(loop_goal, 0)
+
+func get_loop_goal() -> int:
+	return _loop_goal
 
 func is_solo() -> bool:
-	return _solo
+	return _loop_goal > 0
 
 func try_grant(upgrade_id: StringName) -> bool:
 	if _catalog == null:

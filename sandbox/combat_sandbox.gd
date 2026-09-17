@@ -161,8 +161,8 @@ func _bind_runtime() -> void:
 	_run_session.bind_encounter(_encounter)
 	_run_session.bind_catalog(UPGRADE_CATALOG)
 	_assert_upgrade_catalog()
-	_run_session.configure_mode(GameLaunch.take_mode() == GameLaunch.Mode.SOLO)
 	_bind_playable_record()
+	_run_session.configure_mode(_read_record_loop_goal())
 	_apply_record_character()
 	_run_session.restart()
 	_apply_loop_pressure()
@@ -243,7 +243,7 @@ func _loop_phrases() -> void:
 
 func _finish_loop_after_shop() -> void:
 	_run_session.notify_phrase_loop()
-	if _run_session.is_solo() and _run_session.get_loop_index() >= GameLaunch.SOLO_LOOP_GOAL:
+	if _run_session.get_loop_goal() > 0 and _run_session.get_loop_index() >= _run_session.get_loop_goal():
 		_run_session.mark_cleared()
 		_park_combat_pools()
 		_hold_all_in_reserve()
@@ -453,8 +453,14 @@ func _bind_playable_record() -> void:
 	GameRecords.load_from_disk()
 	_record_id = GameLaunch.take_active_record_id()
 	if _record_id.is_empty() or GameRecords.get_record(_record_id) == null:
-		var loop_goal: int = GameLaunch.SOLO_LOOP_GOAL if _run_session.is_solo() else 0
-		_record_id = GameRecords.ensure_playable_record("boar", loop_goal).id
+		var fallback_goal: int = GameLaunch.SOLO_LOOP_GOAL if GameLaunch.take_mode() == GameLaunch.Mode.SOLO else 0
+		_record_id = GameRecords.ensure_playable_record("boar", fallback_goal).id
+
+func _read_record_loop_goal() -> int:
+	var record: GameRecord = GameRecords.get_record(_record_id)
+	if record == null:
+		return 0
+	return record.loop_goal
 
 func _record_outcome() -> String:
 	if _run_session.is_cleared():
@@ -522,11 +528,11 @@ func _toggle_god_mode() -> void:
 func _debug_jump_final_loop() -> void:
 	if _pause_overlay.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
 		return
-	if not _run_session.is_solo() or not _run_session.is_playing() or _run_session.is_cleared():
+	if _run_session.get_loop_goal() <= 0 or not _run_session.is_playing() or _run_session.is_cleared():
 		return
 	if _player.is_defeated():
 		return
-	_run_session.debug_set_loop_index(19)
+	_run_session.debug_set_loop_index(_run_session.get_loop_goal() - 1)
 	_apply_loop_pressure()
 	_park_combat_pools()
 	_hold_all_in_reserve()

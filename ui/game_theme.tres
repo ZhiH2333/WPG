@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=35 format=3]
+[gd_resource type="Theme" load_steps=40 format=3]
 
 [sub_resource type="StyleBoxFlat" id="sb_hp_bg"]
 bg_color = Color(0.09, 0.075, 0.105, 0.85)
@@ -387,6 +387,58 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="sb_line_edit"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+bg_color = Color(0.19, 0.16, 0.225, 0.97)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="sb_line_edit_focus"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+bg_color = Color(0.19, 0.16, 0.225, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.55, 0.76, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="sb_slider"]
+content_margin_left = 0.0
+content_margin_top = 10.0
+content_margin_right = 0.0
+content_margin_bottom = 10.0
+bg_color = Color(0.14, 0.12, 0.165, 0.95)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_slider_grabber"]
+bg_color = Color(1, 0.4, 0.67, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_slider_grabber_hl"]
+bg_color = Color(1, 0.55, 0.76, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [resource]
 default_font_size = 18
 Button/colors/font_color = Color(0.97, 0.94, 0.96, 1)
@@ -572,3 +624,12 @@ ProfileHeader/colors/font_color = Color(1, 0.55, 0.76, 1)
 ProfileHeader/colors/font_outline_color = Color(0, 0, 0, 0.4)
 ProfileHeader/constants/outline_size = 2
 ProfileHeader/font_sizes/font_size = 22
+LineEdit/colors/caret_color = Color(1, 0.4, 0.67, 1)
+LineEdit/colors/font_color = Color(0.97, 0.94, 0.96, 1)
+LineEdit/colors/font_placeholder_color = Color(0.8, 0.75, 0.81, 0.7)
+LineEdit/styles/focus = SubResource("sb_line_edit_focus")
+LineEdit/styles/normal = SubResource("sb_line_edit")
+LineEdit/styles/read_only = SubResource("sb_line_edit")
+HSlider/styles/grabber_area = SubResource("sb_slider_grabber")
+HSlider/styles/grabber_area_highlight = SubResource("sb_slider_grabber_hl")
+HSlider/styles/slider = SubResource("sb_slider")

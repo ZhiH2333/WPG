@@ -9,7 +9,6 @@ const TMP_NAME := "records.json.tmp"
 const SAVE_VERSION: int = 1
 const MAX_RECORDS: int = 12
 const MAX_HISTORY: int = 10
-const WRITE_CHARACTER_ID := "boar"
 
 static var _records: Array[GameRecord] = []
 
@@ -65,7 +64,7 @@ static func create_record(name: String, character_id: String, loop_goal: int) ->
 	record.id = _make_record_id()
 	record.loop_goal = maxi(loop_goal, 0)
 	record.character_id = _character_id_for_write(character_id)
-	record.name = _resolve_name(name, record.loop_goal)
+	record.name = _resolve_name(name, record.character_id, record.loop_goal)
 	record.created_at = int(Time.get_unix_time_from_system())
 	record.best_score = 0
 	_records.append(record)
@@ -144,15 +143,18 @@ static func _write_atomic(text: String) -> void:
 static func _make_record_id() -> String:
 	return "r%d-%d" % [int(Time.get_unix_time_from_system()), randi()]
 
-static func _character_id_for_write(_requested: String) -> String:
-	return WRITE_CHARACTER_ID
+static func _character_id_for_write(requested: String) -> String:
+	if requested == "boar" or requested == "chicken":
+		return requested
+	return "boar"
 
-static func _resolve_name(name: String, loop_goal: int) -> String:
+static func _resolve_name(name: String, character_id: String, loop_goal: int) -> String:
 	if not name.strip_edges().is_empty():
 		return name.strip_edges()
+	var species: String = "Chicken" if character_id == "chicken" else "Boar"
 	if loop_goal > 0:
-		return "Boar · %d loops" % loop_goal
-	return "Boar · Inf"
+		return "%s · %d loops" % [species, loop_goal]
+	return "%s · Inf" % species
 
 static func _sanitize_outcome(value: String) -> String:
 	if value == "dead" or value == "cleared" or value == "quit":

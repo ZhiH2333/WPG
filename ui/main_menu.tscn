@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="3_overlay"]
-[ext_resource type="PackedScene" path="res://ui/mode_overlay.tscn" id="4_mode"]
+[ext_resource type="PackedScene" path="res://ui/record_selector.tscn" id="4_records"]
 [ext_resource type="PackedScene" path="res://ui/profile_overlay.tscn" id="16_profile"]
 [ext_resource type="Shader" path="res://ui/menu_blur.gdshader" id="5_blur"]
 [ext_resource type="Texture2D" path="res://images/mainmenu.png" id="6_bg"]
@@ -418,7 +418,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ModeOverlay" parent="." instance=ExtResource("4_mode")]
+[node name="RecordSelector" parent="." instance=ExtResource("4_records")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

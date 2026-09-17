@@ -34,7 +34,7 @@ var _hover_tweens: Dictionary = {}
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
 @onready var _overlay: SettingsOverlay = $SettingsOverlay
-@onready var _mode_overlay: ModeOverlay = $ModeOverlay
+@onready var _record_selector: RecordSelector = $RecordSelector
 @onready var _profile_overlay: ProfileOverlay = $ProfileOverlay
 @onready var _profile_button: Button = $TopBar/Row/Profile
 @onready var _profile_name: Label = $TopBar/Row/Profile/Layout/Name
@@ -56,8 +56,7 @@ func _ready() -> void:
 	_home_button.pressed.connect(_on_home_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_profile_button.pressed.connect(_on_profile_pressed)
-	_mode_overlay.selected_solo.connect(_enter_solo)
-	_mode_overlay.selected_infinite.connect(_enter_infinite)
+	_record_selector.selected_record.connect(_enter_record)
 	_wire_strip_hover(_settings_button)
 	_wire_strip_hover(_play_button)
 	_wire_strip_hover(_quit_button)
@@ -82,10 +81,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			_overlay.close()
 			return
-		if _mode_overlay.is_open():
-			get_viewport().set_input_as_handled()
-			_mode_overlay.close()
-			return
 		if _profile_overlay.is_open():
 			get_viewport().set_input_as_handled()
 			_profile_overlay.close()
@@ -95,29 +90,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _any_overlay_open():
 			return
 		get_viewport().set_input_as_handled()
-		_mode_overlay.open()
+		_record_selector.open()
 
 func _any_overlay_open() -> bool:
-	return _overlay.is_open() or _mode_overlay.is_open() or _profile_overlay.is_open()
+	return _overlay.is_open() or _record_selector.is_open() or _profile_overlay.is_open()
 
 func _on_play_pressed() -> void:
 	if _overlay.is_open():
 		return
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
-	_mode_overlay.open()
+	_record_selector.open()
 
-func _enter_solo() -> void:
-	GameLaunch.set_mode(GameLaunch.Mode.SOLO)
-	get_tree().change_scene_to_file(SANDBOX_SCENE)
-
-func _enter_infinite() -> void:
-	GameLaunch.set_mode(GameLaunch.Mode.INFINITE)
+func _enter_record(id: String) -> void:
+	GameLaunch.set_active_record_id(id)
 	get_tree().change_scene_to_file(SANDBOX_SCENE)
 
 func _on_settings_pressed() -> void:
-	if _mode_overlay.is_open():
-		_mode_overlay.close()
+	if _record_selector.is_open():
+		_record_selector.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
 	_overlay.open()
@@ -125,15 +116,15 @@ func _on_settings_pressed() -> void:
 func _on_profile_pressed() -> void:
 	if _overlay.is_open():
 		_overlay.close()
-	if _mode_overlay.is_open():
-		_mode_overlay.close()
+	if _record_selector.is_open():
+		_record_selector.close()
 	_profile_overlay.open()
 
 func _on_home_pressed() -> void:
 	if _overlay.is_open():
 		_overlay.close()
-	if _mode_overlay.is_open():
-		_mode_overlay.close()
+	if _record_selector.is_open():
+		_record_selector.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
 	_play_button.grab_focus()

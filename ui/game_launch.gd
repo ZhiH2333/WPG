@@ -4,7 +4,7 @@ class_name GameLaunch
 ## 一次性把模式和档位 id 带进沙盒。不是 Autoload，不是 Node，禁止 get_tree()。默认 Infinite，take 后打回 Infinite。只传 id，不塞 Record 对象。
 enum Mode { SOLO, INFINITE }
 
-const SOLO_LOOP_GOAL: int = 20 ## 硬锁 20，不要 2，不要 export
+const SOLO_LOOP_GOAL: int = 20 ## 滑杆默认与缺档 Solo 隐式档，不是运行时硬锁终点
 
 static var _mode: Mode = Mode.INFINITE
 static var _active_record_id: String = ""
