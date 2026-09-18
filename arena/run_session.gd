@@ -21,6 +21,7 @@ const SHOP_COSTS: Dictionary = {
 const SHOP_COST_FALLBACK: int = 30
 
 var _player: Player
+var _players: Array[Player] = []
 var _encounter: EncounterPhrases
 var _catalog: UpgradeCatalog
 var _outcome: Outcome = Outcome.PLAYING
@@ -37,6 +38,16 @@ var _gold: int = 0
 
 func bind_player(player: Player) -> void:
 	_player = player
+	_players.clear()
+	if player != null:
+		_players.append(player)
+
+func bind_players(players: Array[Player]) -> void:
+	_players = players.duplicate()
+	if players.is_empty():
+		_player = null
+		return
+	_player = players[0]
 
 func bind_encounter(encounter: EncounterPhrases) -> void:
 	_encounter = encounter
@@ -167,9 +178,34 @@ func tick(delta: float) -> void:
 	if _outcome != Outcome.PLAYING:
 		return
 	_elapsed_sec += delta
-	if _player != null and _player.is_defeated():
+	if _are_all_defeated():
 		_outcome = Outcome.DEAD
 		_pending_level = 0
+
+func _are_all_defeated() -> bool:
+	if _players.is_empty():
+		return _player != null and _player.is_defeated()
+	for pawn: Player in _players:
+		if pawn != null and not pawn.is_defeated():
+			return false
+	return true
+
+func apply_net_session(loop_index: int, gold: int, kills: int, xp: int, level: int, pending_level: int, outcome_code: int, elapsed_sec: float, owned_ids: PackedStringArray) -> void:
+	_loop_index = loop_index
+	_gold = gold
+	_kill_count = kills
+	_xp = xp
+	_level = maxi(1, level)
+	_pending_level = maxi(0, pending_level)
+	_elapsed_sec = elapsed_sec
+	_owned_ids = owned_ids.duplicate()
+	if outcome_code == int(Outcome.DEAD):
+		_outcome = Outcome.DEAD
+		return
+	if outcome_code == int(Outcome.CLEARED):
+		_outcome = Outcome.CLEARED
+		return
+	_outcome = Outcome.PLAYING
 
 func get_outcome() -> Outcome:
 	return _outcome

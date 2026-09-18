@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://sandbox/combat_sandbox.gd" id="1_sandbox"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -24,6 +24,7 @@
 [ext_resource type="Script" path="res://combat/hit_spark_pool.gd" id="22_spark_pool"]
 [ext_resource type="Script" path="res://combat/death_shard_pool.gd" id="23_shard_pool"]
 [ext_resource type="AudioStream" path="res://audio/war.mp3" id="24_music"]
+[ext_resource type="Script" path="res://arena/net_session.gd" id="25_net"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -256,6 +257,11 @@ script = ExtResource("12_run")
 
 [node name="UpgradeApplier" type="Node" parent="."]
 script = ExtResource("13_applier")
+
+[node name="NetSession" type="Node" parent="."]
+script = ExtResource("25_net")
+
+[node name="Players" type="Node2D" parent="."]
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 

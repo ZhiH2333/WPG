@@ -78,6 +78,8 @@ func _tick_fire() -> void:
 	var now_msec: int = Time.get_ticks_msec()
 	if _player_input == null or _pool == null or _player == null:
 		return
+	if not _player.can_simulate_combat():
+		return
 	if not _player_input.fire_held:
 		_block_held_fire = false
 		_on_fire_released(now_msec)
@@ -93,6 +95,19 @@ func _tick_fire() -> void:
 func _on_fire_released(now_msec: int) -> void:
 	if _should_reset_cooldown_on_release():
 		_next_fire_at_msec = mini(_next_fire_at_msec, now_msec)
+
+func spawn_fx_shot(origin: Vector2, aim: Vector2) -> void:
+	if _pool == null:
+		return
+	var pellet_count: int = _pellets_per_shot()
+	var visual_scale: float = _pellet_visual_scale()
+	var direction_aim: Vector2 = Vector2.RIGHT if aim.is_zero_approx() else aim.normalized()
+	for index: int in pellet_count:
+		var projectile: Projectile = _pool.acquire()
+		if projectile == null:
+			return
+		var direction: Vector2 = _direction_for_pellet(direction_aim, index, pellet_count)
+		projectile.reset(origin, direction * projectile_speed, damage, lifetime, visual_scale, true, true)
 
 func _try_fire() -> bool:
 	var pellet_count: int = _pellets_per_shot()

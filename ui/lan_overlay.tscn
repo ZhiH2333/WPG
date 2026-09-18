@@ -1,0 +1,451 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://ui/lan_overlay.gd" id="1_lan"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+
+[sub_resource type="ButtonGroup" id="group_host_character"]
+
+[sub_resource type="ButtonGroup" id="group_join_character"]
+
+[node name="LanOverlay" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_lan")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.35)
+
+[node name="HomeRoot" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="HomeRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="HomeRoot/Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Title" type="Label" parent="HomeRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "LAN"
+horizontal_alignment = 1
+
+[node name="Host" type="Button" parent="HomeRoot/Center/Column"]
+custom_minimum_size = Vector2(240, 56)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "Host"
+
+[node name="Join" type="Button" parent="HomeRoot/Center/Column"]
+custom_minimum_size = Vector2(240, 56)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "Join"
+
+[node name="HostRoot" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="HostRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="HostRoot/Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="HostRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "HOST"
+horizontal_alignment = 1
+
+[node name="PortLabel" type="Label" parent="HostRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "port  17777"
+horizontal_alignment = 1
+
+[node name="AddressList" type="Label" parent="HostRoot/Center/Column"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "127.0.0.1"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Status" type="Label" parent="HostRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "waiting"
+horizontal_alignment = 1
+
+[node name="Characters" type="HBoxContainer" parent="HostRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Boar" type="Button" parent="HostRoot/Center/Column/Characters"]
+custom_minimum_size = Vector2(240, 200)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+action_mode = 0
+button_group = SubResource("group_host_character")
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+
+[node name="VBox" type="VBoxContainer" parent="HostRoot/Center/Column/Characters/Boar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="HostRoot/Center/Column/Characters/Boar/VBox"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="HostRoot/Center/Column/Characters/Boar/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "Boar"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Desc" type="Label" parent="HostRoot/Center/Column/Characters/Boar/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "Tanky."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Chicken" type="Button" parent="HostRoot/Center/Column/Characters"]
+custom_minimum_size = Vector2(240, 200)
+layout_mode = 2
+toggle_mode = true
+action_mode = 0
+button_group = SubResource("group_host_character")
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+
+[node name="VBox" type="VBoxContainer" parent="HostRoot/Center/Column/Characters/Chicken"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="HostRoot/Center/Column/Characters/Chicken/VBox"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="HostRoot/Center/Column/Characters/Chicken/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "Chicken"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Desc" type="Label" parent="HostRoot/Center/Column/Characters/Chicken/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "Hard to hit."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="LoopRow" type="HBoxContainer" parent="HostRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Slider" type="HSlider" parent="HostRoot/Center/Column/LoopRow"]
+custom_minimum_size = Vector2(280, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+min_value = 0.0
+max_value = 50.0
+step = 5.0
+value = 20.0
+rounded = true
+
+[node name="LoopLabel" type="Label" parent="HostRoot/Center/Column/LoopRow"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "20 loops"
+horizontal_alignment = 2
+
+[node name="Start" type="Button" parent="HostRoot/Center/Column"]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+disabled = true
+text = "Start"
+
+[node name="JoinRoot" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="JoinRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="JoinRoot/Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="JoinRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "JOIN"
+horizontal_alignment = 1
+
+[node name="Address" type="LineEdit" parent="JoinRoot/Center/Column"]
+custom_minimum_size = Vector2(360, 44)
+layout_mode = 2
+mouse_filter = 0
+text = "127.0.0.1"
+placeholder_text = "IPv4"
+caret_blink = true
+
+[node name="Connect" type="Button" parent="JoinRoot/Center/Column"]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "Connect"
+
+[node name="Status" type="Label" parent="JoinRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+horizontal_alignment = 1
+
+[node name="Characters" type="HBoxContainer" parent="JoinRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Boar" type="Button" parent="JoinRoot/Center/Column/Characters"]
+custom_minimum_size = Vector2(240, 200)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+action_mode = 0
+button_group = SubResource("group_join_character")
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+
+[node name="VBox" type="VBoxContainer" parent="JoinRoot/Center/Column/Characters/Boar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="JoinRoot/Center/Column/Characters/Boar/VBox"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="JoinRoot/Center/Column/Characters/Boar/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "Boar"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Desc" type="Label" parent="JoinRoot/Center/Column/Characters/Boar/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "Tanky."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Chicken" type="Button" parent="JoinRoot/Center/Column/Characters"]
+custom_minimum_size = Vector2(240, 200)
+layout_mode = 2
+toggle_mode = true
+action_mode = 0
+button_group = SubResource("group_join_character")
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+
+[node name="VBox" type="VBoxContainer" parent="JoinRoot/Center/Column/Characters/Chicken"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="JoinRoot/Center/Column/Characters/Chicken/VBox"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="JoinRoot/Center/Column/Characters/Chicken/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "Chicken"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Desc" type="Label" parent="JoinRoot/Center/Column/Characters/Chicken/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "Hard to hit."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="GoalLabel" type="Label" parent="JoinRoot/Center/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "goal  20"
+horizontal_alignment = 1
+
+[node name="WaitingLabel" type="Label" parent="JoinRoot/Center/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "waiting for host"
+horizontal_alignment = 1
+
+[node name="Back" type="Button" parent="."]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -68.0
+offset_right = 144.0
+offset_bottom = -24.0
+grow_vertical = 0
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Back"

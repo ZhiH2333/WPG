@@ -34,7 +34,7 @@ func bind_spark_pool(pool: HitSparkPool) -> void:
 func is_parked() -> bool:
 	return not _in_flight
 
-func reset(spawn_position: Vector2, flight_velocity: Vector2, damage: int, lifetime_sec: float, visual_scale: float = 1.0, is_player_shot: bool = true) -> void:
+func reset(spawn_position: Vector2, flight_velocity: Vector2, damage: int, lifetime_sec: float, visual_scale: float = 1.0, is_player_shot: bool = true, fx_only: bool = false) -> void:
 	_in_flight = true
 	_is_player_shot = is_player_shot
 	_damage = damage
@@ -44,6 +44,15 @@ func reset(spawn_position: Vector2, flight_velocity: Vector2, damage: int, lifet
 	global_position = spawn_position
 	_last_global_position = spawn_position
 	rotation = flight_velocity.angle()
+	if fx_only:
+		collision_layer = GameCollisionLayers.MASK_NONE
+		collision_mask = GameCollisionLayers.MASK_NONE
+		_apply_faction_visual(visual_scale)
+		visible = true
+		monitorable = false
+		monitoring = false
+		set_physics_process(true)
+		return
 	_apply_faction_collision()
 	_apply_faction_visual(visual_scale)
 	visible = true

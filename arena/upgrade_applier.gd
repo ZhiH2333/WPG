@@ -1,7 +1,7 @@
 extends Node
 class_name UpgradeApplier
 
-## 从底值重算 owned 合计。禁止在当前值上累加，禁止 UpgradeDef 自己改枪。
+## 从底值重算 owned 合计。禁止在当前值上累加，禁止 UpgradeDef 自己改枪。LAN 两人共用同一份 session owned，各自按自己的角色底值重算。
 const MIN_MAX_HP: int = 1
 const MIN_PELLETS: int = 1
 const MAX_PELLETS: int = 14
@@ -10,56 +10,105 @@ const MIN_MOVE_SPEED: float = 80.0
 const MIN_I_FRAME_SEC: float = 0.05
 
 var _player: Player
+var _pawns: Array[Player] = []
 var _session: RunSession
 var _captured: bool = false
-var _base_max_hp: int = 0
-var _base_i_frame_sec: float = 0.0
-var _base_move_speed: float = 0.0
-var _base_knockback_impulse: float = 0.0
-var _base_weapon_damage: PackedInt32Array = PackedInt32Array()
-var _base_weapon_fire_interval: PackedFloat32Array = PackedFloat32Array()
-var _base_weapon_projectile_speed: PackedFloat32Array = PackedFloat32Array()
-var _base_shotgun_pellets: int = 0
-var _base_rifle_max_spread: float = 0.0
+var _pawn_bases: Array[Dictionary] = []
 
 func bind_player(player: Player) -> void:
 	_player = player
+	_pawns.clear()
+	if player != null:
+		_pawns.append(player)
+
+func bind_players(players: Array[Player]) -> void:
+	_pawns = players.duplicate()
+	if players.is_empty():
+		_player = null
+		return
+	_player = players[0]
 
 func bind_session(session: RunSession) -> void:
 	_session = session
 
 func capture_baseline() -> void:
-	if _player == null:
-		return
-	var health: PlayerHealth = _player.get_player_health()
-	_base_max_hp = health.max_hp
-	_base_i_frame_sec = health.i_frame_sec
-	_base_move_speed = _player.get_player_motor().move_speed
-	if _captured:
-		return
-	_base_knockback_impulse = _player.knockback_impulse
-	_base_weapon_damage = PackedInt32Array()
-	_base_weapon_fire_interval = PackedFloat32Array()
-	_base_weapon_projectile_speed = PackedFloat32Array()
-	var host: WeaponHost = _player.get_weapon_host()
-	for weapon: Weapon in host.get_weapons():
-		_base_weapon_damage.append(weapon.damage)
-		_base_weapon_fire_interval.append(weapon.fire_interval)
-		_base_weapon_projectile_speed.append(weapon.projectile_speed)
-	var shotgun: Shotgun = host.get_shotgun()
-	if shotgun != null:
-		_base_shotgun_pellets = shotgun.pellet_count
-	var rifle: Rifle = host.get_rifle()
-	if rifle != null:
-		_base_rifle_max_spread = rifle.max_spread_deg
-	_captured = true
+	_pawn_bases.clear()
+	for pawn: Player in _pawns:
+		if pawn == null:
+			continue
+		_pawn_bases.append(_capture_pawn(pawn))
+	_captured = not _pawn_bases.is_empty()
+	if not _pawns.is_empty():
+		_player = _pawns[0]
 
 func apply_owned() -> void:
-	if _player == null or not _captured:
+	if not _captured:
+		return
+	var count: int = mini(_pawns.size(), _pawn_bases.size())
+	for i: int in count:
+		_apply_pawn(_pawns[i], _pawn_bases[i])
+
+func _capture_pawn(pawn: Player) -> Dictionary:
+	var health: PlayerHealth = pawn.get_player_health()
+	var host: WeaponHost = pawn.get_weapon_host()
+	var damage: PackedInt32Array = PackedInt32Array()
+	var fire_interval: PackedFloat32Array = PackedFloat32Array()
+	var projectile_speed: PackedFloat32Array = PackedFloat32Array()
+	for weapon: Weapon in host.get_weapons():
+		damage.append(weapon.damage)
+		fire_interval.append(weapon.fire_interval)
+		projectile_speed.append(weapon.projectile_speed)
+	var shotgun_pellets: int = 0
+	var shotgun: Shotgun = host.get_shotgun()
+	if shotgun != null:
+		shotgun_pellets = shotgun.pellet_count
+	var rifle_max_spread: float = 0.0
+	var rifle: Rifle = host.get_rifle()
+	if rifle != null:
+		rifle_max_spread = rifle.max_spread_deg
+	return {
+		"max_hp": health.max_hp,
+		"i_frame_sec": health.i_frame_sec,
+		"move_speed": pawn.get_player_motor().move_speed,
+		"knockback_impulse": pawn.knockback_impulse,
+		"weapon_damage": damage,
+		"weapon_fire_interval": fire_interval,
+		"weapon_projectile_speed": projectile_speed,
+		"shotgun_pellets": shotgun_pellets,
+		"rifle_max_spread": rifle_max_spread,
+	}
+
+func _apply_pawn(pawn: Player, baseline: Dictionary) -> void:
+	if pawn == null:
 		return
 	var totals: Dictionary = _empty_totals()
 	_accumulate_owned(totals)
-	_write_runtime(totals)
+	var health: PlayerHealth = pawn.get_player_health()
+	health.apply_max_hp(maxi(MIN_MAX_HP, int(baseline["max_hp"]) + int(totals["max_hp_flat"])))
+	health.i_frame_sec = maxf(MIN_I_FRAME_SEC, float(baseline["i_frame_sec"]) + float(totals["i_frame_flat"]))
+	pawn.get_player_motor().move_speed = maxf(MIN_MOVE_SPEED, float(baseline["move_speed"]) * (1.0 + float(totals["move_speed_pct"])))
+	pawn.knockback_impulse = float(baseline["knockback_impulse"]) * (1.0 + float(totals["knockback_taken_pct"]))
+	var fire_denom: float = 1.0 + float(totals["fire_rate_pct"])
+	if fire_denom <= 0.0:
+		fire_denom = 0.0001
+	var host: WeaponHost = pawn.get_weapon_host()
+	var weapons: Array[Weapon] = host.get_weapons()
+	var damage: PackedInt32Array = baseline["weapon_damage"]
+	var fire_interval: PackedFloat32Array = baseline["weapon_fire_interval"]
+	var projectile_speed: PackedFloat32Array = baseline["weapon_projectile_speed"]
+	for i: int in weapons.size():
+		var weapon: Weapon = weapons[i]
+		weapon.damage = int(damage[i]) + int(totals["damage_flat"])
+		weapon.fire_interval = maxf(MIN_FIRE_INTERVAL, float(fire_interval[i]) / fire_denom)
+		weapon.projectile_speed = float(projectile_speed[i]) + float(totals["projectile_speed_flat"])
+	var shotgun: Shotgun = host.get_shotgun()
+	if shotgun != null:
+		shotgun.pellet_count = clampi(int(baseline["shotgun_pellets"]) + int(totals["shotgun_pellets_flat"]), MIN_PELLETS, MAX_PELLETS)
+	var rifle: Rifle = host.get_rifle()
+	if rifle == null:
+		return
+	rifle.max_spread_deg = maxf(rifle.min_spread_deg, float(baseline["rifle_max_spread"]) + float(totals["rifle_max_spread_flat"]))
+	rifle.clamp_current_spread_to_max()
 
 func _empty_totals() -> Dictionary:
 	return {
@@ -106,28 +155,3 @@ func _add_def(def: UpgradeDef, totals: Dictionary) -> void:
 			totals["rifle_max_spread_flat"] = float(totals["rifle_max_spread_flat"]) + def.value
 		UpgradeDef.Kind.KNOCKBACK_TAKEN_PCT:
 			totals["knockback_taken_pct"] = float(totals["knockback_taken_pct"]) + def.value
-
-func _write_runtime(totals: Dictionary) -> void:
-	var health: PlayerHealth = _player.get_player_health()
-	health.apply_max_hp(maxi(MIN_MAX_HP, _base_max_hp + int(totals["max_hp_flat"])))
-	health.i_frame_sec = maxf(MIN_I_FRAME_SEC, _base_i_frame_sec + float(totals["i_frame_flat"]))
-	_player.get_player_motor().move_speed = maxf(MIN_MOVE_SPEED, _base_move_speed * (1.0 + float(totals["move_speed_pct"])))
-	_player.knockback_impulse = _base_knockback_impulse * (1.0 + float(totals["knockback_taken_pct"]))
-	var fire_denom: float = 1.0 + float(totals["fire_rate_pct"])
-	if fire_denom <= 0.0:
-		fire_denom = 0.0001
-	var host: WeaponHost = _player.get_weapon_host()
-	var weapons: Array[Weapon] = host.get_weapons()
-	for i: int in weapons.size():
-		var weapon: Weapon = weapons[i]
-		weapon.damage = _base_weapon_damage[i] + int(totals["damage_flat"])
-		weapon.fire_interval = maxf(MIN_FIRE_INTERVAL, _base_weapon_fire_interval[i] / fire_denom)
-		weapon.projectile_speed = _base_weapon_projectile_speed[i] + float(totals["projectile_speed_flat"])
-	var shotgun: Shotgun = host.get_shotgun()
-	if shotgun != null:
-		shotgun.pellet_count = clampi(_base_shotgun_pellets + int(totals["shotgun_pellets_flat"]), MIN_PELLETS, MAX_PELLETS)
-	var rifle: Rifle = host.get_rifle()
-	if rifle == null:
-		return
-	rifle.max_spread_deg = maxf(rifle.min_spread_deg, _base_rifle_max_spread + float(totals["rifle_max_spread_flat"]))
-	rifle.clamp_current_spread_to_max()

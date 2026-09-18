@@ -45,7 +45,7 @@ func try_dash() -> bool:
 		return false
 	if _player == null or _player.is_defeated():
 		return false
-	var session: RunSession = _player.get_parent().get_node_or_null("RunSession") as RunSession
+	var session: RunSession = _find_run_session()
 	if session != null and not session.is_playing():
 		return false
 	_direction = _resolve_direction()
@@ -81,6 +81,15 @@ func _stop_dash() -> void:
 	_dashing = false
 	_dash_left_sec = 0.0
 	_apply_visual(false)
+
+func _find_run_session() -> RunSession:
+	var node: Node = _player
+	while node != null:
+		var session: RunSession = node.get_node_or_null("RunSession") as RunSession
+		if session != null:
+			return session
+		node = node.get_parent()
+	return null
 
 func _resolve_direction() -> Vector2:
 	var move: Vector2 = _player_input.move_vector

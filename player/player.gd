@@ -10,6 +10,11 @@ const KNOCKBACK_DAMPING: float = 1800.0
 var _knockback_velocity: Vector2 = Vector2.ZERO
 var _character_id: String = "boar"
 var _hit_reaction: HitReaction
+var _spawn_position: Vector2 = Vector2.ZERO
+var _simulate_combat: bool = true
+var _sim_paused: bool = false
+
+signal shot_fired(aim: Vector2, weapon: Weapon)
 
 @onready var _player_input: PlayerInput = $PlayerInput
 @onready var _player_motor: PlayerMotor = $PlayerMotor
@@ -27,6 +32,7 @@ func _ready() -> void:
 	motion_mode = MOTION_MODE_FLOATING
 	collision_layer = GameCollisionLayers.MASK_PLAYER
 	collision_mask = GameCollisionLayers.MASK_WALL
+	_spawn_position = global_position
 	_setup_body_visual()
 	_weapon_host.bind_player_input(_player_input)
 	_player_dash.bind_player_input(_player_input)
@@ -55,6 +61,9 @@ func get_weapon_host() -> WeaponHost:
 
 func get_character_id() -> String:
 	return _character_id
+
+func get_facing_flip() -> bool:
+	return _body.flip_h
 
 func apply_character(def: CharacterDef) -> void:
 	if def == null:
@@ -95,6 +104,10 @@ func bind_player_camera(player_camera: PlayerCamera) -> void:
 
 func notify_shot_fired(aim: Vector2, weapon: Weapon) -> void:
 	_fire_feedback.play_shot(aim, weapon)
+	shot_fired.emit(aim, weapon)
+
+func play_shot_fx(aim: Vector2, weapon: Weapon) -> void:
+	_fire_feedback.play_shot(aim, weapon)
 
 func notify_shot_refused() -> void:
 	_fire_feedback.play_refuse()
@@ -131,8 +144,34 @@ func on_defeated() -> void:
 	_weapon_host.deactivate_all()
 	_player_dash.reset_for_sandbox()
 
+func can_simulate_combat() -> bool:
+	return _simulate_combat and not _sim_paused
+
+func set_simulate_combat(enabled: bool) -> void:
+	_simulate_combat = enabled
+
+func set_sim_paused(paused: bool) -> void:
+	_sim_paused = paused
+
+func set_spawn_position(pos: Vector2) -> void:
+	_spawn_position = pos
+
+func get_spawn_position() -> Vector2:
+	return _spawn_position
+
+func apply_net_pose(pos: Vector2, vel: Vector2, aim: Vector2, hp: int, max_hp: int, defeated: bool, weapon_index: int, facing_flip: bool = false, apply_aim: bool = true) -> void:
+	global_position = pos
+	velocity = vel
+	var player_input: PlayerInput = get_player_input()
+	if apply_aim and not aim.is_zero_approx():
+		player_input.aim_vector = aim
+		_face_aim()
+	_body.flip_h = facing_flip
+	get_weapon_host().force_index(weapon_index)
+	get_player_health().apply_net_state(hp, max_hp, defeated)
+
 func reset_for_sandbox() -> void:
-	global_position = Vector2.ZERO
+	global_position = _spawn_position
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
 	_player_health.reset_for_sandbox()
@@ -149,6 +188,12 @@ func _process(_delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if is_defeated():
 		velocity = Vector2.ZERO
+		return
+	if _sim_paused:
+		velocity = Vector2.ZERO
+		return
+	if not _simulate_combat:
+		_face_aim()
 		return
 	_player_dash.try_dash()
 	_apply_motor(delta)

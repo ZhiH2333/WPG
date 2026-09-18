@@ -15,12 +15,22 @@ run/main_scene="res://ui/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
+[debug]
+
+multirun/number_of_windows=2
+multirun/add_custom_args=true
+multirun/window_args=["listen", "join"]
+
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/multirun/plugin.cfg")
 
 [input]
 

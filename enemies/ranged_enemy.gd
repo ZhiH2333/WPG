@@ -63,6 +63,8 @@ func _apply_damage_pressure(pressure: int) -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if not _sim_authority:
+		return
 	if is_in_reserve() or _defeated or is_in_hitstop() or is_entering():
 		return
 	_face_player()

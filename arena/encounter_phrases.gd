@@ -107,6 +107,24 @@ func get_phrase_label() -> String:
 		return "boss"
 	return "%d/%d" % [_phrase_index, PHRASE_TOTAL]
 
+func get_phrase_index() -> int:
+	return _phrase_index
+
+func get_state_code() -> int:
+	return int(_state)
+
+func apply_net_view(phrase_index: int, state_code: int, rest_left: float) -> void:
+	_phrase_index = phrase_index
+	if state_code == int(State.RESTING):
+		_state = State.RESTING
+	elif state_code == int(State.PLAYING):
+		_state = State.PLAYING
+	elif state_code == int(State.AWAITING_OFFER):
+		_state = State.AWAITING_OFFER
+	elif state_code == int(State.DONE):
+		_state = State.DONE
+	_rest_left = rest_left
+
 func _begin_phrase(index: int) -> void:
 	_phrase_index = index
 	if index == 0 or index == 2 or index == 4 or index == 6:

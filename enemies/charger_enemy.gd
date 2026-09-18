@@ -206,6 +206,8 @@ func _try_contact_damage() -> void:
 			return
 
 func _try_hit_player(body: Node) -> void:
+	if not _sim_authority:
+		return
 	if is_in_reserve() or not _player_alive() or is_in_hitstop() or _defeated or is_entering():
 		return
 	if _charge_state == ChargeState.WINDUP:

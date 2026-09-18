@@ -52,7 +52,7 @@ func bind_run_session(session: RunSession) -> void:
 func is_open() -> bool:
 	return _open
 
-func open() -> void:
+func open(freeze_tree: bool = true) -> void:
 	if _open:
 		return
 	_open = true
@@ -60,15 +60,16 @@ func open() -> void:
 	_root.modulate.a = 1.0
 	_set_interactive(true)
 	_refresh_stats()
-	var tree: SceneTree = get_tree()
-	if tree != null:
-		tree.paused = true
+	if freeze_tree:
+		var tree: SceneTree = get_tree()
+		if tree != null:
+			tree.paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _column, [_continue_button, _retry_button, _quit_button], true)
 	_continue_button.grab_focus()
 
-func close() -> void:
+func close(emit_resumed: bool = true) -> void:
 	if not _open:
 		return
 	_open = false
@@ -76,7 +77,8 @@ func close() -> void:
 	var tree: SceneTree = get_tree()
 	if tree != null:
 		tree.paused = false
-	resumed.emit()
+	if emit_resumed:
+		resumed.emit()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.exit_overlay(self, _root, true)
 	_anim_tween.finished.connect(_finish_close)

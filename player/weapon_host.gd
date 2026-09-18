@@ -23,10 +23,21 @@ func bind_projectile_pool(pool: ProjectilePool) -> void:
 	for weapon: Weapon in _weapons:
 		weapon.bind_projectile_pool(pool)
 
+func get_current_index() -> int:
+	return _current_index
+
 func get_current_weapon() -> Weapon:
 	if _weapons.is_empty():
 		return null
 	return _weapons[_current_index]
+
+func get_weapon_at(index: int) -> Weapon:
+	if index < 0 or index >= _weapons.size():
+		return null
+	return _weapons[index]
+
+func force_index(index: int) -> void:
+	_activate_index(index)
 
 func get_pistol() -> Pistol:
 	for weapon: Weapon in _weapons:
@@ -83,18 +94,6 @@ func _poll_weapon_switch() -> void:
 	if _switch_locked:
 		return
 	if _switch_suppressed:
-		return
-	if Input.is_action_just_pressed("weapon_pistol"):
-		_activate_index(0)
-		return
-	if Input.is_action_just_pressed("weapon_shotgun"):
-		_activate_index(1)
-		return
-	if Input.is_action_just_pressed("weapon_rifle"):
-		_activate_index(2)
-		return
-	if Input.is_action_just_pressed("weapon_smg"):
-		_activate_index(3)
 		return
 	if _player_input == null:
 		return

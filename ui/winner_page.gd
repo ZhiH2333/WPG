@@ -14,6 +14,7 @@ var _anim_tween: Tween
 var _hist_labels: Array[Label] = []
 var _this_score: int = 0
 var _this_timestamp: int = 0
+var _retry_allowed: bool = true
 
 @onready var _root: Control = $Root
 @onready var _dimmer: ColorRect = $Root/Dimmer
@@ -54,13 +55,21 @@ func _ready() -> void:
 func is_open() -> bool:
 	return _open
 
+func set_retry_allowed(allowed: bool) -> void:
+	_retry_allowed = allowed
+	if _open:
+		_retry_button.disabled = not allowed
+
 func present(record_id: String, session: RunSession, previous_best: int) -> void:
 	if _open:
 		return
 	if session == null:
 		return
-	GameRecords.load_from_disk()
-	var record: GameRecord = GameRecords.get_record(record_id)
+	var lan: bool = record_id.is_empty()
+	var record: GameRecord = null
+	if not lan:
+		GameRecords.load_from_disk()
+		record = GameRecords.get_record(record_id)
 	var outcome: String = "cleared" if session.is_cleared() else "dead"
 	var loop_index: int = session.get_loop_index()
 	var kills: int = session.get_kill_count()
@@ -68,8 +77,11 @@ func present(record_id: String, session: RunSession, previous_best: int) -> void
 	var time_sec: float = session.get_elapsed_sec()
 	_this_score = GameRecords.compute_score(loop_index, kills, gold, time_sec, outcome)
 	_this_timestamp = int(Time.get_unix_time_from_system())
-	_fill_left(record, session, outcome, loop_index, kills, gold, time_sec, previous_best)
-	_fill_history(record)
+	_fill_left(record, session, outcome, loop_index, kills, gold, time_sec, previous_best, lan)
+	if lan:
+		_fill_history(null)
+	else:
+		_fill_history(record)
 	_open = true
 	visible = true
 	_root.modulate.a = 1.0
@@ -114,7 +126,7 @@ func _on_menu_pressed() -> void:
 	_emit_menu()
 
 func _emit_retry() -> void:
-	if not _open:
+	if not _open or not _retry_allowed:
 		return
 	_play_click()
 	retry_pressed.emit()
@@ -125,19 +137,23 @@ func _emit_menu() -> void:
 	_play_click()
 	menu_pressed.emit()
 
-func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, previous_best: int) -> void:
+func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, previous_best: int, lan: bool = false) -> void:
 	if outcome == "cleared":
 		_title.text = "CLEARED"
 		_title.theme_type_variation = &"ClearedTitle"
 	else:
 		_title.text = "DEAD"
 		_title.theme_type_variation = &"RunSummaryTitle"
-	if record != null and not record.name.is_empty():
+	if lan:
+		_record_name.text = "LAN"
+		_new_best.visible = false
+	elif record != null and not record.name.is_empty():
 		_record_name.text = record.name
+		_new_best.visible = _this_score > previous_best
 	else:
 		_record_name.text = "-"
+		_new_best.visible = _this_score > previous_best
 	_score_label.text = "score  %d" % _this_score
-	_new_best.visible = _this_score > previous_best
 	_loop_break.text = "loop  %d  ×1000  =  %d" % [loop_index, loop_index * 1000]
 	_kills_break.text = "kills  %d  ×5  =  %d" % [kills, kills * 5]
 	_gold_break.text = "gold  %d  ×2  =  %d" % [gold, gold * 2]
@@ -224,7 +240,7 @@ func _set_interactive(enabled: bool) -> void:
 	else:
 		_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_retry_button.disabled = not enabled
+	_retry_button.disabled = (not enabled) or (not _retry_allowed)
 	_menu_button.disabled = not enabled
 
 func _play_hover() -> void:

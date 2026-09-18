@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出档位列表（RecordSelector）。空档时只有 “+ New Record”；点已有档直接进沙盒；新建档时选野猪/野鸡和 loop 目标（滑杆 0=Inf，默认 20）。没有 Solo / Infinite / Multi 三张卡，Multi 不进这套 UI。顶栏只留设置、主页、Profile、时钟。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出档位列表（RecordSelector）。空档时只有 “+ New Record”；点已有档直接进沙盒；新建档时选野猪/野鸡和 loop 目标（滑杆 0=Inf，默认 20）。没有 Solo / Infinite / Multi 三张卡，Multi 不进这套 UI。顶栏只留设置、主页、LAN、Profile、时钟。点 LAN 打开局域网叠层（Host / Join，端口 17777）；Play 仍只进 RecordSelector。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。**Day 47（已完成）= RecordSelector**。**Day 48（已完成）= WinnerPage v2**。下一步才是 Day 49 同机 2P、Day 50+ 局域网。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 2P、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打
+- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。**Day 47（已完成）= RecordSelector**。**Day 48（已完成）= WinnerPage v2**。**Day 49（已完成）= 局域网 2 客户端**。同机分屏明确不做。下一步才是 Day 50+ 房间浏览器 / 5 人。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打
 - GPUParticles2D 死亡粒子海、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -1040,8 +1040,24 @@ Play 进档位列表，不再弹出 Solo / Infinite / Multi 三张卡。点已�
 
 **当时不做：** 同机 2P、局域网、云同步、成就、排行榜、截图分享、中途续打、Autoload、分数滚动动画、全屏 HTML 结算、独立 BGM、`tr()`。
 
-## 下一步：Day 49（同机 2P）
+## Day 49（已完成）：局域网 2 客户端联机试水
 
-**Day 48 = Arc D WinnerPage v2（已完成）**：独立结算叠在沙盒上；先 previous_best 再双写；只 DEAD/CLEARED；活着 Quit 不进页；公式未改；Profile 仍 progress.cfg。
+两台进程、Host + Guest、同一沙盒、同一波次、每人自己的相机。不是分屏，不是 5 人，不是 Steam。Play / RecordSelector 单机路径与 Day 48 相同。局域网不写 `records.json` / `progress.cfg`。
 
-**Day 49 = 同机 2P 试水**（每人各自选角色）。不要做房间浏览器、不要做 5 人、不要做局域网。之后才是 Day 50+ 局域网。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector。
+- 入口是主菜单顶栏 `IconBarButton` 文案 `LAN`（Home 旁边），不是第四颗平行四边形。叠层互斥与 Settings / Profile / RecordSelector 相同。
+- `ui/lan_overlay.gd`（`class_name LanOverlay`）：HOME / HOST / JOIN。Dimmer `Color(0,0,0,0.35)`，`UiAnim.enter_overlay` / `exit_overlay`。Host/Join 卡片 PillPink / PillNeutral。角色卡抄 RecordSelector EDITOR（`body_texture`，键盘 1/2）。滑杆 0–50 step 5 默认 20，0 显示 `Inf`。Guest LineEdit 默认 `127.0.0.1`。握手成功且 Host 按 Start 才 `start_lan`。Back / Esc 关掉 peer。
+- ENet 端口 **17777**，`NET_PROTOCOL = 1`，最多 Host + 1 Guest；第三人立刻 `disconnect_peer`。发现只靠手打 IPv4。禁止 UDP 广播、房间浏览器、NAT、Steam、UPnP。
+- Peer 活在 SceneTree 上，不活在 `GameLaunch`。进沙盒前不要 `peer.close()`。`NetSession._ready` 不负责建连；沙盒发现 `multiplayer_peer == null` 才回菜单。
+- `arena/net_session.gd`（`class_name NetSession`）挂在 CombatSandbox 上，不是 Autoload。禁止 `MultiplayerSynchronizer` / `MultiplayerSpawner`。Guest→Host 不可靠 20Hz 输入；Host→Guest 不可靠 20Hz 快照（pawn / 敌人 / session / `_lan_paused`，不要 NodePath）。可靠通道：开火特效、offer 开关、winner、reset、回菜单。
+- 只有一份 `player/player.tscn`。座位 2 运行时 `instantiate()`，出生 `(80, 0)`。每人只读本地输入；外端 pawn `set_remote_driven(true)`。`PlayerCamera.bind_player(local)`。HUD 左下 HP/枪是本地 pawn。共享一份 `RunSession` owned 与金币。
+- Host 权威。Guest 不跑 Encounter / 敌人 AI / `RunSession.tick`。敌人 `bind_players`，追最近活着的人；两个都倒下才 DEAD。Guest 子弹只播 `rpc_fire_fx`（`collision_layer/mask = NONE`）。
+- LAN 暂停禁止 `get_tree().paused = true`（会冻住 Guest RPC）。只用沙盒 `_lan_paused` + 暂停壳 `open(false)`。单机 PauseOverlay 仍是仓库里唯一允许暂停场景树的地方。
+- LAN WinnerPage 可以 `present("", session, 0)`：档名 `LAN`，history `-`，NEW BEST 永远隐藏。`_record_progress_if_needed` 联机立刻 return。Guest 的 R 无效；Host Retry 才 `rpc_reset`。掉线回菜单不写盘。
+- F1 / F2 / F3 / F4 / U 联机全禁用（含 Host）。DebugOverlay 增补 `net: off|host|guest` / `peer` / `seat` / `p2_hp`。
+- **同机分屏明确不做**：不要第二份 keymap、不要 SubViewport、不要 `player_p2.tscn`。
+
+**当时不做：** 房间浏览器、5 人、Steam、NAT/UPnP、按玩家分背包、云同步、Autoload。
+
+## 下一步：Day 50+（房间浏览器 / 5 人）
+
+**Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。

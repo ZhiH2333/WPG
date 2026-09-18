@@ -68,6 +68,22 @@ func reset_for_sandbox() -> void:
 		return
 	_visual.modulate = Color.WHITE
 
+func apply_net_state(hp: int, new_max_hp: int, defeated: bool) -> void:
+	max_hp = maxi(1, new_max_hp)
+	var was_defeated: bool = _defeated
+	var old_hp: int = _hp
+	_hp = clampi(hp, 0, max_hp)
+	if defeated:
+		_hp = 0
+		if not was_defeated:
+			_defeat()
+		return
+	_defeated = false
+	if old_hp > _hp:
+		_start_flash()
+	if _visual != null and not _player.is_dashing():
+		_visual.modulate = Color.WHITE
+
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
 	if _defeated or _i_frame_left_sec > 0.0 or amount <= 0 or _debug_god or _player.is_dashing():
 		return

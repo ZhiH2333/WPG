@@ -38,6 +38,8 @@ var _hover_tweens: Dictionary = {}
 @onready var _profile_overlay: ProfileOverlay = $ProfileOverlay
 @onready var _profile_button: Button = $TopBar/Row/Profile
 @onready var _profile_name: Label = $TopBar/Row/Profile/Layout/Name
+@onready var _lan_button: Button = $TopBar/Row/LanButton
+@onready var _lan_overlay: LanOverlay = $LanOverlay
 
 func _ready() -> void:
 	GameSettings.load_from_disk()
@@ -56,6 +58,8 @@ func _ready() -> void:
 	_home_button.pressed.connect(_on_home_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_profile_button.pressed.connect(_on_profile_pressed)
+	_lan_button.pressed.connect(_on_lan_pressed)
+	_lan_overlay.start_lan.connect(_enter_lan)
 	_record_selector.selected_record.connect(_enter_record)
 	_wire_strip_hover(_settings_button)
 	_wire_strip_hover(_play_button)
@@ -85,6 +89,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			_profile_overlay.close()
 			return
+		if _lan_overlay.is_open():
+			get_viewport().set_input_as_handled()
+			_lan_overlay.close()
+			return
 		return
 	if event.is_action_pressed("ui_accept"):
 		if _any_overlay_open():
@@ -93,17 +101,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		_record_selector.open()
 
 func _any_overlay_open() -> bool:
-	return _overlay.is_open() or _record_selector.is_open() or _profile_overlay.is_open()
+	return _overlay.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _lan_overlay.is_open()
 
 func _on_play_pressed() -> void:
 	if _overlay.is_open():
 		return
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
+	if _lan_overlay.is_open():
+		_lan_overlay.close()
 	_record_selector.open()
 
 func _enter_record(id: String) -> void:
 	GameLaunch.set_active_record_id(id)
+	get_tree().change_scene_to_file(SANDBOX_SCENE)
+
+func _enter_lan() -> void:
 	get_tree().change_scene_to_file(SANDBOX_SCENE)
 
 func _on_settings_pressed() -> void:
@@ -111,6 +124,8 @@ func _on_settings_pressed() -> void:
 		_record_selector.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
+	if _lan_overlay.is_open():
+		_lan_overlay.close()
 	_overlay.open()
 
 func _on_profile_pressed() -> void:
@@ -118,7 +133,18 @@ func _on_profile_pressed() -> void:
 		_overlay.close()
 	if _record_selector.is_open():
 		_record_selector.close()
+	if _lan_overlay.is_open():
+		_lan_overlay.close()
 	_profile_overlay.open()
+
+func _on_lan_pressed() -> void:
+	if _overlay.is_open():
+		_overlay.close()
+	if _record_selector.is_open():
+		_record_selector.close()
+	if _profile_overlay.is_open():
+		_profile_overlay.close()
+	_lan_overlay.open()
 
 func _on_home_pressed() -> void:
 	if _overlay.is_open():
@@ -127,6 +153,8 @@ func _on_home_pressed() -> void:
 		_record_selector.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
+	if _lan_overlay.is_open():
+		_lan_overlay.close()
 	_play_button.grab_focus()
 
 func _refresh_profile_name() -> void:

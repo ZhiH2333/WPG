@@ -20,6 +20,8 @@ var _upgrade_offer: UpgradeOffer
 var _winner_page: WinnerPage
 var _last_grant_id: String = "-"
 var _record_id: String = ""
+var _net_session: NetSession
+var _p2: Player
 var _fps_slot_min: PackedFloat32Array = PackedFloat32Array()
 var _fps_slot_sum: PackedFloat32Array = PackedFloat32Array()
 var _fps_slot_count: PackedInt32Array = PackedInt32Array()
@@ -79,6 +81,12 @@ func bind_winner_page(page: WinnerPage) -> void:
 func bind_record_id(record_id: String) -> void:
 	_record_id = record_id
 
+func bind_net_session(session: NetSession) -> void:
+	_net_session = session
+
+func bind_p2(player: Player) -> void:
+	_p2 = player
+
 func set_last_grant_id(upgrade_id: String) -> void:
 	_last_grant_id = upgrade_id
 
@@ -102,7 +110,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nspark_active: %d\nspark_free: %d\nshard_active: %d\nshard_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nrecord: %s hist: %d best: %d goal: %d\nchar: %s\nscore: %d\nwinner: %s\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nspark_active: %d\nspark_free: %d\nshard_active: %d\nshard_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nrecord: %s hist: %d best: %d goal: %d\nchar: %s\nscore: %d\nwinner: %s\nnet: %s\npeer: %d\nseat: %d\np2_hp: %s\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -165,6 +173,10 @@ func _compose_status_text() -> String:
 		_read_character_id(),
 		_read_score(),
 		_read_winner_label(),
+		_read_net_label(),
+		_read_peer_id(),
+		_read_seat(),
+		_read_p2_hp(),
 		fps,
 		_fps_min_2s,
 		_fps_avg_2s,
@@ -575,3 +587,27 @@ func _reset_fps_slots() -> void:
 
 func _format_vector(value: Vector2) -> String:
 	return "(%.2f, %.2f)" % [value.x, value.y]
+
+func _read_net_label() -> String:
+	if _net_session == null or not _net_session.is_online():
+		return "off"
+	if _net_session.is_host():
+		return "host"
+	if _net_session.is_guest():
+		return "guest"
+	return "off"
+
+func _read_peer_id() -> int:
+	if _net_session == null:
+		return 0
+	return _net_session.get_unique_id()
+
+func _read_seat() -> int:
+	if _net_session == null:
+		return 1
+	return _net_session.get_local_seat()
+
+func _read_p2_hp() -> String:
+	if _p2 == null:
+		return "-"
+	return str(_p2.get_player_health().get_hp())

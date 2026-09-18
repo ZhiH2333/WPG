@@ -27,6 +27,9 @@ var _defeated: bool = false
 var _in_reserve: bool = false
 var _flash_left_sec: float = 0.0
 var _player: Player
+var _players: Array[Player] = []
+var _sim_authority: bool = true
+var _sim_paused: bool = false
 var _knockback_velocity: Vector2 = Vector2.ZERO
 var _hitstop_left_sec: float = 0.0
 var _was_in_hitstop: bool = false
@@ -58,6 +61,25 @@ func _ready() -> void:
 
 func bind_player(player: Player) -> void:
 	_player = player
+	_players.clear()
+	if player != null:
+		_players.append(player)
+
+func bind_players(players: Array[Player]) -> void:
+	_players = players.duplicate()
+	if players.is_empty():
+		_player = null
+		return
+	_player = players[0]
+
+func set_sim_authority(enabled: bool) -> void:
+	_sim_authority = enabled
+
+func set_sim_paused(paused: bool) -> void:
+	_sim_paused = paused
+
+func is_sim_authority() -> bool:
+	return _sim_authority
 
 func bind_sfx_pool(sfx_pool: SfxPool) -> void:
 	_sfx_pool = sfx_pool
@@ -184,6 +206,8 @@ func assign_spawn_stagger(stagger_sec: float) -> void:
 	_begin_enter()
 
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
+	if not _sim_authority:
+		return
 	if _in_reserve or _defeated or amount <= 0:
 		return
 	if is_entering():
@@ -202,6 +226,8 @@ func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = V
 
 func _physics_process(delta: float) -> void:
 	if _in_reserve:
+		return
+	if not _sim_authority or _sim_paused:
 		return
 	if _defeated:
 		_tick_death_slide(delta)
@@ -251,12 +277,53 @@ func _separated_seek_velocity() -> Vector2:
 	return desired + to_player.normalized().orthogonal() * _separation_sign * SEPARATION_PIXELS
 
 func _player_alive() -> bool:
-	return _player != null and not _player.is_defeated()
+	return _find_target() != null
+
+func _find_target() -> Player:
+	var best: Player = null
+	var best_d: float = INF
+	for pawn: Player in _players:
+		if pawn == null or pawn.is_defeated():
+			continue
+		var d: float = global_position.distance_squared_to(pawn.global_position)
+		if d < best_d:
+			best_d = d
+			best = pawn
+	if best != null:
+		return best
+	if _player != null and not _player.is_defeated():
+		return _player
+	return null
 
 func _to_player() -> Vector2:
-	if _player == null:
+	var target: Player = _find_target()
+	if target == null:
 		return Vector2.ZERO
-	return _player.global_position - global_position
+	return target.global_position - global_position
+
+
+func apply_net_state(pos: Vector2, hp: int, defeated: bool, in_reserve: bool) -> void:
+	if in_reserve:
+		if not _in_reserve:
+			hold_in_reserve()
+		return
+	if _in_reserve:
+		_in_reserve = false
+		visible = true
+		set_process(true)
+		set_physics_process(true)
+		collision_layer = GameCollisionLayers.MASK_ENEMY
+		collision_mask = GameCollisionLayers.MASK_WALL
+	global_position = pos
+	_hp = maxi(0, hp)
+	if defeated:
+		if not _defeated:
+			_defeat()
+		return
+	if _defeated:
+		_defeated = false
+		_visual.modulate = Color.WHITE
+		_hit_reaction.reset()
 
 func _face_player() -> void:
 	var to_player: Vector2 = _to_player()

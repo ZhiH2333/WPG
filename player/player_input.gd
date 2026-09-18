@@ -34,6 +34,9 @@ var _joy_a_held: bool = false
 var _need_dash_release: bool = false
 var _last_mouse_world: Vector2 = Vector2.ZERO
 var _has_last_mouse: bool = false
+var _remote_driven: bool = false
+var _pending_weapon_slot: int = -1
+var _pending_dash: bool = false
 
 func _enter_tree() -> void:
 	## 小于 0 更早处理，让同一帧的朝向、相机、准星读到本帧输入。
@@ -45,6 +48,8 @@ func _process(delta: float) -> void:
 	update_input(delta)
 
 func _physics_process(_delta: float) -> void:
+	if _remote_driven:
+		return
 	dash_just_pressed = false
 	_update_dash_pressed()
 
@@ -58,8 +63,55 @@ func set_device_id(id: int) -> void:
 func get_weapon_slot_just_pressed() -> int:
 	return _weapon_slot_just_pressed
 
+func set_remote_driven(enabled: bool) -> void:
+	_remote_driven = enabled
+	if not enabled:
+		return
+	_device_pinned = true
+	move_vector = Vector2.ZERO
+	fire_held = false
+	dash_just_pressed = false
+
+func is_remote_driven() -> bool:
+	return _remote_driven
+
+func apply_remote_frame(move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int) -> void:
+	move_vector = move
+	if aim.is_zero_approx():
+		_keep_last_aim()
+	else:
+		aim_vector = aim.normalized()
+	var host: Node2D = get_parent() as Node2D
+	if host != null:
+		mouse_world_position = host.global_position + aim_vector * AIM_LEAD_PX
+	if _fire_suppressed:
+		fire_held = false
+	else:
+		fire_held = fire
+	if _dash_suppressed:
+		dash_just_pressed = false
+	else:
+		dash_just_pressed = dash
+	if dash:
+		_pending_dash = true
+	_weapon_slot_just_pressed = weapon_slot
+	_pending_weapon_slot = weapon_slot
+
+func take_pending_weapon_slot() -> int:
+	var slot: int = _pending_weapon_slot
+	_pending_weapon_slot = -1
+	return slot
+
+func take_pending_dash() -> bool:
+	var pressed: bool = _pending_dash
+	_pending_dash = false
+	return pressed
+
 func update_input(delta: float = 0.0) -> void:
+	if _remote_driven:
+		return
 	_weapon_slot_just_pressed = -1
+	_latch_weapon_keys()
 	if not _device_pinned:
 		_claim_device()
 	if _device_id >= 0 and not _is_joy_connected(_device_id):
@@ -213,6 +265,7 @@ func _update_dpad_edges(id: int) -> void:
 		var was_held: bool = _dpad_held[slot] != 0
 		if pressed and not was_held and _weapon_slot_just_pressed < 0:
 			_weapon_slot_just_pressed = slot
+			_pending_weapon_slot = slot
 		_dpad_held[slot] = 1 if pressed else 0
 
 func _clear_dpad_held() -> void:
@@ -221,6 +274,23 @@ func _clear_dpad_held() -> void:
 
 func _is_joy_connected(id: int) -> bool:
 	return Input.get_connected_joypads().has(id)
+
+func _latch_weapon_keys() -> void:
+	if Input.is_action_just_pressed("weapon_pistol"):
+		_weapon_slot_just_pressed = 0
+		_pending_weapon_slot = 0
+		return
+	if Input.is_action_just_pressed("weapon_shotgun"):
+		_weapon_slot_just_pressed = 1
+		_pending_weapon_slot = 1
+		return
+	if Input.is_action_just_pressed("weapon_rifle"):
+		_weapon_slot_just_pressed = 2
+		_pending_weapon_slot = 2
+		return
+	if Input.is_action_just_pressed("weapon_smg"):
+		_weapon_slot_just_pressed = 3
+		_pending_weapon_slot = 3
 
 func _update_move_vector() -> void:
 	move_vector = Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -274,3 +344,5 @@ func _update_dash_pressed() -> void:
 			return
 		_need_dash_release = false
 	dash_just_pressed = edge
+	if edge:
+		_pending_dash = true
