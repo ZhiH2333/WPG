@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出档位列表（RecordSelector）。空档时只有 “+ New Record”；点已有档直接进沙盒；新建档时选野猪/野鸡和 loop 目标（滑杆 0=Inf，默认 20）。没有 Solo / Infinite / Multi 三张卡，Multi 不进这套 UI。顶栏只留设置、主页、LAN、Profile、时钟。点 LAN 打开局域网叠层（Host / Join，端口 17777）；Play 仍只进 RecordSelector。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出档位列表（RecordSelector）。空档时只有 “+ New Record”；点已有档直接进沙盒；新建档时选野猪/野鸡和 loop 目标（滑杆 0=Inf，默认 20）。没有 Solo / Infinite / Multi 三张卡，Multi 不进这套 UI。顶栏只留设置、主页、LAN、Profile、时钟。点 LAN 打开局域网叠层（Host 可选用已有档预填角色和 loop_goal，联机不写盘；Join 仍自选角色，端口 17777）；Play 仍只进 RecordSelector。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -736,7 +736,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。**Day 47（已完成）= RecordSelector**。**Day 48（已完成）= WinnerPage v2**。**Day 49（已完成）= 局域网 2 客户端**。同机分屏明确不做。下一步才是 Day 50+ 房间浏览器 / 5 人。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打
+- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。**Day 47（已完成）= RecordSelector**。**Day 48（已完成）= WinnerPage v2**。**Day 49（已完成）= 局域网 2 客户端**。**Day 50（已完成）= 用现有档开 LAN**。同机分屏明确不做。下一步才是 Day 51 Profile + 可视化排行；5 人 / 房间浏览器仍后置。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打
 - GPUParticles2D 死亡粒子海、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
 - 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
@@ -934,7 +934,7 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 
 ## 剩余顺序
 
-手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。Day 33 点 Play 出模式窗已落地。Day 35 osu 式主题回炉已落地（圆角粉紫 Theme、背景图 + 主题音乐 + 模糊衰减、合成点击音效）。**多人（同机 2P / 局域网）整包挪到菜单壳做完之后。**
+手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。Day 33 点 Play 出模式窗已落地。Day 35 osu 式主题回炉已落地（圆角粉紫 Theme、背景图 + 主题音乐 + 模糊衰减、合成点击音效）。局域网 2 客户端和「用现有档开 Host」已落地。同机分屏明确不做。5 人 / 房间浏览器后置。
 
 | 顺序 | 仓库里做什么 | 玩家会感到什么 | 先不要做 |
 |---|---|---|---|
@@ -956,8 +956,10 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 | **46（已完成）** | Arc B `CharacterDef`：野猪 / 野鸡底值 | 两套身份数字，卡池仍共用；菜单仍三选一、隐式档仍 boar | 骨骼、专属卡池、2P |
 | **47（已完成）** | Arc C RecordSelector 取代 ModeOverlay；`loop_goal` 滑杆 | Play 进档位列表；选已有档直接开打；建档可选猪/鸡 | 中途续档、Multi 进 Record |
 | **48（已完成）** | Arc D WinnerPage v2：独立结算 + 本档历史对比 | 死 / 通关有分数拆解和本档 Top 10 | 云同步、成就 |
-| **49** | 同机 2P 试水（每人各自选角色） | 旁边朋友用手柄一起打 | 5 人、房间浏览器 |
-| **50+** | 局域网房间，最多 5 头猪/鸡，同一版本才能进 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
+| **49（已完成）** | 局域网 2 客户端（ENet 17777 / protocol 1） | 同网两台一起打，不写档 | 5 人、房间浏览器、同机分屏 |
+| **50（已完成）** | 用现有档开 LAN：PICK 预填并锁定角色 + loop_goal | Host 借档开房，Guest 仍自选；联机不写盘 | 5 人、房间浏览器 |
+| **51** | Profile + 可视化排行 | 顶栏成绩更好读 | 云同步、跨档总榜 |
+| **52+** | 局域网房间浏览器 / 最多 5 头猪/鸡 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
 ## Day 44（已完成）：地板 / 火花池 / 死亡碎裂 / 战斗 BGM
@@ -1058,6 +1060,25 @@ Play 进档位列表，不再弹出 Solo / Infinite / Multi 三张卡。点已�
 
 **当时不做：** 房间浏览器、5 人、Steam、NAT/UPnP、按玩家分背包、云同步、Autoload。
 
-## 下一步：Day 50+（房间浏览器 / 5 人）
+## Day 50（已完成）：用现有档开 Host
+
+Host 可以借一条本地档的角色和 `loop_goal` 开房。联机只借配置，不写 `records.json` / `progress.cfg`。Guest 仍自己选猪/鸡，看不见 Host 的档。Play / RecordSelector 单机路径与 Day 48/49 相同。`set_lan_loadout` 仍只传两个 `character_id` + `loop_goal`，不传 `record_id`。Autoload 仍为 0。
+
+- `ui/record_card.gd`（`class_name RecordCard`，`extends Object`，全 static）：`make_main_card` / `format_loop_badge` / `resolve_body_texture`。LIST 与 LAN PICK 共用主卡。不含删除钮，不含 `pressed` 连接，禁止 `get_tree()`。
+- `RecordSelector._make_main_card` 改调工厂后再自己 `connect` / 加删除钮。LIST / EDITOR / 删除确认 / 进沙盒语义不变。
+- `LanOverlay` 四个状态：`HOME` / `PICK` / `HOST` / `JOIN`。仍一个叠层，不要第二个场景、不要 AcceptDialog。`open()` 永远进 HOME 并清掉选用中的档。
+- HOME 点 Host：有档先 `USE RECORD`；空档列表跳过 PICK，直接 Custom HOST。不要在 HOME 铺 12 张档卡。
+- PICK：`GameRecords.list_records()`（`created_at` 升序）。点卡选用该档。末尾 `+ Custom` / `Pick live, skip save`（不要 New Record 文案）。无删除按钮。超过约 4 张滚动。进场对可见主卡 `UiAnim` 错峰，不 tween 卡片 position。
+- HOST 来自档位：角色两卡 `disabled` + `focus_mode=NONE`，滑杆 `editable=false`，标题下 OfferDesc 显示档名。角色只接受 `boar` / `chicken`，其它打回 `boar`。`loop_goal>50` 夹到 50，`<0` 打回 0。滑杆范围仍 0–50 step 5。
+- Custom（`+ Custom` 或空档直进）：`_picked_record_id=""`，`_reset_character()`，滑杆默认 20，可改角色和终点，手感与 Day 49 相同，仍不写档。
+- JOIN 不变：Guest 自选角色，只读显示 Host 的 goal。Guest 不选 Host 的档，也不读 `records.json`。
+- Back / Esc：HOST 或 JOIN 关 peer 后回 HOME；来自档位的 HOST 回 PICK；PICK 回 HOME；HOME 才 `close()`。
+- Start / `rpc_begin` / `set_lan_loadout` 仍三个标量。沙盒 `_is_lan()` → `_record_id=""`，Winner 档名 `LAN`，NEW BEST 永不亮，history 条数与 `best_score` 不变。
+
+**当时不做：** 5 人、UDP 房间广播、房间浏览器、NAT/UPnP/Steam、同机分屏、把 LAN 局写入 records.json / progress.cfg、每人独立升级背包、WinnerPage 联机历史、Profile 升级。
+
+## 下一步：Day 51（Profile + 可视化排行）
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
+
+**Day 50 = 用现有档开 LAN（已完成）**：Host 借档预填并锁定角色 + `loop_goal`；Guest 仍自选；空档走 Custom；联机不写盘。5 人 / 房间浏览器是后续日。

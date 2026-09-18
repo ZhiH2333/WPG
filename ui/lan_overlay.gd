@@ -1,16 +1,18 @@
 extends Control
 class_name LanOverlay
 
-## 主菜单局域网叠层：HOME / HOST / JOIN。握手成功且 Host 按 Start 后才进沙盒。禁止 Autoload，禁止 AcceptDialog。
+## 主菜单局域网叠层：HOME / PICK / HOST / JOIN。Host 可借已有档预填角色和 loop_goal，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。
 signal start_lan
 
-enum View { HOME, HOST, JOIN }
+enum View { HOME, PICK, HOST, JOIN }
 
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
 const DEFAULT_LOOP_GOAL: int = 20
+const PICK_VIEWPORT_H: float = 416.0
+const PICK_VIEWPORT_W: float = 532.0
 
 var _open: bool = false
 var _view: View = View.HOME
@@ -20,15 +22,21 @@ var _guest_character_id: String = CHAR_BOAR
 var _guest_id: int = 0
 var _handshake_ok: bool = false
 var _host_started: bool = false
+var _picked_record_id: String = ""
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _home_root: Control = $HomeRoot
+@onready var _pick_root: Control = $PickRoot
 @onready var _host_root: Control = $HostRoot
 @onready var _join_root: Control = $JoinRoot
 @onready var _host_button: Button = $HomeRoot/Center/Column/Host
 @onready var _join_button: Button = $HomeRoot/Center/Column/Join
+@onready var _pick_scroll: ScrollContainer = $PickRoot/Center/Column/Scroll
+@onready var _pick_cards: VBoxContainer = $PickRoot/Center/Column/Scroll/Cards
+@onready var _custom_button: Button = $PickRoot/Center/Column/Scroll/Cards/Custom
 @onready var _host_address: Label = $HostRoot/Center/Column/AddressList
 @onready var _host_status: Label = $HostRoot/Center/Column/Status
+@onready var _record_hint: Label = $HostRoot/Center/Column/RecordHint
 @onready var _host_boar: Button = $HostRoot/Center/Column/Characters/Boar
 @onready var _host_chicken: Button = $HostRoot/Center/Column/Characters/Chicken
 @onready var _loop_slider: HSlider = $HostRoot/Center/Column/LoopRow/Slider
@@ -50,8 +58,9 @@ func _ready() -> void:
 	_fill_character(_host_chicken, CHAR_CHICKEN)
 	_fill_character(_join_boar, CHAR_BOAR)
 	_fill_character(_join_chicken, CHAR_CHICKEN)
-	_host_button.pressed.connect(_enter_host)
+	_host_button.pressed.connect(_on_home_host_pressed)
 	_join_button.pressed.connect(_enter_join)
+	_custom_button.pressed.connect(_on_custom_pressed)
 	_host_boar.pressed.connect(func() -> void: _select_character(CHAR_BOAR))
 	_host_chicken.pressed.connect(func() -> void: _select_character(CHAR_CHICKEN))
 	_join_boar.pressed.connect(func() -> void: _select_character(CHAR_BOAR))
@@ -73,6 +82,7 @@ func open() -> void:
 	visible = true
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_picked_record_id = ""
 	_show_home(true)
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, null, [_host_button, _join_button, _back_button])
@@ -82,6 +92,7 @@ func close() -> void:
 	if not _open:
 		return
 	_open = false
+	_picked_record_id = ""
 	_clear_peer()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
@@ -110,7 +121,9 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			_handle_back()
 			return
-	if _view == View.HOME:
+	if _view == View.HOME or _view == View.PICK:
+		return
+	if _is_host_locked():
 		return
 	if _view == View.JOIN and _join_edit.has_focus():
 		return
@@ -126,11 +139,19 @@ func _handle_back() -> void:
 	if _view == View.HOME:
 		close()
 		return
+	if _view == View.PICK:
+		_show_home(true)
+		return
 	_clear_peer()
+	if _view == View.HOST and not _picked_record_id.is_empty():
+		_enter_pick()
+		return
 	_show_home(true)
 
 func _show_home(animate: bool) -> void:
 	_view = View.HOME
+	_picked_record_id = ""
+	_pick_root.visible = false
 	_host_root.visible = false
 	_join_root.visible = false
 	_home_root.visible = true
@@ -139,14 +160,60 @@ func _show_home(animate: bool) -> void:
 		_anim_tween = UiAnim.enter_overlay(self, _dimmer, null, [_host_button, _join_button, _back_button])
 		_host_button.grab_focus()
 
-func _enter_host() -> void:
-	_view = View.HOST
+func _on_home_host_pressed() -> void:
+	GameRecords.load_from_disk()
+	if GameRecords.list_records().is_empty():
+		_enter_host()
+		return
+	_enter_pick()
+
+func _on_custom_pressed() -> void:
+	if not _open or _view != View.PICK:
+		return
+	_enter_host()
+
+func _on_pick_record_pressed(record_id: String) -> void:
+	if not _open or _view != View.PICK:
+		return
+	var record: GameRecord = GameRecords.get_record(record_id)
+	if record == null:
+		return
+	_picked_record_id = record.id
+	_enter_host_from_record(record)
+
+func _enter_pick() -> void:
+	_view = View.PICK
 	_home_root.visible = false
+	_host_root.visible = false
 	_join_root.visible = false
-	_host_root.visible = true
+	_pick_root.visible = true
+	_refresh_pick()
+	_play_pick_enter()
+	_focus_pick()
+
+func _enter_host() -> void:
+	_picked_record_id = ""
 	_reset_character()
 	_loop_slider.value = float(DEFAULT_LOOP_GOAL)
 	_refresh_loop_label()
+	_apply_host_config_lock(false)
+	_begin_host()
+
+func _enter_host_from_record(record: GameRecord) -> void:
+	_picked_record_id = record.id
+	_select_character(record.character_id)
+	_loop_slider.value = float(mini(maxi(record.loop_goal, 0), 50))
+	_refresh_loop_label()
+	_record_hint.text = record.name
+	_apply_host_config_lock(true)
+	_begin_host()
+
+func _begin_host() -> void:
+	_view = View.HOST
+	_home_root.visible = false
+	_pick_root.visible = false
+	_join_root.visible = false
+	_host_root.visible = true
 	_host_address.text = _format_addresses()
 	_host_status.text = "waiting"
 	_handshake_ok = false
@@ -158,11 +225,15 @@ func _enter_host() -> void:
 		_refresh_host_start()
 		return
 	_wire_multiplayer()
-	_host_boar.grab_focus()
+	if _picked_record_id.is_empty():
+		_host_boar.grab_focus()
+		return
+	_back_button.grab_focus()
 
 func _enter_join() -> void:
 	_view = View.JOIN
 	_home_root.visible = false
+	_pick_root.visible = false
 	_host_root.visible = false
 	_join_root.visible = true
 	_reset_character()
@@ -345,16 +416,83 @@ func _reset_character() -> void:
 	_select_character(CHAR_BOAR)
 
 func _refresh_loop_label() -> void:
-	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
-	if loop_goal > 0:
-		_loop_label.text = "%d loops" % loop_goal
-		return
-	_loop_label.text = "Inf"
+	_loop_label.text = RecordCard.format_loop_badge(maxi(roundi(_loop_slider.value), 0))
 
 func _refresh_host_start() -> void:
 	var can_start: bool = _handshake_ok and _guest_id != 0
 	_start_button.disabled = not can_start
 	_start_button.focus_mode = Control.FOCUS_ALL if can_start else Control.FOCUS_NONE
+
+func _is_host_locked() -> bool:
+	return _view == View.HOST and not _picked_record_id.is_empty()
+
+func _apply_host_config_lock(locked: bool) -> void:
+	_host_boar.disabled = locked
+	_host_chicken.disabled = locked
+	_host_boar.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
+	_host_chicken.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
+	_loop_slider.editable = not locked
+	_record_hint.visible = locked
+	if not locked:
+		_record_hint.text = ""
+
+func _refresh_pick() -> void:
+	GameRecords.load_from_disk()
+	_clear_pick_rows()
+	for record: GameRecord in GameRecords.list_records():
+		_pick_cards.add_child(_make_pick_card(record))
+	_pick_cards.move_child(_custom_button, -1)
+	_fit_pick_scroll()
+	_pick_scroll.scroll_vertical = 0
+
+func _clear_pick_rows() -> void:
+	var stale: Array[Node] = []
+	for child: Node in _pick_cards.get_children():
+		if child == _custom_button:
+			continue
+		stale.append(child)
+	for child: Node in stale:
+		_pick_cards.remove_child(child)
+		child.queue_free()
+
+func _make_pick_card(record: GameRecord) -> Button:
+	var button: Button = RecordCard.make_main_card(record)
+	button.pressed.connect(_on_pick_record_pressed.bind(record.id))
+	return button
+
+func _fit_pick_scroll() -> void:
+	var count: int = _pick_cards.get_child_count()
+	var sep: int = _pick_cards.get_theme_constant("separation")
+	var card_h: float = RecordCard.CARD_SIZE.y
+	var content_h: float = float(count) * card_h + float(maxi(count - 1, 0)) * float(sep)
+	_pick_scroll.custom_minimum_size = Vector2(PICK_VIEWPORT_W, minf(PICK_VIEWPORT_H, maxf(content_h, card_h)))
+
+func _collect_pick_cards() -> Array:
+	var cards: Array = []
+	for child: Node in _pick_cards.get_children():
+		if child == _custom_button:
+			cards.append(_custom_button)
+			continue
+		var button: Button = child as Button
+		if button != null:
+			cards.append(button)
+	cards.append(_back_button)
+	return cards
+
+func _play_pick_enter() -> void:
+	UiAnim.kill_tween(_anim_tween)
+	_anim_tween = UiAnim.enter_overlay(self, null, null, _collect_pick_cards())
+
+func _focus_pick() -> void:
+	var first: Node = _pick_cards.get_child(0)
+	if first == _custom_button:
+		_custom_button.grab_focus()
+		return
+	var button: Button = first as Button
+	if button != null:
+		button.grab_focus()
+		return
+	_back_button.grab_focus()
 
 func _format_addresses() -> String:
 	var lines: PackedStringArray = PackedStringArray()

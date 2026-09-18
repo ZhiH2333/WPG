@@ -74,6 +74,88 @@ mouse_filter = 0
 theme_type_variation = &"PillNeutral"
 text = "Join"
 
+
+[node name="PickRoot" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="PickRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="PickRoot/Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="PickRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "USE RECORD"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="PickRoot/Center/Column"]
+custom_minimum_size = Vector2(532, 96)
+layout_mode = 2
+mouse_filter = 0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="Cards" type="VBoxContainer" parent="PickRoot/Center/Column/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Custom" type="Button" parent="PickRoot/Center/Column/Scroll/Cards"]
+custom_minimum_size = Vector2(520, 96)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+
+[node name="VBox" type="VBoxContainer" parent="PickRoot/Center/Column/Scroll/Cards/Custom"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Title" type="Label" parent="PickRoot/Center/Column/Scroll/Cards/Custom/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "+ Custom"
+autowrap_mode = 2
+
+[node name="Desc" type="Label" parent="PickRoot/Center/Column/Scroll/Cards/Custom/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "Pick live, skip save"
+autowrap_mode = 2
+
 [node name="HostRoot" type="Control" parent="."]
 visible = false
 layout_mode = 1
@@ -104,6 +186,13 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ModeTitle"
 text = "HOST"
+horizontal_alignment = 1
+
+[node name="RecordHint" type="Label" parent="HostRoot/Center/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
 horizontal_alignment = 1
 
 [node name="PortLabel" type="Label" parent="HostRoot/Center/Column"]
