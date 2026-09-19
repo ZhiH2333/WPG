@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
@@ -19,6 +19,8 @@
 [ext_resource type="Texture2D" path="res://ui/icons/quit.png" id="13_quit"]
 [ext_resource type="Texture2D" path="res://ui/icons/clock.png" id="14_clock"]
 [ext_resource type="Texture2D" path="res://ui/icons/avatar.png" id="15_avatar"]
+[ext_resource type="Texture2D" path="res://ui/icons/solo.png" id="20_solo"]
+[ext_resource type="Texture2D" path="res://ui/icons/multi.png" id="21_multi"]
 
 [sub_resource type="ShaderMaterial" id="mat_blur"]
 shader = ExtResource("5_blur")
@@ -312,7 +314,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 48.0
+offset_top = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 z_index = 50
@@ -322,7 +324,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 48.0
+offset_top = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -331,7 +333,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 48.0
+offset_top = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -340,7 +342,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 48.0
+offset_top = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -349,7 +351,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 48.0
+offset_top = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -358,7 +360,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 48.0
+offset_top = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -366,7 +368,7 @@ grow_vertical = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 48.0
+offset_bottom = 60.0
 grow_horizontal = 2
 mouse_filter = 0
 z_index = 100
@@ -375,44 +377,52 @@ theme_type_variation = &"BarPanel"
 [node name="Row" type="HBoxContainer" parent="TopBar"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 4
-alignment = 1
+theme_override_constants/separation = 0
+alignment = 0
 
 [node name="SettingsButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(44, 40)
+custom_minimum_size = Vector2(168, 60)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 3
+focus_mode = 0
 mouse_filter = 0
 theme_type_variation = &"IconBarButton"
-theme_override_constants/icon_max_width = 22
+tooltip_text = "Settings"
+text = "Settings"
 icon = ExtResource("10_gear")
-expand_icon = true
 
 [node name="HomeButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(44, 40)
+custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 3
+focus_mode = 0
 mouse_filter = 0
 theme_type_variation = &"IconBarButton"
-theme_override_constants/icon_max_width = 22
+tooltip_text = "Home"
+text = "Home"
 icon = ExtResource("11_home")
-expand_icon = true
 
 [node name="SoloButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(80, 40)
+custom_minimum_size = Vector2(124, 60)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 3
+focus_mode = 0
 mouse_filter = 0
 theme_type_variation = &"IconBarButton"
-text = "SOLO"
+tooltip_text = "Solo"
+text = "Solo"
+icon = ExtResource("20_solo")
 
 [node name="MultiButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(80, 40)
+custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 3
+focus_mode = 0
 mouse_filter = 0
 theme_type_variation = &"IconBarButton"
-text = "MULTI"
+tooltip_text = "Multi"
+text = "Multi"
+icon = ExtResource("21_multi")
 
 [node name="Spacer" type="Control" parent="TopBar/Row"]
 layout_mode = 2
@@ -420,31 +430,26 @@ size_flags_horizontal = 3
 mouse_filter = 2
 
 [node name="Profile" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(148, 40)
+custom_minimum_size = Vector2(188, 60)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 3
+focus_mode = 0
 mouse_filter = 0
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"IconBarButton"
+tooltip_text = "Profile"
 
 [node name="Layout" type="HBoxContainer" parent="TopBar/Row/Profile"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 14.0
+offset_right = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 alignment = 1
-
-[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile/Layout"]
-custom_minimum_size = Vector2(32, 32)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("15_avatar")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="Name" type="Label" parent="TopBar/Row/Profile/Layout"]
 layout_mode = 2
@@ -454,22 +459,30 @@ theme_type_variation = &"ProfileName"
 text = "best  0"
 vertical_alignment = 1
 
-[node name="Sep" type="ColorRect" parent="TopBar/Row"]
-custom_minimum_size = Vector2(1, 22)
+[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile/Layout"]
+custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-color = Color(1, 1, 1, 0.22)
+texture = ExtResource("15_avatar")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="TimeBox" type="HBoxContainer" parent="TopBar/Row"]
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="PadL" type="Control" parent="TopBar/Row/TimeBox"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+mouse_filter = 2
 
 [node name="ClockIcon" type="TextureRect" parent="TopBar/Row/TimeBox"]
-modulate = Color(1, 0.4, 0.67, 1)
-custom_minimum_size = Vector2(22, 22)
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -484,4 +497,9 @@ mouse_filter = 2
 theme_type_variation = &"ClockLabel"
 text = "00:00:00"
 vertical_alignment = 1
+
+[node name="PadR" type="Control" parent="TopBar/Row/TimeBox"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+mouse_filter = 2
 

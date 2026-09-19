@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/settings_section.gd" id="1_section"]
+
+[node name="SettingsSection" type="Control"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 400.0
+offset_bottom = 80.0
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 0
+script = ExtResource("1_section")
+
+[node name="Body" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_right = -32.0
+offset_bottom = 80.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Separator" type="ColorRect" parent="Body"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.08, 0.07, 0.1, 1)
+
+[node name="Header" type="Label" parent="Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"FloatingHeader"
+theme_override_font_sizes/font_size = 26
+text = "Section"
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.12, 0.1, 0.15, 0.8)

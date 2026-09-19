@@ -4,7 +4,7 @@ class_name MainMenu
 ## osu 式主菜单：字标在上，Settings / Play / Exit 三颗平行四边形按钮并排在下。
 ## Play 先问 Solo / Multi。顶栏 Solo / Multi 直达。叠层打开时背景模糊 + 音乐衰减。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
-const TOP_BAR_HEIGHT: float = 48.0
+const TOP_BAR_HEIGHT: float = 60.0
 const MIX_RATE: int = 22050
 const WAV_HEADER_BYTES: int = 44
 const MUSIC_DB_NORMAL: float = -6.0
@@ -79,7 +79,7 @@ func _ready() -> void:
 	_play_button.grab_focus()
 
 func _process(delta: float) -> void:
-	var target: float = 1.0 if _any_overlay_open() else 0.0
+	var target: float = 1.0 if _should_blur_menu() else 0.0
 	_focus_amount = lerpf(_focus_amount, target, 1.0 - exp(-FOCUS_SMOOTH * delta))
 	var mat: ShaderMaterial = _blur_layer.material as ShaderMaterial
 	mat.set_shader_parameter("blur_amount", BLUR_MAX * _focus_amount)
@@ -118,6 +118,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _any_overlay_open() -> bool:
 	return _overlay.is_open() or _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open()
+
+func _should_blur_menu() -> bool:
+	return _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open()
 
 func _on_play_pressed() -> void:
 	if _overlay.is_open():
@@ -179,6 +182,16 @@ func _enter_leaderboard() -> void:
 	_leaderboard_overlay.open()
 
 func _on_settings_pressed() -> void:
+	if _mode_choice.is_open():
+		_mode_choice.close()
+	if _record_selector.is_open():
+		_record_selector.close()
+	if _profile_overlay.is_open():
+		_profile_overlay.close()
+	if _leaderboard_overlay.is_open():
+		_leaderboard_overlay.close()
+	if _lan_overlay.is_open():
+		_lan_overlay.close()
 	_overlay.open()
 	_overlay.move_to_front()
 	_top_bar.move_to_front()
@@ -287,6 +300,7 @@ func _play_enter_animation() -> void:
 		_enter_tween.tween_property(button, "modulate:a", 1.0, UiAnim.CARD_FADE_SEC).set_delay(delay).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 		_enter_tween.tween_property(button, "scale", Vector2.ONE, UiAnim.CARD_SCALE_SEC).set_delay(delay).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		order += 1
+
 
 func _refresh_clock(force: bool) -> void:
 	var now: Dictionary = Time.get_time_dict_from_system()

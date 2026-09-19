@@ -1,7 +1,14 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://ui/settings_overlay.gd" id="1_overlay"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://ui/hold_confirm_button.tscn" id="3_hold"]
+[ext_resource type="PackedScene" path="res://ui/settings_section.tscn" id="4_section"]
+[ext_resource type="PackedScene" path="res://ui/settings_nav_button.tscn" id="5_nav"]
+[ext_resource type="Texture2D" path="res://ui/icons/speaker.png" id="6_speaker"]
+[ext_resource type="Texture2D" path="res://ui/icons/monitor.png" id="7_monitor"]
+[ext_resource type="Texture2D" path="res://ui/icons/keyboard.png" id="8_keyboard"]
+[ext_resource type="Texture2D" path="res://ui/icons/database.png" id="9_database"]
 
 [node name="SettingsOverlay" type="Control"]
 visible = false
@@ -17,6 +24,7 @@ theme = ExtResource("2_theme")
 script = ExtResource("1_overlay")
 
 [node name="Dimmer" type="ColorRect" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -24,17 +32,86 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0, 0, 0, 0.35)
+color = Color(0, 0, 0, 0.45)
 
-[node name="Shell" type="Control" parent="."]
+[node name="Drawer" type="Control" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
-offset_right = 520.0
+offset_right = 932.0
 grow_vertical = 2
 mouse_filter = 0
 
-[node name="Panel" type="PanelContainer" parent="Shell"]
+[node name="Sidebar" type="ColorRect" parent="Drawer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 274.0
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.09, 0.075, 0.11, 1)
+
+[node name="Nav" type="VBoxContainer" parent="Drawer/Sidebar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="AudioButton" parent="Drawer/Sidebar/Nav" instance=ExtResource("5_nav")]
+unique_name_in_owner = true
+layout_mode = 2
+tab_icon = ExtResource("6_speaker")
+caption = "Audio"
+
+[node name="DisplayButton" parent="Drawer/Sidebar/Nav" instance=ExtResource("5_nav")]
+unique_name_in_owner = true
+layout_mode = 2
+tab_icon = ExtResource("7_monitor")
+caption = "Display"
+
+[node name="ControlsButton" parent="Drawer/Sidebar/Nav" instance=ExtResource("5_nav")]
+unique_name_in_owner = true
+layout_mode = 2
+tab_icon = ExtResource("8_keyboard")
+caption = "Controls"
+
+[node name="DataButton" parent="Drawer/Sidebar/Nav" instance=ExtResource("5_nav")]
+unique_name_in_owner = true
+layout_mode = 2
+tab_icon = ExtResource("9_database")
+caption = "Data"
+
+[node name="Panel" type="Control" parent="Drawer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_left = 274.0
+offset_right = 932.0
+grow_vertical = 2
+mouse_filter = 0
+clip_contents = true
+
+[node name="Fill" type="ColorRect" parent="Drawer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.145, 0.12, 0.18, 1)
+
+[node name="Clip" type="Control" parent="Drawer/Panel"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -42,57 +119,35 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-theme_type_variation = &"RunSummaryPanel"
+clip_contents = true
 
-[node name="Column" type="VBoxContainer" parent="Shell/Panel"]
-layout_mode = 2
-mouse_filter = 0
-theme_override_constants/separation = 16
+[node name="Content" type="VBoxContainer" parent="Drawer/Panel/Clip"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 658.0
+offset_bottom = 200.0
+mouse_filter = 2
+theme_override_constants/separation = 28
 
-[node name="Body" type="HBoxContainer" parent="Shell/Panel/Column"]
+[node name="AudioSection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
-mouse_filter = 0
-theme_override_constants/separation = 12
+header_text = "Audio"
+search_name = "Audio"
 
-[node name="Sidebar" type="VBoxContainer" parent="Shell/Panel/Column/Body"]
-custom_minimum_size = Vector2(72, 0)
+[node name="VolumeBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/AudioSection/Body"]
 layout_mode = 2
-mouse_filter = 0
+mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="AudioButton" type="Button" parent="Shell/Panel/Column/Body/Sidebar"]
-custom_minimum_size = Vector2(56, 56)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "A"
-
-[node name="DisplayButton" type="Button" parent="Shell/Panel/Column/Body/Sidebar"]
-custom_minimum_size = Vector2(56, 56)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "D"
-
-[node name="Pages" type="MarginContainer" parent="Shell/Panel/Column/Body"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-mouse_filter = 0
-
-[node name="AudioPage" type="VBoxContainer" parent="Shell/Panel/Column/Body/Pages"]
-layout_mode = 2
-mouse_filter = 0
-theme_override_constants/separation = 12
-
-[node name="VolumeLabel" type="Label" parent="Shell/Panel/Column/Body/Pages/AudioPage"]
+[node name="VolumeLabel" type="Label" parent="Drawer/Panel/Clip/Content/AudioSection/Body/VolumeBlock"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
 text = "Volume"
 
-[node name="VolumeSlider" type="HSlider" parent="Shell/Panel/Column/Body/Pages/AudioPage"]
+[node name="VolumeSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/VolumeBlock"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 mouse_filter = 0
@@ -100,24 +155,217 @@ min_value = 0.0
 max_value = 1.0
 step = 0.01
 value = 1.0
+scrollable = false
 
-[node name="DisplayPage" type="VBoxContainer" parent="Shell/Panel/Column/Body/Pages"]
-visible = false
+[node name="DisplaySection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
+unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 0
+header_text = "Display"
+search_name = "Display"
+
+[node name="FullscreenRow" type="HBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 12
 
-[node name="FullscreenCheck" type="CheckBox" parent="Shell/Panel/Column/Body/Pages/DisplayPage"]
+[node name="FullscreenLabel" type="Label" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/FullscreenRow"]
 layout_mode = 2
-mouse_filter = 0
+size_flags_horizontal = 3
+mouse_filter = 2
 text = "Fullscreen"
 
-[node name="Back" type="Button" parent="Shell/Panel/Column"]
-custom_minimum_size = Vector2(120, 44)
+[node name="FullscreenCheck" type="CheckBox" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/FullscreenRow"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 0
+mouse_filter = 0
+
+[node name="RenderBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="RenderScaleLabel" type="Label" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/RenderBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "Render Resolution  100%"
+
+[node name="RenderScaleSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/RenderBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 0
+min_value = 10.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+scrollable = false
+
+[node name="RenderScaleHint" type="Label" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/RenderBlock"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "Takes effect in a future update"
+
+[node name="UiBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="UiScaleLabel" type="Label" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/UiBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "UI Scale  100%"
+
+[node name="UiScaleSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/UiBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 0
+min_value = 80.0
+max_value = 130.0
+step = 5.0
+value = 100.0
+scrollable = false
+
+[node name="VsyncRow" type="HBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="VsyncLabel" type="Label" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/VsyncRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+text = "VSync"
+
+[node name="VsyncCheck" type="CheckBox" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/VsyncRow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+button_pressed = true
+
+[node name="MsaaBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="MsaaLabel" type="Label" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/MsaaBlock"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "MSAA"
+
+[node name="MsaaOption" type="OptionButton" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/MsaaBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+
+[node name="ControlsSection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
+unique_name_in_owner = true
+layout_mode = 2
+header_text = "Controls"
+search_name = "Controls"
+
+[node name="DataSection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
+unique_name_in_owner = true
+layout_mode = 2
+header_text = "Data"
+search_name = "Data delete progress records"
+
+[node name="Warning" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "Deletes progress and records. Settings are kept."
+
+[node name="DeleteButton" parent="Drawer/Panel/Clip/Content/DataSection/Body" instance=ExtResource("3_hold")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
-text = "Back"
+text = "HOLD TO DELETE ALL DATA"
+
+[node name="StatusLabel" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+
+[node name="BottomPad" type="Control" parent="Drawer/Panel/Clip/Content"]
+custom_minimum_size = Vector2(0, 240)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HeaderBg" type="ColorRect" parent="Drawer/Panel"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 0
+offset_right = 658.0
+offset_bottom = 148.0
+mouse_filter = 2
+color = Color(0.11, 0.09, 0.14, 1)
+
+[node name="ExpandableHeader" type="MarginContainer" parent="Drawer/Panel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 96.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 8
+
+[node name="Column" type="VBoxContainer" parent="Drawer/Panel/ExpandableHeader"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"FloatingHeader"
+theme_override_font_sizes/font_size = 40
+text = "Settings"
+
+[node name="Subtitle" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "Change game settings"
+
+[node name="SearchWrap" type="MarginContainer" parent="Drawer/Panel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 96.0
+offset_bottom = 148.0
+grow_horizontal = 2
+mouse_filter = 0
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 6
+
+[node name="Search" type="LineEdit" parent="Drawer/Panel/SearchWrap"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+placeholder_text = "type to search"
+caret_blink = true
 
 [node name="Preview" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true

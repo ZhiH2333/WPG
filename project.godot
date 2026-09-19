@@ -99,6 +99,16 @@ dash={
 ]
 }
 
+[input_devices]
+
+virtual_controller/ios/enable_controller=false
+virtual_controller/ios/enable_left_thumbstick=true
+virtual_controller/ios/enable_right_thumbstick=true
+virtual_controller/ios/enable_button_a=true
+virtual_controller/ios/enable_button_b=true
+virtual_controller/ios/enable_button_x=true
+virtual_controller/ios/enable_button_y=true
+
 [layer_names]
 
 2d_physics/layer_1="player"
@@ -110,4 +120,5 @@ dash={
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.12, 0.12, 0.14, 1)

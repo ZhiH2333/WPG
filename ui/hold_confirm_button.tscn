@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/hold_confirm_button.gd" id="1_hold"]
+
+[node name="HoldConfirmButton" type="Button"]
+custom_minimum_size = Vector2(360, 56)
+offset_right = 360.0
+offset_bottom = 56.0
+mouse_filter = 0
+script = ExtResource("1_hold")
+
+[node name="Fill" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_right = 0.0
+anchor_bottom = 1.0
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.86, 0.22, 0.2, 0.55)
