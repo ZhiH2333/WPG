@@ -70,6 +70,15 @@ theme_type_variation = &"FloatingHeader"
 text = "PROFILE"
 vertical_alignment = 1
 
+[node name="RankButton" type="Button" parent="Center/Panel/Column/Header"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "RANK"
+
 [node name="Content" type="MarginContainer" parent="Center/Panel/Column"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -86,7 +95,12 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="Stats" type="GridContainer" parent="Center/Panel/Column/Content/Center"]
+[node name="Columns" type="HBoxContainer" parent="Center/Panel/Column/Content/Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 32
+
+[node name="Stats" type="GridContainer" parent="Center/Panel/Column/Content/Center/Columns"]
 custom_minimum_size = Vector2(960, 0)
 layout_mode = 2
 mouse_filter = 2
@@ -94,47 +108,65 @@ theme_override_constants/h_separation = 80
 theme_override_constants/v_separation = 36
 columns = 2
 
-[node name="BestLoop" type="Label" parent="Center/Panel/Column/Content/Center/Stats"]
+[node name="BestLoop" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryBody"
 theme_override_font_sizes/font_size = 22
 text = "best loop  0"
 
-[node name="LastLoop" type="Label" parent="Center/Panel/Column/Content/Center/Stats"]
+[node name="LastLoop" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryBody"
 theme_override_font_sizes/font_size = 22
 text = "last loop  0"
 
-[node name="LastKills" type="Label" parent="Center/Panel/Column/Content/Center/Stats"]
+[node name="LastKills" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryBody"
 theme_override_font_sizes/font_size = 22
 text = "last kills  0"
 
-[node name="LastGold" type="Label" parent="Center/Panel/Column/Content/Center/Stats"]
+[node name="LastGold" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryBody"
 theme_override_font_sizes/font_size = 22
 text = "last gold  0"
 
-[node name="Runs" type="Label" parent="Center/Panel/Column/Content/Center/Stats"]
+[node name="Runs" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryBody"
 theme_override_font_sizes/font_size = 22
 text = "runs  0"
 
-[node name="OwnedHint" type="Label" parent="Center/Panel/Column/Content/Center/Stats"]
+[node name="OwnedHint" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 theme_override_font_sizes/font_size = 20
 text = "last owned  -"
+
+[node name="RecordsColumn" type="VBoxContainer" parent="Center/Panel/Column/Content/Center/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/Panel/Column/Content/Center/Columns/RecordsColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ModeTitle"
+text = "RECORDS"
+
+[node name="Rows" type="VBoxContainer" parent="Center/Panel/Column/Content/Center/Columns/RecordsColumn"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
 
 [node name="Back" type="Button" parent="Center/Panel/Column"]
 custom_minimum_size = Vector2(120, 44)

@@ -1,10 +1,11 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://ui/record_selector.tscn" id="4_records"]
 [ext_resource type="PackedScene" path="res://ui/profile_overlay.tscn" id="16_profile"]
+[ext_resource type="PackedScene" path="res://ui/record_leaderboard_overlay.tscn" id="19_leaderboard"]
 [ext_resource type="PackedScene" path="res://ui/lan_overlay.tscn" id="17_lan"]
 [ext_resource type="PackedScene" path="res://ui/mode_choice_overlay.tscn" id="18_choice"]
 [ext_resource type="Shader" path="res://ui/menu_blur.gdshader" id="5_blur"]
@@ -326,6 +327,15 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ProfileOverlay" parent="." instance=ExtResource("16_profile")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 48.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RecordLeaderboardOverlay" parent="." instance=ExtResource("19_leaderboard")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

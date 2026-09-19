@@ -36,6 +36,7 @@ var _hover_tweens: Dictionary = {}
 @onready var _overlay: SettingsOverlay = $SettingsOverlay
 @onready var _record_selector: RecordSelector = $RecordSelector
 @onready var _profile_overlay: ProfileOverlay = $ProfileOverlay
+@onready var _leaderboard_overlay: RecordLeaderboardOverlay = $RecordLeaderboardOverlay
 @onready var _profile_button: Button = $TopBar/Row/Profile
 @onready var _profile_name: Label = $TopBar/Row/Profile/Layout/Name
 @onready var _solo_button: Button = $TopBar/Row/SoloButton
@@ -66,6 +67,7 @@ func _ready() -> void:
 	_mode_choice.multi_pressed.connect(_enter_multi_flow)
 	_lan_overlay.start_lan.connect(_enter_lan)
 	_record_selector.selected_record.connect(_enter_record)
+	_profile_overlay.view_ranking_pressed.connect(_enter_leaderboard)
 	_wire_strip_hover(_settings_button)
 	_wire_strip_hover(_play_button)
 	_wire_strip_hover(_quit_button)
@@ -99,6 +101,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			_profile_overlay.close()
 			return
+		if _leaderboard_overlay.is_open():
+			get_viewport().set_input_as_handled()
+			_leaderboard_overlay.close()
+			return
 		if _lan_overlay.is_open():
 			get_viewport().set_input_as_handled()
 			_lan_overlay.close()
@@ -111,7 +117,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_mode_choice.open()
 
 func _any_overlay_open() -> bool:
-	return _overlay.is_open() or _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _lan_overlay.is_open()
+	return _overlay.is_open() or _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open()
 
 func _on_play_pressed() -> void:
 	if _overlay.is_open():
@@ -120,6 +126,8 @@ func _on_play_pressed() -> void:
 		_record_selector.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
+	if _leaderboard_overlay.is_open():
+		_leaderboard_overlay.close()
 	if _lan_overlay.is_open():
 		_lan_overlay.close()
 	_mode_choice.open()
@@ -131,6 +139,8 @@ func _enter_solo_flow() -> void:
 		_mode_choice.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
+	if _leaderboard_overlay.is_open():
+		_leaderboard_overlay.close()
 	if _lan_overlay.is_open():
 		_lan_overlay.close()
 	_record_selector.open()
@@ -144,6 +154,8 @@ func _enter_multi_flow() -> void:
 		_record_selector.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
+	if _leaderboard_overlay.is_open():
+		_leaderboard_overlay.close()
 	_lan_overlay.open()
 
 func _enter_record(id: String) -> void:
@@ -152,6 +164,19 @@ func _enter_record(id: String) -> void:
 
 func _enter_lan() -> void:
 	get_tree().change_scene_to_file(SANDBOX_SCENE)
+
+func _enter_leaderboard() -> void:
+	if _overlay.is_open():
+		_overlay.close()
+	if _mode_choice.is_open():
+		_mode_choice.close()
+	if _record_selector.is_open():
+		_record_selector.close()
+	if _lan_overlay.is_open():
+		_lan_overlay.close()
+	if _profile_overlay.is_open():
+		_profile_overlay.close()
+	_leaderboard_overlay.open()
 
 func _on_settings_pressed() -> void:
 	_overlay.open()
@@ -165,6 +190,8 @@ func _on_profile_pressed() -> void:
 		_mode_choice.close()
 	if _record_selector.is_open():
 		_record_selector.close()
+	if _leaderboard_overlay.is_open():
+		_leaderboard_overlay.close()
 	if _lan_overlay.is_open():
 		_lan_overlay.close()
 	_profile_overlay.open()
@@ -178,6 +205,8 @@ func _on_home_pressed() -> void:
 		_record_selector.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
+	if _leaderboard_overlay.is_open():
+		_leaderboard_overlay.close()
 	if _lan_overlay.is_open():
 		_lan_overlay.close()
 	_play_button.grab_focus()

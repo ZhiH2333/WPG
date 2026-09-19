@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=41 format=3]
+[gd_resource type="Theme" load_steps=42 format=3]
 
 [sub_resource type="StyleBoxFlat" id="sb_hp_bg"]
 bg_color = Color(0.09, 0.075, 0.105, 0.85)
@@ -23,6 +23,13 @@ corner_radius_bottom_left = 7
 
 [sub_resource type="StyleBoxFlat" id="sb_xp_fill"]
 bg_color = Color(0.4, 0.72, 1, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="sb_rank_fill"]
+bg_color = Color(0.95, 0.62, 0.35, 1)
 corner_radius_top_left = 7
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
@@ -507,6 +514,9 @@ ProgressBarLow/styles/fill = SubResource("sb_hp_low")
 ProgressBarXp/base_type = &"ProgressBar"
 ProgressBarXp/styles/background = SubResource("sb_hp_bg")
 ProgressBarXp/styles/fill = SubResource("sb_xp_fill")
+RankBar/base_type = &"ProgressBar"
+RankBar/styles/background = SubResource("sb_hp_bg")
+RankBar/styles/fill = SubResource("sb_rank_fill")
 RunSummaryTitle/base_type = &"Label"
 RunSummaryTitle/colors/font_color = Color(0.97, 0.94, 0.96, 1)
 RunSummaryTitle/colors/font_outline_color = Color(0, 0, 0, 0.5)

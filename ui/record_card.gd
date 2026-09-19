@@ -1,11 +1,16 @@
 extends Object
 class_name RecordCard
 
-## 档位主卡工厂。LIST 与 LAN PICK 共用。不含删除钮，不含 pressed 连接。全是 static，不是 Autoload，禁止 get_tree()。
+## 档位主卡工厂。LIST / LAN PICK 共用大卡；Profile 概览行与排行行不带头像。不含删除钮，不含 pressed 连接。全是 static，不是 Autoload，禁止 get_tree()。
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const CARD_SIZE := Vector2(780, 140)
 const PORTRAIT_PX: float = 96.0
+const RANK_WIDTH: float = 56.0
+const RANK_BAR_HEIGHT: float = 28.0
+const RANK_GOLD := Color(1, 0.85, 0.3, 1)
+const RANK_SILVER := Color(0.85, 0.85, 0.9, 1)
+const RANK_BRONZE := Color(0.85, 0.55, 0.35, 1)
 
 static func make_main_card(record: GameRecord) -> Button:
 	var button: Button = Button.new()
@@ -25,6 +30,29 @@ static func make_main_card(record: GameRecord) -> Button:
 	button.add_child(inner)
 	return button
 
+static func make_overview_row(record: GameRecord) -> Control:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 16)
+	var name_label: Label = _make_overview_name_label(record)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_label)
+	row.add_child(_make_overview_meta_label(record))
+	row.add_child(_make_score_label(record.best_score))
+	return row
+
+static func make_rank_row(rank: int, record: GameRecord, max_score: int) -> Control:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 16)
+	row.add_child(_make_rank_label(rank))
+	row.add_child(_make_rank_bar(record.best_score, max_score))
+	row.add_child(_make_overview_name_label(record))
+	row.add_child(_make_score_label(record.best_score))
+	return row
+
 static func format_loop_badge(loop_goal: int) -> String:
 	if loop_goal > 0:
 		return "%d loops" % loop_goal
@@ -35,6 +63,51 @@ static func resolve_body_texture(character_id: String) -> Texture2D:
 	if def != null and def.body_texture != null:
 		return def.body_texture
 	return FALLBACK_BODY
+
+static func _make_overview_name_label(record: GameRecord) -> Label:
+	var label: Label = Label.new()
+	label.theme_type_variation = &"RunSummaryBody"
+	label.text = record.name
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+static func _make_overview_meta_label(record: GameRecord) -> Label:
+	var label: Label = Label.new()
+	label.theme_type_variation = &"OfferDesc"
+	label.text = "%s  %s" % [_read_display_name(record.character_id), format_loop_badge(record.loop_goal)]
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+static func _make_rank_label(rank: int) -> Label:
+	var label: Label = Label.new()
+	label.custom_minimum_size = Vector2(RANK_WIDTH, 0.0)
+	label.theme_type_variation = &"ModeTitle"
+	label.text = "#%d" % rank
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if rank == 1:
+		label.add_theme_color_override("font_color", RANK_GOLD)
+	elif rank == 2:
+		label.add_theme_color_override("font_color", RANK_SILVER)
+	elif rank == 3:
+		label.add_theme_color_override("font_color", RANK_BRONZE)
+	return label
+
+static func _make_rank_bar(score: int, max_score: int) -> ProgressBar:
+	var bar: ProgressBar = ProgressBar.new()
+	var ceiling: int = max_score if max_score > 0 else 1
+	bar.theme_type_variation = &"RankBar"
+	bar.show_percentage = false
+	bar.min_value = 0.0
+	bar.max_value = float(ceiling)
+	bar.value = float(score)
+	bar.custom_minimum_size = Vector2(0.0, RANK_BAR_HEIGHT)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return bar
 
 static func _make_portrait(character_id: String) -> TextureRect:
 	var portrait: TextureRect = TextureRect.new()
