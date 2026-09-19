@@ -8,6 +8,7 @@ const CONTENT_FADE_SEC: float = 0.25
 const PANEL_MOVE_SEC: float = 0.45
 const PANEL_EXIT_SEC: float = 0.3
 const OVERLAY_EXIT_SEC: float = 0.15
+const OVERLAY_RISE_PX: float = 56.0
 const CARD_FADE_SEC: float = 0.22
 const CARD_SCALE_SEC: float = 0.4
 const CARD_START_SCALE: float = 0.9
@@ -23,8 +24,14 @@ static func enter_overlay(host: Node, dimmer: CanvasItem, content: CanvasItem, c
 		dimmer.modulate.a = 0.0
 		tween.tween_property(dimmer, "modulate:a", 1.0, DIMMER_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	if content != null:
+		var parent_container: Container = content.get_parent() as Container
+		if parent_container != null:
+			parent_container.notification(Container.NOTIFICATION_SORT_CHILDREN)
 		content.modulate.a = 0.0
+		var base_y: float = content.position.y
+		content.position.y = base_y + OVERLAY_RISE_PX
 		tween.tween_property(content, "modulate:a", 1.0, CONTENT_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+		tween.tween_property(content, "position:y", base_y, PANEL_MOVE_SEC).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_append_card_entries(tween, cards)
 	return tween
 

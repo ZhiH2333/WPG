@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=40 format=3]
+[gd_resource type="Theme" load_steps=41 format=3]
 
 [sub_resource type="StyleBoxFlat" id="sb_hp_bg"]
 bg_color = Color(0.09, 0.075, 0.105, 0.85)
@@ -157,6 +157,19 @@ content_margin_left = 20.0
 content_margin_top = 20.0
 content_margin_right = 20.0
 content_margin_bottom = 20.0
+bg_color = Color(0.13, 0.11, 0.155, 0.97)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0, 0, 0, 0.4)
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="sb_floating_panel"]
+content_margin_left = 28.0
+content_margin_top = 28.0
+content_margin_right = 28.0
+content_margin_bottom = 28.0
 bg_color = Color(0.13, 0.11, 0.155, 0.97)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
@@ -653,3 +666,10 @@ WinnerHistHi/colors/font_color = Color(1, 0.55, 0.76, 1)
 WinnerHistHi/colors/font_outline_color = Color(0, 0, 0, 0.4)
 WinnerHistHi/constants/outline_size = 2
 WinnerHistHi/font_sizes/font_size = 16
+FloatingPanel/base_type = &"PanelContainer"
+FloatingPanel/styles/panel = SubResource("sb_floating_panel")
+FloatingHeader/base_type = &"Label"
+FloatingHeader/colors/font_color = Color(0.97, 0.94, 0.96, 1)
+FloatingHeader/colors/font_outline_color = Color(0, 0, 0, 0.5)
+FloatingHeader/constants/outline_size = 4
+FloatingHeader/font_sizes/font_size = 28

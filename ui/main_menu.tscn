@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://ui/record_selector.tscn" id="4_records"]
 [ext_resource type="PackedScene" path="res://ui/profile_overlay.tscn" id="16_profile"]
 [ext_resource type="PackedScene" path="res://ui/lan_overlay.tscn" id="17_lan"]
+[ext_resource type="PackedScene" path="res://ui/mode_choice_overlay.tscn" id="18_choice"]
 [ext_resource type="Shader" path="res://ui/menu_blur.gdshader" id="5_blur"]
 [ext_resource type="Texture2D" path="res://images/mainmenu.png" id="6_bg"]
 [ext_resource type="AudioStream" path="res://audio/main.mp3" id="7_music"]
@@ -294,6 +295,63 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="Music" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("7_music")
+volume_db = -6.0
+autoplay = true
+
+[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="BackSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="SettingsOverlay" parent="." instance=ExtResource("3_overlay")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 48.0
+grow_horizontal = 2
+grow_vertical = 2
+z_index = 50
+
+[node name="RecordSelector" parent="." instance=ExtResource("4_records")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 48.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ProfileOverlay" parent="." instance=ExtResource("16_profile")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 48.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LanOverlay" parent="." instance=ExtResource("17_lan")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 48.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ModeChoiceOverlay" parent="." instance=ExtResource("18_choice")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 48.0
+grow_horizontal = 2
+grow_vertical = 2
+
 [node name="TopBar" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 10
@@ -301,6 +359,7 @@ anchor_right = 1.0
 offset_bottom = 48.0
 grow_horizontal = 2
 mouse_filter = 0
+z_index = 100
 theme_type_variation = &"BarPanel"
 
 [node name="Row" type="HBoxContainer" parent="TopBar"]
@@ -329,13 +388,21 @@ theme_override_constants/icon_max_width = 22
 icon = ExtResource("11_home")
 expand_icon = true
 
-[node name="LanButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(64, 40)
+[node name="SoloButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(80, 40)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"IconBarButton"
-text = "LAN"
+text = "SOLO"
+
+[node name="MultiButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"IconBarButton"
+text = "MULTI"
 
 [node name="Spacer" type="Control" parent="TopBar/Row"]
 layout_mode = 2
@@ -408,45 +475,3 @@ theme_type_variation = &"ClockLabel"
 text = "00:00:00"
 vertical_alignment = 1
 
-[node name="Music" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("7_music")
-volume_db = -6.0
-autoplay = true
-
-[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
-
-[node name="ClickSfx" type="AudioStreamPlayer" parent="."]
-
-[node name="BackSfx" type="AudioStreamPlayer" parent="."]
-
-[node name="SettingsOverlay" parent="." instance=ExtResource("3_overlay")]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="RecordSelector" parent="." instance=ExtResource("4_records")]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="ProfileOverlay" parent="." instance=ExtResource("16_profile")]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="LanOverlay" parent="." instance=ExtResource("17_lan")]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2

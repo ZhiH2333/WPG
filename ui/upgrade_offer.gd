@@ -1,8 +1,9 @@
 extends CanvasLayer
 class_name UpgradeOffer
 
-## 句间三选一。只负责展示与点选，不自己 grant。禁止暂停场景树。卡片 osu 式错峰进场，逻辑开关仍瞬时。
+## 句间三选一。只负责展示与点选，不自己 grant。PROCESS_MODE_ALWAYS：单机选卡时 CombatSandbox 会冻场景树。卡片 osu 式错峰进场，逻辑开关仍瞬时。
 signal picked(upgrade_id: StringName)
+signal cancelled
 
 var _defs: Array[UpgradeDef] = []
 var _open: bool = false
@@ -18,6 +19,7 @@ var _anim_tween: Tween
 @onready var _card_root: HBoxContainer = $Root/Center/Column/Cards
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	layer = 20
 	_cards = [
@@ -57,14 +59,14 @@ func present(defs: Array[UpgradeDef]) -> void:
 	_refresh_cards()
 	if not _open:
 		return
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _center, _cards)
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _center, _cards, true)
 
 func close() -> void:
 	_open = false
 	if not visible:
 		return
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_overlay(self, _root)
+	_anim_tween = UiAnim.exit_overlay(self, _root, true)
 	_anim_tween.finished.connect(_finish_close)
 
 func _finish_close() -> void:
@@ -91,6 +93,28 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not _open:
 		return
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		cancelled.emit()
+		return
+	var joy_button: InputEventJoypadButton = event as InputEventJoypadButton
+	if joy_button != null and joy_button.pressed:
+		if joy_button.button_index == JOY_BUTTON_START:
+			get_viewport().set_input_as_handled()
+			cancelled.emit()
+			return
+		if joy_button.button_index == JOY_BUTTON_DPAD_LEFT:
+			get_viewport().set_input_as_handled()
+			_pick_index(0)
+			return
+		if joy_button.button_index == JOY_BUTTON_DPAD_UP:
+			get_viewport().set_input_as_handled()
+			_pick_index(1)
+			return
+		if joy_button.button_index == JOY_BUTTON_DPAD_RIGHT:
+			get_viewport().set_input_as_handled()
+			_pick_index(2)
+			return
 	if event.is_action_pressed("weapon_pistol"):
 		_pick_index(0)
 		get_viewport().set_input_as_handled()

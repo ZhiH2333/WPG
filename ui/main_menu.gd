@@ -2,7 +2,7 @@ extends Control
 class_name MainMenu
 
 ## osu 式主菜单：字标在上，Settings / Play / Exit 三颗平行四边形按钮并排在下。
-## 顶栏只留设置、主页、Profile、时钟。叠层打开时背景模糊 + 音乐衰减。
+## Play 先问 Solo / Multi。顶栏 Solo / Multi 直达。叠层打开时背景模糊 + 音乐衰减。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
 const TOP_BAR_HEIGHT: float = 48.0
 const MIX_RATE: int = 22050
@@ -38,8 +38,10 @@ var _hover_tweens: Dictionary = {}
 @onready var _profile_overlay: ProfileOverlay = $ProfileOverlay
 @onready var _profile_button: Button = $TopBar/Row/Profile
 @onready var _profile_name: Label = $TopBar/Row/Profile/Layout/Name
-@onready var _lan_button: Button = $TopBar/Row/LanButton
+@onready var _solo_button: Button = $TopBar/Row/SoloButton
+@onready var _multi_button: Button = $TopBar/Row/MultiButton
 @onready var _lan_overlay: LanOverlay = $LanOverlay
+@onready var _mode_choice: ModeChoiceOverlay = $ModeChoiceOverlay
 
 func _ready() -> void:
 	GameSettings.load_from_disk()
@@ -58,7 +60,10 @@ func _ready() -> void:
 	_home_button.pressed.connect(_on_home_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_profile_button.pressed.connect(_on_profile_pressed)
-	_lan_button.pressed.connect(_on_lan_pressed)
+	_solo_button.pressed.connect(_enter_solo_flow)
+	_multi_button.pressed.connect(_enter_multi_flow)
+	_mode_choice.solo_pressed.connect(_enter_solo_flow)
+	_mode_choice.multi_pressed.connect(_enter_multi_flow)
 	_lan_overlay.start_lan.connect(_enter_lan)
 	_record_selector.selected_record.connect(_enter_record)
 	_wire_strip_hover(_settings_button)
@@ -68,6 +73,7 @@ func _ready() -> void:
 	_refresh_clock(true)
 	_refresh_profile_name()
 	_play_enter_animation()
+	_top_bar.move_to_front()
 	_play_button.grab_focus()
 
 func _process(delta: float) -> void:
@@ -85,6 +91,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			_overlay.close()
 			return
+		if _mode_choice.is_open():
+			get_viewport().set_input_as_handled()
+			_mode_choice.close()
+			return
 		if _profile_overlay.is_open():
 			get_viewport().set_input_as_handled()
 			_profile_overlay.close()
@@ -98,19 +108,43 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _any_overlay_open():
 			return
 		get_viewport().set_input_as_handled()
-		_record_selector.open()
+		_mode_choice.open()
 
 func _any_overlay_open() -> bool:
-	return _overlay.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _lan_overlay.is_open()
+	return _overlay.is_open() or _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _lan_overlay.is_open()
 
 func _on_play_pressed() -> void:
 	if _overlay.is_open():
-		return
+		_overlay.close()
+	if _record_selector.is_open():
+		_record_selector.close()
+	if _profile_overlay.is_open():
+		_profile_overlay.close()
+	if _lan_overlay.is_open():
+		_lan_overlay.close()
+	_mode_choice.open()
+
+func _enter_solo_flow() -> void:
+	if _overlay.is_open():
+		_overlay.close()
+	if _mode_choice.is_open():
+		_mode_choice.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
 	if _lan_overlay.is_open():
 		_lan_overlay.close()
 	_record_selector.open()
+
+func _enter_multi_flow() -> void:
+	if _overlay.is_open():
+		_overlay.close()
+	if _mode_choice.is_open():
+		_mode_choice.close()
+	if _record_selector.is_open():
+		_record_selector.close()
+	if _profile_overlay.is_open():
+		_profile_overlay.close()
+	_lan_overlay.open()
 
 func _enter_record(id: String) -> void:
 	GameLaunch.set_active_record_id(id)
@@ -120,35 +154,26 @@ func _enter_lan() -> void:
 	get_tree().change_scene_to_file(SANDBOX_SCENE)
 
 func _on_settings_pressed() -> void:
-	if _record_selector.is_open():
-		_record_selector.close()
-	if _profile_overlay.is_open():
-		_profile_overlay.close()
-	if _lan_overlay.is_open():
-		_lan_overlay.close()
 	_overlay.open()
+	_overlay.move_to_front()
+	_top_bar.move_to_front()
 
 func _on_profile_pressed() -> void:
 	if _overlay.is_open():
 		_overlay.close()
+	if _mode_choice.is_open():
+		_mode_choice.close()
 	if _record_selector.is_open():
 		_record_selector.close()
 	if _lan_overlay.is_open():
 		_lan_overlay.close()
 	_profile_overlay.open()
 
-func _on_lan_pressed() -> void:
-	if _overlay.is_open():
-		_overlay.close()
-	if _record_selector.is_open():
-		_record_selector.close()
-	if _profile_overlay.is_open():
-		_profile_overlay.close()
-	_lan_overlay.open()
-
 func _on_home_pressed() -> void:
 	if _overlay.is_open():
 		_overlay.close()
+	if _mode_choice.is_open():
+		_mode_choice.close()
 	if _record_selector.is_open():
 		_record_selector.close()
 	if _profile_overlay.is_open():

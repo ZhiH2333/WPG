@@ -7,13 +7,13 @@ var _anim_tween: Tween
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
-@onready var _best_loop_label: Label = $Center/Panel/Column/BestLoop
-@onready var _last_loop_label: Label = $Center/Panel/Column/LastLoop
-@onready var _last_kills_label: Label = $Center/Panel/Column/LastKills
-@onready var _last_gold_label: Label = $Center/Panel/Column/LastGold
-@onready var _runs_label: Label = $Center/Panel/Column/Runs
-@onready var _owned_label: Label = $Center/Panel/Column/OwnedHint
-@onready var _back_button: Button = $Back
+@onready var _best_loop_label: Label = $Center/Panel/Column/Content/Center/Stats/BestLoop
+@onready var _last_loop_label: Label = $Center/Panel/Column/Content/Center/Stats/LastLoop
+@onready var _last_kills_label: Label = $Center/Panel/Column/Content/Center/Stats/LastKills
+@onready var _last_gold_label: Label = $Center/Panel/Column/Content/Center/Stats/LastGold
+@onready var _runs_label: Label = $Center/Panel/Column/Content/Center/Stats/Runs
+@onready var _owned_label: Label = $Center/Panel/Column/Content/Center/Stats/OwnedHint
+@onready var _back_button: Button = $Center/Panel/Column/Back
 
 func _ready() -> void:
 	visible = false

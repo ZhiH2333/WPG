@@ -7,10 +7,7 @@ signal selected_record(id: String)
 enum View { LIST, EDITOR }
 
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
-const CARD_SIZE := Vector2(520, 96)
-const DELETE_SIZE := Vector2(44, 44)
-const LIST_VIEWPORT_H: float = 416.0
-const LIST_VIEWPORT_W: float = 584.0
+const DELETE_SIZE := Vector2(64, 64)
 const DEFAULT_LOOP_GOAL: int = 20
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
@@ -22,21 +19,22 @@ var _pending_delete_id: String = ""
 var _selected_character_id: String = CHAR_BOAR
 
 @onready var _dimmer: ColorRect = $Dimmer
-@onready var _list_root: Control = $ListRoot
-@onready var _scroll: ScrollContainer = $ListRoot/Center/Scroll
-@onready var _cards: VBoxContainer = $ListRoot/Center/Scroll/Cards
-@onready var _new_button: Button = $ListRoot/Center/Scroll/Cards/NewRecord
-@onready var _editor_root: Control = $EditorRoot
-@onready var _boar_button: Button = $EditorRoot/Center/Column/Characters/Boar
-@onready var _chicken_button: Button = $EditorRoot/Center/Column/Characters/Chicken
-@onready var _loop_slider: HSlider = $EditorRoot/Center/Column/LoopRow/Slider
-@onready var _loop_label: Label = $EditorRoot/Center/Column/LoopRow/LoopLabel
-@onready var _name_edit: LineEdit = $EditorRoot/Center/Column/NameEdit
-@onready var _confirm_button: Button = $EditorRoot/Center/Column/Confirm
-@onready var _delete_root: Control = $DeleteRoot
-@onready var _delete_yes: Button = $DeleteRoot/Center/Panel/Column/Buttons/Yes
-@onready var _delete_no: Button = $DeleteRoot/Center/Panel/Column/Buttons/No
-@onready var _back_button: Button = $Back
+@onready var _panel: PanelContainer = $Center/Panel
+@onready var _list_root: Control = $Center/Panel/Column/Content/ListRoot
+@onready var _scroll: ScrollContainer = $Center/Panel/Column/Content/ListRoot/Scroll
+@onready var _cards: GridContainer = $Center/Panel/Column/Content/ListRoot/Scroll/Cards
+@onready var _new_button: Button = $Center/Panel/Column/Content/ListRoot/Scroll/Cards/NewRecord
+@onready var _editor_root: Control = $Center/Panel/Column/Content/EditorRoot
+@onready var _boar_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar
+@onready var _chicken_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken
+@onready var _loop_slider: HSlider = $Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow/Slider
+@onready var _loop_label: Label = $Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow/LoopLabel
+@onready var _name_edit: LineEdit = $Center/Panel/Column/Content/EditorRoot/Center/Column/NameEdit
+@onready var _confirm_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Confirm
+@onready var _delete_root: Control = $Center/Panel/Column/Content/DeleteRoot
+@onready var _delete_yes: Button = $Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons/Yes
+@onready var _delete_no: Button = $Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons/No
+@onready var _back_button: Button = $Center/Panel/Column/Back
 
 func _ready() -> void:
 	visible = false
@@ -65,7 +63,7 @@ func open() -> void:
 	_show_list_nodes()
 	_refresh_list()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, null, _collect_list_cards())
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, _collect_list_cards())
 	_focus_list()
 
 func close() -> void:
@@ -246,12 +244,12 @@ func _update_new_button() -> void:
 	_new_button.focus_mode = Control.FOCUS_NONE if is_full else Control.FOCUS_ALL
 
 func _fit_scroll() -> void:
-	var count: int = _cards.get_child_count()
-	var sep: int = _cards.get_theme_constant("separation")
-	var content_h: float = float(count) * CARD_SIZE.y + float(maxi(count - 1, 0)) * float(sep)
-	_scroll.custom_minimum_size = Vector2(LIST_VIEWPORT_W, minf(LIST_VIEWPORT_H, maxf(content_h, CARD_SIZE.y)))
+	_scroll.scroll_vertical = 0
 
 func _focus_list() -> void:
+	if _cards.get_child_count() <= 0:
+		_back_button.grab_focus()
+		return
 	if _new_button.disabled == false and _cards.get_child_count() <= 1:
 		_new_button.grab_focus()
 		return
@@ -259,11 +257,7 @@ func _focus_list() -> void:
 	if first == _new_button:
 		_new_button.grab_focus()
 		return
-	var row: HBoxContainer = first as HBoxContainer
-	if row == null or row.get_child_count() <= 0:
-		_back_button.grab_focus()
-		return
-	var main: Button = row.get_child(0) as Button
+	var main: Button = first as Button
 	if main == null:
 		_back_button.grab_focus()
 		return
@@ -272,15 +266,9 @@ func _focus_list() -> void:
 func _collect_list_cards() -> Array:
 	var cards: Array = []
 	for child: Node in _cards.get_children():
-		if child == _new_button:
-			cards.append(_new_button)
-			continue
-		var row: HBoxContainer = child as HBoxContainer
-		if row == null or row.get_child_count() <= 0:
-			continue
-		var main: Button = row.get_child(0) as Button
-		if main != null:
-			cards.append(main)
+		var button: Button = child as Button
+		if button != null:
+			cards.append(button)
 	cards.append(_back_button)
 	return cards
 
@@ -288,14 +276,20 @@ func _play_card_enter(cards: Array) -> void:
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_overlay(self, null, null, cards)
 
-func _make_record_row(record: GameRecord) -> HBoxContainer:
-	var row: HBoxContainer = HBoxContainer.new()
-	row.custom_minimum_size = Vector2(LIST_VIEWPORT_W - 12.0, CARD_SIZE.y)
-	row.add_theme_constant_override("separation", 8)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_make_main_card(record))
-	row.add_child(_make_delete_button(record.id))
-	return row
+func _make_record_row(record: GameRecord) -> Button:
+	var button: Button = _make_main_card(record)
+	var delete_button: Button = _make_delete_button(record.id)
+	delete_button.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	delete_button.anchor_left = 1.0
+	delete_button.anchor_top = 0.5
+	delete_button.anchor_right = 1.0
+	delete_button.anchor_bottom = 0.5
+	delete_button.offset_left = -DELETE_SIZE.x - 16.0
+	delete_button.offset_top = -DELETE_SIZE.y * 0.5
+	delete_button.offset_right = -16.0
+	delete_button.offset_bottom = DELETE_SIZE.y * 0.5
+	button.add_child(delete_button)
+	return button
 
 func _make_delete_button(record_id: String) -> Button:
 	var button: Button = Button.new()

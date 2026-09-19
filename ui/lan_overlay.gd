@@ -11,8 +11,6 @@ const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
 const DEFAULT_LOOP_GOAL: int = 20
-const PICK_VIEWPORT_H: float = 416.0
-const PICK_VIEWPORT_W: float = 532.0
 
 var _open: bool = false
 var _view: View = View.HOME
@@ -25,31 +23,32 @@ var _host_started: bool = false
 var _picked_record_id: String = ""
 
 @onready var _dimmer: ColorRect = $Dimmer
-@onready var _home_root: Control = $HomeRoot
-@onready var _pick_root: Control = $PickRoot
-@onready var _host_root: Control = $HostRoot
-@onready var _join_root: Control = $JoinRoot
-@onready var _host_button: Button = $HomeRoot/Center/Column/Host
-@onready var _join_button: Button = $HomeRoot/Center/Column/Join
-@onready var _pick_scroll: ScrollContainer = $PickRoot/Center/Column/Scroll
-@onready var _pick_cards: VBoxContainer = $PickRoot/Center/Column/Scroll/Cards
-@onready var _custom_button: Button = $PickRoot/Center/Column/Scroll/Cards/Custom
-@onready var _host_address: Label = $HostRoot/Center/Column/AddressList
-@onready var _host_status: Label = $HostRoot/Center/Column/Status
-@onready var _record_hint: Label = $HostRoot/Center/Column/RecordHint
-@onready var _host_boar: Button = $HostRoot/Center/Column/Characters/Boar
-@onready var _host_chicken: Button = $HostRoot/Center/Column/Characters/Chicken
-@onready var _loop_slider: HSlider = $HostRoot/Center/Column/LoopRow/Slider
-@onready var _loop_label: Label = $HostRoot/Center/Column/LoopRow/LoopLabel
-@onready var _start_button: Button = $HostRoot/Center/Column/Start
-@onready var _join_edit: LineEdit = $JoinRoot/Center/Column/Address
-@onready var _connect_button: Button = $JoinRoot/Center/Column/Connect
-@onready var _join_status: Label = $JoinRoot/Center/Column/Status
-@onready var _join_boar: Button = $JoinRoot/Center/Column/Characters/Boar
-@onready var _join_chicken: Button = $JoinRoot/Center/Column/Characters/Chicken
-@onready var _join_goal: Label = $JoinRoot/Center/Column/GoalLabel
-@onready var _join_wait: Label = $JoinRoot/Center/Column/WaitingLabel
-@onready var _back_button: Button = $Back
+@onready var _panel: PanelContainer = $Center/Panel
+@onready var _home_root: Control = $Center/Panel/Column/Content/HomeRoot
+@onready var _pick_root: Control = $Center/Panel/Column/Content/PickRoot
+@onready var _host_root: Control = $Center/Panel/Column/Content/HostRoot
+@onready var _join_root: Control = $Center/Panel/Column/Content/JoinRoot
+@onready var _host_button: Button = $Center/Panel/Column/Content/HomeRoot/Center/Column/Host
+@onready var _join_button: Button = $Center/Panel/Column/Content/HomeRoot/Center/Column/Join
+@onready var _pick_scroll: ScrollContainer = $Center/Panel/Column/Content/PickRoot/Scroll
+@onready var _pick_cards: GridContainer = $Center/Panel/Column/Content/PickRoot/Scroll/Cards
+@onready var _custom_button: Button = $Center/Panel/Column/Content/PickRoot/Scroll/Cards/Custom
+@onready var _host_address: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/AddressList
+@onready var _host_status: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/Status
+@onready var _record_hint: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/RecordHint
+@onready var _host_boar: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Characters/Boar
+@onready var _host_chicken: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Characters/Chicken
+@onready var _loop_slider: HSlider = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/Slider
+@onready var _loop_label: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/LoopLabel
+@onready var _start_button: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Start
+@onready var _join_edit: LineEdit = $Center/Panel/Column/Content/JoinRoot/Center/Column/Address
+@onready var _connect_button: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Connect
+@onready var _join_status: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/Status
+@onready var _join_boar: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Boar
+@onready var _join_chicken: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Chicken
+@onready var _join_goal: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/GoalLabel
+@onready var _join_wait: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/WaitingLabel
+@onready var _back_button: Button = $Center/Panel/Column/Back
 
 func _ready() -> void:
 	visible = false
@@ -85,7 +84,7 @@ func open() -> void:
 	_picked_record_id = ""
 	_show_home(true)
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, null, [_host_button, _join_button, _back_button])
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_host_button, _join_button, _back_button])
 	_host_button.grab_focus()
 
 func close() -> void:
@@ -461,11 +460,7 @@ func _make_pick_card(record: GameRecord) -> Button:
 	return button
 
 func _fit_pick_scroll() -> void:
-	var count: int = _pick_cards.get_child_count()
-	var sep: int = _pick_cards.get_theme_constant("separation")
-	var card_h: float = RecordCard.CARD_SIZE.y
-	var content_h: float = float(count) * card_h + float(maxi(count - 1, 0)) * float(sep)
-	_pick_scroll.custom_minimum_size = Vector2(PICK_VIEWPORT_W, minf(PICK_VIEWPORT_H, maxf(content_h, card_h)))
+	_pick_scroll.scroll_vertical = 0
 
 func _collect_pick_cards() -> Array:
 	var cards: Array = []

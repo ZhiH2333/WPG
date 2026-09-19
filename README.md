@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出档位列表（RecordSelector）。空档时只有 “+ New Record”；点已有档直接进沙盒；新建档时选野猪/野鸡和 loop 目标（滑杆 0=Inf，默认 20）。没有 Solo / Infinite / Multi 三张卡，Multi 不进这套 UI。顶栏只留设置、主页、LAN、Profile、时钟。点 LAN 打开局域网叠层（Host 可选用已有档预填角色和 loop_goal，联机不写盘；Join 仍自选角色，端口 17777）；Play 仍只进 RecordSelector。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒；新建档时选野猪/野鸡和 loop 目标（滑杆 0=Inf，默认 20）。Host 可选用已有档预填角色和 loop_goal，联机不写盘；Join 仍自选角色，端口 17777。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -914,7 +914,7 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）+ 菜单 main.mp3 + 战斗 war.mp3
 arena/      EncounterPhrases 手写句读（P0–P7 + Boss，PHRASE_TOTAL=9）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ RecordSelector（Play 后档位列表 + New Record 编辑态，无灰 Multi 卡）+ SettingsOverlay + ProfileOverlay（顶栏头像弹出，best/last/runs，仍只读 progress.cfg）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload；进沙盒只传 id）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，可写 boar/chicken，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + WinnerPage（layer=22，DEAD/CLEARED，分数拆解 + 本档 Top 10 + Retry/Menu）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `loop_goal>0` 时 `L0/5  0/9`，否则 `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关 WinnerPage layer=22 含拆解与本档历史；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeChoiceOverlay（Play 后 SOLO / MULTI 小卡）+ RecordSelector（大面板 FloatingPanel + Header + LIST 2 列网格）+ LanOverlay（大面板 FloatingPanel + Header + PICK 2 列网格）+ SettingsOverlay + ProfileOverlay（大面板 FloatingPanel + Header，best/last/runs，仍只读 progress.cfg）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload；进沙盒只传 id）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，可写 boar/chicken，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + WinnerPage（layer=22，DEAD/CLEARED，分数拆解 + 本档 Top 10 + Retry/Menu）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `loop_goal>0` 时 `L0/5  0/9`，否则 `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关 WinnerPage layer=22 含拆解与本档历史；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；CharacterDef + CharacterCatalog.tres + data/characters/ 野猪/野鸡底值；升级从角色底值重算
 debug/      DebugOverlay
 sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite 隐式 boar；Floor 平铺地砖 / Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / HitSparks / DeathShards / CombatMusic / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / WinnerPage / PauseOverlay / DebugOverlay）
@@ -958,8 +958,9 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 | **48（已完成）** | Arc D WinnerPage v2：独立结算 + 本档历史对比 | 死 / 通关有分数拆解和本档 Top 10 | 云同步、成就 |
 | **49（已完成）** | 局域网 2 客户端（ENet 17777 / protocol 1） | 同网两台一起打，不写档 | 5 人、房间浏览器、同机分屏 |
 | **50（已完成）** | 用现有档开 LAN：PICK 预填并锁定角色 + loop_goal | Host 借档开房，Guest 仍自选；联机不写盘 | 5 人、房间浏览器 |
-| **51** | Profile + 可视化排行 | 顶栏成绩更好读 | 云同步、跨档总榜 |
-| **52+** | 局域网房间浏览器 / 最多 5 头猪/鸡 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
+| **51（已完成）** | Play 分岔 Solo/Multi、顶栏直达、大面板弹层 | 点 Play 先选 Solo / Multi；顶栏也能直达；档位/联机/资料是大面板 | Profile 新内容、Settings 大面板 |
+| **52** | Profile + 可视化排行 | 顶栏成绩更好读 | 云同步、跨档总榜 |
+| **53+** | Settings 大面板 / 局域网房间浏览器 / 最多 5 头猪/鸡 | 同网开房一起乱打 | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
 ## Day 44（已完成）：地板 / 火花池 / 死亡碎裂 / 战斗 BGM
@@ -1077,8 +1078,24 @@ Host 可以借一条本地档的角色和 `loop_goal` 开房。联机只借配�
 
 **当时不做：** 5 人、UDP 房间广播、房间浏览器、NAT/UPnP/Steam、同机分屏、把 LAN 局写入 records.json / progress.cfg、每人独立升级背包、WinnerPage 联机历史、Profile 升级。
 
-## 下一步：Day 51（Profile + 可视化排行）
+## Day 51（已完成）：Play 分岔 Solo/Multi + 顶栏直达 + 大面板弹层
+
+Play 先问 SOLO / MULTI。顶栏也能各自直达。档位列表 / 联机房 / 资料页换成接近全屏的 FloatingPanel，从下方弹起。LIST / PICK 改 2 列卡片网格。内部状态机、握手、写档规则与 Day 50 相同。Autoload 仍为 0。
+
+- `UiAnim.enter_overlay`：content 先记下 `position.y` 为 `base_y`，放到 `base_y + 56`，再 `PANEL_MOVE_SEC` + `TRANS_BACK` / `EASE_OUT` tween 回去，和 modulate 淡入并行。ProfileOverlay / WinnerPage / PauseOverlay 已经把自己的 Panel/Column 当 content 传入，自动获得弹起。不要为了只改新叠层拆第二个函数。
+- `ui/mode_choice_overlay.gd`（`class_name ModeChoiceOverlay`）：路由器，不套大面板。两张 OfferButton `240×200` 横排，文案 SOLO / MULTI。Dimmer `Color(0,0,0,0.35)`。信号只有 `solo_pressed` / `multi_pressed`。不要 AcceptDialog，不要记住上次选择。
+- 顶栏：原 `LanButton` 改名 `MultiButton` 文案 MULTI；旁边新增 `SoloButton` 文案 SOLO，Home 右边成对出现。两者跳过 Mode Choice，直接 `_enter_solo_flow` / `_enter_multi_flow`。
+- MainMenu 路由收拢：`_enter_solo_flow()` 关其它叠层后 `_record_selector.open()`；`_enter_multi_flow()` 关其它叠层后 `_lan_overlay.open()`。Play / Logo / `ui_accept` 打开 Mode Choice。`_any_overlay_open()` 含 Mode Choice；Esc 关掉它。
+- RecordSelector / LanOverlay / ProfileOverlay 统一外壳：Dimmer + CenterContainer + FloatingPanel `1680×920` + Header（Title FloatingHeader + spacer + Back 120×44 OfferButton）+ Content（四边 margin 24）。原各视图的独立 CenterContainer 删除；表单类视图内部仍居中窄列；LIST / PICK 铺满的 2 列 GridContainer。卡片约 `780×140`，`+ New Record` / `+ Custom` 占一格。Back 仍是原来的 `_handle_back()`，只是挪到 Header。
+- Theme：`FloatingPanel`（`sb_panel` 放大版，圆角 18、阴影同、content_margin 28）、`FloatingHeader`（字号 28，颜色同 ModeTitle）。styleboxes 走 `.tres`。
+- Profile 只放大间距，6 个 Label 原样，2 列排。不要 Records Overview。SettingsOverlay 仍钉左边缘。
+
+**当时不做：** Profile 新内容、Settings 大面板化、跨档总榜、5 人/房间浏览器、记住上次 Mode Choice、FloatingPage 场景类、改 Winner/Pause 业务逻辑。
+
+## 下一步：Day 52（Profile + 可视化排行）
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
 
 **Day 50 = 用现有档开 LAN（已完成）**：Host 借档预填并锁定角色 + `loop_goal`；Guest 仍自选；空档走 Custom；联机不写盘。5 人 / 房间浏览器是后续日。
+
+**Day 51 = Play 分岔 Solo/Multi（已完成）**：Mode Choice 路由、顶栏直达、三个叠层大面板 + 2 列网格、`enter_overlay` 弹起。Profile 新内容和 Settings 大面板化是后续日。

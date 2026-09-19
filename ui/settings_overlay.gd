@@ -42,6 +42,10 @@ func open() -> void:
 	_open = true
 	visible = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	move_to_front()
+	var top_bar: Control = get_parent().get_node_or_null("TopBar") as Control
+	if top_bar != null:
+		top_bar.move_to_front()
 	_play_open_animation()
 	_volume_slider.grab_focus()
 
@@ -54,9 +58,27 @@ func close() -> void:
 	_refocus_menu()
 
 func _refocus_menu() -> void:
+	if _another_overlay_open():
+		return
 	var play: Button = get_parent().get_node_or_null("Center/Column/Buttons/Play") as Button
 	if play != null:
 		play.grab_focus()
+
+func _another_overlay_open() -> bool:
+	var parent: Node = get_parent()
+	if parent == null:
+		return false
+	var mode: ModeChoiceOverlay = parent.get_node_or_null("ModeChoiceOverlay") as ModeChoiceOverlay
+	if mode != null and mode.is_open():
+		return true
+	var records: RecordSelector = parent.get_node_or_null("RecordSelector") as RecordSelector
+	if records != null and records.is_open():
+		return true
+	var profile: ProfileOverlay = parent.get_node_or_null("ProfileOverlay") as ProfileOverlay
+	if profile != null and profile.is_open():
+		return true
+	var lan: LanOverlay = parent.get_node_or_null("LanOverlay") as LanOverlay
+	return lan != null and lan.is_open()
 
 func _play_open_animation() -> void:
 	UiAnim.kill_tween(_anim_tween)

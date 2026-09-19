@@ -96,6 +96,15 @@ func _process(delta: float) -> void:
 		if _run_session.is_player_dead() or _run_session.is_cleared():
 			_show_winner_if_needed()
 		return
+	if _upgrade_offer.is_open() or _shop_offer.is_open():
+		if _all_pawns_defeated():
+			if _upgrade_offer.is_open():
+				_abort_offer()
+			if _shop_offer.is_open():
+				_abort_shop()
+		elif _run_session.is_player_dead() or _run_session.is_cleared():
+			_show_winner_if_needed()
+		return
 	_tick_god_mode_kills()
 	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
 		_encounter.tick(delta)
@@ -235,10 +244,12 @@ func _bind_runtime() -> void:
 	_upgrade_offer.bind_session(_run_session)
 	_upgrade_offer.bind_player_input(player_input)
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
+	_upgrade_offer.cancelled.connect(_return_to_menu)
 	_shop_offer.bind_session(_run_session)
 	_shop_offer.bind_player_input(player_input)
 	_shop_offer.bought.connect(_on_shop_bought)
 	_shop_offer.skipped.connect(_on_shop_skipped)
+	_shop_offer.cancelled.connect(_return_to_menu)
 	_pause_overlay.bind_run_session(_run_session)
 	_pause_overlay.resumed.connect(_on_pause_resumed)
 	_pause_overlay.retried.connect(_on_pause_retried)
@@ -307,6 +318,7 @@ func _loop_phrases() -> void:
 	if defs.is_empty():
 		_finish_loop_after_shop()
 		return
+	_set_combat_frozen(true)
 	_shop_offer.present(defs, _run_session.get_gold())
 	_set_offer_input_lock(true)
 	_broadcast_offer_open(OFFER_SHOP, defs, _run_session.get_gold())
@@ -375,6 +387,7 @@ func _open_offer_if_needed() -> void:
 	if defs.is_empty():
 		_encounter.acknowledge_offer()
 		return
+	_set_combat_frozen(true)
 	_upgrade_offer.present(defs)
 	_set_offer_input_lock(true)
 	_broadcast_offer_open(OFFER_PHRASE, defs, _run_session.get_gold())
@@ -387,6 +400,7 @@ func _open_level_offer_if_needed() -> void:
 	if defs.is_empty():
 		_run_session.consume_pending_level()
 		return
+	_set_combat_frozen(true)
 	_upgrade_offer.present(defs)
 	_set_offer_input_lock(true)
 	_broadcast_offer_open(OFFER_LEVEL, defs, _run_session.get_gold())
@@ -420,6 +434,7 @@ func _abort_offer() -> void:
 func _close_offer() -> void:
 	_upgrade_offer.close()
 	_set_offer_input_lock(false)
+	_set_combat_frozen(false)
 
 func _on_shop_bought(upgrade_id: StringName) -> void:
 	if _is_guest():
@@ -462,6 +477,27 @@ func _abort_shop() -> void:
 func _close_shop() -> void:
 	_shop_offer.close()
 	_set_offer_input_lock(false)
+	_set_combat_frozen(false)
+
+func _set_combat_frozen(frozen: bool) -> void:
+	if _is_lan():
+		if not frozen and _lan_paused:
+			return
+		for pawn: Player in _pawns:
+			if pawn != null:
+				pawn.set_sim_paused(frozen)
+		for enemy: EnemyBase in _enemies:
+			enemy.set_sim_paused(frozen)
+		return
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	if frozen:
+		tree.paused = true
+		return
+	if _pause_overlay.is_open():
+		return
+	tree.paused = false
 
 func _set_offer_input_lock(locked: bool) -> void:
 	for pawn: Player in _pawns:
@@ -975,6 +1011,7 @@ func _on_net_offer_open(kind: int, id0: String, id1: String, id2: String, gold: 
 	var defs: Array[UpgradeDef] = _defs_from_ids(id0, id1, id2)
 	if defs.is_empty():
 		return
+	_set_combat_frozen(true)
 	if kind == OFFER_SHOP:
 		_shop_offer.present(defs, gold)
 	else:

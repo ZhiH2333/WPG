@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name PauseOverlay
 
-## 战斗暂停叠层：唯一允许 get_tree().paused 的地方。Continue / Retry / Quit；Esc 走 Continue。
+## 战斗暂停叠层：单机 Continue / Retry / Quit；Esc 走 Continue。选卡时 CombatSandbox 也会冻场景树。
 signal resumed
 signal retried
 signal quit_pressed

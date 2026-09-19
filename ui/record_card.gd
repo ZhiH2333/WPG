@@ -4,8 +4,8 @@ class_name RecordCard
 ## 档位主卡工厂。LIST 与 LAN PICK 共用。不含删除钮，不含 pressed 连接。全是 static，不是 Autoload，禁止 get_tree()。
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
-const CARD_SIZE := Vector2(520, 96)
-const PORTRAIT_PX: float = 64.0
+const CARD_SIZE := Vector2(780, 140)
+const PORTRAIT_PX: float = 96.0
 
 static func make_main_card(record: GameRecord) -> Button:
 	var button: Button = Button.new()
@@ -13,12 +13,12 @@ static func make_main_card(record: GameRecord) -> Button:
 	button.theme_type_variation = &"OfferButton"
 	var inner: HBoxContainer = HBoxContainer.new()
 	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
-	inner.offset_left = 16.0
-	inner.offset_top = 12.0
-	inner.offset_right = -16.0
-	inner.offset_bottom = -12.0
+	inner.offset_left = 20.0
+	inner.offset_top = 16.0
+	inner.offset_right = -20.0
+	inner.offset_bottom = -16.0
 	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	inner.add_theme_constant_override("separation", 12)
+	inner.add_theme_constant_override("separation", 16)
 	inner.add_child(_make_portrait(record.character_id))
 	inner.add_child(_make_meta_box(record))
 	inner.add_child(_make_score_label(record.best_score))
