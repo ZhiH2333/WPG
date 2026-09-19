@@ -33,10 +33,22 @@ var _fps_avg_2s: float = 0.0
 @onready var _label: Label = $Label
 
 func _ready() -> void:
+	visible = false
 	_fps_slot_min.resize(FPS_SLOT_COUNT)
 	_fps_slot_sum.resize(FPS_SLOT_COUNT)
 	_fps_slot_count.resize(FPS_SLOT_COUNT)
 	_reset_fps_slots()
+
+func _input(event: InputEvent) -> void:
+	if not OS.is_debug_build():
+		return
+	var key: InputEventKey = event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return
+	if key.physical_keycode != KEY_F9:
+		return
+	visible = not visible
+	get_viewport().set_input_as_handled()
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -98,6 +110,8 @@ func get_fps_avg_2s() -> float:
 
 func _process(delta: float) -> void:
 	_tick_fps_window(delta)
+	if not visible:
+		return
 	_refresh_label()
 
 func _refresh_label() -> void:

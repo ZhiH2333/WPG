@@ -99,7 +99,6 @@ static func apply() -> void:
 			Viewport.MSAA_8X,
 		][_msaa_index]
 		root.content_scale_factor = _ui_scale
-	# _render_scale 占位，Day 54 SubViewport 落地
 	_apply_key_bindings()
 
 static func get_volume() -> float:

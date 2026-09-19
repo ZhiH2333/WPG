@@ -35,7 +35,21 @@ size = Vector2(40, 980)
 [node name="CombatSandbox" type="Node2D"]
 script = ExtResource("1_sandbox")
 
-[node name="Floor" type="Sprite2D" parent="."]
+[node name="ViewportContainer" type="SubViewportContainer" parent="."]
+offset_right = 1920.0
+offset_bottom = 1080.0
+stretch = true
+
+[node name="GameViewport" type="SubViewport" parent="ViewportContainer"]
+handle_input_locally = false
+size = Vector2i(1920, 1080)
+size_2d_override = Vector2i(1920, 1080)
+size_2d_override_stretch = true
+transparent_bg = false
+
+[node name="World" type="Node2D" parent="ViewportContainer/GameViewport"]
+
+[node name="Floor" type="Sprite2D" parent="ViewportContainer/GameViewport/World"]
 z_index = -10
 texture_filter = 1
 centered = true
@@ -44,205 +58,205 @@ region_enabled = true
 region_rect = Rect2(0, 0, 1600, 900)
 script = ExtResource("21_floor")
 
-[node name="Walls" type="Node2D" parent="."]
+[node name="Walls" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 
-[node name="WallTop" type="StaticBody2D" parent="Walls"]
+[node name="WallTop" type="StaticBody2D" parent="ViewportContainer/GameViewport/World/Walls"]
 position = Vector2(0, -470)
 collision_layer = 16
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/WallTop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ViewportContainer/GameViewport/World/Walls/WallTop"]
 shape = SubResource("RectangleShape2D_hwall")
 
-[node name="Visual" type="Polygon2D" parent="Walls/WallTop"]
+[node name="Visual" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallTop"]
 color = Color(0.11, 0.12, 0.15, 1)
 polygon = PackedVector2Array(-840, -20, 840, -20, 840, 20, -840, 20)
 
-[node name="EdgeShadow" type="Polygon2D" parent="Walls/WallTop"]
+[node name="EdgeShadow" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallTop"]
 color = Color(0.06, 0.07, 0.09, 1)
 polygon = PackedVector2Array(-840, -20, 840, -20, 840, -14, -840, -14)
 
-[node name="EdgeHighlight" type="Polygon2D" parent="Walls/WallTop"]
+[node name="EdgeHighlight" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallTop"]
 color = Color(0.22, 0.24, 0.28, 1)
 polygon = PackedVector2Array(-840, 14, 840, 14, 840, 20, -840, 20)
 
-[node name="WallBottom" type="StaticBody2D" parent="Walls"]
+[node name="WallBottom" type="StaticBody2D" parent="ViewportContainer/GameViewport/World/Walls"]
 position = Vector2(0, 470)
 collision_layer = 16
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/WallBottom"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ViewportContainer/GameViewport/World/Walls/WallBottom"]
 shape = SubResource("RectangleShape2D_hwall")
 
-[node name="Visual" type="Polygon2D" parent="Walls/WallBottom"]
+[node name="Visual" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallBottom"]
 color = Color(0.11, 0.12, 0.15, 1)
 polygon = PackedVector2Array(-840, -20, 840, -20, 840, 20, -840, 20)
 
-[node name="EdgeHighlight" type="Polygon2D" parent="Walls/WallBottom"]
+[node name="EdgeHighlight" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallBottom"]
 color = Color(0.22, 0.24, 0.28, 1)
 polygon = PackedVector2Array(-840, -20, 840, -20, 840, -14, -840, -14)
 
-[node name="EdgeShadow" type="Polygon2D" parent="Walls/WallBottom"]
+[node name="EdgeShadow" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallBottom"]
 color = Color(0.06, 0.07, 0.09, 1)
 polygon = PackedVector2Array(-840, 14, 840, 14, 840, 20, -840, 20)
 
-[node name="WallLeft" type="StaticBody2D" parent="Walls"]
+[node name="WallLeft" type="StaticBody2D" parent="ViewportContainer/GameViewport/World/Walls"]
 position = Vector2(-820, 0)
 collision_layer = 16
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/WallLeft"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ViewportContainer/GameViewport/World/Walls/WallLeft"]
 shape = SubResource("RectangleShape2D_vwall")
 
-[node name="Visual" type="Polygon2D" parent="Walls/WallLeft"]
+[node name="Visual" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallLeft"]
 color = Color(0.11, 0.12, 0.15, 1)
 polygon = PackedVector2Array(-20, -490, 20, -490, 20, 490, -20, 490)
 
-[node name="EdgeShadow" type="Polygon2D" parent="Walls/WallLeft"]
+[node name="EdgeShadow" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallLeft"]
 color = Color(0.06, 0.07, 0.09, 1)
 polygon = PackedVector2Array(-20, -490, -14, -490, -14, 490, -20, 490)
 
-[node name="EdgeHighlight" type="Polygon2D" parent="Walls/WallLeft"]
+[node name="EdgeHighlight" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallLeft"]
 color = Color(0.22, 0.24, 0.28, 1)
 polygon = PackedVector2Array(14, -490, 20, -490, 20, 490, 14, 490)
 
-[node name="WallRight" type="StaticBody2D" parent="Walls"]
+[node name="WallRight" type="StaticBody2D" parent="ViewportContainer/GameViewport/World/Walls"]
 position = Vector2(820, 0)
 collision_layer = 16
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/WallRight"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ViewportContainer/GameViewport/World/Walls/WallRight"]
 shape = SubResource("RectangleShape2D_vwall")
 
-[node name="Visual" type="Polygon2D" parent="Walls/WallRight"]
+[node name="Visual" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallRight"]
 color = Color(0.11, 0.12, 0.15, 1)
 polygon = PackedVector2Array(-20, -490, 20, -490, 20, 490, -20, 490)
 
-[node name="EdgeHighlight" type="Polygon2D" parent="Walls/WallRight"]
+[node name="EdgeHighlight" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallRight"]
 color = Color(0.22, 0.24, 0.28, 1)
 polygon = PackedVector2Array(-20, -490, -14, -490, -14, 490, -20, 490)
 
-[node name="EdgeShadow" type="Polygon2D" parent="Walls/WallRight"]
+[node name="EdgeShadow" type="Polygon2D" parent="ViewportContainer/GameViewport/World/Walls/WallRight"]
 color = Color(0.06, 0.07, 0.09, 1)
 polygon = PackedVector2Array(14, -490, 20, -490, 20, 490, 14, 490)
 
-[node name="Enemies" type="Node2D" parent="."]
+[node name="Enemies" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 
-[node name="MeleeLeft1" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-620, -200)
 
-[node name="MeleeLeft2" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft2" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-590, -155)
 
-[node name="MeleeLeft3" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft3" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-560, -110)
 
-[node name="MeleeLeft4" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft4" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-530, -55)
 
-[node name="MeleeLeft5" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft5" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-500, 0)
 
-[node name="MeleeLeft6" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft6" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-470, 50)
 
-[node name="MeleeLeft7" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft7" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-445, 100)
 
-[node name="MeleeLeft8" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft8" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-420, 140)
 
-[node name="MeleeLeft9" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft9" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-400, 170)
 
-[node name="MeleeLeft10" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeLeft10" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-380, 200)
 
-[node name="MeleeBottom1" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-280, 365)
 
-[node name="MeleeBottom2" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom2" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-218, 378)
 
-[node name="MeleeBottom3" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom3" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-155, 390)
 
-[node name="MeleeBottom4" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom4" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-93, 402)
 
-[node name="MeleeBottom5" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom5" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(-30, 415)
 
-[node name="MeleeBottom6" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom6" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(30, 425)
 
-[node name="MeleeBottom7" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom7" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(93, 437)
 
-[node name="MeleeBottom8" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom8" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(155, 448)
 
-[node name="MeleeBottom9" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom9" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(218, 458)
 
-[node name="MeleeBottom10" parent="Enemies" instance=ExtResource("7_melee")]
+[node name="MeleeBottom10" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
 position = Vector2(280, 468)
 
-[node name="EliteBottom1" parent="Enemies" instance=ExtResource("16_elite")]
+[node name="EliteBottom1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("16_elite")]
 position = Vector2(0, 400)
 
-[node name="RangedRight1" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedRight1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(490, -200)
 
-[node name="RangedRight2" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedRight2" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(520, -120)
 
-[node name="RangedRight3" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedRight3" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(550, -40)
 
-[node name="RangedRight4" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedRight4" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(580, 40)
 
-[node name="RangedRight5" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedRight5" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(610, 120)
 
-[node name="RangedRight6" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedRight6" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(640, 200)
 
-[node name="RangedTop1" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedTop1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(-200, -405)
 
-[node name="RangedTop2" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedTop2" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(-70, -425)
 
-[node name="RangedTop3" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedTop3" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(70, -445)
 
-[node name="RangedTop4" parent="Enemies" instance=ExtResource("8_ranged")]
+[node name="RangedTop4" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("8_ranged")]
 position = Vector2(200, -465)
 
-[node name="ChargerRight1" parent="Enemies" instance=ExtResource("19_charger")]
+[node name="ChargerRight1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("19_charger")]
 position = Vector2(500, 220)
 
-[node name="ChargerRight2" parent="Enemies" instance=ExtResource("19_charger")]
+[node name="ChargerRight2" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("19_charger")]
 position = Vector2(540, 280)
 
-[node name="BossCenter1" parent="Enemies" instance=ExtResource("20_boss")]
+[node name="BossCenter1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("20_boss")]
 position = Vector2(0, -360)
 
-[node name="Projectiles" type="Node2D" parent="."]
+[node name="Projectiles" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 script = ExtResource("6_pool")
 
-[node name="EnemyProjectiles" type="Node2D" parent="."]
+[node name="EnemyProjectiles" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 script = ExtResource("6_pool")
 
-[node name="SfxPool" type="Node2D" parent="."]
+[node name="SfxPool" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 script = ExtResource("9_sfx")
 
-[node name="HitSparks" type="Node2D" parent="."]
+[node name="HitSparks" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 script = ExtResource("22_spark_pool")
 
-[node name="DeathShards" type="Node2D" parent="."]
+[node name="DeathShards" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 script = ExtResource("23_shard_pool")
 
 [node name="CombatMusic" type="AudioStreamPlayer" parent="."]
@@ -261,13 +275,13 @@ script = ExtResource("13_applier")
 [node name="NetSession" type="Node" parent="."]
 script = ExtResource("25_net")
 
-[node name="Players" type="Node2D" parent="."]
+[node name="Players" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
+[node name="Player" parent="ViewportContainer/GameViewport/World" instance=ExtResource("2_player")]
 
-[node name="PlayerCamera" parent="." instance=ExtResource("4_camera")]
+[node name="PlayerCamera" parent="ViewportContainer/GameViewport/World" instance=ExtResource("4_camera")]
 
-[node name="AimReticle" parent="." instance=ExtResource("5_reticle")]
+[node name="AimReticle" parent="ViewportContainer/GameViewport/World" instance=ExtResource("5_reticle")]
 
 [node name="Hud" parent="." instance=ExtResource("11_hud")]
 

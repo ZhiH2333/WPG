@@ -42,27 +42,29 @@ var _guest_pawn: Player
 var _lan_paused: bool = false
 var _last_owned_label: String = ""
 
-@onready var _walls: Node2D = $Walls
-@onready var _player: Player = $Player
-@onready var _player_camera: PlayerCamera = $PlayerCamera
-@onready var _aim_reticle: AimReticle = $AimReticle
+@onready var _viewport_container: SubViewportContainer = $ViewportContainer
+@onready var _game_viewport: SubViewport = $ViewportContainer/GameViewport
+@onready var _walls: Node2D = $ViewportContainer/GameViewport/World/Walls
+@onready var _player: Player = $ViewportContainer/GameViewport/World/Player
+@onready var _player_camera: PlayerCamera = $ViewportContainer/GameViewport/World/PlayerCamera
+@onready var _aim_reticle: AimReticle = $ViewportContainer/GameViewport/World/AimReticle
 @onready var _debug_overlay: DebugOverlay = $DebugOverlay
 @onready var _hud: Hud = $Hud
 @onready var _upgrade_offer: UpgradeOffer = $UpgradeOffer
 @onready var _shop_offer: ShopOffer = $ShopOffer
 @onready var _winner_page: WinnerPage = $WinnerPage
-@onready var _projectiles: ProjectilePool = $Projectiles
-@onready var _enemy_projectiles: ProjectilePool = $EnemyProjectiles
-@onready var _hit_sparks: HitSparkPool = $HitSparks
-@onready var _death_shards: DeathShardPool = $DeathShards
-@onready var _enemies_root: Node2D = $Enemies
-@onready var _sfx_pool: SfxPool = $SfxPool
+@onready var _projectiles: ProjectilePool = $ViewportContainer/GameViewport/World/Projectiles
+@onready var _enemy_projectiles: ProjectilePool = $ViewportContainer/GameViewport/World/EnemyProjectiles
+@onready var _hit_sparks: HitSparkPool = $ViewportContainer/GameViewport/World/HitSparks
+@onready var _death_shards: DeathShardPool = $ViewportContainer/GameViewport/World/DeathShards
+@onready var _enemies_root: Node2D = $ViewportContainer/GameViewport/World/Enemies
+@onready var _sfx_pool: SfxPool = $ViewportContainer/GameViewport/World/SfxPool
 @onready var _combat_music: AudioStreamPlayer = $CombatMusic
 @onready var _encounter: EncounterPhrases = $EncounterPhrases
 @onready var _run_session: RunSession = $RunSession
 @onready var _upgrade_applier: UpgradeApplier = $UpgradeApplier
 @onready var _pause_overlay: PauseOverlay = $PauseOverlay
-@onready var _players_root: Node2D = $Players
+@onready var _players_root: Node2D = $ViewportContainer/GameViewport/World/Players
 @onready var _net: NetSession = $NetSession
 
 func _ready() -> void:
@@ -73,6 +75,7 @@ func _ready() -> void:
 	_apply_wall_layers()
 	_bind_runtime()
 	_bind_window_cursor()
+	_apply_render_scale()
 	_sync_system_cursor()
 
 	var gamepad_debug: Node = preload("res://debug/test_gamepad.gd").new()
@@ -527,7 +530,24 @@ func _bind_window_cursor() -> void:
 	window.mouse_exited.connect(_on_window_mouse_exited)
 	window.focus_entered.connect(_sync_system_cursor)
 	window.focus_exited.connect(_sync_system_cursor)
+	window.size_changed.connect(_apply_render_scale)
 	_mouse_inside_window = true
+
+## Godot 4.6：stretch=true 时禁止手改 SubViewport.size。容器 size 就是像素缓冲，scale 撑满逻辑画布。
+func _apply_render_scale() -> void:
+	var target_size: Vector2i = get_window().size
+	var canvas_size: Vector2 = get_viewport().get_visible_rect().size
+	if canvas_size.x < 1.0 or canvas_size.y < 1.0:
+		canvas_size = Vector2(1920, 1080)
+	var scaled: Vector2i = Vector2i((Vector2(target_size) * GameSettings.get_render_scale()).round())
+	scaled.x = maxi(scaled.x, 1)
+	scaled.y = maxi(scaled.y, 1)
+	_viewport_container.position = Vector2.ZERO
+	_viewport_container.size = Vector2(scaled)
+	_viewport_container.scale = canvas_size / Vector2(scaled)
+	_game_viewport.size_2d_override = Vector2i(canvas_size.round())
+	_game_viewport.size_2d_override_stretch = true
+	_game_viewport.msaa_2d = get_viewport().msaa_2d
 
 func _on_window_mouse_entered() -> void:
 	_mouse_inside_window = true
@@ -581,6 +601,7 @@ func _on_pause_toggle() -> void:
 	_pause_overlay.open()
 
 func _on_pause_resumed() -> void:
+	_apply_render_scale()
 	if _is_guest():
 		_net.send_try_unpause()
 		return

@@ -1092,10 +1092,88 @@ Play 先问 SOLO / MULTI。顶栏也能各自直达。档位列表 / 联机房 /
 
 **当时不做：** Profile 新内容、Settings 大面板化、跨档总榜、5 人/房间浏览器、记住上次 Mode Choice、FloatingPage 场景类、改 Winner/Pause 业务逻辑。
 
-## 下一步：Day 52（Profile + 可视化排行）
+## Day 52（已完成）：Profile 概览 + 可视化排行
+
+ProfileOverlay 套上 Day 51 的 FloatingPanel `1680×920` 统一外壳，内容分两列：左 Stats（best loop / last loop / last kills / last gold / runs / last owned，原 6 个 Label 不改字段），右 RecordsColumn 用 `GameRecords.list_records()` 按 `best_score` 降序铺概览行。Header 新增 `RankButton`，点开单独的 `RecordLeaderboardOverlay`（同款 FloatingPanel 外壳）把全部档位画成 Top→Bottom 排行条。两个叠层都只读 `progress.cfg` / `records.json`，不写盘，不做跨设备排行。
+
+- `ui/record_card.gd`（`class_name RecordCard`，全 static）新增 `make_overview_row`（Profile 用，名字+角色+loop badge+best score，无头像无删除）与 `make_rank_row`（排行用，rank 数字 + `RankBar` 进度条 + 名字 + 分数）。`make_main_card` 不变，三处调用点共用同一份布局逻辑。
+- `ui/record_leaderboard_overlay.gd`（`class_name RecordLeaderboardOverlay`）+ `.tscn`：`_rebuild_rows()` 用第一名的 `best_score` 归一化所有 `RankBar` 宽度；空档显示 `NO RECORDS YET`。Rank 1/2/3 按 Gold/Silver/Bronze 上色，其余用默认色。
+- Theme 新增 `RankBar`（ProgressBar variant）与 Gold/Silver/Bronze 三个颜色常量，走 `game_theme.tres`。
+- `MainMenu`：`_profile_overlay.view_ranking_pressed` 连到 `_enter_leaderboard()`；`_leaderboard_overlay` 并入 `_any_overlay_open()` / `_any_menu_overlay_open()` / 所有互斥关闭链，行为与其余叠层一致（Esc 关、背景模糊压暗、音乐衰减）。
+
+**当时不做：** 跨设备/云端排行、按角色筛选、导出分享、Profile 新增字段、Settings 大面板化（是 Day 53）。
+
+## Day 53（已完成）：Settings 改版为 osu 式抽屉 + 渲染/UI/按键/删档选项
+
+`SettingsOverlay` 从居中小面板改成钉左边缘的抽屉（`932px` 宽：左 `274px` Sidebar 图标导航 + 右侧一篇可滚动长文档），抄 osu! 的 `ScrollContainer` 惯性滚动（`DistanceDecayScroll`/`DistanceDecayJump` 指数阻尼）与搜索过滤。新增渲染分辨率、UI 缩放、垂直同步、抗锯齿、按键绑定、长按删除全部数据。Autoload 仍为 0，`records.json` / `progress.cfg` 结构不变。
+
+- `GameSettings` 新增字段与持久化：`render_scale`（0.1–1.0，`user://settings.cfg` 落盘，渲染管线接线是 Day 54）、`ui_scale`（0.8–1.3，`apply()` 里直接写 `root.content_scale_factor`）、`vsync_mode`（`DisplayServer.window_set_vsync_mode`）、`msaa_index`（0–3 挡，写 `root.msaa_2d`）、`key_overrides`（8 个可重绑动作，默认值 + 方向键兜底，`_apply_key_bindings()` 整段重写 `InputMap`）。
+- `ui/settings_section.gd`（`class_name SettingsSection`）：长文档里的一节，非当前节压暗到 0.8 alpha、hover 到 0.5，点击只负责把自己滚到视窗，不会立刻变亮（要等滚动稳定）。
+- `ui/settings_nav_button.gd`（`class_name SettingsNavButton`）：左侧胶囊指示器随选中状态伸缩（`TRANS_BACK`），图标 + 文字随选中变色。四个图标 `ui/icons/{speaker,monitor,keyboard,database}.png`。
+- `ui/hold_confirm_button.gd`（`class_name HoldConfirmButton`）+ `.tscn`：通用长按确认钮，`Fill` ColorRect 按住渐满，默认 `1.5s`，松手/失焦/鼠标移出立刻回零，只在满格瞬间发一次 `confirmed`，鼠标和触屏都吃。Data 分区用它做「HOLD TO DELETE ALL DATA」：确认后删 `progress.cfg` + `records.json`（`settings.cfg` 不动），`GameProgress.load_from_disk()` / `GameRecords.load_from_disk()` 立即重载。
+- Controls 分区按 `GameSettings.REBINDABLE_ACTIONS` 动态铺一行一动作，点击进入监听态（文案变 `...`），按键冲突时短暂闪 `IN USE` 再还原，`Esc` 取消监听。
+- 顶部搜索框按 `settings_search` meta 关键字过滤整节/整行，命中节的其余控件仍全部可见；未命中的 nav 图标压到 `alpha 0.28`。
+- 渲染分辨率滑杆当前只落盘、只改 Label 文案（`RenderScaleHint` 明确写「Takes effect in a future update」），真正接 `SubViewport` 是下一步 Day 54。
+
+**当时不做：** 渲染分辨率真正生效（SubViewport 管线）、手柄按键重绑、多组按键预设、UI 缩放之外的排版自适应、Settings 之外叠层跟进抽屉风格。
+
+## Day 54（已完成）：渲染分辨率落地 SubViewport
+
+`GameSettings.render_scale` 接到战斗渲染管线。`CombatSandbox` 根节点仍是 `Node2D`。世界进 `SubViewport`，UI / 纯逻辑留在主视口，避免 HUD 和暂停菜单被降采样。
+
+场景层级：
+
+```text
+CombatSandbox (Node2D)
+  ViewportContainer (SubViewportContainer, stretch=true)
+    GameViewport (SubViewport)
+      World (Node2D，无脚本)
+        Floor, Walls, Enemies, Projectiles, EnemyProjectiles,
+        SfxPool, HitSparks, DeathShards, Players, Player,
+        PlayerCamera, AimReticle
+  CombatMusic, EncounterPhrases, RunSession, UpgradeApplier, NetSession
+  Hud, WinnerPage, UpgradeOffer, ShopOffer, DebugOverlay, PauseOverlay
+```
+
+`_apply_render_scale()` 时机（不广播、不新增 Autoload，直接读 `GameSettings.get_render_scale()`）：
+
+1. `_ready()`：`GameSettings.apply()` 之后、`size_changed` 已连接
+2. `Window.size_changed`（拖窗口 / 切全屏）
+3. `PauseOverlay.resumed`（暂停菜单里拖完滑杆，Continue 关闭时生效；不逐帧跟滑杆）
+
+尺寸合同：
+
+- Godot 4.6：`SubViewportContainer.stretch = true` 时禁止手改 `SubViewport.size`。所以把容器 `.size` 设成 `Window.size * render_scale`（真像素缓冲），再用 `.scale` 撑到根视口 `get_visible_rect().size`（`canvas_items` + `expand` 的逻辑画布，含 UI scale）。直接把容器设成 `Window.size` 会黑边。
+- `GameViewport.size` 由 stretch 自动等于容器 size。50% 就是像素变少、画面变糊。
+- `size_2d_override` = 同一份逻辑画布、`size_2d_override_stretch = true`。SubViewport 没有 Window 的 content_scale；不重写 2D 尺寸的话，降分辨率会变成拉近而不是变糊。`player_camera.gd` / `player_input.gd` / `aim_reticle.gd` 不动。
+- `GameViewport.msaa_2d` 抄根视口，Day 53 抗锯齿仍打在世界上。
+- 联机 Host/Guest 各用本地 `render_scale`，不进快照。
+- `DebugOverlay` 默认隐藏；debug 构建按 **F9** 切换显示（联机也可用，不进 `[input]`）。隐藏时不刷新文案。
+
+**当时不做：** 逐帧动态分辨率、分辨率过渡动画、每个 UI 面板单独可调分辨率、3D 相关字段、移动端专属预设。抗锯齿 / UI 缩放 / 垂直同步 / 按键绑定仍走 Day 53 的 `GameSettings.apply()`，本 Day 不改它们的设置项。
+
+## 下一步：Day 55（FlatBold 主题 / 叠层换皮）
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
 
 **Day 50 = 用现有档开 LAN（已完成）**：Host 借档预填并锁定角色 + `loop_goal`；Guest 仍自选；空档走 Custom；联机不写盘。5 人 / 房间浏览器是后续日。
 
 **Day 51 = Play 分岔 Solo/Multi（已完成）**：Mode Choice 路由、顶栏直达、三个叠层大面板 + 2 列网格、`enter_overlay` 弹起。Profile 新内容和 Settings 大面板化是后续日。
+
+**Day 52 = Profile 概览 + 可视化排行（已完成）**：RecordCard 新增两种只读行、RecordLeaderboardOverlay 排行条、RankBar/Gold/Silver/Bronze 主题。
+
+**Day 53 = Settings osu 式抽屉（已完成）**：渲染分辨率/UI 缩放/垂直同步/抗锯齿/按键绑定/长按删档六项新设置落盘，抽屉式导航 + 搜索 + 惯性滚动。渲染分辨率仍是占位。
+
+> **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮；集中重皮阶段排到 Day 55（见 `ROADMAP.md` / 下方对话中的完整展望）。
+
+## 完整 roadmap 展望（Day 54 → Day 100，生产级里程碑）
+
+按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
+
+1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；`FlatBold` 主题令牌（纯色块+粗体，对齐顶栏）替换 osu 紫黑渐变，逐叠层重皮；手柄按键重绑；UI 缩放覆盖到动态生成的行（RecordCard / 设置行）。
+2. **Day 61–66　商店深化 + 跟班系统**：`ShopOffer` 从「买一张已有升级或 Skip」扩到多类可购项（升级卡之外加消耗品/跟班），仍是**局内临时**、不是跨局永久解锁；跟班（companion）**分种类**落地（例如近战贴身 / 远程支援等不同 AI 与外观，复用 `EnemyBase` 的移动与索敌骨架），随玩家跑、自动参战、局末清空；**主动技能（按键触发的技能）先跳过**，不做技能栏/冷却 UI，仅保留被动加成与跟班两条线。
+3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
+4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。
+5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
+
+**验收口径（每一天通用）**：本 Day README 里列出的「当时不做」清单之外的行为不应出现改动；新增/变更的脚本、场景、theme 项都要在 README 对应 Day 小节里落字，agent 交付前必须自查 README 是否已同步——这正是本次修的问题（Day 52/53 曾漏更新）。

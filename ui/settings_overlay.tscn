@@ -207,7 +207,7 @@ scrollable = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "Takes effect in a future update"
+text = "Takes effect in combat / on Continue"
 
 [node name="UiBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
 layout_mode = 2
