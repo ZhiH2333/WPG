@@ -1152,7 +1152,17 @@ CombatSandbox (Node2D)
 
 **当时不做：** 逐帧动态分辨率、分辨率过渡动画、每个 UI 面板单独可调分辨率、3D 相关字段、移动端专属预设。抗锯齿 / UI 缩放 / 垂直同步 / 按键绑定仍走 Day 53 的 `GameSettings.apply()`，本 Day 不改它们的设置项。
 
-## 下一步：Day 55（FlatBold 主题 / 叠层换皮）
+## Day 55（已完成）：FlatBold 主题令牌 + OfferButton 换皮
+
+只改 `ui/game_theme.tres`。不改任何 `.tscn` 节点结构、不改任何 `.gd` 交互逻辑，不碰 `TopBar` 的 `menu_shear.gdshader`。
+
+新增 4 个 `StyleBoxFlat`：`sb_flat_card_normal` / `sb_flat_card_hover` / `sb_flat_card_pressed` / `sb_flat_card_disabled`。规格：圆角统一 `6`（对齐顶栏「方正」感，卡片大面积不用直角）、不透明纯色、无 `shadow_*`、无 `border_width_*`。四态底色分别来自旧 `sb_card_*` 把 alpha 拉到 `1`（hover/pressed 的描边改由色块本身的色差承担）。`sb_focus_card` 原样保留（键盘/手柄焦点框是功能反馈）。`OfferTitle/fonts/font` 指向已有的 `font_bar_bold`（`SystemFont` weight 700，TopBar 同款）；`OfferDesc` 字重不动。`OfferButton` 四态切到 `sb_flat_card_*`，`font_color` 不变。旧 `sb_card_normal/hover/pressed/disabled` 留在文件里，`FloatingPanel` / 胶囊按钮继续间接用同一套旧色调。
+
+一次换皮辐射所有挂了 `OfferButton` 的卡片：ModeChoiceOverlay / LanOverlay / ProfileOverlay / RecordLeaderboardOverlay / RecordSelector / SettingsOverlay / ShopOffer / UpgradeOffer。
+
+**当时不做：** 不碰 `FloatingPanel` / `sb_panel` 背景、不碰 `PillPink` / `PillNeutral` / `PillRed`、不给 `OfferButton` 加 shear（卡片段落多，切变只留在 TopBar 短文案按钮上）、不改叠层 hover/press 动画时长或 `UiAnim` 缓动、不改 HUD / PauseOverlay 的 TopBar 自身样式、不新增 Autoload。
+
+## 下一步：Day 56（FlatBold 续皮 / 手柄重绑）
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
 
@@ -1164,13 +1174,13 @@ CombatSandbox (Node2D)
 
 **Day 53 = Settings osu 式抽屉（已完成）**：渲染分辨率/UI 缩放/垂直同步/抗锯齿/按键绑定/长按删档六项新设置落盘，抽屉式导航 + 搜索 + 惯性滚动。渲染分辨率仍是占位。
 
-> **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮；集中重皮阶段排到 Day 55（见 `ROADMAP.md` / 下方对话中的完整展望）。
+> **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`；`FloatingPanel` / 胶囊按钮仍用旧皮。
 
 ## 完整 roadmap 展望（Day 54 → Day 100，生产级里程碑）
 
 按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
 
-1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；`FlatBold` 主题令牌（纯色块+粗体，对齐顶栏）替换 osu 紫黑渐变，逐叠层重皮；手柄按键重绑；UI 缩放覆盖到动态生成的行（RecordCard / 设置行）。
+1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`。继续逐叠层重皮（面板背景 / 胶囊按钮）；手柄按键重绑；UI 缩放覆盖到动态生成的行（RecordCard / 设置行）。
 2. **Day 61–66　商店深化 + 跟班系统**：`ShopOffer` 从「买一张已有升级或 Skip」扩到多类可购项（升级卡之外加消耗品/跟班），仍是**局内临时**、不是跨局永久解锁；跟班（companion）**分种类**落地（例如近战贴身 / 远程支援等不同 AI 与外观，复用 `EnemyBase` 的移动与索敌骨架），随玩家跑、自动参战、局末清空；**主动技能（按键触发的技能）先跳过**，不做技能栏/冷却 UI，仅保留被动加成与跟班两条线。
 3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。

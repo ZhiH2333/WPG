@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=43 format=3]
+[gd_resource type="Theme" load_steps=47 format=3]
 
 [sub_resource type="StyleBoxFlat" id="sb_hp_bg"]
 bg_color = Color(0.09, 0.075, 0.105, 0.85)
@@ -92,6 +92,50 @@ corner_radius_top_left = 16
 corner_radius_top_right = 16
 corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_card_normal"]
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+bg_color = Color(0.19, 0.16, 0.225, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_card_hover"]
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+bg_color = Color(0.27, 0.225, 0.31, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_card_pressed"]
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+bg_color = Color(0.42, 0.22, 0.33, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_card_disabled"]
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+bg_color = Color(0.14, 0.12, 0.165, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="sb_focus_card"]
 bg_color = Color(1, 1, 1, 0)
@@ -497,6 +541,7 @@ OfferTitle/base_type = &"Label"
 OfferTitle/colors/font_color = Color(0.97, 0.94, 0.96, 1)
 OfferTitle/colors/font_outline_color = Color(0, 0, 0, 0.5)
 OfferTitle/constants/outline_size = 4
+OfferTitle/fonts/font = SubResource("font_bar_bold")
 OfferTitle/font_sizes/font_size = 22
 OfferDesc/base_type = &"Label"
 OfferDesc/colors/font_color = Color(0.8, 0.75, 0.81, 1)
@@ -506,11 +551,11 @@ OfferDesc/font_sizes/font_size = 16
 OfferButton/base_type = &"Button"
 OfferButton/colors/font_color = Color(0.97, 0.94, 0.96, 1)
 OfferButton/font_sizes/font_size = 18
-OfferButton/styles/disabled = SubResource("sb_card_disabled")
+OfferButton/styles/disabled = SubResource("sb_flat_card_disabled")
 OfferButton/styles/focus = SubResource("sb_focus_card")
-OfferButton/styles/hover = SubResource("sb_card_hover")
-OfferButton/styles/normal = SubResource("sb_card_normal")
-OfferButton/styles/pressed = SubResource("sb_card_pressed")
+OfferButton/styles/hover = SubResource("sb_flat_card_hover")
+OfferButton/styles/normal = SubResource("sb_flat_card_normal")
+OfferButton/styles/pressed = SubResource("sb_flat_card_pressed")
 ProgressBar/styles/background = SubResource("sb_hp_bg")
 ProgressBar/styles/fill = SubResource("sb_hp_fill")
 ProgressBarLow/base_type = &"ProgressBar"
