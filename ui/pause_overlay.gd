@@ -2,18 +2,19 @@ extends CanvasLayer
 class_name PauseOverlay
 
 ## 战斗暂停叠层：单机 Continue / Retry / Quit；Esc 走 Continue。选卡时 CombatSandbox 也会冻场景树。
+## 顶栏保留 Settings / 资料 / 时钟，Home / Solo / Multi 换成 Phase 与 playtime。
 signal resumed
 signal retried
 signal quit_pressed
 
-const MIX_RATE: int = 22050
-const WAV_HEADER_BYTES: int = 44
 const STRIP_HOVER_SEC: float = 0.12
 
 var _open: bool = false
 var _session: RunSession
+var _encounter: EncounterPhrases
 var _anim_tween: Tween
 var _hover_tweens: Dictionary = {}
+var _last_clock_second: int = -1
 
 @onready var _root: Control = $Root
 @onready var _dimmer: ColorRect = $Root/Dimmer
@@ -22,6 +23,14 @@ var _hover_tweens: Dictionary = {}
 @onready var _retry_button: Button = $Root/Center/Column/Retry
 @onready var _quit_button: Button = $Root/Center/Column/Quit
 @onready var _stats_label: Label = $Root/Center/Column/Stats
+@onready var _top_bar: PanelContainer = $TopBar
+@onready var _settings_button: Button = $TopBar/Row/SettingsButton
+@onready var _phase_label: Label = $TopBar/Row/PhaseBox/Phase
+@onready var _playtime_label: Label = $TopBar/Row/PlaytimeBox/Playtime
+@onready var _profile_button: Button = $TopBar/Row/Profile
+@onready var _profile_name: Label = $TopBar/Row/Profile/Layout/Name
+@onready var _clock_label: Label = $TopBar/Row/TimeBox/Clock
+@onready var _overlay: SettingsOverlay = $SettingsOverlay
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 
@@ -30,24 +39,30 @@ func _ready() -> void:
 	layer = 25
 	visible = false
 	_open = false
-	_hover_sfx.stream = _load_wav("res://audio/ui_hover.wav")
-	_click_sfx.stream = _load_wav("res://audio/ui_click.wav")
+	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
+	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_continue_button.pressed.connect(_on_continue_pressed)
 	_retry_button.pressed.connect(_on_retry_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
+	_settings_button.pressed.connect(_on_settings_pressed)
 	_wire_strip_hover(_continue_button)
 	_wire_strip_hover(_retry_button)
 	_wire_strip_hover(_quit_button)
 	_continue_button.mouse_entered.connect(_play_hover)
 	_retry_button.mouse_entered.connect(_play_hover)
 	_quit_button.mouse_entered.connect(_play_hover)
+	_settings_button.mouse_entered.connect(_play_hover)
 	_continue_button.focus_entered.connect(_play_hover)
 	_retry_button.focus_entered.connect(_play_hover)
 	_quit_button.focus_entered.connect(_play_hover)
+	_settings_button.focus_entered.connect(_play_hover)
 	_set_interactive(false)
 
 func bind_run_session(session: RunSession) -> void:
 	_session = session
+
+func bind_encounter(encounter: EncounterPhrases) -> void:
+	_encounter = encounter
 
 func is_open() -> bool:
 	return _open
@@ -58,8 +73,12 @@ func open(freeze_tree: bool = true) -> void:
 	_open = true
 	visible = true
 	_root.modulate.a = 1.0
+	_top_bar.modulate.a = 1.0
 	_set_interactive(true)
 	_refresh_stats()
+	_refresh_run_status()
+	_refresh_profile_name()
+	_refresh_clock(true)
 	if freeze_tree:
 		var tree: SceneTree = get_tree()
 		if tree != null:
@@ -74,6 +93,8 @@ func close(emit_resumed: bool = true) -> void:
 		return
 	_open = false
 	_set_interactive(false)
+	if _overlay.is_open():
+		_overlay.close()
 	var tree: SceneTree = get_tree()
 	if tree != null:
 		tree.paused = false
@@ -88,9 +109,20 @@ func _finish_close() -> void:
 		return
 	visible = false
 	_root.modulate.a = 1.0
+	_top_bar.modulate.a = 1.0
+
+func _process(_delta: float) -> void:
+	if not _open:
+		return
+	_refresh_clock(false)
+	_refresh_run_status()
 
 func _input(event: InputEvent) -> void:
 	if not visible:
+		return
+	if event.is_pressed():
+		GameAudio.unlock_driver(self)
+	if _overlay.is_open():
 		return
 	if not _is_pause_toggle(event):
 		return
@@ -124,10 +156,24 @@ func _on_quit_pressed() -> void:
 	_play_click()
 	_open = false
 	_set_interactive(false)
+	if _overlay.is_open():
+		_overlay.close()
 	var tree: SceneTree = get_tree()
 	if tree != null:
 		tree.paused = false
 	quit_pressed.emit()
+
+func _on_settings_pressed() -> void:
+	if not _open:
+		return
+	_play_click()
+	if _overlay.is_open():
+		_overlay.close()
+		_continue_button.grab_focus()
+		return
+	_overlay.open()
+	_overlay.move_to_front()
+	_top_bar.move_to_front()
 
 func _refresh_stats() -> void:
 	if _session == null:
@@ -139,6 +185,28 @@ func _refresh_stats() -> void:
 		_session.get_kill_count(),
 	]
 
+func _refresh_run_status() -> void:
+	var phase: String = "-"
+	if _encounter != null:
+		phase = _encounter.get_phrase_label()
+	_phase_label.text = "Phase  %s" % phase
+	var elapsed: float = 0.0
+	if _session != null:
+		elapsed = _session.get_elapsed_sec()
+	_playtime_label.text = "playtime  %s" % GameAudio.format_playtime(elapsed)
+
+func _refresh_profile_name() -> void:
+	GameProgress.load_from_disk()
+	_profile_name.text = "best  %d" % GameProgress.get_best_loop()
+
+func _refresh_clock(force: bool) -> void:
+	var now: Dictionary = Time.get_time_dict_from_system()
+	var sec: int = int(now["second"])
+	if not force and sec == _last_clock_second:
+		return
+	_last_clock_second = sec
+	_clock_label.text = "%02d:%02d:%02d" % [int(now["hour"]), int(now["minute"]), sec]
+
 func _set_interactive(enabled: bool) -> void:
 	if enabled:
 		_root.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -149,6 +217,7 @@ func _set_interactive(enabled: bool) -> void:
 	_continue_button.disabled = not enabled
 	_retry_button.disabled = not enabled
 	_quit_button.disabled = not enabled
+	_settings_button.disabled = not enabled
 
 func _wire_strip_hover(button: Button) -> void:
 	var bg: ColorRect = button.get_node("Bg") as ColorRect
@@ -185,14 +254,3 @@ func _play_click() -> void:
 	if _click_sfx.stream == null:
 		return
 	_click_sfx.play()
-
-func _load_wav(path: String) -> AudioStreamWAV:
-	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
-	if bytes.size() <= WAV_HEADER_BYTES:
-		return null
-	var stream: AudioStreamWAV = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = MIX_RATE
-	stream.stereo = false
-	stream.data = bytes.slice(WAV_HEADER_BYTES)
-	return stream

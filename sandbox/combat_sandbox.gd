@@ -122,6 +122,11 @@ func _process(delta: float) -> void:
 	if _run_session.is_player_dead() or _run_session.is_cleared():
 		_show_winner_if_needed()
 
+func _input(event: InputEvent) -> void:
+	if event.is_pressed():
+		GameAudio.unlock_driver(self)
+		_ensure_combat_music()
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_pause_toggle(event):
 		get_viewport().set_input_as_handled()
@@ -164,7 +169,10 @@ func _start_combat_music() -> void:
 	if mp3 != null:
 		mp3.loop = true
 	_combat_music.volume_db = COMBAT_MUSIC_DB
-	if not _combat_music.playing:
+	_ensure_combat_music()
+
+func _ensure_combat_music() -> void:
+	if _combat_music.stream != null and not _combat_music.playing:
 		_combat_music.play()
 
 func _bind_runtime() -> void:
@@ -251,6 +259,7 @@ func _bind_runtime() -> void:
 	_shop_offer.skipped.connect(_on_shop_skipped)
 	_shop_offer.cancelled.connect(_return_to_menu)
 	_pause_overlay.bind_run_session(_run_session)
+	_pause_overlay.bind_encounter(_encounter)
 	_pause_overlay.resumed.connect(_on_pause_resumed)
 	_pause_overlay.retried.connect(_on_pause_retried)
 	_pause_overlay.quit_pressed.connect(_on_pause_quit)

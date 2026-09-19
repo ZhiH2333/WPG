@@ -1,8 +1,12 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://ui/pause_overlay.gd" id="1_pause"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
 [ext_resource type="Shader" path="res://ui/menu_shear.gdshader" id="3_shear"]
+[ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="4_settings"]
+[ext_resource type="Texture2D" path="res://ui/icons/gear.png" id="5_gear"]
+[ext_resource type="Texture2D" path="res://ui/icons/clock.png" id="6_clock"]
+[ext_resource type="Texture2D" path="res://ui/icons/avatar.png" id="7_avatar"]
 
 [sub_resource type="ShaderMaterial" id="mat_continue"]
 shader = ExtResource("3_shear")
@@ -187,6 +191,171 @@ mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 text = "loop  0    gold  0    kills  0"
 horizontal_alignment = 1
+
+[node name="TopBar" type="PanelContainer" parent="."]
+z_index = 100
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 60.0
+grow_horizontal = 2
+mouse_filter = 0
+theme = ExtResource("2_theme")
+theme_type_variation = &"BarPanel"
+
+[node name="Row" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 0
+
+[node name="SettingsButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(168, 60)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+mouse_filter = 0
+theme_type_variation = &"IconBarButton"
+tooltip_text = "Settings"
+text = "Settings"
+icon = ExtResource("5_gear")
+
+[node name="PhaseBox" type="HBoxContainer" parent="TopBar/Row"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="PadL" type="Control" parent="TopBar/Row/PhaseBox"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Phase" type="Label" parent="TopBar/Row/PhaseBox"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ClockLabel"
+text = "Phase  -"
+vertical_alignment = 1
+
+[node name="PadR" type="Control" parent="TopBar/Row/PhaseBox"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PlaytimeBox" type="HBoxContainer" parent="TopBar/Row"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="PadL" type="Control" parent="TopBar/Row/PlaytimeBox"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Playtime" type="Label" parent="TopBar/Row/PlaytimeBox"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ClockLabel"
+text = "playtime  00:00"
+vertical_alignment = 1
+
+[node name="PadR" type="Control" parent="TopBar/Row/PlaytimeBox"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Spacer" type="Control" parent="TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Profile" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(188, 60)
+layout_mode = 2
+size_flags_vertical = 3
+disabled = true
+focus_mode = 0
+mouse_filter = 2
+theme_type_variation = &"IconBarButton"
+tooltip_text = "Profile"
+
+[node name="Layout" type="HBoxContainer" parent="TopBar/Row/Profile"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_right = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Name" type="Label" parent="TopBar/Row/Profile/Layout"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ProfileName"
+text = "best  0"
+vertical_alignment = 1
+
+[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile/Layout"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("7_avatar")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TimeBox" type="HBoxContainer" parent="TopBar/Row"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="PadL" type="Control" parent="TopBar/Row/TimeBox"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ClockIcon" type="TextureRect" parent="TopBar/Row/TimeBox"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("6_clock")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Clock" type="Label" parent="TopBar/Row/TimeBox"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ClockLabel"
+text = "00:00:00"
+vertical_alignment = 1
+
+[node name="PadR" type="Control" parent="TopBar/Row/TimeBox"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="SettingsOverlay" parent="." instance=ExtResource("4_settings")]
+process_mode = 3
+z_index = 50
+offset_top = 60.0
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 process_mode = 3

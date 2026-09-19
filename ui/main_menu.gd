@@ -5,8 +5,6 @@ class_name MainMenu
 ## Play 先问 Solo / Multi。顶栏 Solo / Multi 直达。叠层打开时背景模糊 + 音乐衰减。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
 const TOP_BAR_HEIGHT: float = 60.0
-const MIX_RATE: int = 22050
-const WAV_HEADER_BYTES: int = 44
 const MUSIC_DB_NORMAL: float = -6.0
 const MUSIC_DB_DIMMED: float = -16.0
 const BLUR_MAX: float = 2.6
@@ -50,9 +48,9 @@ func _ready() -> void:
 	GameProgress.load_from_disk()
 	GameRecords.load_from_disk()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_hover_sfx.stream = _load_wav("res://audio/ui_hover.wav")
-	_click_sfx.stream = _load_wav("res://audio/ui_click.wav")
-	_back_sfx.stream = _load_wav("res://audio/ui_back.wav")
+	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
+	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
+	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_start_music()
 	_logo_button.pressed.connect(_on_play_pressed)
 	_play_button.pressed.connect(_on_play_pressed)
@@ -86,6 +84,11 @@ func _process(delta: float) -> void:
 	mat.set_shader_parameter("dim_amount", DIM_MAX * _focus_amount)
 	_music.volume_db = lerpf(MUSIC_DB_NORMAL, MUSIC_DB_DIMMED, _focus_amount)
 	_refresh_clock(false)
+
+func _input(event: InputEvent) -> void:
+	if event.is_pressed():
+		GameAudio.unlock_driver(self)
+		_ensure_music()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
@@ -235,7 +238,10 @@ func _start_music() -> void:
 	if mp3 != null:
 		mp3.loop = true
 	_music.volume_db = MUSIC_DB_NORMAL
-	if not _music.playing:
+	_ensure_music()
+
+func _ensure_music() -> void:
+	if _music.stream != null and not _music.playing:
 		_music.play()
 
 func _wire_button_sounds() -> void:
@@ -301,7 +307,6 @@ func _play_enter_animation() -> void:
 		_enter_tween.tween_property(button, "scale", Vector2.ONE, UiAnim.CARD_SCALE_SEC).set_delay(delay).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		order += 1
 
-
 func _refresh_clock(force: bool) -> void:
 	var now: Dictionary = Time.get_time_dict_from_system()
 	var sec: int = int(now["second"])
@@ -309,14 +314,3 @@ func _refresh_clock(force: bool) -> void:
 		return
 	_last_clock_second = sec
 	_clock_label.text = "%02d:%02d:%02d" % [int(now["hour"]), int(now["minute"]), sec]
-
-func _load_wav(path: String) -> AudioStreamWAV:
-	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
-	if bytes.size() <= WAV_HEADER_BYTES:
-		return null
-	var stream: AudioStreamWAV = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = MIX_RATE
-	stream.stereo = false
-	stream.data = bytes.slice(WAV_HEADER_BYTES)
-	return stream

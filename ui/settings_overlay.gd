@@ -2,8 +2,6 @@ extends Control
 class_name SettingsOverlay
 
 ## osu 式设置抽屉：左侧目录锚点，右侧一篇长文档。当前节可点，其它节压暗。
-const MIX_RATE: int = 22050
-const WAV_HEADER_BYTES: int = 44
 const IN_USE_FLASH_SEC: float = 0.6
 const SIDEBAR_RATIO: float = 1.0 / 7.0
 const PANEL_OF_REMAINDER: float = 0.4
@@ -70,7 +68,7 @@ func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process(false)
-	_preview.stream = _load_wav("res://audio/click.wav")
+	_preview.stream = GameAudio.load_wav("res://audio/click.wav")
 	_msaa_option.clear()
 	_msaa_option.add_item("Off")
 	_msaa_option.add_item("2x")
@@ -138,7 +136,7 @@ func open() -> void:
 	set_process_input(true)
 	set_process_unhandled_input(true)
 	move_to_front()
-	var top_bar: Control = get_parent().get_node_or_null("TopBar") as Control
+	var top_bar: Control = _find_top_bar()
 	if top_bar != null:
 		top_bar.move_to_front()
 	_apply_split_layout()
@@ -194,7 +192,7 @@ func _play_open_animation() -> void:
 	_drawer.offset_right = 0.0
 	_dimmer.modulate.a = 0.0
 	_content.modulate.a = 0.0
-	_anim_tween = create_tween().set_parallel(true)
+	_anim_tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
 	_anim_tween.tween_property(_drawer, "offset_left", 0.0, TRANSITION_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	_anim_tween.tween_property(_drawer, "offset_right", drawer_w, TRANSITION_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	_anim_tween.tween_property(_dimmer, "modulate:a", 1.0, FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
@@ -208,7 +206,7 @@ func _play_open_animation() -> void:
 func _play_close_animation() -> void:
 	UiAnim.kill_tween(_anim_tween)
 	var drawer_w: float = _drawer_w()
-	_anim_tween = create_tween().set_parallel(true)
+	_anim_tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
 	_anim_tween.tween_property(_drawer, "offset_left", -drawer_w, TRANSITION_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	_anim_tween.tween_property(_drawer, "offset_right", 0.0, TRANSITION_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	_anim_tween.tween_property(_dimmer, "modulate:a", 0.0, FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
@@ -702,13 +700,11 @@ func _play_preview() -> void:
 	_preview.stop()
 	_preview.play()
 
-func _load_wav(path: String) -> AudioStreamWAV:
-	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
-	if bytes.size() <= WAV_HEADER_BYTES:
+func _find_top_bar() -> Control:
+	var parent: Node = get_parent()
+	if parent == null:
 		return null
-	var stream: AudioStreamWAV = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = MIX_RATE
-	stream.stereo = false
-	stream.data = bytes.slice(WAV_HEADER_BYTES)
-	return stream
+	var top_bar: Control = parent.get_node_or_null("TopBar") as Control
+	if top_bar != null:
+		return top_bar
+	return parent.get_node_or_null("Root/TopBar") as Control

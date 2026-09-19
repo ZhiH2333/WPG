@@ -2,38 +2,34 @@ extends Node2D
 class_name SfxPool
 
 ## 本局音效池，挂在 CombatSandbox 上，不是 Autoload。禁止每发 new 播放器。
-## WAV 用 FileAccess 读 PCM，不依赖编辑器 .import，避免 headless 扫到一半认不出扩展名。
+## Web / Android 上 AudioStreamPlayer2D 经常没声，一律走非空间播放器。
 const VOICE_COUNT: int = 8
-const MIX_RATE: int = 22050
-const WAV_HEADER_BYTES: int = 44
 
-var _voices: Array[AudioStreamPlayer2D] = []
+var _voices: Array[AudioStreamPlayer] = []
 var _started_msec: PackedInt32Array = PackedInt32Array()
-var _stream_pistol: AudioStreamWAV
-var _stream_shotgun: AudioStreamWAV
-var _stream_rifle: AudioStreamWAV
-var _stream_smg: AudioStreamWAV
-var _stream_hit: AudioStreamWAV
-var _stream_kill: AudioStreamWAV
-var _stream_hurt: AudioStreamWAV
-var _stream_click: AudioStreamWAV
-var _stream_enemy_shot: AudioStreamWAV
+var _stream_pistol: AudioStream
+var _stream_shotgun: AudioStream
+var _stream_rifle: AudioStream
+var _stream_smg: AudioStream
+var _stream_hit: AudioStream
+var _stream_kill: AudioStream
+var _stream_hurt: AudioStream
+var _stream_click: AudioStream
+var _stream_enemy_shot: AudioStream
 
 func _ready() -> void:
-	_stream_pistol = _load_wav("res://audio/pistol.wav")
-	_stream_shotgun = _load_wav("res://audio/shotgun.wav")
-	_stream_rifle = _load_wav("res://audio/rifle.wav")
-	_stream_smg = _load_wav("res://audio/smg.wav")
-	_stream_hit = _load_wav("res://audio/hit.wav")
-	_stream_kill = _load_wav("res://audio/kill.wav")
-	_stream_hurt = _load_wav("res://audio/hurt.wav")
-	_stream_click = _load_wav("res://audio/click.wav")
-	_stream_enemy_shot = _load_wav("res://audio/enemy_shot.wav")
+	_stream_pistol = GameAudio.load_wav("res://audio/pistol.wav")
+	_stream_shotgun = GameAudio.load_wav("res://audio/shotgun.wav")
+	_stream_rifle = GameAudio.load_wav("res://audio/rifle.wav")
+	_stream_smg = GameAudio.load_wav("res://audio/smg.wav")
+	_stream_hit = GameAudio.load_wav("res://audio/hit.wav")
+	_stream_kill = GameAudio.load_wav("res://audio/kill.wav")
+	_stream_hurt = GameAudio.load_wav("res://audio/hurt.wav")
+	_stream_click = GameAudio.load_wav("res://audio/click.wav")
+	_stream_enemy_shot = GameAudio.load_wav("res://audio/enemy_shot.wav")
 	_started_msec.resize(VOICE_COUNT)
 	for i: int in VOICE_COUNT:
-		var voice: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
-		voice.max_distance = 6000.0
-		voice.panning_strength = 0.35
+		var voice: AudioStreamPlayer = AudioStreamPlayer.new()
 		add_child(voice)
 		_voices.append(voice)
 		_started_msec[i] = 0
@@ -41,16 +37,15 @@ func _ready() -> void:
 func get_voice_count() -> int:
 	return _voices.size()
 
-func play(stream: AudioStream, pitch_scale: float, volume_db: float, world_position: Vector2 = Vector2.ZERO) -> void:
+func play(stream: AudioStream, pitch_scale: float, volume_db: float, _world_position: Vector2 = Vector2.ZERO) -> void:
 	if stream == null:
 		return
 	var index: int = _pick_voice_index()
-	var voice: AudioStreamPlayer2D = _voices[index]
+	var voice: AudioStreamPlayer = _voices[index]
 	voice.stop()
 	voice.stream = stream
 	voice.pitch_scale = clampf(pitch_scale, 0.5, 2.0)
 	voice.volume_db = volume_db
-	voice.global_position = world_position
 	_started_msec[index] = Time.get_ticks_msec()
 	voice.play()
 
@@ -110,15 +105,3 @@ func _pick_voice_index() -> int:
 			oldest_msec = _started_msec[i]
 			oldest = i
 	return oldest
-
-func _load_wav(path: String) -> AudioStreamWAV:
-	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
-	if bytes.size() <= WAV_HEADER_BYTES:
-		push_error("无法读取音效 " + path)
-		return null
-	var stream: AudioStreamWAV = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = MIX_RATE
-	stream.stereo = false
-	stream.data = bytes.slice(WAV_HEADER_BYTES)
-	return stream

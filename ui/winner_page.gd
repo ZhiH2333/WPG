@@ -5,8 +5,6 @@ class_name WinnerPage
 signal retry_pressed
 signal menu_pressed
 
-const MIX_RATE: int = 22050
-const WAV_HEADER_BYTES: int = 44
 const HIST_ROWS: int = 10
 
 var _open: bool = false
@@ -41,8 +39,8 @@ func _ready() -> void:
 	layer = 22
 	visible = false
 	_open = false
-	_hover_sfx.stream = _load_wav("res://audio/ui_hover.wav")
-	_click_sfx.stream = _load_wav("res://audio/ui_click.wav")
+	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
+	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_retry_button.pressed.connect(_on_retry_pressed)
 	_menu_button.pressed.connect(_on_menu_pressed)
 	_retry_button.mouse_entered.connect(_play_hover)
@@ -252,14 +250,3 @@ func _play_click() -> void:
 	if _click_sfx.stream == null:
 		return
 	_click_sfx.play()
-
-func _load_wav(path: String) -> AudioStreamWAV:
-	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
-	if bytes.size() <= WAV_HEADER_BYTES:
-		return null
-	var stream: AudioStreamWAV = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = MIX_RATE
-	stream.stereo = false
-	stream.data = bytes.slice(WAV_HEADER_BYTES)
-	return stream
