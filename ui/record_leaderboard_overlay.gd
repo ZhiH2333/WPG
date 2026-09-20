@@ -19,6 +19,7 @@ func is_open() -> bool:
 	return _open
 
 func open() -> void:
+	_panel.custom_minimum_size = UiFit.panel_size(self)
 	GameRecords.load_from_disk()
 	_rebuild_rows()
 	_open = true

@@ -60,6 +60,7 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_pending_delete_id = ""
+	_panel.custom_minimum_size = UiFit.panel_size(self)
 	_show_list_nodes()
 	_refresh_list()
 	UiAnim.kill_tween(_anim_tween)
@@ -221,6 +222,8 @@ func _refresh_loop_label() -> void:
 func _refresh_list() -> void:
 	GameRecords.load_from_disk()
 	_clear_record_rows()
+	var card: Vector2 = _fit_card_size()
+	_new_button.custom_minimum_size = card
 	for record: GameRecord in GameRecords.list_records():
 		_cards.add_child(_make_record_row(record))
 	_cards.move_child(_new_button, -1)
@@ -299,8 +302,15 @@ func _make_delete_button(record_id: String) -> Button:
 	button.pressed.connect(_on_delete_pressed.bind(record_id))
 	return button
 
+func _fit_card_size() -> Vector2:
+	var panel_w: float = _panel.custom_minimum_size.x
+	var columns: int = UiFit.card_columns(panel_w)
+	_cards.columns = columns
+	return UiFit.card_size(panel_w, columns)
+
 func _make_main_card(record: GameRecord) -> Button:
-	var button: Button = RecordCard.make_main_card(record)
+	var card: Vector2 = _fit_card_size()
+	var button: Button = RecordCard.make_main_card(record, card, UiFit.portrait_px(card))
 	button.pressed.connect(_on_record_pressed.bind(record.id))
 	return button
 

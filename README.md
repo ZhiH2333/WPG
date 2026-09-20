@@ -965,8 +965,9 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 | **55（已完成）** | FlatBold 令牌 + OfferButton 换皮 | 模式卡/商店卡变成小圆角纯色块 | FloatingPanel / 胶囊 CTA |
 | **56（已完成）** | 大面板 + 胶囊 CTA FlatBold | 1680×920 面板不透明去阴影；Host/Join/Retry 是方钮加粗 | Settings 抽屉换皮、TopBar/LogoButton |
 | **57（已完成）** | 右摇杆即时瞄准：回中 keep last，出 0.12 当帧对准，无转向平滑；`map_aim_stick` 合同 | 拨哪指哪，松开停在最后朝向 | 虚拟摇杆 UI、手柄重绑、右杆开火 |
-| **58** | 手柄按键重绑（Joypad） | Settings Controls 能绑手柄按钮 | 新 InputMap action 名、Settings 抽屉换皮 |
-| **更后面** | Settings 抽屉换皮、动态行 UI 缩放、5 人 / 房间浏览器 | — | Steam、互联网匹配、Mods |
+| **58（已完成）** | Settings 抽屉换皮 FlatBold | 侧栏深灰、近白粗体、洋红方条 | Joypad 重绑、虚拟摇杆 |
+| **59（已完成）** | 可见区 fit：大面板/卡片随 `visible_rect` 收缩 | ui_scale 130% 两列仍完整可见，不双倍放大 | 商店深化、跟班、TopBar |
+| **更后面** | 商店深化 + 跟班、5 人 / 房间浏览器 | — | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
 ## Day 44（已完成）：地板 / 火花池 / 死亡碎裂 / 战斗 BGM
@@ -1220,7 +1221,20 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **当时不做：** Joypad / 手柄按键重绑、虚拟摇杆 / TouchControls、改滚动惯性 / 搜索过滤 / 键盘重绑监听、改 HoldConfirmButton 时长、TopBar / LogoButton / `menu_shear`、改 GameSettings / `settings.cfg`、新 InputMap action。
 
-## 下一步：Day 59（动态行 UI 缩放）
+## Day 59（已完成）：可见区 fit，大面板和动态行完整可见
+
+`ui_scale` 仍只写 `root.content_scale_factor`（0.8–1.3）。可见逻辑尺寸变小时，大面板和两列卡片按 `get_visible_rect()` 收缩，禁止再乘 `ui_scale`（那会双倍放大）。`ui_scale=1.0` 且窗口够大时，面板仍约 1680×920、卡片仍约 780×140。Autoload 仍为 0。不改 `GameSettings.apply()` 的缩放语义，不克隆 theme 去改 `font_sizes`。
+
+- 新增 `ui/ui_fit.gd`（`class_name UiFit`，`extends Object`，全 static，抄 `UiAnim`）：`visible_size` / `panel_size` / `card_size` / `portrait_px`。`panel_size` 上限 preferred、下限 640×480，四边留 48。卡片列宽 = `(panel_w - 104 - 16*(columns-1)) / columns`，高度按 140/780 钳在 96～160。头像 `96 * (card.x / 780)`，钳在 64～96。
+- `RecordSelector` / `LanOverlay` / `ProfileOverlay` / `RecordLeaderboardOverlay` 的 `open()` 写 `_panel.custom_minimum_size = UiFit.panel_size(self)`。tscn 里 1680×920 / 780×140 留作 1.0 默认。
+- `RecordCard.make_main_card(record, card_size, portrait_px)` 必须由调用方传入尺寸，工厂里不再写死、不 `get_viewport()`。`make_overview_row` / `make_rank_row` 不设死宽；`RANK_WIDTH` / `RANK_BAR_HEIGHT` 保留。删除钮仍 64。
+- 网格默认 2 列。只有两列列宽会小于 **360** 才临时改 1 列（`panel_w < 840` 才会触发）。1920×1080 上 `ui_scale` 0.8–1.3 仍是 2 列。
+- `SettingsOverlay._on_ui_scale_changed` 在 `apply()` 与改 Label 之后立刻 `_apply_drawer_layout()` / `_fit_sections()` / `_layout_scroll()`。抽屉仍按 `SIDEBAR_RATIO` / `PANEL_OF_REMAINDER` 占左半，不是 FloatingPanel。绑键行仍 `160×44`。
+- 其它叠层只在 `open()` 按当时可见区算一次，不监听滑杆。
+
+**当时不做：** Joypad / 手柄按键重绑、虚拟摇杆 / TouchControls、商店深化、跟班、TopBar / LogoButton / `menu_shear`、改 `GameSettings` / `settings.cfg`、新 InputMap action、WinnerPage / Pause 业务。
+
+## 下一步：Day 61（商店深化 + 跟班）
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
 
@@ -1242,7 +1256,11 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **Day 58 = Settings 抽屉换皮（已完成）**：侧栏 / 面板底色 / SettingsHeader / 导航选中指示对齐顶栏纯色粗体。滚动、搜索、键盘重绑、长按删档逻辑不动。
 
-**Day 59 = 动态行 UI 缩放**：RecordCard / 设置行动态生成行跟随 `ui_scale`。
+**Day 59 = 可见区 fit（已完成）**：大面板 / RecordCard / NewRecord / Custom 按 `visible_rect` 收缩；1.0 仍是 1680/780；禁止 `CARD_SIZE * ui_scale`。Settings 滑杆拖动中重排抽屉。
+
+**Day 60 不开工**：视觉统一到 Day 59 收束。
+
+**下一步 Day 61 = 商店深化 + 跟班**。
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1252,7 +1270,7 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
 
-1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold。下一步是 UI 缩放覆盖到动态生成的行（RecordCard / 设置行）。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
+1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：`ShopOffer` 从「买一张已有升级或 Skip」扩到多类可购项（升级卡之外加消耗品/跟班），仍是**局内临时**、不是跨局永久解锁；跟班（companion）**分种类**落地（例如近战贴身 / 远程支援等不同 AI 与外观，复用 `EnemyBase` 的移动与索敌骨架），随玩家跑、自动参战、局末清空；**主动技能（按键触发的技能）先跳过**，不做技能栏/冷却 UI，仅保留被动加成与跟班两条线。
 3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。

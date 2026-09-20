@@ -29,6 +29,7 @@ func is_open() -> bool:
 	return _open
 
 func open() -> void:
+	_panel.custom_minimum_size = UiFit.panel_size(self)
 	_refresh_stats()
 	_refresh_records()
 	_open = true

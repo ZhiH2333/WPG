@@ -82,6 +82,7 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_picked_record_id = ""
+	_panel.custom_minimum_size = UiFit.panel_size(self)
 	_show_home(true)
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_host_button, _join_button, _back_button])
@@ -438,6 +439,8 @@ func _apply_host_config_lock(locked: bool) -> void:
 func _refresh_pick() -> void:
 	GameRecords.load_from_disk()
 	_clear_pick_rows()
+	var card: Vector2 = _fit_card_size()
+	_custom_button.custom_minimum_size = card
 	for record: GameRecord in GameRecords.list_records():
 		_pick_cards.add_child(_make_pick_card(record))
 	_pick_cards.move_child(_custom_button, -1)
@@ -454,8 +457,15 @@ func _clear_pick_rows() -> void:
 		_pick_cards.remove_child(child)
 		child.queue_free()
 
+func _fit_card_size() -> Vector2:
+	var panel_w: float = _panel.custom_minimum_size.x
+	var columns: int = UiFit.card_columns(panel_w)
+	_pick_cards.columns = columns
+	return UiFit.card_size(panel_w, columns)
+
 func _make_pick_card(record: GameRecord) -> Button:
-	var button: Button = RecordCard.make_main_card(record)
+	var card: Vector2 = _fit_card_size()
+	var button: Button = RecordCard.make_main_card(record, card, UiFit.portrait_px(card))
 	button.pressed.connect(_on_pick_record_pressed.bind(record.id))
 	return button
 

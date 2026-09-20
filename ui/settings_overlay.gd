@@ -577,6 +577,9 @@ func _on_ui_scale_changed(value: float) -> void:
 	GameSettings.set_ui_scale(value / 100.0)
 	GameSettings.apply()
 	_sync_ui_scale_label(value)
+	_apply_drawer_layout()
+	_fit_sections()
+	_layout_scroll()
 
 func _on_ui_scale_drag_ended(_value_changed: bool) -> void:
 	GameSettings.save_to_disk()

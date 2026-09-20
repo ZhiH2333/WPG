@@ -1,20 +1,18 @@
 extends Object
 class_name RecordCard
 
-## 档位主卡工厂。LIST / LAN PICK 共用大卡；Profile 概览行与排行行不带头像。不含删除钮，不含 pressed 连接。全是 static，不是 Autoload，禁止 get_tree()。
+## 档位主卡工厂。LIST / LAN PICK 共用大卡；Profile 概览行与排行行不带头像。不含删除钮，不含 pressed 连接。全是 static，不是 Autoload，禁止 get_tree() / get_viewport()。尺寸由调用方传入，禁止再乘 ui_scale。
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
-const CARD_SIZE := Vector2(780, 140)
-const PORTRAIT_PX: float = 96.0
 const RANK_WIDTH: float = 56.0
 const RANK_BAR_HEIGHT: float = 28.0
 const RANK_GOLD := Color(1, 0.85, 0.3, 1)
 const RANK_SILVER := Color(0.85, 0.85, 0.9, 1)
 const RANK_BRONZE := Color(0.85, 0.55, 0.35, 1)
 
-static func make_main_card(record: GameRecord) -> Button:
+static func make_main_card(record: GameRecord, card_size: Vector2, portrait_px: float) -> Button:
 	var button: Button = Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = card_size
 	button.theme_type_variation = &"OfferButton"
 	var inner: HBoxContainer = HBoxContainer.new()
 	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -24,7 +22,7 @@ static func make_main_card(record: GameRecord) -> Button:
 	inner.offset_bottom = -16.0
 	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	inner.add_theme_constant_override("separation", 16)
-	inner.add_child(_make_portrait(record.character_id))
+	inner.add_child(_make_portrait(record.character_id, portrait_px))
 	inner.add_child(_make_meta_box(record))
 	inner.add_child(_make_score_label(record.best_score))
 	button.add_child(inner)
@@ -109,9 +107,9 @@ static func _make_rank_bar(score: int, max_score: int) -> ProgressBar:
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return bar
 
-static func _make_portrait(character_id: String) -> TextureRect:
+static func _make_portrait(character_id: String, portrait_px: float) -> TextureRect:
 	var portrait: TextureRect = TextureRect.new()
-	portrait.custom_minimum_size = Vector2(PORTRAIT_PX, PORTRAIT_PX)
+	portrait.custom_minimum_size = Vector2(portrait_px, portrait_px)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
