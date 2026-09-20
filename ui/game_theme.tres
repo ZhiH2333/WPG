@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=47 format=3]
+[gd_resource type="Theme" load_steps=58 format=3]
 
 [sub_resource type="StyleBoxFlat" id="sb_hp_bg"]
 bg_color = Color(0.09, 0.075, 0.105, 0.85)
@@ -234,6 +234,17 @@ corner_radius_bottom_left = 18
 shadow_color = Color(0, 0, 0, 0.4)
 shadow_size = 12
 
+[sub_resource type="StyleBoxFlat" id="sb_flat_panel"]
+content_margin_left = 28.0
+content_margin_top = 28.0
+content_margin_right = 28.0
+content_margin_bottom = 28.0
+bg_color = Color(0.13, 0.11, 0.155, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [sub_resource type="StyleBoxFlat" id="sb_pill_pink"]
 content_margin_left = 34.0
 content_margin_top = 12.0
@@ -344,6 +355,116 @@ corner_radius_top_left = 27
 corner_radius_top_right = 27
 corner_radius_bottom_right = 27
 corner_radius_bottom_left = 27
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_pink"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 0.4, 0.67, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_pink_hover"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 0.55, 0.76, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_pink_pressed"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(0.85, 0.31, 0.55, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_neutral"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(0.29, 0.25, 0.35, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_neutral_hover"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(0.38, 0.33, 0.45, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_neutral_pressed"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(0.23, 0.2, 0.28, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_red"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(0.72, 0.24, 0.32, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_red_hover"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(0.88, 0.34, 0.42, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_red_pressed"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(0.56, 0.18, 0.25, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_flat_pill_disabled"]
+content_margin_left = 34.0
+content_margin_top = 12.0
+content_margin_right = 34.0
+content_margin_bottom = 12.0
+bg_color = Color(0.14, 0.12, 0.165, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="sb_focus_pill"]
 bg_color = Color(1, 1, 1, 0)
@@ -588,7 +709,7 @@ RunSummaryHint/colors/font_outline_color = Color(0, 0, 0, 0.4)
 RunSummaryHint/constants/outline_size = 2
 RunSummaryHint/font_sizes/font_size = 16
 RunSummaryPanel/base_type = &"PanelContainer"
-RunSummaryPanel/styles/panel = SubResource("sb_panel")
+RunSummaryPanel/styles/panel = SubResource("sb_flat_panel")
 BarPanel/base_type = &"PanelContainer"
 BarPanel/styles/panel = SubResource("sb_bar_panel")
 BarButton/base_type = &"Button"
@@ -606,36 +727,40 @@ MenuTitle/constants/outline_size = 8
 MenuTitle/font_sizes/font_size = 48
 MainMenuButton/base_type = &"Button"
 MainMenuButton/colors/font_color = Color(0.97, 0.94, 0.96, 1)
+MainMenuButton/fonts/font = SubResource("font_bar_bold")
 MainMenuButton/font_sizes/font_size = 22
-MainMenuButton/styles/disabled = SubResource("sb_card_disabled")
+MainMenuButton/styles/disabled = SubResource("sb_flat_pill_disabled")
 MainMenuButton/styles/focus = SubResource("sb_focus_pill")
-MainMenuButton/styles/hover = SubResource("sb_pill_neutral_hover")
-MainMenuButton/styles/normal = SubResource("sb_pill_neutral")
-MainMenuButton/styles/pressed = SubResource("sb_pill_neutral_pressed")
+MainMenuButton/styles/hover = SubResource("sb_flat_pill_neutral_hover")
+MainMenuButton/styles/normal = SubResource("sb_flat_pill_neutral")
+MainMenuButton/styles/pressed = SubResource("sb_flat_pill_neutral_pressed")
 PillPink/base_type = &"Button"
 PillPink/colors/font_color = Color(1, 1, 1, 1)
+PillPink/fonts/font = SubResource("font_bar_bold")
 PillPink/font_sizes/font_size = 22
-PillPink/styles/disabled = SubResource("sb_card_disabled")
+PillPink/styles/disabled = SubResource("sb_flat_pill_disabled")
 PillPink/styles/focus = SubResource("sb_focus_pill")
-PillPink/styles/hover = SubResource("sb_pill_pink_hover")
-PillPink/styles/normal = SubResource("sb_pill_pink")
-PillPink/styles/pressed = SubResource("sb_pill_pink_pressed")
+PillPink/styles/hover = SubResource("sb_flat_pill_pink_hover")
+PillPink/styles/normal = SubResource("sb_flat_pill_pink")
+PillPink/styles/pressed = SubResource("sb_flat_pill_pink_pressed")
 PillNeutral/base_type = &"Button"
 PillNeutral/colors/font_color = Color(0.97, 0.94, 0.96, 1)
+PillNeutral/fonts/font = SubResource("font_bar_bold")
 PillNeutral/font_sizes/font_size = 22
-PillNeutral/styles/disabled = SubResource("sb_card_disabled")
+PillNeutral/styles/disabled = SubResource("sb_flat_pill_disabled")
 PillNeutral/styles/focus = SubResource("sb_focus_pill")
-PillNeutral/styles/hover = SubResource("sb_pill_neutral_hover")
-PillNeutral/styles/normal = SubResource("sb_pill_neutral")
-PillNeutral/styles/pressed = SubResource("sb_pill_neutral_pressed")
+PillNeutral/styles/hover = SubResource("sb_flat_pill_neutral_hover")
+PillNeutral/styles/normal = SubResource("sb_flat_pill_neutral")
+PillNeutral/styles/pressed = SubResource("sb_flat_pill_neutral_pressed")
 PillRed/base_type = &"Button"
 PillRed/colors/font_color = Color(1, 1, 1, 1)
+PillRed/fonts/font = SubResource("font_bar_bold")
 PillRed/font_sizes/font_size = 22
-PillRed/styles/disabled = SubResource("sb_card_disabled")
+PillRed/styles/disabled = SubResource("sb_flat_pill_disabled")
 PillRed/styles/focus = SubResource("sb_focus_pill")
-PillRed/styles/hover = SubResource("sb_pill_red_hover")
-PillRed/styles/normal = SubResource("sb_pill_red")
-PillRed/styles/pressed = SubResource("sb_pill_red_pressed")
+PillRed/styles/hover = SubResource("sb_flat_pill_red_hover")
+PillRed/styles/normal = SubResource("sb_flat_pill_red")
+PillRed/styles/pressed = SubResource("sb_flat_pill_red_pressed")
 LogoButton/base_type = &"Button"
 LogoButton/colors/font_color = Color(1, 1, 1, 1)
 LogoButton/font_sizes/font_size = 52
@@ -653,6 +778,7 @@ ModeTitle/base_type = &"Label"
 ModeTitle/colors/font_color = Color(0.97, 0.94, 0.96, 1)
 ModeTitle/colors/font_outline_color = Color(0, 0, 0, 0.5)
 ModeTitle/constants/outline_size = 4
+ModeTitle/fonts/font = SubResource("font_bar_bold")
 ModeTitle/font_sizes/font_size = 26
 PauseTitle/base_type = &"Label"
 PauseTitle/colors/font_color = Color(1, 0.85, 0.3, 1)
@@ -733,9 +859,10 @@ WinnerHistHi/colors/font_outline_color = Color(0, 0, 0, 0.4)
 WinnerHistHi/constants/outline_size = 2
 WinnerHistHi/font_sizes/font_size = 16
 FloatingPanel/base_type = &"PanelContainer"
-FloatingPanel/styles/panel = SubResource("sb_floating_panel")
+FloatingPanel/styles/panel = SubResource("sb_flat_panel")
 FloatingHeader/base_type = &"Label"
 FloatingHeader/colors/font_color = Color(0.97, 0.94, 0.96, 1)
 FloatingHeader/colors/font_outline_color = Color(0, 0, 0, 0.5)
 FloatingHeader/constants/outline_size = 4
+FloatingHeader/fonts/font = SubResource("font_bar_bold")
 FloatingHeader/font_sizes/font_size = 28
