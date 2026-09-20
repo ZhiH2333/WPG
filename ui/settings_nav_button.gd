@@ -1,12 +1,13 @@
 extends Button
 class_name SettingsNavButton
 
-## osu 式设置目录项：左侧胶囊指示器 + 图标 + 标题。
+## 设置目录项：左侧圆角方条指示器 + 图标 + 粗体标题。
 const FADE_SEC: float = 0.5
 const INDICATOR_ACTIVE: float = 22.0
 const INDICATOR_INACTIVE: float = 4.0
+const HOVER_ALPHA: float = 0.08
 const COLOR_SELECTED := Color(0.97, 0.94, 0.96, 1)
-const COLOR_HOVER := Color(0.85, 0.78, 0.9, 1)
+const COLOR_HOVER := Color(0.9, 0.9, 0.9, 1)
 const COLOR_IDLE := Color(0.55, 0.5, 0.58, 1)
 
 @export var tab_icon: Texture2D
@@ -43,7 +44,7 @@ func _on_hover_changed() -> void:
 func _apply_state(instant: bool) -> void:
 	var indicator_h: float = INDICATOR_ACTIVE if selected else INDICATOR_INACTIVE
 	var indicator_a: float = 1.0 if selected else 0.0
-	var hover_a: float = 0.1 if is_hovered() and not selected else 0.0
+	var hover_a: float = HOVER_ALPHA if is_hovered() and not selected else 0.0
 	var text_color: Color = COLOR_SELECTED if selected else (COLOR_HOVER if is_hovered() else COLOR_IDLE)
 	if instant:
 		_indicator.offset_top = -indicator_h * 0.5

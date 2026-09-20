@@ -51,7 +51,7 @@ anchor_bottom = 1.0
 offset_right = 274.0
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0.09, 0.075, 0.11, 1)
+color = Color(0.1, 0.1, 0.1, 1)
 
 [node name="Nav" type="VBoxContainer" parent="Drawer/Sidebar"]
 layout_mode = 1
@@ -108,7 +108,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.145, 0.12, 0.18, 1)
+color = Color(0.13, 0.11, 0.155, 1)
 
 [node name="Clip" type="Control" parent="Drawer/Panel"]
 unique_name_in_owner = true
@@ -311,7 +311,7 @@ layout_mode = 0
 offset_right = 658.0
 offset_bottom = 148.0
 mouse_filter = 2
-color = Color(0.11, 0.09, 0.14, 1)
+color = Color(0.1, 0.1, 0.1, 1)
 
 [node name="ExpandableHeader" type="MarginContainer" parent="Drawer/Panel"]
 unique_name_in_owner = true

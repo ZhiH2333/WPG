@@ -1208,7 +1208,19 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **当时不做：** 虚拟摇杆 UI / TouchControls / 触屏 CanvasLayer、手柄按键重绑 Settings 页、新 InputMap action、改 GameSettings / `settings.cfg`、右杆开火。
 
-## 下一步：Day 58（手柄按键重绑 / Joypad）
+## Day 58（已完成）：Settings 抽屉换成 FlatBold
+
+侧栏 / 面板底色 / SettingsHeader / 导航选中条对齐顶栏纯色 + 粗体。抽屉仍从左侧滑入，仍是长文档 + 左侧锚点，不是 Day 51 那种居中 FloatingPanel。滚动、搜索、键盘重绑、长按删档逻辑不动。Autoload 仍为 0。禁止脚本 `StyleBoxFlat.new()`。
+
+- `SettingsHeader`：`font_color = Color(0.97, 0.94, 0.96, 1)`（不再粉），`fonts/font = font_bar_bold`，字号仍 22，描边仍 2 / `Color(0, 0, 0, 0.4)`。
+- 侧栏 `Sidebar` / `HeaderBg`：`Color(0.1, 0.1, 0.1, 1)`，对齐 `sb_bar_panel`。正文 `Fill`：`Color(0.13, 0.11, 0.155, 1)`，对齐 `sb_flat_panel`。`HeaderBg.modulate.a` 仍由开合动画控制。
+- 导航指示器：保留内嵌 `StyleBoxFlat`（不新建 `SettingsNavIndicator` variation），`bg_color` 仍洋红 `Color(1, 0.4, 0.67, 1)`，圆角 6、宽 6px。高度动画 `INDICATOR_ACTIVE=22` / `INACTIVE=4` 保留。不是细胶囊。
+- `SettingsNavButton`：`COLOR_HOVER = Color(0.9, 0.9, 0.9, 1)`；Hover ColorRect 静止 `Color(1, 1, 1, 0)`，hover `alpha=0.08`。Caption 去掉 `theme_override` 色，走 `SettingsNavCaption`（`font_bar_bold` 字号 22，字色交给脚本 `modulate`）。
+- `SettingsSection`：Separator `Color(0.2, 0.18, 0.22, 1)`；Dim `Color(0.1, 0.1, 0.1, 0.8)`。ExpandableHeader/Title 仍是 `FloatingHeader` + `font_size=40`。
+
+**当时不做：** Joypad / 手柄按键重绑、虚拟摇杆 / TouchControls、改滚动惯性 / 搜索过滤 / 键盘重绑监听、改 HoldConfirmButton 时长、TopBar / LogoButton / `menu_shear`、改 GameSettings / `settings.cfg`、新 InputMap action。
+
+## 下一步：Day 59（动态行 UI 缩放）
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
 
@@ -1228,18 +1240,22 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **Day 57 = 右摇杆即时瞄准（已完成）**：回中 keep last，出 0.12 当帧对准，无转向平滑；左摇杆仍模拟走速；`map_aim_stick` 是虚拟摇杆合同。
 
-**Day 58 = 手柄按键重绑（Joypad）**：Settings Controls 目前只绑键盘。下一步给同一套可重绑动作接手柄按钮，不要新 InputMap action 名、不要改四把枪/敌人身份。Settings 抽屉换皮、动态行 UI 缩放是更后面的日。不要在这一天做商店或跟班。
+**Day 58 = Settings 抽屉换皮（已完成）**：侧栏 / 面板底色 / SettingsHeader / 导航选中指示对齐顶栏纯色粗体。滚动、搜索、键盘重绑、长按删档逻辑不动。
 
-> **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Settings 抽屉、TopBar、LogoButton 仍用旧皮。
+**Day 59 = 动态行 UI 缩放**：RecordCard / 设置行动态生成行跟随 `ui_scale`。
+
+**完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
+
+> **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Day 58 已完成第三刀：Settings 抽屉。TopBar、LogoButton 仍用旧皮。
 
 ## 完整 roadmap 展望（Day 54 → Day 100，生产级里程碑）
 
 按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
 
-1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）。下一步是手柄按键重绑；UI 缩放覆盖到动态生成的行（RecordCard / 设置行）。Settings 抽屉换皮仍后置。
+1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold。下一步是 UI 缩放覆盖到动态生成的行（RecordCard / 设置行）。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：`ShopOffer` 从「买一张已有升级或 Skip」扩到多类可购项（升级卡之外加消耗品/跟班），仍是**局内临时**、不是跨局永久解锁；跟班（companion）**分种类**落地（例如近战贴身 / 远程支援等不同 AI 与外观，复用 `EnemyBase` 的移动与索敌骨架），随玩家跑、自动参战、局末清空；**主动技能（按键触发的技能）先跳过**，不做技能栏/冷却 UI，仅保留被动加成与跟班两条线。
 3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
-4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。
+4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 
 **验收口径（每一天通用）**：本 Day README 里列出的「当时不做」清单之外的行为不应出现改动；新增/变更的脚本、场景、theme 项都要在 README 对应 Day 小节里落字，agent 交付前必须自查 README 是否已同步——这正是本次修的问题（Day 52/53 曾漏更新）。
