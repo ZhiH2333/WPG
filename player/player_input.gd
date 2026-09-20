@@ -4,12 +4,13 @@ class_name PlayerInput
 ## 鼠标与玩家过近时不重新归一化，避免 aim_vector 出现 NaN。
 const AIM_DEADZONE_SQ: float = 0.0001
 const DEVICE_KEYBOARD: int = -1
+## 只给左摇杆走速和 _joy_wants_control 的左杆判定。不要拿来滤瞄准。
 const STICK_DEADZONE: float = 0.25
+## 只滤右摇杆静止漂移，不是手感延迟。「动一点」必须出这圈。瞄准没有半行程。
+const AIM_STICK_DEADZONE: float = 0.12
 const FIRE_TRIGGER: float = 0.45
 const AIM_LEAD_PX: float = 140.0
 const MOUSE_STEAL_PX: float = 2.0
-## 手柄右摇杆转向的非线性平滑，越大转向越快。alpha = 1 - exp(-AIM_TURN_SMOOTHING * delta)，与相机跟随同一手法。
-const AIM_TURN_SMOOTHING: float = 14.0
 const DPAD_BUTTONS: Array[int] = [
 	JOY_BUTTON_DPAD_LEFT,
 	JOY_BUTTON_DPAD_UP,
@@ -44,8 +45,8 @@ func _enter_tree() -> void:
 	process_physics_priority = -100
 	_dpad_held.resize(4)
 
-func _process(delta: float) -> void:
-	update_input(delta)
+func _process(_delta: float) -> void:
+	update_input()
 
 func _physics_process(_delta: float) -> void:
 	if _remote_driven:
@@ -107,7 +108,7 @@ func take_pending_dash() -> bool:
 	_pending_dash = false
 	return pressed
 
-func update_input(delta: float = 0.0) -> void:
+func update_input(_delta: float = 0.0) -> void:
 	if _remote_driven:
 		return
 	_weapon_slot_just_pressed = -1
@@ -123,7 +124,7 @@ func update_input(delta: float = 0.0) -> void:
 		_clear_dpad_held()
 		return
 	if _device_id >= 0:
-		_update_from_joy(delta)
+		_update_from_joy()
 		return
 	_clear_dpad_held()
 	_joy_a_held = false
@@ -158,6 +159,12 @@ func set_dash_suppressed(suppressed: bool) -> void:
 
 func is_dash_suppressed() -> bool:
 	return _dash_suppressed
+
+## 右摇杆与日后虚拟摇杆共用的瞄准映射。模长低于 AIM_STICK_DEADZONE 返回 ZERO（调用方走 keep last）；否则返回单位向量，当帧对准。瞄准没有半瞄准，也不做转向平滑。虚拟摇杆必须把「指尖相对基座 / 基座半径」得到的 Vector2（建议已 clamp 到长度≤1）丢进本函数：ZERO 则 keep last，非零则当帧朝向。本 Day 不写触屏、不建 touch_input_driver.gd。
+static func map_aim_stick(raw: Vector2) -> Vector2:
+	if raw.length() < AIM_STICK_DEADZONE:
+		return Vector2.ZERO
+	return raw.normalized()
 
 func _claim_device() -> void:
 	var old_device: int = _device_id
@@ -194,7 +201,7 @@ func _keyboard_wants_control() -> bool:
 func _joy_wants_control(id: int) -> bool:
 	if _read_stick(id, JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y).length() >= STICK_DEADZONE:
 		return true
-	if _read_stick(id, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y).length() >= STICK_DEADZONE:
+	if _read_stick(id, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y).length() >= AIM_STICK_DEADZONE:
 		return true
 	if _joy_wants_fire(id):
 		return true
@@ -212,14 +219,14 @@ func _joy_wants_fire(id: int) -> bool:
 		return true
 	return Input.is_joy_button_pressed(id, JOY_BUTTON_RIGHT_SHOULDER)
 
-func _update_from_joy(delta: float) -> void:
+func _update_from_joy() -> void:
 	var id: int = _device_id
 	move_vector = _read_move_stick(id)
 	var aim: Vector2 = _read_aim_stick(id)
 	if aim.is_zero_approx():
 		_keep_last_aim()
 	else:
-		aim_vector = _turn_aim_toward(aim_vector, aim, delta)
+		aim_vector = aim ## 已经是单位向量，不要再 smoothing
 	var host: Node2D = get_parent() as Node2D
 	if host != null:
 		mouse_world_position = host.global_position + aim_vector * AIM_LEAD_PX
@@ -248,16 +255,7 @@ func _read_move_stick(id: int) -> Vector2:
 
 func _read_aim_stick(id: int) -> Vector2:
 	var raw: Vector2 = _read_stick(id, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y)
-	if raw.length() < STICK_DEADZONE:
-		return Vector2.ZERO
-	return raw.normalized()
-
-func _turn_aim_toward(current: Vector2, target: Vector2, delta: float) -> Vector2:
-	if delta <= 0.0:
-		return target
-	var alpha: float = 1.0 - exp(-AIM_TURN_SMOOTHING * delta)
-	var eased_angle: float = lerp_angle(current.angle(), target.angle(), alpha)
-	return Vector2.RIGHT.rotated(eased_angle)
+	return map_aim_stick(raw)
 
 func _update_dpad_edges(id: int) -> void:
 	for slot: int in DPAD_BUTTONS.size():

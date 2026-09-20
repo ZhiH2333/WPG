@@ -877,7 +877,7 @@ fire_held      bool      是否按住开火
 - Dash `dash`（键盘 Space）由 `PlayerInput.dash_just_pressed` 产出，不进三量。手柄 A（`JOY_BUTTON_A`）边沿自读，不要写进 InputMap。弹窗 / 商店锁 `set_dash_suppressed`
 - 开发者 F4 / F3 / F2 / F1 用 `InputEventKey.physical_keycode`（`KEY_F4` / `KEY_F3` / `KEY_F2` / `KEY_F1`），不写入 `[input]`。仅 debug 构建；暂停 / 三选一 / 商店开着时无效。F2 跳到当前 loop 的 Boss 句，不改 loop_index。F1 在 boar / chicken 底值之间切换，不改 `_record_id`、不写 `records.json`
 
-手柄（`device_id >= 0`）独占合同三量：左杆走、右杆瞄、右扳机/RB 开火；十字键切 1/2/3/4。Y 轴不自己取负。没手柄时走上面键鼠路径。禁止把 Joy 写进 InputMap。不要做 Input Autoload。输入组件挂在玩家节点上。
+手柄（`device_id >= 0`）独占合同三量：左杆走、右杆瞄、右扳机/RB 开火；十字键切 1/2/3/4。左杆仍是 `STICK_DEADZONE=0.25` + 径向缩放模拟走速；右杆走 `map_aim_stick`（`AIM_STICK_DEADZONE=0.12`）：回中 keep last，出圈当帧单位向量，无转向平滑。Y 轴不自己取负。没手柄时走上面键鼠路径。禁止把 Joy 写进 InputMap。不要做 Input Autoload。输入组件挂在玩家节点上。
 
 手机触控（双摇杆、设置里 Virtual Sticks）整包后置到内容 / 壳 / 美术 / 局域网都做完之后再调。禁止加 `TouchStick` / 触摸层 / 设置 C 页。
 
@@ -964,7 +964,8 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 | **54（已完成）** | 渲染分辨率接 SubViewport | 战斗世界跟着 render_scale 走，HUD 仍清晰 | 逐帧动态分辨率 |
 | **55（已完成）** | FlatBold 令牌 + OfferButton 换皮 | 模式卡/商店卡变成小圆角纯色块 | FloatingPanel / 胶囊 CTA |
 | **56（已完成）** | 大面板 + 胶囊 CTA FlatBold | 1680×920 面板不透明去阴影；Host/Join/Retry 是方钮加粗 | Settings 抽屉换皮、TopBar/LogoButton |
-| **57** | 手柄按键重绑（Joypad） | Settings Controls 能绑手柄按钮 | 新 InputMap action 名、Settings 抽屉换皮 |
+| **57（已完成）** | 右摇杆即时瞄准：回中 keep last，出 0.12 当帧对准，无转向平滑；`map_aim_stick` 合同 | 拨哪指哪，松开停在最后朝向 | 虚拟摇杆 UI、手柄重绑、右杆开火 |
+| **58** | 手柄按键重绑（Joypad） | Settings Controls 能绑手柄按钮 | 新 InputMap action 名、Settings 抽屉换皮 |
 | **更后面** | Settings 抽屉换皮、动态行 UI 缩放、5 人 / 房间浏览器 | — | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
@@ -1190,7 +1191,24 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **当时不做：** 手柄/Joypad 按键重绑、Settings 抽屉换皮、OfferButton 再调颜色/圆角、TopBar / LogoButton / `menu_shear`、动态行 UI 缩放（RecordCard / 设置行）、新 InputMap action、改 GameSettings / `settings.cfg`。
 
-## 下一步：Day 57（手柄按键重绑 / Joypad）
+## Day 57（已完成）：右摇杆即时瞄准
+
+回中 keep last，出 0.12 当帧对准，无转向平滑。左摇杆仍是模拟走速（死区 0.25 + 径向缩放）。键鼠瞄准仍是鼠标世界坐标，一个公式都没改。Autoload 仍为 0。不改 `player.gd` / `player_camera.gd` / `aim_reticle.gd` / `player_motor.gd`，不改四把枪/敌人身份、Motor、look_ahead、theme.tres、GameSettings、`settings.cfg`。
+
+- `STICK_DEADZONE=0.25` 只给左摇杆走速和 `_joy_wants_control` 的左杆判定。
+- 新增 `AIM_STICK_DEADZONE=0.12`：只滤右摇杆静止漂移。「动一点」必须出这圈。瞄准没有半行程：出死区就是单位向量，模长不参与瞄准。
+- 删除 `AIM_TURN_SMOOTHING` 与 `_turn_aim_toward`。禁止 `lerp_angle` / 任何转向平滑。不是八向吸附：360° 连续方向，拨哪指哪。
+- `static func map_aim_stick(raw) -> Vector2`：模长 < 0.12 → `Vector2.ZERO`；否则 `raw.normalized()`。这是 Day 81+ 虚拟摇杆的合同：把「指尖相对基座 / 基座半径」（建议已 clamp 到长度≤1）丢进本函数，ZERO 则 keep last，非零则当帧朝向。本 Day 不写触屏、不建 `touch_input_driver.gd`。
+- `_read_aim_stick` 只 `_read_stick` 再 `return map_aim_stick(raw)`。
+- `_joy_wants_control` 右杆判定改为 `raw.length() >= AIM_STICK_DEADZONE`，与瞄准同一圈，避免 0.12～0.25 之间已经在瞄准却认不成手柄。
+- `_update_from_joy`：aim 为零 → `_keep_last_aim()`（准星/朝向停住，不弹回世界右方，不清零 `aim_vector`）；否则 `aim_vector = aim`（已是单位向量）。`mouse_world_position` 仍 = 玩家 + aim * 140。
+- 右摇杆偏转绝不置 `fire_held`。开火仍只认 RT≥0.45 或 RB。Dash 仍是 A，切枪仍是十字键。
+- `apply_remote_frame`：Guest 本地已产出单位 `aim_vector`；Host 傀儡继续 `aim.normalized()` / 零则 keep last，远端不再套一层平滑。20Hz 跳可以接受。
+- DebugOverlay（仅 debug 构建，F9）：手柄占用时在 `char:` 附近加 `aim: rest` / `aim: live`（`map_aim_stick` 结果是否为零）。键鼠不显示这行。不画摇杆圆。
+
+**当时不做：** 虚拟摇杆 UI / TouchControls / 触屏 CanvasLayer、手柄按键重绑 Settings 页、新 InputMap action、改 GameSettings / `settings.cfg`、右杆开火。
+
+## 下一步：Day 58（手柄按键重绑 / Joypad）
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
 
@@ -1208,7 +1226,9 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **Day 56 = 大面板 + 胶囊 CTA FlatBold（已完成）**：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊去阴影、圆角 6、不透明；Header / ModeTitle / Pill 加 `font_bar_bold`。
 
-**Day 57 = 手柄按键重绑（Joypad）**：Settings Controls 目前只绑键盘。下一步给同一套可重绑动作接手柄按钮，不要新 InputMap action 名、不要改四把枪/敌人身份。Settings 抽屉换皮、动态行 UI 缩放是更后面的日。不要在这一天做商店或跟班。
+**Day 57 = 右摇杆即时瞄准（已完成）**：回中 keep last，出 0.12 当帧对准，无转向平滑；左摇杆仍模拟走速；`map_aim_stick` 是虚拟摇杆合同。
+
+**Day 58 = 手柄按键重绑（Joypad）**：Settings Controls 目前只绑键盘。下一步给同一套可重绑动作接手柄按钮，不要新 InputMap action 名、不要改四把枪/敌人身份。Settings 抽屉换皮、动态行 UI 缩放是更后面的日。不要在这一天做商店或跟班。
 
 > **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Settings 抽屉、TopBar、LogoButton 仍用旧皮。
 
@@ -1216,7 +1236,7 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
 
-1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`。下一步是手柄按键重绑；UI 缩放覆盖到动态生成的行（RecordCard / 设置行）。Settings 抽屉换皮仍后置。
+1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）。下一步是手柄按键重绑；UI 缩放覆盖到动态生成的行（RecordCard / 设置行）。Settings 抽屉换皮仍后置。
 2. **Day 61–66　商店深化 + 跟班系统**：`ShopOffer` 从「买一张已有升级或 Skip」扩到多类可购项（升级卡之外加消耗品/跟班），仍是**局内临时**、不是跨局永久解锁；跟班（companion）**分种类**落地（例如近战贴身 / 远程支援等不同 AI 与外观，复用 `EnemyBase` 的移动与索敌骨架），随玩家跑、自动参战、局末清空；**主动技能（按键触发的技能）先跳过**，不做技能栏/冷却 UI，仅保留被动加成与跟班两条线。
 3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。
