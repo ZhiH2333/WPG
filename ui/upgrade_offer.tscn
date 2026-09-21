@@ -151,3 +151,9 @@ mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "1 / 2 / 3"
 horizontal_alignment = 1
+
+[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="BackSfx" type="AudioStreamPlayer" parent="."]
