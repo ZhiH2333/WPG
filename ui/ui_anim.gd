@@ -58,6 +58,28 @@ static func kill_tween(tween: Tween) -> void:
 	if tween != null and tween.is_valid():
 		tween.kill()
 
+static func punch_scale(host: Node, control: Control, peak: float, sec: float, ignore_pause: bool) -> Tween:
+	if host == null or control == null:
+		return null
+	var tween: Tween = host.create_tween()
+	if ignore_pause:
+		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	control.pivot_offset = control.custom_minimum_size * 0.5
+	var half: float = sec * 0.5
+	tween.tween_property(control, "scale", Vector2(peak, peak), half).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(control, "scale", Vector2.ONE, half).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	return tween
+
+static func fade_modulate(host: Node, control: CanvasItem, to_alpha: float, sec: float, ignore_pause: bool) -> Tween:
+	if host == null or control == null:
+		return null
+	var tween: Tween = host.create_tween()
+	if ignore_pause:
+		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var ease: Tween.EaseType = Tween.EASE_IN if to_alpha <= 0.0 else Tween.EASE_OUT
+	tween.tween_property(control, "modulate:a", to_alpha, sec).set_trans(Tween.TRANS_QUINT).set_ease(ease)
+	return tween
+
 static func _append_card_entries(tween: Tween, cards: Array) -> void:
 	var order: int = 0
 	for entry: Variant in cards:

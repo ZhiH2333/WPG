@@ -1282,6 +1282,19 @@ P8 从抽 3 买 1 改成目录商店。`ShopOffer` 换成 `FloatingPanel`：左�
 
 **当时不做：** 主动技能 / 技能栏 / 冷却 UI、战斗 HUD 跟班血条、LAN 同步药和跟班、新贴图、Joypad 重绑、虚拟摇杆、第三只跟班、跟班吃玩家 UpgradeApplier、改 Gunner 140/520/70、改四把枪/敌人身份数字、Motor / 相机 / 击退 / hitstop / XP / gold / 加压、HUD 锚点、算分公式、`records.json`、10 张卡 `value`、TopBar / LogoButton、改 UpgradeOffer 三张卡合同、Autoload、`Engine.time_scale`、`reload_current_scene`。
 
+## Day 64（已完成）：目录商店手感——错峰、复用、金币滚动、四态音效
+
+目录商店摸起来像已经做好的菜单。连买 / 关店 / LAN 三张买一张即关 / PICK_GUN 选枪 / Esc→暂停全部保持 Day 63。Autoload 仍为 0。没有新 wav、没有脚本 `StyleBoxFlat.new()`、没有新 Theme 色。
+
+- **进场错峰**：`present` 仍 `UiAnim.enter_overlay(dimmer, panel)`；货卡另做 `0.9→1` 弹出，`delay = min(index, 5) * 0.04`，超过 6 张不再加长。`refresh_stock` 禁止重放进场、禁止整排错峰。
+- **货架复用**：卡身份 `kind + id`（`set_meta`，按下不再 `bind(i)`）。还在的卡原地 `_fill_item_card`；刚买仍在架上的（Pack S/L、stackable、已买 Stim）punch `1.06→1.0`；下架先 `CARD_OUT`（scale 0.9 + alpha 0，格子占位到 tween 结束）再 `queue_free`。禁止「张数不同就清空重建」。
+- **金币 / 条**：`RunSession.get_gold()` 仍瞬时扣。ShopOffer 另存 `_displayed_gold`，进场 snap，买成功 OutQuint 滚 0.28s，文案 `gold  %d` 取 `roundi`。HP/XP 数字仍瞬时；ProgressBar 开店期间 `BAR_SMOOTHING=10` approach，进场那一帧 snap，低血阈值仍 20。
+- **四态音效**（现有 wav）：未灰的卡/枪/Continue hover=`ui_hover.wav` + scale 1.02；成功买/选枪/Continue click=`ui_click.wav`；PICK_GUN Back/Esc 以及 BROWSE Esc back=`ui_back.wav`；买不起/满血药/已买 Stim error=`click.wav`。同一帧同一种最多 1 次。灰卡不 hover、不放大，`Button.disabled` 不用，点下去出 error。
+- **PICK_GUN**：逻辑 `_view` 仍瞬时；货架 0.12s 淡出（mouse_filter 当帧关），GunRow 0.18s 淡入 + 四把枪 0.04 错峰。货架和枪行叠在同一格，避免 HBox 对半分。Back 反向。Continue 先 Click 再 `skipped`。
+- **UiAnim**：新增 static `punch_scale` / `fade_modulate`。`CARD_STAGGER_SEC=0.06` 不动（UpgradeOffer 三张卡）。Tween 一律 `TWEEN_PAUSE_PROCESS`。
+
+**当时不做：** 主动技能 / 技能栏 / 冷却 UI、战斗 HUD 跟班血条、LAN 同步药和跟班、新 wav、UpgradeOffer 音效、Joypad 重绑、虚拟摇杆、改 `list_shop_catalog` / 价格 / Pack / Stim / Gunner 数字、改四把枪/敌人身份、Motor / 相机 / 击退 / hitstop / XP / gold / 加压、HUD 锚点、算分公式、`records.json`、10 张卡 `value`、TopBar / LogoButton、Autoload、`Engine.time_scale`、`reload_current_scene`、WinnerPage 分数滚动。
+
 ## 剩余表
 
 
@@ -1313,9 +1326,11 @@ P8 从抽 3 买 1 改成目录商店。`ShopOffer` 换成 `FloatingPanel`：左�
 
 **Day 63 = 目录商店（已完成）**：FloatingPanel 左状态右货架；Pack S/L/Stim；离线连买不关店；LAN 协议仍是 3 张升级买 1 张即关。
 
+**Day 64 = 商店手感（已完成）**：货卡错峰、按身份复用、金币滚动、HP/XP 条 smoothing、四态音效；灰卡可点 error。UpgradeOffer 仍无音效。
+
 **Day 60 不开工**：视觉统一到 Day 59 收束。
 
-**下一步 Day 64 = 商店动效 / 音效 / 数字滚动收尾**：Continue 出店和货架刷新的手感。
+**下一步 Day 65 = 句读三选一补同一套 hover/click**：UpgradeOffer 仍无音效，本步才补。
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1326,7 +1341,7 @@ P8 从抽 3 买 1 改成目录商店。`ShopOffer` 换成 `FloatingPanel`：左�
 按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
-2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 起商店动效/音效/数字滚动收尾，仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
+2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 给句读三选一补同一套 hover/click。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
 3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
