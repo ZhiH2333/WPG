@@ -107,6 +107,7 @@ func present(cards: Array[ShopCard], gold: int) -> void:
 	_refresh_view()
 	if not _open:
 		return
+	_fit_panel()
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [], true)
 
 func refresh_stock(cards: Array[ShopCard]) -> void:
@@ -158,9 +159,9 @@ func _on_viewport_size_changed() -> void:
 	_fit_panel()
 
 func _fit_panel() -> void:
-	if _panel == null:
+	if _panel == null or _root == null:
 		return
-	_panel.custom_minimum_size = UiFit.shop_panel_size(_root)
+	UiFit.apply_floating_panel(_root, _panel, UiFit.SHOP_PANEL_MAX)
 
 func _process(_delta: float) -> void:
 	if not _open or _player_input == null:

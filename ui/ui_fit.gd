@@ -2,6 +2,9 @@ extends Object
 class_name UiFit
 
 ## 按可见逻辑尺寸收缩大面板和两列卡片。content_scale_factor 已经放大整棵树，禁止再乘 ui_scale。
+## 商店 CanvasLayer：Root/Center 刚显示时可能是 (0, 0)，按视口逻辑尺寸钉住再居中。
+## 主菜单叠层：FULL_RECT + offset_top=60。打开时 host.size 往往还是整屏，CenterContainer 会按整屏居中，进场动画再把这个偏下的 y 锁住；改窗口才会重新 sort。只钉 Center 到「视口减去顶栏」的剩余矩形，不改叠层自己的 FULL_RECT。
+## 宽高各自钳，不锁死设计稿宽高比。
 const DESIGN := Vector2(1920, 1080)
 const PREFERRED_PANEL := Vector2(1680, 920)
 const PREFERRED_CARD := Vector2(780, 140)
@@ -18,21 +21,66 @@ const MIN_PANEL_HEIGHT: float = 480.0
 const MIN_PORTRAIT: float = 64.0
 
 static func visible_size(from: CanvasItem) -> Vector2:
-	var vp: Viewport = from.get_viewport()
-	if vp == null:
-		return DESIGN
-	var vis: Vector2 = vp.get_visible_rect().size
-	if vis.x < 1.0 or vis.y < 1.0:
-		return DESIGN
+	if from != null:
+		var logical: Vector2 = from.get_viewport_rect().size
+		if logical.x > 1.0 and logical.y > 1.0:
+			return logical
+		var vp: Viewport = from.get_viewport()
+		if vp != null:
+			var vis: Vector2 = vp.get_visible_rect().size
+			if vis.x > 1.0 and vis.y > 1.0:
+				var stretch: Vector2 = vp.get_stretch_transform().get_scale()
+				if stretch.x > 0.001 and stretch.y > 0.001:
+					return Vector2(vis.x / stretch.x, vis.y / stretch.y)
+				return vis
+	return DESIGN
+
+static func leftover_size(from: CanvasItem) -> Vector2:
+	var vis: Vector2 = visible_size(from)
+	var control: Control = from as Control
+	if control != null:
+		vis.y = maxf(vis.y - maxf(control.offset_top, 0.0), 1.0)
 	return vis
 
+static func pin_to_visible(ctrl: Control, vis: Vector2) -> void:
+	if ctrl == null or vis.x < 1.0 or vis.y < 1.0:
+		return
+	ctrl.anchor_left = 0.0
+	ctrl.anchor_top = 0.0
+	ctrl.anchor_right = 0.0
+	ctrl.anchor_bottom = 0.0
+	ctrl.offset_left = 0.0
+	ctrl.offset_top = 0.0
+	ctrl.offset_right = vis.x
+	ctrl.offset_bottom = vis.y
+
 static func panel_size(from: CanvasItem) -> Vector2:
-	var vis: Vector2 = visible_size(from)
-	return Vector2(minf(PREFERRED_PANEL.x, maxf(MIN_PANEL_WIDTH, vis.x - PANEL_MARGIN)), minf(PREFERRED_PANEL.y, maxf(MIN_PANEL_HEIGHT, vis.y - PANEL_MARGIN)))
+	return _fit_in(leftover_size(from), PREFERRED_PANEL)
 
 static func shop_panel_size(from: CanvasItem) -> Vector2:
-	var fitted: Vector2 = panel_size(from)
-	return Vector2(minf(fitted.x, SHOP_PANEL_MAX.x), minf(fitted.y, SHOP_PANEL_MAX.y))
+	return _fit_in(leftover_size(from), SHOP_PANEL_MAX)
+
+static func _fit_in(avail: Vector2, preferred: Vector2) -> Vector2:
+	return Vector2(
+		minf(preferred.x, maxf(MIN_PANEL_WIDTH, avail.x - PANEL_MARGIN)),
+		minf(preferred.y, maxf(MIN_PANEL_HEIGHT, avail.y - PANEL_MARGIN))
+	)
+
+static func apply_floating_panel(host: Control, panel: Control, preferred: Vector2 = PREFERRED_PANEL) -> Vector2:
+	var vis: Vector2 = visible_size(host)
+	var inset: float = 0.0
+	if host != null:
+		inset = maxf(host.offset_top, 0.0)
+		if inset <= 0.0:
+			pin_to_visible(host, vis)
+	var leftover: Vector2 = Vector2(vis.x, maxf(vis.y - inset, 1.0))
+	var fitted: Vector2 = _fit_in(leftover, preferred)
+	panel.custom_minimum_size = fitted
+	var center: Control = panel.get_parent() as Control
+	if center != null and center != host:
+		pin_to_visible(center, leftover)
+		center.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	return fitted
 
 static func card_size(panel_w: float, columns: int = 2) -> Vector2:
 	var cols: int = maxi(columns, 1)
@@ -48,3 +96,10 @@ static func card_columns(panel_w: float) -> int:
 	if card_size(panel_w, 2).x < MIN_CARD_WIDTH:
 		return 1
 	return 2
+
+static func connect_refit(host: Control, on_refit: Callable) -> void:
+	if not host.resized.is_connected(on_refit):
+		host.resized.connect(on_refit)
+	var vp: Viewport = host.get_viewport()
+	if vp != null and not vp.size_changed.is_connected(on_refit):
+		vp.size_changed.connect(on_refit)

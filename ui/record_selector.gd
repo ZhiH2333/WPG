@@ -49,6 +49,7 @@ func _ready() -> void:
 	_delete_yes.pressed.connect(_on_delete_yes_pressed)
 	_delete_no.pressed.connect(_on_delete_no_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
+	UiFit.connect_refit(self, _on_host_resized)
 	_show_list_nodes()
 
 func is_open() -> bool:
@@ -60,7 +61,7 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_pending_delete_id = ""
-	_panel.custom_minimum_size = UiFit.panel_size(self)
+	_fit_panel()
 	_show_list_nodes()
 	_refresh_list()
 	UiAnim.kill_tween(_anim_tween)
@@ -325,3 +326,19 @@ func _fill_editor_character(button: Button, character_id: String) -> void:
 		title.text = def.display_name if def != null else character_id
 	if desc != null:
 		desc.text = def.description if def != null else ""
+
+func _on_host_resized() -> void:
+	if not _open:
+		return
+	_fit_panel()
+
+func _fit_panel() -> void:
+	UiFit.apply_floating_panel(self, _panel)
+	if _view != View.LIST:
+		return
+	var card: Vector2 = _fit_card_size()
+	_new_button.custom_minimum_size = card
+	for child: Node in _cards.get_children():
+		var button: Button = child as Button
+		if button != null:
+			button.custom_minimum_size = card

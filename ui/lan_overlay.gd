@@ -68,6 +68,7 @@ func _ready() -> void:
 	_start_button.pressed.connect(_on_start_pressed)
 	_connect_button.pressed.connect(_on_connect_pressed)
 	_back_button.pressed.connect(_handle_back)
+	UiFit.connect_refit(self, _on_host_resized)
 	_show_home(false)
 
 func _exit_tree() -> void:
@@ -82,7 +83,7 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_picked_record_id = ""
-	_panel.custom_minimum_size = UiFit.panel_size(self)
+	_fit_panel()
 	_show_home(true)
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_host_button, _join_button, _back_button])
@@ -535,3 +536,19 @@ func _clear_peer() -> void:
 	if peer != null:
 		peer.close()
 	multiplayer.multiplayer_peer = null
+
+func _on_host_resized() -> void:
+	if not _open:
+		return
+	_fit_panel()
+
+func _fit_panel() -> void:
+	UiFit.apply_floating_panel(self, _panel)
+	if _view != View.PICK:
+		return
+	var card: Vector2 = _fit_card_size()
+	_custom_button.custom_minimum_size = card
+	for child: Node in _pick_cards.get_children():
+		var button: Button = child as Button
+		if button != null:
+			button.custom_minimum_size = card

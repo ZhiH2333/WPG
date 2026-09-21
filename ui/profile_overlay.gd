@@ -24,16 +24,17 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rank_button.pressed.connect(_emit_view_ranking)
 	_back_button.pressed.connect(close)
+	UiFit.connect_refit(self, _on_host_resized)
 
 func is_open() -> bool:
 	return _open
 
 func open() -> void:
-	_panel.custom_minimum_size = UiFit.panel_size(self)
-	_refresh_stats()
-	_refresh_records()
 	_open = true
 	visible = true
+	_fit_panel()
+	_refresh_stats()
+	_refresh_records()
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
@@ -110,3 +111,11 @@ func _make_empty_hint() -> Label:
 
 func _is_best_score_higher(left: GameRecord, right: GameRecord) -> bool:
 	return left.best_score > right.best_score
+
+func _on_host_resized() -> void:
+	if not _open:
+		return
+	_fit_panel()
+
+func _fit_panel() -> void:
+	UiFit.apply_floating_panel(self, _panel)
