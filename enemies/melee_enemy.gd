@@ -76,14 +76,26 @@ func _try_hit_player(body: Node) -> void:
 	if is_in_reserve() or not _player_alive() or is_in_hitstop() or _defeated or is_entering():
 		return
 	var player: Player = body as Player
-	if player == null:
+	if player != null:
+		var direction: Vector2 = player.global_position - global_position
+		if direction.is_zero_approx():
+			direction = Vector2.RIGHT
+		else:
+			direction = direction.normalized()
+		player.get_player_health().apply_damage(contact_damage, global_position, direction)
 		return
-	var direction: Vector2 = player.global_position - global_position
+	_try_hit_companion(body)
+
+func _try_hit_companion(body: Node) -> void:
+	var companion: CompanionBase = body as CompanionBase
+	if companion == null or companion.is_defeated():
+		return
+	var direction: Vector2 = companion.global_position - global_position
 	if direction.is_zero_approx():
 		direction = Vector2.RIGHT
 	else:
 		direction = direction.normalized()
-	player.get_player_health().apply_damage(contact_damage, global_position, direction)
+	companion.apply_damage(contact_damage, global_position, direction)
 
 func _on_defeated() -> void:
 	_contact_area.set_deferred("monitoring", false)

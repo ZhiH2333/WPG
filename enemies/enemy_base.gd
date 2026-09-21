@@ -4,7 +4,6 @@ class_name EnemyBase
 ## 廉价 seek 移动 + 受击链（闪白 / 击退 / squash / 局部 hitstop / 死亡塌缩）。
 ## 禁止 NavigationAgent、每帧 group 扫描、queue_redraw、Engine.time_scale。
 signal defeated
-const DAMAGE_NUMBER_SCENE: PackedScene = preload("res://combat/damage_number.tscn")
 const FLASH_DURATION_SEC: float = 0.1
 const DEAD_COLOR: Color = Color(0.42, 0.42, 0.44, 0.38)
 const DEATH_SLIDE_STOP_SPEED: float = 12.0
@@ -44,6 +43,7 @@ var _separation_sign: float = 1.0
 var _base_max_hp: int = 0
 var _base_move_speed: float = 0.0
 var _flip_h: bool = false
+var _hp_bar: WorldHpBar
 
 @onready var _visual: Sprite2D = $Visual
 
@@ -56,6 +56,9 @@ func _ready() -> void:
 	_separation_sign = 1.0 if (get_index() % 2 == 0) else -1.0
 	_setup_visual()
 	_bind_hit_reaction()
+	_bind_hp_bar()
+	_layout_hp_bar()
+	_refresh_hp_bar()
 	_base_max_hp = max_hp
 	_base_move_speed = move_speed
 
@@ -167,6 +170,8 @@ func hold_in_reserve() -> void:
 	_visual.scale = _base_visual_scale()
 	if _hit_reaction != null:
 		_hit_reaction.reset()
+	if _hp_bar != null:
+		_hp_bar.set_shown(false)
 	set_physics_process(false)
 	set_process(false)
 	_on_hold_in_reserve()
@@ -194,6 +199,8 @@ func reset_for_sandbox(spawn_position: Vector2) -> void:
 	visible = true
 	_visual.modulate = Color.WHITE
 	_hit_reaction.reset()
+	_layout_hp_bar()
+	_refresh_hp_bar()
 	_begin_enter()
 	set_physics_process(true)
 	set_process(true)
@@ -215,6 +222,7 @@ func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = V
 	var direction: Vector2 = _resolve_hit_direction(hit_direction)
 	var was_alive: bool = _hp > 0
 	_hp = maxi(0, _hp - amount)
+	_refresh_hp_bar()
 	_spawn_damage_number(amount, hit_position)
 	_start_flash()
 	_apply_knockback(direction)
@@ -316,6 +324,7 @@ func apply_net_state(pos: Vector2, hp: int, defeated: bool, in_reserve: bool) ->
 		collision_mask = GameCollisionLayers.MASK_WALL
 	global_position = pos
 	_hp = maxi(0, hp)
+	_refresh_hp_bar()
 	if defeated:
 		if not _defeated:
 			_defeat()
@@ -355,6 +364,7 @@ func _defeat() -> void:
 	collision_mask = GameCollisionLayers.MASK_NONE
 	_visual.modulate = DEAD_COLOR
 	_hit_reaction.begin_death(true)
+	_refresh_hp_bar()
 	_spawn_death_shards()
 	_on_defeated()
 	defeated.emit()
@@ -379,18 +389,37 @@ func _spawn_death_shards() -> void:
 		shard.play(origin, Vector2.from_angle(angle))
 
 func _spawn_damage_number(amount: int, hit_position: Vector2) -> void:
-	var number: DamageNumber = DAMAGE_NUMBER_SCENE.instantiate() as DamageNumber
-	var host: Node = owner
-	if host == null:
-		host = get_parent()
-	host.add_child(number)
-	number.play(amount, hit_position)
+	DamageNumber.spawn(self, amount, hit_position)
 
 func _bind_hit_reaction() -> void:
 	_hit_reaction = HitReaction.new()
 	_hit_reaction.name = "HitReaction"
 	add_child(_hit_reaction)
 	_hit_reaction.bind_visual(_visual)
+
+func _bind_hp_bar() -> void:
+	_hp_bar = WorldHpBar.new()
+	_hp_bar.name = "HpBar"
+	add_child(_hp_bar)
+
+func _layout_hp_bar() -> void:
+	if _hp_bar == null:
+		return
+	var texture: Texture2D = null
+	if _visual != null:
+		texture = _visual.texture
+	var body_scale: Vector2 = _base_visual_scale()
+	_hp_bar.configure(
+		WorldHpBar.FILL_ENEMY,
+		WorldHpBar.y_for_sprite(texture, body_scale),
+		WorldHpBar.width_for_sprite(texture, body_scale)
+	)
+
+func _refresh_hp_bar() -> void:
+	if _hp_bar == null:
+		return
+	_hp_bar.bind_hp(_hp, max_hp)
+	_hp_bar.set_shown(not _in_reserve and not _defeated)
 
 func _resolve_hit_direction(hit_direction: Vector2) -> Vector2:
 	if not hit_direction.is_zero_approx():

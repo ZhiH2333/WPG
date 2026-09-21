@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CompanionDef" format=3]
+
+[ext_resource type="Script" path="res://data/companion_def.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://3m7mr7t3xnub" path="res://images/ranged.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"gunner"
+display_name = "Gunner"
+description = "Fights with a gun you pick."
+kind = 1
+shop_cost = 70
+base_max_hp = 140
+base_move_speed = 520.0
+base_acceleration = 3000.0
+hurtbox_radius = 14.0
+body_scale = Vector2(0.048, 0.048)
+body_texture = ExtResource("2_tex")
+body_modulate = Color(0.45, 0.85, 1, 1)
+follow_distance = 72.0
+aggro_range = 480.0
+contact_damage = 0
+fire_interval = 0.0
+projectile_speed = 0.0
+projectile_damage = 0
+i_frame_sec = 0.35

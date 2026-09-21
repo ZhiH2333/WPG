@@ -1,7 +1,6 @@
 extends StaticBody2D
 class_name DummyTarget
 
-const DAMAGE_NUMBER_SCENE: PackedScene = preload("res://combat/damage_number.tscn")
 const FLASH_DURATION_SEC: float = 0.1
 const ALIVE_COLOR: Color = Color(0.86, 0.22, 0.2, 1)
 const DEAD_COLOR: Color = Color(0.42, 0.42, 0.44, 1)
@@ -56,6 +55,4 @@ func _defeat() -> void:
 	collision_layer = GameCollisionLayers.MASK_NONE
 
 func _spawn_damage_number(amount: int, hit_position: Vector2) -> void:
-	var number: DamageNumber = DAMAGE_NUMBER_SCENE.instantiate() as DamageNumber
-	get_parent().add_child(number)
-	number.play(amount, hit_position)
+	DamageNumber.spawn(self, amount, hit_position)

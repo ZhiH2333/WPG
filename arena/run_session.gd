@@ -24,6 +24,8 @@ var _player: Player
 var _players: Array[Player] = []
 var _encounter: EncounterPhrases
 var _catalog: UpgradeCatalog
+var _companion_catalog: CompanionCatalog
+var _has_living_companion: bool = false
 var _outcome: Outcome = Outcome.PLAYING
 var _loop_goal: int = 0
 var _elapsed_sec: float = 0.0
@@ -54,6 +56,15 @@ func bind_encounter(encounter: EncounterPhrases) -> void:
 
 func bind_catalog(catalog: UpgradeCatalog) -> void:
 	_catalog = catalog
+
+func bind_companion_catalog(catalog: CompanionCatalog) -> void:
+	_companion_catalog = catalog
+
+func set_has_living_companion(alive: bool) -> void:
+	_has_living_companion = alive
+
+func has_living_companion() -> bool:
+	return _has_living_companion
 
 func configure_mode(loop_goal: int) -> void:
 	_loop_goal = maxi(loop_goal, 0)
@@ -91,6 +102,27 @@ func draft_offer(count: int = 3) -> Array[UpgradeDef]:
 	for i: int in take:
 		picked.append(pool[i])
 	return picked
+
+func draft_shop_cards(count: int = 3) -> Array[ShopCard]:
+	var cards: Array[ShopCard] = []
+	if count <= 0:
+		return cards
+	var gunner: CompanionDef = _find_shop_gunner()
+	var include_companion: bool = gunner != null and not _has_living_companion
+	var upgrade_count: int = count
+	if include_companion:
+		upgrade_count = count - 1
+	var upgrades: Array[UpgradeDef] = draft_offer(upgrade_count)
+	for def: UpgradeDef in upgrades:
+		cards.append(ShopCard.for_upgrade(def))
+	if include_companion:
+		cards.append(ShopCard.for_companion(gunner))
+	return cards
+
+func _find_shop_gunner() -> CompanionDef:
+	if _companion_catalog == null:
+		return null
+	return _companion_catalog.get_by_id(&"gunner")
 
 func notify_phrase_loop() -> void:
 	_loop_index += 1
@@ -172,6 +204,7 @@ func restart() -> void:
 	_pending_level = 0
 	_kill_count = 0
 	_gold = 0
+	_has_living_companion = false
 	_rng.randomize()
 
 func tick(delta: float) -> void:

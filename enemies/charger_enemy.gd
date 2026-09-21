@@ -213,24 +213,37 @@ func _try_hit_player(body: Node) -> void:
 	if _charge_state == ChargeState.WINDUP:
 		return
 	var player: Player = body as Player
-	if player == null:
+	if player != null:
+		var direction: Vector2 = player.global_position - global_position
+		if direction.is_zero_approx():
+			direction = Vector2.RIGHT
+		else:
+			direction = direction.normalized()
+		var amount: int = charge_damage if _charge_state == ChargeState.CHARGE else contact_damage
+		var health: PlayerHealth = player.get_player_health()
+		var hp_before: int = health.get_hp()
+		health.apply_damage(amount, global_position, direction)
+		if _charge_state != ChargeState.CHARGE:
+			return
+		if health.get_hp() >= hp_before:
+			return
+		if _player_camera != null:
+			_player_camera.apply_kick(direction, CHARGE_KICK)
+		_enter_recover()
 		return
-	var direction: Vector2 = player.global_position - global_position
+	_try_hit_companion(body)
+
+func _try_hit_companion(body: Node) -> void:
+	var companion: CompanionBase = body as CompanionBase
+	if companion == null or companion.is_defeated():
+		return
+	var direction: Vector2 = companion.global_position - global_position
 	if direction.is_zero_approx():
 		direction = Vector2.RIGHT
 	else:
 		direction = direction.normalized()
 	var amount: int = charge_damage if _charge_state == ChargeState.CHARGE else contact_damage
-	var health: PlayerHealth = player.get_player_health()
-	var hp_before: int = health.get_hp()
-	health.apply_damage(amount, global_position, direction)
-	if _charge_state != ChargeState.CHARGE:
-		return
-	if health.get_hp() >= hp_before:
-		return
-	if _player_camera != null:
-		_player_camera.apply_kick(direction, CHARGE_KICK)
-	_enter_recover()
+	companion.apply_damage(amount, global_position, direction)
 
 func _refresh_charge_visual() -> void:
 	if _visual == null or _defeated or is_in_reserve() or is_entering():

@@ -967,7 +967,10 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 | **57（已完成）** | 右摇杆即时瞄准：回中 keep last，出 0.12 当帧对准，无转向平滑；`map_aim_stick` 合同 | 拨哪指哪，松开停在最后朝向 | 虚拟摇杆 UI、手柄重绑、右杆开火 |
 | **58（已完成）** | Settings 抽屉换皮 FlatBold | 侧栏深灰、近白粗体、洋红方条 | Joypad 重绑、虚拟摇杆 |
 | **59（已完成）** | 可见区 fit：大面板/卡片随 `visible_rect` 收缩 | ui_scale 130% 两列仍完整可见，不双倍放大 | 商店深化、跟班、TopBar |
-| **更后面** | 商店深化 + 跟班、5 人 / 房间浏览器 | — | Steam、互联网匹配、Mods |
+| **61（已完成）** | 两种跟班上场：CompanionDef + F8 debug，上限 1 | 身侧青色近战/远程能打能死；商店仍只卖升级 | 商店接线、主动技能、LAN 同步跟班 |
+| **62（已完成）** | 厚血远程跟班：买时选枪，AI 绕圈/LOS，删近战 | P8 可出 Gunner 70，选枪上场；战斗绕圈不站桩 | 跟班 HUD、主动技能、LAN 同步、消耗品 |
+| **63** | 商店其它可购项（消耗品）或跟班死亡再买的手感收尾 | 局内还能买一次性道具 | 手柄、地图、主动技能 |
+| **更后面** | 5 人 / 房间浏览器 | — | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
 ## Day 44（已完成）：地板 / 火花池 / 死亡碎裂 / 战斗 BGM
@@ -1234,7 +1237,38 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **当时不做：** Joypad / 手柄按键重绑、虚拟摇杆 / TouchControls、商店深化、跟班、TopBar / LogoButton / `menu_shear`、改 `GameSettings` / `settings.cfg`、新 InputMap action、WinnerPage / Pause 业务。
 
-## 下一步：Day 61（商店深化 + 跟班）
+## Day 61（已完成）：两种跟班上场，F8 debug，上限 1
+
+跟班能在单机沙盒里生成、跟随、自动攻击、被打死。商店仍只卖 10 张 `UpgradeDef`。`ShopOffer` 不出现跟班卡。跟班不写入 `owned_ids` / `records.json` / `progress.cfg`。Autoload 仍为 0。没有第 6 物理层，没有 `companion.png`，没有技能栏，没有主动技能，没有 LAN 同步跟班，没有跟班 HUD 血条。
+
+- **数据**：`data/companion_def.gd`（`class_name CompanionDef`）。`kind` 只有 `MELEE` / `RANGED`。字段含 `shop_cost`（本阶段不扣钱，留给 Day 62）、`base_max_hp` / 移速 / 加速度 / hurtbox / `body_scale` / `body_texture` / `body_modulate` / 跟随距离 / 仇恨范围 / 接触伤 / 射速 / 弹速 / 弹伤 / `i_frame_sec`。禁止 `skeleton_scene`，禁止主动技能字段。
+- **目录**：`data/companion_catalog.gd` + `companion_catalog.tres`，抄 `CharacterCatalog`：`get_count` / `get_all` / `get_by_id`；重复 id `push_error` 并跳过后到的；找不到返回 `null`。不是 Autoload，禁止 `get_tree()`。
+- **两条 .tres**：`data/companions/guard.tres`（近战，贴图 `images/melee.png`，青染 `Color(0.45, 0.85, 1, 1)`，HP 48，接触伤 6，`shop_cost=40`）；`data/companions/gunner.tres`（远程，贴图 `images/ranged.png`，同色，HP 32，`fire_interval=0.70`，弹伤 4，`shop_cost=50`）。`body_scale=(0.042, 0.042)`。
+- **场景**：新目录 `companions/`。`CompanionBase` 是 `CharacterBody2D`，**禁止** `extends EnemyBase`（否则玩家弹会打中、死亡会给金币/XP、句读会当敌人清场）。`collision_layer = MASK_PLAYER`，`collision_mask = MASK_WALL`。朝向只 FLIP，抄 `FacingContract` 的 MELEE/RANGED native 标志，不要 SPIN。
+- **跟随 / 索敌**：没有可打目标时站在玩家 `aim_vector` 身后 `follow_distance`（aim 为零则 `Vector2.LEFT`）。有存活且非 reserve/defeated/entering 的敌人、且该敌人离玩家 `< aggro_range` 则 seek：近战贴到接触，远程保持约 180px。敌人仍只 `bind_players`，不追跟班。敌人列表由沙盒传入，禁止 `get_nodes_in_group`。
+- **攻击**：`MeleeCompanion` 的 `ContactArea` layer=`NONE` mask=`ENEMY`，碰到 `EnemyBase` 造成 `contact_damage`，不打 Player。`RangedCompanion` 朝目标开火，`reset(..., is_player_shot=true)`，走现有玩家弹池；池满打不出，不删飞行中的弹。不要第二套弹池。
+- **受击 / 死亡**：`HitReaction` 塌缩 + 变灰留场，不 `queue_free`、不给 XP/gold、不喷 `DeathShard`。i-frame 用 `def.i_frame_sec`。死亡 `set_physics_process(false)`、ContactArea `monitoring=false`、碰撞层 `MASK_NONE`。敌人弹 `_damage_player_side`：`as Player` 走现有；否则 `has_method("apply_damage")` 且 `is CompanionBase` 才 `apply_damage`。近战接触伤（含冲锋/Boss 的 Player 检测路径）同样能打到跟班。玩家弹 mask 仍是 ENEMY|WALL，打不中跟班。
+- **沙盒**：`World` 下空节点 `Companions`。实例进这里，不要挂 CombatSandbox 根（会逃出 SubViewport）。`var _companion: CompanionBase = null`。一局最多 1 只。debug 构建、非 LAN、playing、未暂停/未开商店/三选一/Winner 时 **F8** 循环：无 → 近战 → 远程 → 清掉 → 近战…。已有一只时换成另一种先 `queue_free` 旧的。出生点 = 玩家位置 + `Vector2(-48, 24)`，与墙重叠则 `Vector2(48, 24)`。LAN / Guest 不实例跟班。F8 仍走 `_try_debug_hotkeys` 开头的 `_is_lan()` return，不为跟班开 LAN 口。
+- **清理**：R / Retry / `_reset_sandbox` / 回菜单必须 `_clear_companion()`。玩家死亡不必立刻杀跟班。句读换场 `hold_in_reserve` 时跟班不停（它不是句读单位）；不要把跟班放进 `_enemies`。
+- **Overlay**：仅 debug、F9 显示。增补 `companion: off|guard|gunner` 和 `companion_hp: n/m`（没有则 `-`）。不要第五块 HUD，不要战斗 HUD 血条。
+
+**当时不做：** 商店卖跟班 / 改 `ShopOffer` 信号类型 / 改 `draft_offer`、主动技能 / 技能栏 / 冷却 UI、第三种跟班、跟班 HUD 血条、新物理层、新 PNG、Joypad 重绑、虚拟摇杆、LAN 快照同步跟班、Autoload、`Engine.time_scale`、`reload_current_scene`、改四把枪/敌人 `_ready` 身份数字、Motor / 相机 / 击退公式 / hitstop / XP / gold / 加压公式、HUD 锚点、算分公式、`records.json`、10 张卡 `value`、TopBar / LogoButton。
+
+## Day 62（已完成）：厚血远程、买时选枪、AI 绕圈/LOS，删近战
+
+跟班只留远程 Gunner，比玩家更厚更快。P8 商店可出跟班卡，点了先进选枪再扣 70 生成。跟班用四把库存真枪的 `fire_at`，不踢玩家镜头。AI 三态：拴绳归队 / 侧翼跟随 / 绕圈射击，墙后不开火。LAN 仍不出跟班卡、不 spawn 跟班。Autoload 仍为 0。没有跟班 HUD、没有主动技能、没有 LAN 同步跟班、跟班不吃玩家升级。
+
+- **删近战**：去掉 `MeleeCompanion` / `guard.tres` 及目录条目。场景树不再出现 Guard。
+- **Gunner 锁死数字**：HP 140、移速 520、加速度 3000、hurtbox 14、`body_scale=(0.048, 0.048)`、跟随 72、仇恨 480、`shop_cost=70`、接触伤/射速/弹速/弹伤全 0、i-frame 0.35。开火数字全部来自所选 Weapon。
+- **持枪**：`RangedCompanion` 动态 `new` 四把枪脚本，`bind_projectile_pool` 玩家弹池，`set_active(false)` 永不走 `WeaponHost` / `_process`。`apply_weapon(0..3)`：Pistol / Shotgun / Rifle / Smg。非法打回 0。`Weapon.fire_at(origin, aim)` 抄取弹/散布/弹速/伤害，不读 `PlayerInput`，不 `notify_shot_fired`。池不够返回 false，不删飞行中的弹。
+- **AI**：`CATCH_UP` / `FOLLOW` / `ENGAGE`。离玩家 > 240px 丢战斗全速归槽；槽位在玩家身后 56 且 `aim.orthogonal()` 侧 52，不到枪口正前方。ENGAGE 径向保持 190±40，切向永远 `STRAFE_SPEED=220`，禁止速度清零。撞墙或每 1.1s 翻侧移。目标粘性：aim 方向优先，离玩家 > aggro+80 才丢。开火仅 ENGAGE、距离 90～460、LOS 打墙则本帧不打。朝向只 FLIP。
+- **商店**：`ShopCard` 分 `UPGRADE` / `COMPANION`。`draft_offer` 语义不变，只给句读三选一。新增 `draft_shop_cards`：离线且没有活跟班时第三张固定 Gunner，否则三张升级。LAN 调用方仍 `draft_offer` 包成升级卡。`ShopOffer` 两态 `BROWSE` / `PICK_GUN`，不要 `AcceptDialog`。跟班卡钱不够 disabled；点开四把枪，Esc/Back 回三张卡金币不变。选枪后信号 `picked_companion`，沙盒扣 70 再 spawn，不 `try_grant`、不写 `owned_ids`。
+- **上限 1**：活着则商店不再出跟班卡。留尸可再买：先 `_clear_companion()` 再生成。
+- **F8**：无活跟班 → gunner+Pistol；已有则 Pistol→Shotgun→Rifle→Smg→清掉。暂停/商店/三选一/Winner 无效。Overlay：`companion: off|gunner`，`gun: Pistol|Shotgun|Rifle|Smg`（没有则 `-`）。
+
+**当时不做：** 跟班 HUD 血条 / 主动技能 / 技能栏 / 冷却 UI、LAN 快照同步跟班、跟班吃玩家 UpgradeApplier、第三只跟班、消耗品、Joypad 重绑、虚拟摇杆、Autoload、`Engine.time_scale`、`reload_current_scene`、改四把枪/敌人 `_ready` 身份数字、Motor / 相机 / 击退公式 / hitstop / XP / gold / 加压公式、HUD 锚点、算分公式、`records.json`、10 张卡 `value`、TopBar / LogoButton。
+
+## 下一步：Day 63（商店消耗品或跟班死亡再买手感）
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
 
@@ -1258,9 +1292,13 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **Day 59 = 可见区 fit（已完成）**：大面板 / RecordCard / NewRecord / Custom 按 `visible_rect` 收缩；1.0 仍是 1680/780；禁止 `CARD_SIZE * ui_scale`。Settings 滑杆拖动中重排抽屉。
 
+**Day 61 = 两种跟班上场（已完成）**：F8 debug 循环近战 Guard / 远程 Gunner，上限 1，商店仍只卖升级。死亡留灰尸不给钱。
+
+**Day 62 = 厚血远程跟班（已完成）**：删近战；Gunner HP140 / 速520；P8 买时选枪扣 70；AI 绕圈+LOS；LAN 仍不出跟班。
+
 **Day 60 不开工**：视觉统一到 Day 59 收束。
 
-**下一步 Day 61 = 商店深化 + 跟班**。
+**下一步 Day 63 = 商店其它可购项（消耗品）或跟班死亡再买的手感收尾**：不做手柄、不做地图、不做主动技能。
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1271,7 +1309,7 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
-2. **Day 61–66　商店深化 + 跟班系统**：`ShopOffer` 从「买一张已有升级或 Skip」扩到多类可购项（升级卡之外加消耗品/跟班），仍是**局内临时**、不是跨局永久解锁；跟班（companion）**分种类**落地（例如近战贴身 / 远程支援等不同 AI 与外观，复用 `EnemyBase` 的移动与索敌骨架），随玩家跑、自动参战、局末清空；**主动技能（按键触发的技能）先跳过**，不做技能栏/冷却 UI，仅保留被动加成与跟班两条线。
+2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 起商店其它可购项（消耗品）或跟班死亡再买的手感收尾，仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步跟班。
 3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。

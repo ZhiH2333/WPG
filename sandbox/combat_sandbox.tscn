@@ -244,6 +244,8 @@ position = Vector2(540, 280)
 [node name="BossCenter1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("20_boss")]
 position = Vector2(0, -360)
 
+[node name="Companions" type="Node2D" parent="ViewportContainer/GameViewport/World"]
+
 [node name="Projectiles" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 script = ExtResource("6_pool")
 

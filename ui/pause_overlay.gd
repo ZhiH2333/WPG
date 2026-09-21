@@ -15,6 +15,7 @@ var _encounter: EncounterPhrases
 var _anim_tween: Tween
 var _hover_tweens: Dictionary = {}
 var _last_clock_second: int = -1
+var _owns_tree_pause: bool = false
 
 @onready var _root: Control = $Root
 @onready var _dimmer: ColorRect = $Root/Dimmer
@@ -79,6 +80,7 @@ func open(freeze_tree: bool = true) -> void:
 	_refresh_run_status()
 	_refresh_profile_name()
 	_refresh_clock(true)
+	_owns_tree_pause = freeze_tree
 	if freeze_tree:
 		var tree: SceneTree = get_tree()
 		if tree != null:
@@ -96,8 +98,9 @@ func close(emit_resumed: bool = true) -> void:
 	if _overlay.is_open():
 		_overlay.close()
 	var tree: SceneTree = get_tree()
-	if tree != null:
+	if tree != null and _owns_tree_pause:
 		tree.paused = false
+	_owns_tree_pause = false
 	if emit_resumed:
 		resumed.emit()
 	UiAnim.kill_tween(_anim_tween)

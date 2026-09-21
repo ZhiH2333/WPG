@@ -1,7 +1,7 @@
 extends Control
 class_name MainMenu
 
-## osu 式主菜单：字标在上，Settings / Play / Exit 三颗平行四边形按钮并排在下。
+## 主菜单：字标在上，Settings / Play / Exit 三颗平行四边形按钮并排在下。
 ## Play 先问 Solo / Multi。顶栏 Solo / Multi 直达。叠层打开时背景模糊 + 音乐衰减。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
 const TOP_BAR_HEIGHT: float = 60.0

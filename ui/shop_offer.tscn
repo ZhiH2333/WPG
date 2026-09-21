@@ -174,6 +174,41 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 
+[node name="GunRow" type="HBoxContainer" parent="Root/Center/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Gun0" type="Button" parent="Root/Center/Column/GunRow"]
+custom_minimum_size = Vector2(200, 120)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Pistol"
+
+[node name="Gun1" type="Button" parent="Root/Center/Column/GunRow"]
+custom_minimum_size = Vector2(200, 120)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Shotgun"
+
+[node name="Gun2" type="Button" parent="Root/Center/Column/GunRow"]
+custom_minimum_size = Vector2(200, 120)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Rifle"
+
+[node name="Gun3" type="Button" parent="Root/Center/Column/GunRow"]
+custom_minimum_size = Vector2(200, 120)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Smg"
+
 [node name="Skip" type="Button" parent="Root/Center/Column"]
 custom_minimum_size = Vector2(160, 48)
 layout_mode = 2

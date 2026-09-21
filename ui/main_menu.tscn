@@ -1,31 +1,26 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene format=3 uid="uid://ceboommypbg88"]
 
-[ext_resource type="Script" path="res://ui/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" uid="uid://bt73ouyxqck5o" path="res://ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://ui/record_selector.tscn" id="4_records"]
+[ext_resource type="Shader" uid="uid://drihfndyb6kkn" path="res://ui/menu_blur.gdshader" id="5_blur"]
+[ext_resource type="Texture2D" uid="uid://bgq6sex7atw7d" path="res://images/mainmenu.png" id="6_bg"]
+[ext_resource type="AudioStream" uid="uid://c78ia73bu3lhq" path="res://audio/main.mp3" id="7_music"]
+[ext_resource type="Texture2D" uid="uid://dhr17v2eemomi" path="res://images/logo.png" id="8_logo"]
+[ext_resource type="Shader" uid="uid://dlju32jl58p0n" path="res://ui/menu_shear.gdshader" id="9_shear"]
+[ext_resource type="Texture2D" uid="uid://dss7kt840b8h8" path="res://ui/icons/gear.png" id="10_gear"]
+[ext_resource type="Texture2D" uid="uid://qnb6c4ffbepe" path="res://ui/icons/home.png" id="11_home"]
+[ext_resource type="Texture2D" uid="uid://dh1m57uqaxt81" path="res://ui/icons/play.png" id="12_play"]
+[ext_resource type="Texture2D" uid="uid://6aw4021rprgn" path="res://ui/icons/quit.png" id="13_quit"]
+[ext_resource type="Texture2D" uid="uid://b611thnj3ted4" path="res://ui/icons/clock.png" id="14_clock"]
+[ext_resource type="Texture2D" uid="uid://dwkme0ou66p4d" path="res://ui/icons/avatar.png" id="15_avatar"]
 [ext_resource type="PackedScene" path="res://ui/profile_overlay.tscn" id="16_profile"]
-[ext_resource type="PackedScene" path="res://ui/record_leaderboard_overlay.tscn" id="19_leaderboard"]
 [ext_resource type="PackedScene" path="res://ui/lan_overlay.tscn" id="17_lan"]
 [ext_resource type="PackedScene" path="res://ui/mode_choice_overlay.tscn" id="18_choice"]
-[ext_resource type="Shader" path="res://ui/menu_blur.gdshader" id="5_blur"]
-[ext_resource type="Texture2D" path="res://images/mainmenu.png" id="6_bg"]
-[ext_resource type="AudioStream" path="res://audio/main.mp3" id="7_music"]
-[ext_resource type="Texture2D" path="res://images/logo.png" id="8_logo"]
-[ext_resource type="Shader" path="res://ui/menu_shear.gdshader" id="9_shear"]
-[ext_resource type="Texture2D" path="res://ui/icons/gear.png" id="10_gear"]
-[ext_resource type="Texture2D" path="res://ui/icons/home.png" id="11_home"]
-[ext_resource type="Texture2D" path="res://ui/icons/play.png" id="12_play"]
-[ext_resource type="Texture2D" path="res://ui/icons/quit.png" id="13_quit"]
-[ext_resource type="Texture2D" path="res://ui/icons/clock.png" id="14_clock"]
-[ext_resource type="Texture2D" path="res://ui/icons/avatar.png" id="15_avatar"]
-[ext_resource type="Texture2D" path="res://ui/icons/solo.png" id="20_solo"]
-[ext_resource type="Texture2D" path="res://ui/icons/multi.png" id="21_multi"]
-
-[sub_resource type="ShaderMaterial" id="mat_blur"]
-shader = ExtResource("5_blur")
-shader_parameter/blur_amount = 0.0
-shader_parameter/dim_amount = 0.0
+[ext_resource type="PackedScene" path="res://ui/record_leaderboard_overlay.tscn" id="19_leaderboard"]
+[ext_resource type="Texture2D" uid="uid://csol4rnav005e" path="res://ui/icons/solo.png" id="20_solo"]
+[ext_resource type="Texture2D" uid="uid://cmlt4rnav006f" path="res://ui/icons/multi.png" id="21_multi"]
 
 [sub_resource type="ShaderMaterial" id="mat_settings"]
 shader = ExtResource("9_shear")
@@ -45,7 +40,12 @@ shader_parameter/fill_color = Color(0.93, 0.32, 0.55, 0.92)
 shader_parameter/shear = 0.16
 shader_parameter/hover = 0.0
 
-[node name="MainMenu" type="Control"]
+[sub_resource type="ShaderMaterial" id="mat_blur"]
+shader = ExtResource("5_blur")
+shader_parameter/blur_amount = 0.0
+shader_parameter/dim_amount = 0.0
+
+[node name="MainMenu" type="Control" unique_id=799263691]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -56,7 +56,7 @@ mouse_filter = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_menu")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1207986972]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -68,7 +68,7 @@ texture = ExtResource("6_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Vignette" type="ColorRect" parent="."]
+[node name="Vignette" type="ColorRect" parent="." unique_id=310029619]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -78,7 +78,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.03, 0.02, 0.05, 0.22)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Center" type="CenterContainer" parent="." unique_id=687063223]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -87,38 +87,34 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Column" type="VBoxContainer" parent="Center"]
+[node name="Column" type="VBoxContainer" parent="Center" unique_id=280674484]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 36
 alignment = 1
 
-[node name="Logo" type="TextureButton" parent="Center/Column"]
+[node name="Logo" type="TextureButton" parent="Center/Column" unique_id=600637113]
 custom_minimum_size = Vector2(720, 162)
 layout_mode = 2
 size_flags_horizontal = 4
-pivot_offset = Vector2(360, 81)
-mouse_filter = 0
 theme_type_variation = &"EmptyButton"
 texture_normal = ExtResource("8_logo")
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="Buttons" type="HBoxContainer" parent="Center/Column"]
+[node name="Buttons" type="HBoxContainer" parent="Center/Column" unique_id=255586938]
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 2
 theme_override_constants/separation = 36
 alignment = 1
 
-[node name="Settings" type="Button" parent="Center/Column/Buttons"]
+[node name="Settings" type="Button" parent="Center/Column/Buttons" unique_id=31003530]
 custom_minimum_size = Vector2(280, 124)
 layout_mode = 2
-pivot_offset = Vector2(140, 62)
-mouse_filter = 0
 theme_type_variation = &"EmptyButton"
 
-[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Settings"]
+[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Settings" unique_id=206435531]
 material = SubResource("mat_settings")
 layout_mode = 1
 anchors_preset = 15
@@ -128,7 +124,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Settings"]
+[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Settings" unique_id=544404126]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -138,7 +134,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Settings/Content"]
+[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Settings/Content" unique_id=1882972999]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -146,7 +142,7 @@ mouse_filter = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Settings/Content/Inner"]
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Settings/Content/Inner" unique_id=1545483728]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -156,28 +152,24 @@ texture = ExtResource("10_gear")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Settings/Content/Inner"]
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Settings/Content/Inner" unique_id=328555574]
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
-mouse_filter = 2
 theme_type_variation = &"StripCaption"
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_constants/outline_size = 1
 theme_override_font_sizes/font_size = 20
 text = "settings"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Play" type="Button" parent="Center/Column/Buttons"]
+[node name="Play" type="Button" parent="Center/Column/Buttons" unique_id=1048514884]
 custom_minimum_size = Vector2(280, 124)
 layout_mode = 2
-pivot_offset = Vector2(140, 62)
-mouse_filter = 0
 theme_type_variation = &"EmptyButton"
 
-[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Play"]
+[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Play" unique_id=2023171475]
 material = SubResource("mat_play")
 layout_mode = 1
 anchors_preset = 15
@@ -187,7 +179,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Play"]
+[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Play" unique_id=672004498]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -197,7 +189,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Play/Content"]
+[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Play/Content" unique_id=2140776719]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -205,7 +197,7 @@ mouse_filter = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Play/Content/Inner"]
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Play/Content/Inner" unique_id=312285929]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -215,28 +207,24 @@ texture = ExtResource("12_play")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Play/Content/Inner"]
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Play/Content/Inner" unique_id=954393537]
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
-mouse_filter = 2
 theme_type_variation = &"StripCaption"
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_constants/outline_size = 1
 theme_override_font_sizes/font_size = 20
 text = "play"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Quit" type="Button" parent="Center/Column/Buttons"]
+[node name="Quit" type="Button" parent="Center/Column/Buttons" unique_id=1323504892]
 custom_minimum_size = Vector2(280, 124)
 layout_mode = 2
-pivot_offset = Vector2(140, 62)
-mouse_filter = 0
 theme_type_variation = &"EmptyButton"
 
-[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Quit"]
+[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Quit" unique_id=755615749]
 material = SubResource("mat_quit")
 layout_mode = 1
 anchors_preset = 15
@@ -246,7 +234,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Quit"]
+[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Quit" unique_id=1956175940]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -256,7 +244,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Quit/Content"]
+[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Quit/Content" unique_id=2037550452]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -264,7 +252,7 @@ mouse_filter = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Quit/Content/Inner"]
+[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Quit/Content/Inner" unique_id=258904844]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -274,21 +262,19 @@ texture = ExtResource("13_quit")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Quit/Content/Inner"]
+[node name="Caption" type="Label" parent="Center/Column/Buttons/Quit/Content/Inner" unique_id=1134847290]
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
-mouse_filter = 2
 theme_type_variation = &"StripCaption"
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
 theme_override_constants/outline_size = 1
 theme_override_font_sizes/font_size = 20
 text = "exit"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="BlurLayer" type="ColorRect" parent="."]
+[node name="BlurLayer" type="ColorRect" parent="." unique_id=878000642]
 material = SubResource("mat_blur")
 layout_mode = 1
 anchors_preset = 15
@@ -298,147 +284,109 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Music" type="AudioStreamPlayer" parent="."]
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=976563294]
 stream = ExtResource("7_music")
 volume_db = -6.0
 autoplay = true
 
-[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+[node name="HoverSfx" type="AudioStreamPlayer" parent="." unique_id=1695307025]
 
-[node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+[node name="ClickSfx" type="AudioStreamPlayer" parent="." unique_id=368153545]
 
-[node name="BackSfx" type="AudioStreamPlayer" parent="."]
+[node name="BackSfx" type="AudioStreamPlayer" parent="." unique_id=523452819]
 
-[node name="SettingsOverlay" parent="." instance=ExtResource("3_overlay")]
+[node name="SettingsOverlay" parent="." unique_id=929522329 instance=ExtResource("3_overlay")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 offset_top = 60.0
-grow_horizontal = 2
-grow_vertical = 2
-z_index = 50
 
-[node name="RecordSelector" parent="." instance=ExtResource("4_records")]
+[node name="RecordSelector" parent="." unique_id=931439692 instance=ExtResource("4_records")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 offset_top = 60.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="ProfileOverlay" parent="." instance=ExtResource("16_profile")]
+[node name="ProfileOverlay" parent="." unique_id=2028122394 instance=ExtResource("16_profile")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 offset_top = 60.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="RecordLeaderboardOverlay" parent="." instance=ExtResource("19_leaderboard")]
+[node name="RecordLeaderboardOverlay" parent="." unique_id=36235829 instance=ExtResource("19_leaderboard")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 offset_top = 60.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="LanOverlay" parent="." instance=ExtResource("17_lan")]
+[node name="LanOverlay" parent="." unique_id=51868953 instance=ExtResource("17_lan")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 offset_top = 60.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="ModeChoiceOverlay" parent="." instance=ExtResource("18_choice")]
+[node name="ModeChoiceOverlay" parent="." unique_id=1507128413 instance=ExtResource("18_choice")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 offset_top = 60.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="TopBar" type="PanelContainer" parent="."]
+[node name="TopBar" type="PanelContainer" parent="." unique_id=75921320]
+z_index = 100
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 60.0
 grow_horizontal = 2
-mouse_filter = 0
-z_index = 100
 theme_type_variation = &"BarPanel"
 
-[node name="Row" type="HBoxContainer" parent="TopBar"]
+[node name="Row" type="HBoxContainer" parent="TopBar" unique_id=540200135]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
-alignment = 0
 
-[node name="SettingsButton" type="Button" parent="TopBar/Row"]
+[node name="SettingsButton" type="Button" parent="TopBar/Row" unique_id=957099772]
 custom_minimum_size = Vector2(168, 60)
 layout_mode = 2
 size_flags_vertical = 3
-focus_mode = 0
-mouse_filter = 0
-theme_type_variation = &"IconBarButton"
 tooltip_text = "Settings"
+focus_mode = 0
+theme_type_variation = &"IconBarButton"
 text = "Settings"
 icon = ExtResource("10_gear")
 
-[node name="HomeButton" type="Button" parent="TopBar/Row"]
+[node name="HomeButton" type="Button" parent="TopBar/Row" unique_id=1047269809]
 custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
 size_flags_vertical = 3
-focus_mode = 0
-mouse_filter = 0
-theme_type_variation = &"IconBarButton"
 tooltip_text = "Home"
+focus_mode = 0
+theme_type_variation = &"IconBarButton"
 text = "Home"
 icon = ExtResource("11_home")
 
-[node name="SoloButton" type="Button" parent="TopBar/Row"]
+[node name="SoloButton" type="Button" parent="TopBar/Row" unique_id=1962511877]
 custom_minimum_size = Vector2(124, 60)
 layout_mode = 2
 size_flags_vertical = 3
-focus_mode = 0
-mouse_filter = 0
-theme_type_variation = &"IconBarButton"
 tooltip_text = "Solo"
+focus_mode = 0
+theme_type_variation = &"IconBarButton"
 text = "Solo"
 icon = ExtResource("20_solo")
 
-[node name="MultiButton" type="Button" parent="TopBar/Row"]
+[node name="MultiButton" type="Button" parent="TopBar/Row" unique_id=942381447]
 custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
 size_flags_vertical = 3
-focus_mode = 0
-mouse_filter = 0
-theme_type_variation = &"IconBarButton"
 tooltip_text = "Multi"
+focus_mode = 0
+theme_type_variation = &"IconBarButton"
 text = "Multi"
 icon = ExtResource("21_multi")
 
-[node name="Spacer" type="Control" parent="TopBar/Row"]
+[node name="Spacer" type="Control" parent="TopBar/Row" unique_id=1930725417]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="Profile" type="Button" parent="TopBar/Row"]
+[node name="Profile" type="Button" parent="TopBar/Row" unique_id=783773110]
 custom_minimum_size = Vector2(188, 60)
 layout_mode = 2
 size_flags_vertical = 3
-focus_mode = 0
-mouse_filter = 0
-theme_type_variation = &"IconBarButton"
 tooltip_text = "Profile"
+focus_mode = 0
+theme_type_variation = &"IconBarButton"
 
-[node name="Layout" type="HBoxContainer" parent="TopBar/Row/Profile"]
+[node name="Layout" type="HBoxContainer" parent="TopBar/Row/Profile" unique_id=331471860]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -451,15 +399,13 @@ mouse_filter = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="Name" type="Label" parent="TopBar/Row/Profile/Layout"]
+[node name="Name" type="Label" parent="TopBar/Row/Profile/Layout" unique_id=2044372741]
 layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
 theme_type_variation = &"ProfileName"
 text = "best  0"
 vertical_alignment = 1
 
-[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile/Layout"]
+[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile/Layout" unique_id=1361880809]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_vertical = 4
@@ -468,7 +414,7 @@ texture = ExtResource("15_avatar")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="TimeBox" type="HBoxContainer" parent="TopBar/Row"]
+[node name="TimeBox" type="HBoxContainer" parent="TopBar/Row" unique_id=110555020]
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 size_flags_vertical = 3
@@ -476,12 +422,12 @@ mouse_filter = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="PadL" type="Control" parent="TopBar/Row/TimeBox"]
+[node name="PadL" type="Control" parent="TopBar/Row/TimeBox" unique_id=799793315]
 custom_minimum_size = Vector2(14, 0)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="ClockIcon" type="TextureRect" parent="TopBar/Row/TimeBox"]
+[node name="ClockIcon" type="TextureRect" parent="TopBar/Row/TimeBox" unique_id=153838711]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 size_flags_vertical = 4
@@ -490,16 +436,13 @@ texture = ExtResource("14_clock")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Clock" type="Label" parent="TopBar/Row/TimeBox"]
+[node name="Clock" type="Label" parent="TopBar/Row/TimeBox" unique_id=1726309155]
 layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
 theme_type_variation = &"ClockLabel"
 text = "00:00:00"
 vertical_alignment = 1
 
-[node name="PadR" type="Control" parent="TopBar/Row/TimeBox"]
+[node name="PadR" type="Control" parent="TopBar/Row/TimeBox" unique_id=1915872867]
 custom_minimum_size = Vector2(14, 0)
 layout_mode = 2
 mouse_filter = 2
-

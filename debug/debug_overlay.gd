@@ -22,6 +22,7 @@ var _last_grant_id: String = "-"
 var _record_id: String = ""
 var _net_session: NetSession
 var _p2: Player
+var _companion: CompanionBase
 var _fps_slot_min: PackedFloat32Array = PackedFloat32Array()
 var _fps_slot_sum: PackedFloat32Array = PackedFloat32Array()
 var _fps_slot_count: PackedInt32Array = PackedInt32Array()
@@ -99,6 +100,9 @@ func bind_net_session(session: NetSession) -> void:
 func bind_p2(player: Player) -> void:
 	_p2 = player
 
+func bind_companion(companion: CompanionBase) -> void:
+	_companion = companion
+
 func set_last_grant_id(upgrade_id: String) -> void:
 	_last_grant_id = upgrade_id
 
@@ -124,7 +128,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nspark_active: %d\nspark_free: %d\nshard_active: %d\nshard_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nrecord: %s hist: %d best: %d goal: %d\nchar: %s\n%sscore: %d\nwinner: %s\nnet: %s\npeer: %d\nseat: %d\np2_hp: %s\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nspark_active: %d\nspark_free: %d\nshard_active: %d\nshard_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nrecord: %s hist: %d best: %d goal: %d\nchar: %s\n%sscore: %d\nwinner: %s\nnet: %s\npeer: %d\nseat: %d\np2_hp: %s\ncompanion: %s\ncompanion_hp: %s\ngun: %s\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -192,10 +196,35 @@ func _compose_status_text() -> String:
 		_read_peer_id(),
 		_read_seat(),
 		_read_p2_hp(),
+		_read_companion_id(),
+		_read_companion_hp(),
+		_read_companion_gun(),
 		fps,
 		_fps_min_2s,
 		_fps_avg_2s,
 	]
+
+
+func _read_companion_id() -> String:
+	if _companion == null or not is_instance_valid(_companion):
+		return "off"
+	var companion_id: String = String(_companion.get_companion_id())
+	if companion_id.is_empty():
+		return "off"
+	return companion_id
+
+func _read_companion_hp() -> String:
+	if _companion == null or not is_instance_valid(_companion):
+		return "-"
+	return "%d/%d" % [_companion.get_hp(), _companion.get_max_hp()]
+
+func _read_companion_gun() -> String:
+	if _companion == null or not is_instance_valid(_companion):
+		return "-"
+	var ranged: RangedCompanion = _companion as RangedCompanion
+	if ranged == null:
+		return "-"
+	return ranged.get_weapon_display_name()
 
 func _read_weapon() -> Weapon:
 	if _weapon_host == null:

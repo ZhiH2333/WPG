@@ -11,6 +11,10 @@ const DEATH_SHARD_CAPACITY: int = 64
 const COMBAT_MUSIC_DB: float = -22.0
 const UPGRADE_CATALOG: UpgradeCatalog = preload("res://data/upgrade_catalog.tres")
 const CHARACTER_CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
+const COMPANION_CATALOG: CompanionCatalog = preload("res://data/companion_catalog.tres")
+const RANGED_COMPANION_SCENE: PackedScene = preload("res://companions/ranged_companion.tscn")
+const COMPANION_SPAWN_LEFT: Vector2 = Vector2(-48, 24)
+const COMPANION_SPAWN_RIGHT: Vector2 = Vector2(48, 24)
 const REQUIRED_UPGRADE_IDS: PackedStringArray = [
 	"max_hp_s", "max_hp_m", "swift", "heavy_round", "cadence",
 	"long_shot", "second_skin", "extra_pellets", "steady_rifle", "thick_hide",
@@ -41,6 +45,7 @@ var _local_player: Player
 var _guest_pawn: Player
 var _lan_paused: bool = false
 var _last_owned_label: String = ""
+var _companion: CompanionBase = null
 
 @onready var _viewport_container: SubViewportContainer = $ViewportContainer
 @onready var _game_viewport: SubViewport = $ViewportContainer/GameViewport
@@ -58,6 +63,7 @@ var _last_owned_label: String = ""
 @onready var _hit_sparks: HitSparkPool = $ViewportContainer/GameViewport/World/HitSparks
 @onready var _death_shards: DeathShardPool = $ViewportContainer/GameViewport/World/DeathShards
 @onready var _enemies_root: Node2D = $ViewportContainer/GameViewport/World/Enemies
+@onready var _companions_root: Node2D = $ViewportContainer/GameViewport/World/Companions
 @onready var _sfx_pool: SfxPool = $ViewportContainer/GameViewport/World/SfxPool
 @onready var _combat_music: AudioStreamPlayer = $CombatMusic
 @onready var _encounter: EncounterPhrases = $EncounterPhrases
@@ -237,6 +243,7 @@ func _bind_runtime() -> void:
 	_run_session.bind_players(_pawns)
 	_run_session.bind_encounter(_encounter)
 	_run_session.bind_catalog(UPGRADE_CATALOG)
+	_run_session.bind_companion_catalog(COMPANION_CATALOG)
 	_assert_upgrade_catalog()
 	_bind_playable_record()
 	if _is_lan():
@@ -255,12 +262,13 @@ func _bind_runtime() -> void:
 	_upgrade_offer.bind_session(_run_session)
 	_upgrade_offer.bind_player_input(player_input)
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
-	_upgrade_offer.cancelled.connect(_return_to_menu)
+	_upgrade_offer.cancelled.connect(_on_pause_toggle)
 	_shop_offer.bind_session(_run_session)
 	_shop_offer.bind_player_input(player_input)
 	_shop_offer.bought.connect(_on_shop_bought)
+	_shop_offer.picked_companion.connect(_on_shop_companion_picked)
 	_shop_offer.skipped.connect(_on_shop_skipped)
-	_shop_offer.cancelled.connect(_return_to_menu)
+	_shop_offer.cancelled.connect(_on_pause_toggle)
 	_pause_overlay.bind_run_session(_run_session)
 	_pause_overlay.bind_encounter(_encounter)
 	_pause_overlay.resumed.connect(_on_pause_resumed)
@@ -326,14 +334,15 @@ func _hold_all_in_reserve() -> void:
 func _loop_phrases() -> void:
 	_park_combat_pools()
 	_hold_all_in_reserve()
-	var defs: Array[UpgradeDef] = _run_session.draft_offer(3)
-	if defs.is_empty():
+	var cards: Array[ShopCard] = _draft_shop_cards_for_loop()
+	if cards.is_empty():
 		_finish_loop_after_shop()
 		return
 	_set_combat_frozen(true)
-	_shop_offer.present(defs, _run_session.get_gold())
+	_shop_offer.present(cards, _run_session.get_gold())
 	_set_offer_input_lock(true)
-	_broadcast_offer_open(OFFER_SHOP, defs, _run_session.get_gold())
+	if _is_lan():
+		_broadcast_offer_open(OFFER_SHOP, _upgrade_defs_from_shop_cards(cards), _run_session.get_gold())
 
 func _finish_loop_after_shop() -> void:
 	_run_session.notify_phrase_loop()
@@ -360,13 +369,15 @@ func _reset_sandbox() -> void:
 	_lan_paused = false
 	if _winner_page.is_open():
 		_winner_page.close()
+	if _pause_overlay.is_open():
+		_pause_overlay.close(false)
+	_set_offer_picks_enabled(true)
 	if _upgrade_offer.is_open():
 		_close_offer()
 	if _shop_offer.is_open():
 		_close_shop()
-	if _pause_overlay.is_open():
-		_pause_overlay.close(false)
 	_park_combat_pools()
+	_clear_companion()
 	_run_session.restart()
 	_upgrade_applier.apply_owned()
 	for pawn: Player in _pawns:
@@ -471,6 +482,27 @@ func _on_shop_bought(upgrade_id: StringName) -> void:
 	_broadcast_offer_close(String(upgrade_id))
 	_finish_loop_after_shop()
 
+func _on_shop_companion_picked(companion_id: StringName, weapon_index: int) -> void:
+	if _is_guest() or _is_lan():
+		return
+	if not _shop_offer.is_open():
+		return
+	if _all_pawns_defeated() or not _run_session.is_playing():
+		_abort_shop()
+		return
+	var def: CompanionDef = COMPANION_CATALOG.get_by_id(companion_id)
+	if def == null:
+		return
+	var cost: int = def.shop_cost
+	if _run_session.get_gold() < cost:
+		return
+	if not _run_session.try_spend(cost):
+		push_error("商店扣款失败：companion=%s cost=%d gold=%d" % [String(companion_id), cost, _run_session.get_gold()])
+		return
+	_spawn_companion(companion_id, weapon_index)
+	_close_shop()
+	_finish_loop_after_shop()
+
 func _on_shop_skipped() -> void:
 	if _is_guest():
 		_net.send_try_pick(UPGRADE_SKIP_ID)
@@ -510,6 +542,11 @@ func _set_combat_frozen(frozen: bool) -> void:
 	if _pause_overlay.is_open():
 		return
 	tree.paused = false
+
+func _set_offer_picks_enabled(enabled: bool) -> void:
+	var mode: Node.ProcessMode = Node.PROCESS_MODE_ALWAYS if enabled else Node.PROCESS_MODE_DISABLED
+	_upgrade_offer.process_mode = mode
+	_shop_offer.process_mode = mode
 
 func _set_offer_input_lock(locked: bool) -> void:
 	for pawn: Player in _pawns:
@@ -588,8 +625,12 @@ func _is_pause_toggle(event: InputEvent) -> bool:
 func _on_pause_toggle() -> void:
 	if _pause_overlay.is_open():
 		return
-	if _winner_page.is_open() or _all_pawns_defeated() or _run_session.is_cleared() or _upgrade_offer.is_open() or _shop_offer.is_open():
+	if _winner_page.is_open() or _all_pawns_defeated() or _run_session.is_cleared():
 		_return_to_menu()
+		return
+	if _upgrade_offer.is_open() or _shop_offer.is_open():
+		_set_offer_picks_enabled(false)
+		_pause_overlay.open(false)
 		return
 	if _is_lan():
 		if _is_guest():
@@ -602,6 +643,11 @@ func _on_pause_toggle() -> void:
 
 func _on_pause_resumed() -> void:
 	_apply_render_scale()
+	_set_offer_picks_enabled(true)
+	if _upgrade_offer.is_open() or _shop_offer.is_open():
+		_set_offer_input_lock(true)
+		_set_combat_frozen(true)
+		return
 	if _is_guest():
 		_net.send_try_unpause()
 		return
@@ -721,6 +767,7 @@ func _return_to_menu() -> void:
 	if _leaving:
 		return
 	_leaving = true
+	_clear_companion()
 	if _is_host():
 		_net.send_return_menu()
 	_record_progress_if_needed()
@@ -743,6 +790,10 @@ func _try_debug_hotkeys(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		_debug_swap_character()
 		return
+	if key.physical_keycode == KEY_F8:
+		get_viewport().set_input_as_handled()
+		_debug_cycle_companion()
+		return
 	if key.physical_keycode == KEY_F4:
 		get_viewport().set_input_as_handled()
 		_toggle_god_mode()
@@ -754,6 +805,103 @@ func _try_debug_hotkeys(event: InputEvent) -> void:
 	if key.physical_keycode == KEY_F2:
 		get_viewport().set_input_as_handled()
 		_debug_jump_boss()
+
+func _debug_cycle_companion() -> void:
+	if _pause_overlay.is_open() or _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+		return
+	if not _run_session.is_playing() or _run_session.is_cleared():
+		return
+	if not _is_companion_alive():
+		_clear_companion()
+		_spawn_companion(&"gunner", 0)
+		return
+	var ranged: RangedCompanion = _companion as RangedCompanion
+	if ranged == null:
+		_clear_companion()
+		_spawn_companion(&"gunner", 0)
+		return
+	var next_index: int = ranged.get_weapon_index() + 1
+	if next_index > 3:
+		_clear_companion()
+		return
+	ranged.apply_weapon(next_index)
+
+func _spawn_companion(companion_id: StringName, weapon_index: int) -> void:
+	if _is_lan() or _is_guest():
+		return
+	var def: CompanionDef = COMPANION_CATALOG.get_by_id(companion_id)
+	if def == null:
+		return
+	_clear_companion()
+	var companion: CompanionBase = RANGED_COMPANION_SCENE.instantiate() as CompanionBase
+	if companion == null:
+		return
+	_companions_root.add_child(companion)
+	companion.apply_def(def)
+	companion.global_position = _pick_companion_spawn(def.hurtbox_radius)
+	companion.bind_owner(_player)
+	companion.bind_enemies(_enemies)
+	companion.bind_sfx_pool(_sfx_pool)
+	companion.bind_projectile_pool(_projectiles)
+	var ranged: RangedCompanion = companion as RangedCompanion
+	if ranged != null:
+		ranged.apply_weapon(weapon_index)
+	_companion = companion
+	_run_session.set_has_living_companion(true)
+	_debug_overlay.bind_companion(companion)
+
+func _pick_companion_spawn(radius: float) -> Vector2:
+	var origin: Vector2 = _player.global_position
+	var left: Vector2 = origin + COMPANION_SPAWN_LEFT
+	if not _companion_spawn_hits_wall(left, radius):
+		return left
+	return origin + COMPANION_SPAWN_RIGHT
+
+func _companion_spawn_hits_wall(pos: Vector2, radius: float) -> bool:
+	var world: World2D = _game_viewport.find_world_2d()
+	if world == null:
+		return false
+	var space: PhysicsDirectSpaceState2D = world.direct_space_state
+	var circle: CircleShape2D = CircleShape2D.new()
+	circle.radius = radius
+	var params: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
+	params.shape = circle
+	params.transform = Transform2D(0.0, pos)
+	params.collision_mask = GameCollisionLayers.MASK_WALL
+	params.collide_with_areas = false
+	params.collide_with_bodies = true
+	return not space.intersect_shape(params, 1).is_empty()
+
+func _clear_companion() -> void:
+	if _companion != null and is_instance_valid(_companion):
+		_companion.queue_free()
+	_companion = null
+	if _run_session != null:
+		_run_session.set_has_living_companion(false)
+	_debug_overlay.bind_companion(null)
+
+func _is_companion_alive() -> bool:
+	return _companion != null and is_instance_valid(_companion) and not _companion.is_defeated()
+
+func _draft_shop_cards_for_loop() -> Array[ShopCard]:
+	if _is_lan():
+		return _shop_cards_from_upgrades(_run_session.draft_offer(3))
+	_run_session.set_has_living_companion(_is_companion_alive())
+	return _run_session.draft_shop_cards(3)
+
+func _shop_cards_from_upgrades(defs: Array[UpgradeDef]) -> Array[ShopCard]:
+	var cards: Array[ShopCard] = []
+	for def: UpgradeDef in defs:
+		cards.append(ShopCard.for_upgrade(def))
+	return cards
+
+func _upgrade_defs_from_shop_cards(cards: Array[ShopCard]) -> Array[UpgradeDef]:
+	var defs: Array[UpgradeDef] = []
+	for card: ShopCard in cards:
+		if card == null or card.kind != ShopCard.Kind.UPGRADE or card.upgrade == null:
+			continue
+		defs.append(card.upgrade)
+	return defs
 
 func _debug_swap_character() -> void:
 	if _pause_overlay.is_open() or _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
@@ -1043,7 +1191,7 @@ func _on_net_offer_open(kind: int, id0: String, id1: String, id2: String, gold: 
 		return
 	_set_combat_frozen(true)
 	if kind == OFFER_SHOP:
-		_shop_offer.present(defs, gold)
+		_shop_offer.present(_shop_cards_from_upgrades(defs), gold)
 	else:
 		_offer_is_phrase = kind == OFFER_PHRASE
 		_upgrade_offer.present(defs)

@@ -110,9 +110,11 @@ func _damage_enemy_side(hit: Node) -> void:
 
 func _damage_player_side(hit: Node) -> void:
 	var player: Player = hit as Player
-	if player == null:
+	if player != null:
+		player.get_player_health().apply_damage(_damage, global_position, _hit_direction())
 		return
-	player.get_player_health().apply_damage(_damage, global_position, _hit_direction())
+	if hit.has_method("apply_damage") and hit is CompanionBase:
+		hit.call("apply_damage", _damage, global_position, _hit_direction())
 
 func _hit_direction() -> Vector2:
 	if _velocity.is_zero_approx():

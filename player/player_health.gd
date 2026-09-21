@@ -2,7 +2,6 @@ extends Node
 class_name PlayerHealth
 
 ## 玩家生命与无敌帧。HP 不写进 Player 上帝对象。受击：闪白 + 数字 + 轻击退 + 轻 squash；无 hitstop。
-const DAMAGE_NUMBER_SCENE: PackedScene = preload("res://combat/damage_number.tscn")
 const FLASH_DURATION_SEC: float = 0.1
 const DEAD_COLOR: Color = Color(0.42, 0.42, 0.44, 1)
 
@@ -151,9 +150,4 @@ func _resolve_hit_direction(hit_direction: Vector2, hit_position: Vector2) -> Ve
 	return away.normalized()
 
 func _spawn_damage_number(amount: int, hit_position: Vector2) -> void:
-	var number: DamageNumber = DAMAGE_NUMBER_SCENE.instantiate() as DamageNumber
-	var host: Node = owner
-	if host == null:
-		host = get_parent()
-	host.add_child(number)
-	number.play(amount, hit_position)
+	DamageNumber.spawn(self, amount, hit_position)

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CompanionCatalog" format=3]
+
+[ext_resource type="Script" path="res://data/companion_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://data/companion_catalog.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/companions/gunner.tres" id="2_gunner"]
+
+[resource]
+script = ExtResource("1_script")
+entries = Array[ExtResource("1_def")]([ExtResource("2_gunner")])

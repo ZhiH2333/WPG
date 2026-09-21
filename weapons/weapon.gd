@@ -109,6 +109,25 @@ func spawn_fx_shot(origin: Vector2, aim: Vector2) -> void:
 		var direction: Vector2 = _direction_for_pellet(direction_aim, index, pellet_count)
 		projectile.reset(origin, direction * projectile_speed, damage, lifetime, visual_scale, true, true)
 
+func fire_at(origin: Vector2, aim: Vector2) -> bool:
+	if _pool == null:
+		return false
+	var now_msec: int = Time.get_ticks_msec()
+	if now_msec < _next_fire_at_msec:
+		return false
+	var pellet_count: int = _pellets_per_shot()
+	var acquired: Array[Projectile] = []
+	if not _acquire_pellets(pellet_count, acquired):
+		return false
+	var direction_aim: Vector2 = Vector2.RIGHT if aim.is_zero_approx() else aim.normalized()
+	var visual_scale: float = _pellet_visual_scale()
+	for index: int in pellet_count:
+		var direction: Vector2 = _direction_for_pellet(direction_aim, index, pellet_count)
+		acquired[index].reset(origin, direction * projectile_speed, damage, lifetime, visual_scale)
+	_on_shot_success()
+	_next_fire_at_msec = now_msec + _get_fire_interval_msec()
+	return true
+
 func _try_fire() -> bool:
 	var pellet_count: int = _pellets_per_shot()
 	var acquired: Array[Projectile] = []
