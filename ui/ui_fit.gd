@@ -6,6 +6,7 @@ const DESIGN := Vector2(1920, 1080)
 const PREFERRED_PANEL := Vector2(1680, 920)
 const PREFERRED_CARD := Vector2(780, 140)
 const PREFERRED_PORTRAIT: float = 96.0
+const SHOP_PANEL_MAX := Vector2(1480, 820)
 const PANEL_MARGIN: float = 48.0
 const CARD_H_SEP: float = 16.0
 const CARD_INSET: float = 104.0
@@ -28,6 +29,10 @@ static func visible_size(from: CanvasItem) -> Vector2:
 static func panel_size(from: CanvasItem) -> Vector2:
 	var vis: Vector2 = visible_size(from)
 	return Vector2(minf(PREFERRED_PANEL.x, maxf(MIN_PANEL_WIDTH, vis.x - PANEL_MARGIN)), minf(PREFERRED_PANEL.y, maxf(MIN_PANEL_HEIGHT, vis.y - PANEL_MARGIN)))
+
+static func shop_panel_size(from: CanvasItem) -> Vector2:
+	var fitted: Vector2 = panel_size(from)
+	return Vector2(minf(fitted.x, SHOP_PANEL_MAX.x), minf(fitted.y, SHOP_PANEL_MAX.y))
 
 static func card_size(panel_w: float, columns: int = 2) -> Vector2:
 	var cols: int = maxi(columns, 1)

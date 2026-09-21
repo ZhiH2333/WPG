@@ -1,12 +1,13 @@
 extends RefCounted
 class_name ShopCard
 
-## P8 商店一张卡。升级走 UpgradeDef，跟班走 CompanionDef。不是升级目录条目。
-enum Kind { UPGRADE, COMPANION }
+## P8 商店一张卡。升级走 UpgradeDef，跟班走 CompanionDef，消耗品走 ConsumableDef。
+enum Kind { UPGRADE, COMPANION, CONSUMABLE }
 
 var kind: Kind = Kind.UPGRADE
 var upgrade: UpgradeDef
 var companion: CompanionDef
+var consumable: ConsumableDef
 
 static func for_upgrade(def: UpgradeDef) -> ShopCard:
 	var card: ShopCard = ShopCard.new()
@@ -20,7 +21,17 @@ static func for_companion(def: CompanionDef) -> ShopCard:
 	card.companion = def
 	return card
 
+static func for_consumable(def: ConsumableDef) -> ShopCard:
+	var card: ShopCard = ShopCard.new()
+	card.kind = Kind.CONSUMABLE
+	card.consumable = def
+	return card
+
 func get_title() -> String:
+	if kind == Kind.CONSUMABLE:
+		if consumable == null:
+			return ""
+		return consumable.display_name
 	if kind == Kind.COMPANION:
 		if companion == null:
 			return ""
@@ -30,6 +41,10 @@ func get_title() -> String:
 	return upgrade.title
 
 func get_description() -> String:
+	if kind == Kind.CONSUMABLE:
+		if consumable == null:
+			return ""
+		return consumable.description
 	if kind == Kind.COMPANION:
 		if companion == null:
 			return ""
@@ -38,7 +53,18 @@ func get_description() -> String:
 		return ""
 	return upgrade.description
 
+func get_kind_label() -> String:
+	if kind == Kind.CONSUMABLE:
+		return "Consumable"
+	if kind == Kind.COMPANION:
+		return "Companion"
+	return "Upgrade"
+
 func get_cost(session: RunSession) -> int:
+	if kind == Kind.CONSUMABLE:
+		if consumable == null:
+			return 0
+		return consumable.shop_cost
 	if kind == Kind.COMPANION:
 		if companion == null:
 			return 0

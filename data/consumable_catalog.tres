@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConsumableCatalog" format=3]
+
+[ext_resource type="Script" path="res://data/consumable_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://data/consumable_catalog.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/consumables/pack_s.tres" id="2_pack_s"]
+[ext_resource type="Resource" path="res://data/consumables/pack_l.tres" id="3_pack_l"]
+[ext_resource type="Resource" path="res://data/consumables/stim.tres" id="4_stim"]
+
+[resource]
+script = ExtResource("1_script")
+entries = Array[ExtResource("1_def")]([ExtResource("2_pack_s"), ExtResource("3_pack_l"), ExtResource("4_stim")])

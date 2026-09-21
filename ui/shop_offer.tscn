@@ -37,182 +37,190 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Column" type="VBoxContainer" parent="Root/Center"]
+[node name="Panel" type="PanelContainer" parent="Root/Center"]
+custom_minimum_size = Vector2(1480, 820)
 layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"FloatingPanel"
+
+[node name="Column" type="VBoxContainer" parent="Root/Center/Panel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"FloatingHeader"
+text = "SHOP"
+vertical_alignment = 1
+
+[node name="GoldLabel" type="Label" parent="Root/Center/Panel/Column/Header"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"HudHp"
+text = "gold  0"
+vertical_alignment = 1
+
+[node name="Content" type="MarginContainer" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="Body" type="HBoxContainer" parent="Root/Center/Panel/Column/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Status" type="VBoxContainer" parent="Root/Center/Panel/Column/Content/Body"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="HpRow" type="HBoxContainer" parent="Root/Center/Panel/Column/Content/Body/Status"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="HpBar" type="ProgressBar" parent="Root/Center/Panel/Column/Content/Body/Status/HpRow"]
+custom_minimum_size = Vector2(220, 16)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="HpLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status/HpRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudHp"
+text = "100/100"
+
+[node name="WeaponLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudWeapon"
+text = "Pistol"
+
+[node name="XpRow" type="HBoxContainer" parent="Root/Center/Panel/Column/Content/Body/Status"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="XpBar" type="ProgressBar" parent="Root/Center/Panel/Column/Content/Body/Status/XpRow"]
+custom_minimum_size = Vector2(220, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ProgressBarXp"
+max_value = 30.0
+value = 0.0
+show_percentage = false
+
+[node name="XpLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status/XpRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudWeapon"
+text = "Lv.1  0/30"
+
+[node name="CompanionLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudWeapon"
+text = "none"
+
+[node name="OwnedLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme_type_variation = &"RunSummaryBody"
+autowrap_mode = 3
+text = "none"
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Center/Panel/Column/Content/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 0
+horizontal_scroll_mode = 0
+
+[node name="Grid" type="GridContainer" parent="Root/Center/Panel/Column/Content/Body/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="GunRow" type="HBoxContainer" parent="Root/Center/Panel/Column/Content/Body"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="Title" type="Label" parent="Root/Center/Column"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferTitle"
-text = "SHOP"
-horizontal_alignment = 1
-
-[node name="GoldLabel" type="Label" parent="Root/Center/Column"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-text = "gold  0"
-horizontal_alignment = 1
-
-[node name="Cards" type="HBoxContainer" parent="Root/Center/Column"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
-
-[node name="Card0" type="Button" parent="Root/Center/Column/Cards"]
-custom_minimum_size = Vector2(280, 200)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-
-[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card0"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
-
-[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card0/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferTitle"
-autowrap_mode = 2
-
-[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card0/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-autowrap_mode = 2
-
-[node name="Cost" type="Label" parent="Root/Center/Column/Cards/Card0/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-
-[node name="Card1" type="Button" parent="Root/Center/Column/Cards"]
-custom_minimum_size = Vector2(280, 200)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-
-[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card1"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
-
-[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card1/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferTitle"
-autowrap_mode = 2
-
-[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card1/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-autowrap_mode = 2
-
-[node name="Cost" type="Label" parent="Root/Center/Column/Cards/Card1/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-
-[node name="Card2" type="Button" parent="Root/Center/Column/Cards"]
-custom_minimum_size = Vector2(280, 200)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-
-[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card2"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
-
-[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card2/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferTitle"
-autowrap_mode = 2
-
-[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card2/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-autowrap_mode = 2
-
-[node name="Cost" type="Label" parent="Root/Center/Column/Cards/Card2/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-
-[node name="GunRow" type="HBoxContainer" parent="Root/Center/Column"]
-visible = false
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
-
-[node name="Gun0" type="Button" parent="Root/Center/Column/GunRow"]
+[node name="Gun0" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
 custom_minimum_size = Vector2(200, 120)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Pistol"
 
-[node name="Gun1" type="Button" parent="Root/Center/Column/GunRow"]
+[node name="Gun1" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
 custom_minimum_size = Vector2(200, 120)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Shotgun"
 
-[node name="Gun2" type="Button" parent="Root/Center/Column/GunRow"]
+[node name="Gun2" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
 custom_minimum_size = Vector2(200, 120)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Rifle"
 
-[node name="Gun3" type="Button" parent="Root/Center/Column/GunRow"]
+[node name="Gun3" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
 custom_minimum_size = Vector2(200, 120)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Smg"
 
-[node name="Skip" type="Button" parent="Root/Center/Column"]
+[node name="Continue" type="Button" parent="Root/Center/Panel/Column"]
 custom_minimum_size = Vector2(160, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
-text = "Skip"
+text = "Continue"

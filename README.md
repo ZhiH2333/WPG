@@ -1268,7 +1268,22 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **当时不做：** 跟班 HUD 血条 / 主动技能 / 技能栏 / 冷却 UI、LAN 快照同步跟班、跟班吃玩家 UpgradeApplier、第三只跟班、消耗品、Joypad 重绑、虚拟摇杆、Autoload、`Engine.time_scale`、`reload_current_scene`、改四把枪/敌人 `_ready` 身份数字、Motor / 相机 / 击退公式 / hitstop / XP / gold / 加压公式、HUD 锚点、算分公式、`records.json`、10 张卡 `value`、TopBar / LogoButton。
 
-## 下一步：Day 63（商店消耗品或跟班死亡再买手感）
+## Day 63（已完成）：目录商店 + 消耗品 + 连买
+
+P8 从抽 3 买 1 改成目录商店。`ShopOffer` 换成 `FloatingPanel`：左状态栏、右 3 列货架。离线金币够就连买，点 Continue 才关店进下一轮。LAN 可以换这层皮，协议仍是 3 张升级买 1 张即关。Autoload 仍为 0。消耗品不写 `owned_ids` / `records.json` / `progress.cfg`。
+
+- **消耗品**：`ConsumableDef`（`HEAL_FLAT` / `HEAL_FULL` / `I_FRAME`）+ `ConsumableCatalog`，抄跟班目录。三条 `.tres`：Pack S 20 回 40 HP、Pack L 45 回满、Stim 35 给 1.5s 无敌且本店只能买一次。价格在 def 上，不进 `SHOP_COSTS`。
+- **ShopCard**：`Kind` 增加 `CONSUMABLE`；`for_consumable`；`get_cost` 读 `def.shop_cost`。
+- **RunSession**：`draft_offer` 语义不变，句读三选一仍只吃 `UpgradeDef`。`draft_shop_cards` 留给 LAN 包装。离线 P8 走 `list_shop_catalog()`：消耗品（目录顺序）→ 未拥有或 stackable 的升级（目录原序）→ 无活跟班时最后一张 Gunner。`bind_consumable_catalog`；`restart` 不清目录引用。
+- **PlayerHealth**：`heal(amount)` 返回实际回复；`apply_bonus_i_frame(sec)` 只抬 `_i_frame_left_sec`，不改 `i_frame_sec` 底值、不闪白。Pack L 仍走 `fill_hp()`。
+- **ShopOffer**：`Root/Dimmer` + `Center/Panel`（`FloatingPanel`）。`UiFit.shop_panel_size` 在 `panel_size` 后再钳到 1480×820。禁止 `CARD_SIZE * ui_scale`，禁止脚本 `StyleBoxFlat.new()`。货卡从 `shop_item_card.tscn` instantiate，不要写死 Card0/1/2。BROWSE 点卡购买，1/2/3/4 不再选货。PICK_GUN 仍店内四把枪，Continue 改 Back，Esc/Start/Back 回货架不扣款。钱不够 / 满血药 / 本店已买 Stim 的卡 disabled。第一次 `present` 仍 `UiAnim.enter_overlay`（dimmer+panel，不对货卡错峰 scale）；买完 `refresh_stock` 无进场动画。信号新增 `picked_consumable`。
+- **沙盒**：离线买升级/药/跟班后 `_refresh_open_shop()`，不关店。Continue / Skip 仍关店 + `_finish_loop_after_shop`。Esc 仍 `cancelled` → 暂停，不关店。LAN `_draft_shop_cards_for_loop` 仍 `draft_offer(3)`，无药无 Gunner；买一张或 Continue 两边关店。Guest 仍 `send_try_pick`。选枪成功扣 70 spawn，不 `try_grant`，回到 BROWSE 继续逛。
+- **Overlay**：debug 增补 `shop: catalog|lan3|closed`。不要第五块 HUD，不要战斗跟班血条。
+
+**当时不做：** 主动技能 / 技能栏 / 冷却 UI、战斗 HUD 跟班血条、LAN 同步药和跟班、新贴图、Joypad 重绑、虚拟摇杆、第三只跟班、跟班吃玩家 UpgradeApplier、改 Gunner 140/520/70、改四把枪/敌人身份数字、Motor / 相机 / 击退 / hitstop / XP / gold / 加压、HUD 锚点、算分公式、`records.json`、10 张卡 `value`、TopBar / LogoButton、改 UpgradeOffer 三张卡合同、Autoload、`Engine.time_scale`、`reload_current_scene`。
+
+## 剩余表
+
 
 **Day 49 = 局域网 2 客户端（已完成）**：ENet 17777、protocol 1、Host 权威、共享升级池、不写档、暂停不冻树、一份 `player.tscn`。同机分屏不做。
 
@@ -1296,9 +1311,11 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 
 **Day 62 = 厚血远程跟班（已完成）**：删近战；Gunner HP140 / 速520；P8 买时选枪扣 70；AI 绕圈+LOS；LAN 仍不出跟班。
 
+**Day 63 = 目录商店（已完成）**：FloatingPanel 左状态右货架；Pack S/L/Stim；离线连买不关店；LAN 协议仍是 3 张升级买 1 张即关。
+
 **Day 60 不开工**：视觉统一到 Day 59 收束。
 
-**下一步 Day 63 = 商店其它可购项（消耗品）或跟班死亡再买的手感收尾**：不做手柄、不做地图、不做主动技能。
+**下一步 Day 64 = 商店动效 / 音效 / 数字滚动收尾**：Continue 出店和货架刷新的手感。
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1309,7 +1326,7 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
-2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 起商店其它可购项（消耗品）或跟班死亡再买的手感收尾，仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步跟班。
+2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 起商店动效/音效/数字滚动收尾，仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
 3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。

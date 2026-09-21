@@ -37,6 +37,18 @@ func fill_hp() -> void:
 		return
 	_hp = max_hp
 
+func heal(amount: int) -> int:
+	if _defeated or amount <= 0:
+		return 0
+	var before: int = _hp
+	_hp = mini(max_hp, _hp + amount)
+	return _hp - before
+
+func apply_bonus_i_frame(sec: float) -> void:
+	if _defeated or sec <= 0.0:
+		return
+	_i_frame_left_sec = maxf(_i_frame_left_sec, sec)
+
 func apply_max_hp(new_max: int) -> void:
 	new_max = maxi(1, new_max)
 	var delta: int = new_max - max_hp

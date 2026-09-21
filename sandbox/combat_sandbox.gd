@@ -12,6 +12,7 @@ const COMBAT_MUSIC_DB: float = -22.0
 const UPGRADE_CATALOG: UpgradeCatalog = preload("res://data/upgrade_catalog.tres")
 const CHARACTER_CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const COMPANION_CATALOG: CompanionCatalog = preload("res://data/companion_catalog.tres")
+const CONSUMABLE_CATALOG: ConsumableCatalog = preload("res://data/consumable_catalog.tres")
 const RANGED_COMPANION_SCENE: PackedScene = preload("res://companions/ranged_companion.tscn")
 const COMPANION_SPAWN_LEFT: Vector2 = Vector2(-48, 24)
 const COMPANION_SPAWN_RIGHT: Vector2 = Vector2(48, 24)
@@ -244,6 +245,7 @@ func _bind_runtime() -> void:
 	_run_session.bind_encounter(_encounter)
 	_run_session.bind_catalog(UPGRADE_CATALOG)
 	_run_session.bind_companion_catalog(COMPANION_CATALOG)
+	_run_session.bind_consumable_catalog(CONSUMABLE_CATALOG)
 	_assert_upgrade_catalog()
 	_bind_playable_record()
 	if _is_lan():
@@ -264,9 +266,11 @@ func _bind_runtime() -> void:
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
 	_upgrade_offer.cancelled.connect(_on_pause_toggle)
 	_shop_offer.bind_session(_run_session)
+	_shop_offer.bind_player(_player)
 	_shop_offer.bind_player_input(player_input)
 	_shop_offer.bought.connect(_on_shop_bought)
 	_shop_offer.picked_companion.connect(_on_shop_companion_picked)
+	_shop_offer.picked_consumable.connect(_on_shop_consumable_picked)
 	_shop_offer.skipped.connect(_on_shop_skipped)
 	_shop_offer.cancelled.connect(_on_pause_toggle)
 	_pause_overlay.bind_run_session(_run_session)
@@ -278,6 +282,7 @@ func _bind_runtime() -> void:
 	_winner_page.menu_pressed.connect(_on_winner_menu)
 	_debug_overlay.bind_run_session(_run_session)
 	_debug_overlay.bind_upgrade_offer(_upgrade_offer)
+	_debug_overlay.bind_shop_offer(_shop_offer)
 	_debug_overlay.bind_winner_page(_winner_page)
 	_debug_overlay.bind_record_id(_record_id)
 	_debug_overlay.bind_net_session(_net)
@@ -334,6 +339,7 @@ func _hold_all_in_reserve() -> void:
 func _loop_phrases() -> void:
 	_park_combat_pools()
 	_hold_all_in_reserve()
+	_shop_offer.bind_companion(_companion)
 	var cards: Array[ShopCard] = _draft_shop_cards_for_loop()
 	if cards.is_empty():
 		_finish_loop_after_shop()
@@ -478,9 +484,12 @@ func _on_shop_bought(upgrade_id: StringName) -> void:
 		return
 	_upgrade_applier.apply_owned()
 	_debug_overlay.set_last_grant_id(String(upgrade_id))
-	_close_shop()
-	_broadcast_offer_close(String(upgrade_id))
-	_finish_loop_after_shop()
+	if _is_lan():
+		_close_shop()
+		_broadcast_offer_close(String(upgrade_id))
+		_finish_loop_after_shop()
+		return
+	_refresh_open_shop()
 
 func _on_shop_companion_picked(companion_id: StringName, weapon_index: int) -> void:
 	if _is_guest() or _is_lan():
@@ -500,8 +509,45 @@ func _on_shop_companion_picked(companion_id: StringName, weapon_index: int) -> v
 		push_error("商店扣款失败：companion=%s cost=%d gold=%d" % [String(companion_id), cost, _run_session.get_gold()])
 		return
 	_spawn_companion(companion_id, weapon_index)
-	_close_shop()
-	_finish_loop_after_shop()
+	_refresh_open_shop()
+
+func _on_shop_consumable_picked(consumable_id: StringName) -> void:
+	if _is_lan():
+		return
+	if not _shop_offer.is_open():
+		return
+	if _all_pawns_defeated() or not _run_session.is_playing():
+		_abort_shop()
+		return
+	var def: ConsumableDef = CONSUMABLE_CATALOG.get_by_id(consumable_id)
+	if def == null:
+		return
+	var cost: int = def.shop_cost
+	if _run_session.get_gold() < cost:
+		return
+	if not _run_session.try_spend(cost):
+		push_error("商店扣款失败：consumable=%s cost=%d gold=%d" % [String(consumable_id), cost, _run_session.get_gold()])
+		return
+	_apply_consumable(def)
+	_refresh_open_shop()
+
+func _apply_consumable(def: ConsumableDef) -> void:
+	var health: PlayerHealth = _player.get_player_health()
+	if def.kind == ConsumableDef.Kind.HEAL_FULL:
+		health.fill_hp()
+		return
+	if def.kind == ConsumableDef.Kind.I_FRAME:
+		health.apply_bonus_i_frame(def.value)
+		return
+	health.heal(int(def.value))
+
+func _refresh_open_shop() -> void:
+	if not _shop_offer.is_open():
+		return
+	_run_session.set_has_living_companion(_is_companion_alive())
+	_shop_offer.bind_companion(_companion)
+	var cards: Array[ShopCard] = _run_session.list_shop_catalog()
+	_shop_offer.refresh_stock(cards)
 
 func _on_shop_skipped() -> void:
 	if _is_guest():
@@ -887,7 +933,7 @@ func _draft_shop_cards_for_loop() -> Array[ShopCard]:
 	if _is_lan():
 		return _shop_cards_from_upgrades(_run_session.draft_offer(3))
 	_run_session.set_has_living_companion(_is_companion_alive())
-	return _run_session.draft_shop_cards(3)
+	return _run_session.list_shop_catalog()
 
 func _shop_cards_from_upgrades(defs: Array[UpgradeDef]) -> Array[ShopCard]:
 	var cards: Array[ShopCard] = []

@@ -25,6 +25,7 @@ var _players: Array[Player] = []
 var _encounter: EncounterPhrases
 var _catalog: UpgradeCatalog
 var _companion_catalog: CompanionCatalog
+var _consumable_catalog: ConsumableCatalog
 var _has_living_companion: bool = false
 var _outcome: Outcome = Outcome.PLAYING
 var _loop_goal: int = 0
@@ -59,6 +60,9 @@ func bind_catalog(catalog: UpgradeCatalog) -> void:
 
 func bind_companion_catalog(catalog: CompanionCatalog) -> void:
 	_companion_catalog = catalog
+
+func bind_consumable_catalog(catalog: ConsumableCatalog) -> void:
+	_consumable_catalog = catalog
 
 func set_has_living_companion(alive: bool) -> void:
 	_has_living_companion = alive
@@ -116,6 +120,25 @@ func draft_shop_cards(count: int = 3) -> Array[ShopCard]:
 	for def: UpgradeDef in upgrades:
 		cards.append(ShopCard.for_upgrade(def))
 	if include_companion:
+		cards.append(ShopCard.for_companion(gunner))
+	return cards
+
+func list_shop_catalog() -> Array[ShopCard]:
+	var cards: Array[ShopCard] = []
+	if _consumable_catalog != null:
+		for def: ConsumableDef in _consumable_catalog.get_all():
+			if def == null:
+				continue
+			cards.append(ShopCard.for_consumable(def))
+	if _catalog != null:
+		for def: UpgradeDef in _catalog.get_all():
+			if def == null:
+				continue
+			if not def.stackable and has_upgrade(def.id):
+				continue
+			cards.append(ShopCard.for_upgrade(def))
+	var gunner: CompanionDef = _find_shop_gunner()
+	if gunner != null and not _has_living_companion:
 		cards.append(ShopCard.for_companion(gunner))
 	return cards
 
