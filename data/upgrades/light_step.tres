@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://iyu30w844yb5"]
+
+[ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"light_step"
+title = "Light Step"
+description = "Move speed +10%"
+kind = 1
+value = 0.1
+stackable = true
+character_id = "chicken"

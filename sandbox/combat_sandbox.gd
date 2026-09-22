@@ -47,7 +47,7 @@ var _local_player: Player
 var _guest_pawn: Player
 var _lan_paused: bool = false
 var _last_owned_label: String = ""
-var _companion: CompanionBase = null
+var _companions: Array[CompanionBase] = []
 var _arena_id: String = "yard"
 
 @onready var _viewport_container: SubViewportContainer = $ViewportContainer
@@ -348,7 +348,7 @@ func _hold_all_in_reserve() -> void:
 func _loop_phrases() -> void:
 	_park_combat_pools()
 	_hold_all_in_reserve()
-	_shop_offer.bind_companion(_companion)
+	_shop_offer.bind_companions(_companions)
 	var cards: Array[ShopCard] = _draft_shop_cards_for_loop()
 	if cards.is_empty():
 		_finish_loop_after_shop()
@@ -512,6 +512,9 @@ func _on_shop_companion_picked(companion_id: StringName, weapon_index: int) -> v
 	var def: CompanionDef = COMPANION_CATALOG.get_by_id(companion_id)
 	if def == null:
 		return
+	_run_session.set_living_companion_count(_count_living_companions())
+	if not _run_session.can_buy_companion():
+		return
 	var cost: int = def.shop_cost
 	if _run_session.get_gold() < cost:
 		return
@@ -545,6 +548,7 @@ func _apply_consumable(def: ConsumableDef) -> void:
 	var health: PlayerHealth = _player.get_player_health()
 	if def.kind == ConsumableDef.Kind.HEAL_FULL:
 		health.fill_hp()
+		_fill_companion_hp()
 		return
 	if def.kind == ConsumableDef.Kind.I_FRAME:
 		health.apply_bonus_i_frame(def.value)
@@ -554,8 +558,8 @@ func _apply_consumable(def: ConsumableDef) -> void:
 func _refresh_open_shop() -> void:
 	if not _shop_offer.is_open():
 		return
-	_run_session.set_has_living_companion(_is_companion_alive())
-	_shop_offer.bind_companion(_companion)
+	_run_session.set_living_companion_count(_count_living_companions())
+	_shop_offer.bind_companions(_companions)
 	var cards: Array[ShopCard] = _run_session.list_shop_catalog()
 	_shop_offer.refresh_stock(cards)
 
@@ -918,13 +922,11 @@ func _debug_cycle_companion() -> void:
 		return
 	if not _run_session.is_playing() or _run_session.is_cleared():
 		return
-	if not _is_companion_alive():
-		_clear_companion()
+	if _count_living_companions() < RunSession.COMPANION_CAP:
 		_spawn_companion(&"gunner", 0)
 		return
-	var ranged: RangedCompanion = _companion as RangedCompanion
+	var ranged: RangedCompanion = _last_living_ranged()
 	if ranged == null:
-		_clear_companion()
 		_spawn_companion(&"gunner", 0)
 		return
 	var next_index: int = ranged.get_weapon_index() + 1
@@ -936,33 +938,44 @@ func _debug_cycle_companion() -> void:
 func _spawn_companion(companion_id: StringName, weapon_index: int) -> void:
 	if _is_lan() or _is_guest():
 		return
+	if _count_living_companions() >= RunSession.COMPANION_CAP:
+		return
 	var def: CompanionDef = COMPANION_CATALOG.get_by_id(companion_id)
 	if def == null:
 		return
-	_clear_companion()
 	var companion: CompanionBase = RANGED_COMPANION_SCENE.instantiate() as CompanionBase
 	if companion == null:
 		return
 	_companions_root.add_child(companion)
 	companion.apply_def(def)
-	companion.global_position = _pick_companion_spawn(def.hurtbox_radius)
+	companion.global_position = _pick_companion_spawn(def.hurtbox_radius, _count_living_companions())
 	companion.bind_owner(_player)
 	companion.bind_enemies(_enemies)
+	companion.bind_allies(_companions)
 	companion.bind_sfx_pool(_sfx_pool)
 	companion.bind_projectile_pool(_projectiles)
 	var ranged: RangedCompanion = companion as RangedCompanion
 	if ranged != null:
 		ranged.apply_weapon(weapon_index)
-	_companion = companion
-	_run_session.set_has_living_companion(true)
-	_debug_overlay.bind_companion(companion)
+	_companions.append(companion)
+	_reindex_companion_slots()
+	_sync_companion_bindings()
 
-func _pick_companion_spawn(radius: float) -> Vector2:
+func _pick_companion_spawn(radius: float, slot: int) -> Vector2:
 	var origin: Vector2 = _player.global_position
-	var left: Vector2 = origin + COMPANION_SPAWN_LEFT
-	if not _companion_spawn_hits_wall(left, radius):
-		return left
-	return origin + COMPANION_SPAWN_RIGHT
+	var aim: Vector2 = Vector2.LEFT
+	if _player != null:
+		var raw: Vector2 = _player.get_player_input().aim_vector
+		if not raw.is_zero_approx():
+			aim = raw.normalized()
+	var pair: int = int(slot / 2)
+	var side_sign: float = -1.0 if (slot % 2) == 1 else 1.0
+	var back: float = 48.0 + float(pair) * 20.0
+	var side: float = 24.0 + float(pair) * 16.0
+	var pos: Vector2 = origin - aim * back + aim.orthogonal() * side * side_sign
+	if _companion_spawn_hits_wall(pos, radius):
+		return origin + COMPANION_SPAWN_RIGHT * side_sign
+	return pos
 
 func _companion_spawn_hits_wall(pos: Vector2, radius: float) -> bool:
 	var world: World2D = _game_viewport.find_world_2d()
@@ -980,20 +993,59 @@ func _companion_spawn_hits_wall(pos: Vector2, radius: float) -> bool:
 	return not space.intersect_shape(params, 1).is_empty()
 
 func _clear_companion() -> void:
-	if _companion != null and is_instance_valid(_companion):
-		_companion.queue_free()
-	_companion = null
-	if _run_session != null:
-		_run_session.set_has_living_companion(false)
-	_debug_overlay.bind_companion(null)
+	for companion: CompanionBase in _companions:
+		if companion != null and is_instance_valid(companion):
+			companion.queue_free()
+	_companions.clear()
+	_sync_companion_bindings()
 
 func _is_companion_alive() -> bool:
-	return _companion != null and is_instance_valid(_companion) and not _companion.is_defeated()
+	return _count_living_companions() > 0
+
+func _count_living_companions() -> int:
+	var n: int = 0
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion) or companion.is_defeated():
+			continue
+		n += 1
+	return n
+
+func _last_living_ranged() -> RangedCompanion:
+	var last: RangedCompanion = null
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion) or companion.is_defeated():
+			continue
+		last = companion as RangedCompanion
+	return last
+
+func _reindex_companion_slots() -> void:
+	var slot: int = 0
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion) or companion.is_defeated():
+			continue
+		companion.set_slot_index(slot)
+		slot += 1
+
+func _sync_companion_bindings() -> void:
+	if _run_session != null:
+		_run_session.set_living_companion_count(_count_living_companions())
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion):
+			continue
+		companion.bind_allies(_companions)
+	_debug_overlay.bind_companions(_companions)
+	_shop_offer.bind_companions(_companions)
+
+func _fill_companion_hp() -> void:
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion):
+			continue
+		companion.fill_hp()
 
 func _draft_shop_cards_for_loop() -> Array[ShopCard]:
 	if _is_lan():
 		return _shop_cards_from_upgrades(_run_session.draft_offer(3))
-	_run_session.set_has_living_companion(_is_companion_alive())
+	_run_session.set_living_companion_count(_count_living_companions())
 	return _run_session.list_shop_catalog()
 
 func _shop_cards_from_upgrades(defs: Array[UpgradeDef]) -> Array[ShopCard]:

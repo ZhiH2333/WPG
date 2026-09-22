@@ -1261,10 +1261,10 @@ ModeChoice 两张卡与删除确认 Yes/No 仍是 OfferButton（Day 55 皮）。
 - **删近战**：去掉 `MeleeCompanion` / `guard.tres` 及目录条目。场景树不再出现 Guard。
 - **Gunner 锁死数字**：HP 140、移速 520、加速度 3000、hurtbox 14、`body_scale=(0.048, 0.048)`、跟随 72、仇恨 480、`shop_cost=70`、接触伤/射速/弹速/弹伤全 0、i-frame 0.35。开火数字全部来自所选 Weapon。
 - **持枪**：`RangedCompanion` 动态 `new` 四把枪脚本，`bind_projectile_pool` 玩家弹池，`set_active(false)` 永不走 `WeaponHost` / `_process`。`apply_weapon(0..3)`：Pistol / Shotgun / Rifle / Smg。非法打回 0。`Weapon.fire_at(origin, aim)` 抄取弹/散布/弹速/伤害，不读 `PlayerInput`，不 `notify_shot_fired`。池不够返回 false，不删飞行中的弹。
-- **AI**：`CATCH_UP` / `FOLLOW` / `ENGAGE`。离玩家 > 240px 丢战斗全速归槽；槽位在玩家身后 56 且 `aim.orthogonal()` 侧 52，不到枪口正前方。ENGAGE 径向保持 190±40，切向永远 `STRAFE_SPEED=220`，禁止速度清零。撞墙或每 1.1s 翻侧移。目标粘性：aim 方向优先，离玩家 > aggro+80 才丢。开火仅 ENGAGE、距离 90～460、LOS 打墙则本帧不打。朝向只 FLIP。
+- **AI**：`CATCH_UP` / `FOLLOW` / `ENGAGE`。离玩家 > 240px 丢战斗全速归槽；槽位在玩家身后 56 且 `aim.orthogonal()` 侧 52，不到枪口正前方。ENGAGE 径向保持 190±40，切向永远 `STRAFE_SPEED=220`，禁止速度清零。撞墙或每 1.1s 翻侧移。目标粘性：aim 方向优先，离玩家 > aggro+80 才丢。多只 Gunner 优先锁定还没人打的敌人；人比怪多才叠火。开火仅 ENGAGE、距离 90～460、LOS 打墙则本帧不打。朝向只 FLIP。
 - **商店**：`ShopCard` 分 `UPGRADE` / `COMPANION`。`draft_offer` 语义不变，只给句读三选一。新增 `draft_shop_cards`：离线且没有活跟班时第三张固定 Gunner，否则三张升级。LAN 调用方仍 `draft_offer` 包成升级卡。`ShopOffer` 两态 `BROWSE` / `PICK_GUN`，不要 `AcceptDialog`。跟班卡钱不够 disabled；点开四把枪，Esc/Back 回三张卡金币不变。选枪后信号 `picked_companion`，沙盒扣 70 再 spawn，不 `try_grant`、不写 `owned_ids`。
-- **上限 1**：活着则商店不再出跟班卡。留尸可再买：先 `_clear_companion()` 再生成。
-- **F8**：无活跟班 → gunner+Pistol；已有则 Pistol→Shotgun→Rifle→Smg→清掉。暂停/商店/三选一/Winner 无效。Overlay：`companion: off|gunner`，`gun: Pistol|Shotgun|Rifle|Smg`（没有则 `-`）。
+- **上限 10**：活着的 Gunner `< 10` 才出跟班卡。留尸不占名额，可再买补满。Pack L（restore all HP）同时回满所有活着的 Gunner，不复活尸体。
+- **F8**：活着 < 10 再刷一只手枪 Gunner；满 10 后循环最后一只的 Pistol→Shotgun→Rifle→Smg，再按清掉全部。暂停/商店/三选一/Winner 无效。Overlay：`companion: off|n/10`，`gun` 为第一只活着的枪名。
 
 **当时不做：** 跟班 HUD 血条 / 主动技能 / 技能栏 / 冷却 UI、LAN 快照同步跟班、跟班吃玩家 UpgradeApplier、第三只跟班、消耗品、Joypad 重绑、虚拟摇杆、Autoload、`Engine.time_scale`、`reload_current_scene`、改四把枪/敌人 `_ready` 身份数字、Motor / 相机 / 击退公式 / hitstop / XP / gold / 加压公式、HUD 锚点、算分公式、`records.json`、10 张卡 `value`、TopBar / LogoButton。
 
@@ -1274,9 +1274,9 @@ P8 从抽 3 买 1 改成目录商店。`ShopOffer` 换成 `FloatingPanel`：左�
 
 - **消耗品**：`ConsumableDef`（`HEAL_FLAT` / `HEAL_FULL` / `I_FRAME`）+ `ConsumableCatalog`，抄跟班目录。三条 `.tres`：Pack S 20 回 40 HP、Pack L 45 回满、Stim 35 给 1.5s 无敌且本店只能买一次。价格在 def 上，不进 `SHOP_COSTS`。
 - **ShopCard**：`Kind` 增加 `CONSUMABLE`；`for_consumable`；`get_cost` 读 `def.shop_cost`。
-- **RunSession**：`draft_offer` 语义不变，句读三选一仍只吃 `UpgradeDef`。`draft_shop_cards` 留给 LAN 包装。离线 P8 走 `list_shop_catalog()`：消耗品（目录顺序）→ 未拥有或 stackable 的升级（目录原序）→ 无活跟班时最后一张 Gunner。`bind_consumable_catalog`；`restart` 不清目录引用。
-- **PlayerHealth**：`heal(amount)` 返回实际回复；`apply_bonus_i_frame(sec)` 只抬 `_i_frame_left_sec`，不改 `i_frame_sec` 底值、不闪白。Pack L 仍走 `fill_hp()`。
-- **ShopOffer**：`Root/Dimmer` + `Center/Panel`（`FloatingPanel`）。`UiFit.shop_panel_size` 在 `panel_size` 后再钳到 1480×820。禁止 `CARD_SIZE * ui_scale`，禁止脚本 `StyleBoxFlat.new()`。货卡从 `shop_item_card.tscn` instantiate，不要写死 Card0/1/2。BROWSE 点卡购买，1/2/3/4 不再选货。PICK_GUN 仍店内四把枪，Continue 改 Back，Esc/Start/Back 回货架不扣款。钱不够 / 满血药 / 本店已买 Stim 的卡 disabled。第一次 `present` 仍 `UiAnim.enter_overlay`（dimmer+panel，不对货卡错峰 scale）；买完 `refresh_stock` 无进场动画。信号新增 `picked_consumable`。
+- **RunSession**：`draft_offer` 语义不变，句读三选一仍只吃 `UpgradeDef`。`draft_shop_cards` 留给 LAN 包装。离线 P8 走 `list_shop_catalog()`：消耗品（目录顺序）→ 未拥有或 stackable 的升级（目录原序）→ 活着的 Gunner `< 10` 时最后一张 Gunner。`bind_consumable_catalog`；`restart` 不清目录引用。
+- **PlayerHealth**：`heal(amount)` 返回实际回复；`apply_bonus_i_frame(sec)` 只抬 `_i_frame_left_sec`，不改 `i_frame_sec` 底值、不闪白。Pack L 走玩家 `fill_hp()`，同时回满所有活着的 Gunner，不复活尸体。
+- **ShopOffer**：`Root/Dimmer` + `Center/Panel`（`FloatingPanel`）。`UiFit.shop_panel_size` 在 `panel_size` 后再钳到 1480×820。禁止 `CARD_SIZE * ui_scale`，禁止脚本 `StyleBoxFlat.new()`。货卡从 `shop_item_card.tscn` instantiate，不要写死 Card0/1/2。BROWSE 点卡购买，1/2/3/4 不再选货。PICK_GUN 仍店内四把枪，Continue 改 Back，Esc/Start/Back 回货架不扣款。钱不够 / Pack S 玩家满血 / Pack L 玩家和活着的 Gunner 都满血 / 本店已买 Stim 的卡 disabled。第一次 `present` 仍 `UiAnim.enter_overlay`（dimmer+panel，不对货卡错峰 scale）；买完 `refresh_stock` 无进场动画。信号新增 `picked_consumable`。
 - **沙盒**：离线买升级/药/跟班后 `_refresh_open_shop()`，不关店。Continue / Skip 仍关店 + `_finish_loop_after_shop`。Esc 仍 `cancelled` → 暂停，不关店。LAN `_draft_shop_cards_for_loop` 仍 `draft_offer(3)`，无药无 Gunner；买一张或 Continue 两边关店。Guest 仍 `send_try_pick`。选枪成功扣 70 spawn，不 `try_grant`，回到 BROWSE 继续逛。
 - **Overlay**：debug 增补 `shop: catalog|lan3|closed`。不要第五块 HUD，不要战斗跟班血条。
 
@@ -1365,6 +1365,19 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 **当时不做：** 第四张地图、Battle / 友军伤害、改 Pit 柱、改句读名字/P0–P8 人数、改敌人 `_ready` 身份、给已有档做 Edit Record、房间浏览器、不扩协议、新 wav / 新 PNG、改 ShopOffer / Pack / Stim / Gunner、改 Motor 420 / `look_ahead=100`、HUD 锚点、算分公式、UpgradeOffer 再改、Autoload、`Engine.time_scale`、`reload_current_scene`、WinnerPage 分数滚动。
 
 
+## Day 70（已完成）：第一轮就密 + 鸡专属 4 卡
+
+loop 0 也走已有 DENSE 名单；鸡能抽到 4 张专属卡，猪永远只能抽 10 张共享。Autoload 仍为 0。LAN 协议仍为 2，`rpc_offer_open` 仍三个 upgrade id，仍一份 owned。鸡卡进共享 owned 后，只给 `character_id==chicken` 的 pawn 生效。
+
+- **句读**：删掉稀疏 `P1_NAMES` / `P3_NAMES` / `P5_NAMES` / `P7_NAMES`。`_p1_names` / `_p3_names` / `_p5_names` / `_p7_names` 永远返回对应 `*_DENSE`。`_p3_overlap_max` 永远 3。DENSE 名单一字不改（P1 左 6 近战，P3 右 4 远程，P5 下 8 近战 + 上 3 远程 + EliteBottom1，P7 左 7–10 + 下 9–10 + 右 5–6 + 上 4 + ChargerRight1/2）。hold / activate / 节点名引用不变。P7 仍等场上非预备役清光再进 Boss。不改 P0 rest、P2/P4/P6 三选一、P8 商店、Boss 句、`REST_SEC`、`_rest_sec` 加压、stagger 公式。
+- **UpgradeDef**：`@export var character_id: String = ""`。空 = 全角色可抽；只允许 `""` / `"boar"` / `"chicken"`，其它写盘或资源值打回 `""`。现有 10 张不填。不新增 Kind。
+- **鸡 4 张**（`upgrade_catalog.tres` 末尾，共享 10 张在前）：`light_step` Light Step 移速 +10% `MOVE_SPEED_PCT` 0.10 可叠 shop 30；`beak_shot` Beak Shot 伤害 +4 `DAMAGE_FLAT` 4.0 可叠 shop 30；`feather_frame` Feather Frame 无敌 +0.12s `I_FRAME_FLAT` 0.12 不可叠 shop 45；`quick_peck` Quick Peck 射速 +12% `FIRE_RATE_PCT` 0.12 可叠 shop 30。`character_id` 一律 `"chicken"`。
+- **抽卡 / 商店**：`RunSession` 从已 bind 的 `_players` 收集角色，空列表当只有 `"boar"`。LAN Host+Guest 都算在场。单机读当前 `get_character_id()`（F8 切鸡后下一窗可抽鸡卡）。def 可入池：`character_id` 为空，或等于某个在场角色。`draft_offer(count)` 签名不变：先角色过滤，再滤非 stackable 已有，再 shuffle。`list_shop_catalog` 升级段同一过滤；消耗品 / Gunner 货位不动。LAN P8 仍 `draft_offer(3)` 三张升级即关。`try_grant`：鸡卡在没有任何 chicken pawn 时返回 false，不写 owned。池空仍走 acknowledge / 跳过，不 `push_error`。
+- **生效**：`UpgradeApplier._add_def` 之前，若 `def.character_id` 非空且 != 当前 pawn `get_character_id()` 则跳过。空 `character_id` 两人仍都吃。不改 `capture_baseline` / 底值重算 / `MIN_*`。鸡卡走现有 `MOVE_SPEED_PCT` / `DAMAGE_FLAT` / `I_FRAME_FLAT` / `FIRE_RATE_PCT` 分支，不新 totals 键。
+- **Overlay**：F9 增补 `chicken_pool: 4|0`（在场有鸡则 4，否则 0；后数为 owned 里鸡卡个数）。不要 Theme、不要第五块 HUD。
+
+**当时不做：** WinnerPage 分数滚动、菜单↔战斗 BGM 交叉淡、跟班 LAN 同步、Battle / 友军伤害、新 Kind、新敌人。
+
 ## 剩余表
 
 
@@ -1392,9 +1405,9 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 **Day 61 = 两种跟班上场（已完成）**：F8 debug 循环近战 Guard / 远程 Gunner，上限 1，商店仍只卖升级。死亡留灰尸不给钱。
 
-**Day 62 = 厚血远程跟班（已完成）**：删近战；Gunner HP140 / 速520；P8 买时选枪扣 70；AI 绕圈+LOS；LAN 仍不出跟班。
+**Day 62 = 厚血远程跟班（已完成）**：删近战；Gunner HP140 / 速520；P8 买时选枪扣 70；一局最多 10 只活着的 Gunner；AI 绕圈+LOS；LAN 仍不出跟班。
 
-**Day 63 = 目录商店（已完成）**：FloatingPanel 左状态右货架；Pack S/L/Stim；离线连买不关店；LAN 协议仍是 3 张升级买 1 张即关。
+**Day 63 = 目录商店（已完成）**：FloatingPanel 左状态右货架；Pack S/L/Stim；Pack L 同时回满活着的 Gunner；离线连买不关店；LAN 协议仍是 3 张升级买 1 张即关。
 
 **Day 64 = 商店手感（已完成）**：货卡错峰、按身份复用、金币滚动、HP/XP 条 smoothing、四态音效；灰卡可点 error。UpgradeOffer 仍无音效。
 
@@ -1410,7 +1423,9 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 **Day 69 = 第三套碰撞 Keep（已完成）**：Keep 北墙缺口 + 西南/东南碉堡、绿灰砖、第三枚钮、sanitize 改目录判定。没有第四张图，没有 Battle，不改 Pit，不扩协议。
 
-**下一步 Day 70 = 句读密度**（loop 0 走 DENSE）。
+**Day 70 = 第一轮就密 + 鸡 4 卡（已完成）**：loop 0 走 DENSE；鸡专属 4 张按在场角色过滤；Applier 只给鸡生效。协议仍 2。
+
+**下一步 Day 71 = WinnerPage 分数逐行滚出 + 菜单↔战斗 BGM 交叉淡。**
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1422,7 +1437,7 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。后续波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑）。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。后续波次/Boss 词表扩充。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 

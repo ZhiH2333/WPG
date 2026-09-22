@@ -34,6 +34,7 @@ var _flip_h: bool = false
 var _body_modulate: Color = Color(0.45, 0.85, 1, 1)
 var _owner_player: Player
 var _enemies: Array[EnemyBase] = []
+var _allies: Array[CompanionBase] = []
 var _sfx_pool: SfxPool
 var _hit_reaction: HitReaction
 var _ai_state: AiState = AiState.FOLLOW
@@ -41,6 +42,7 @@ var _commit_target: EnemyBase
 var _strafe_sign: int = 1
 var _strafe_flip_left_sec: float = STRAFE_FLIP_SEC
 var _hp_bar: WorldHpBar
+var _slot_index: int = 0
 
 @onready var _visual: Sprite2D = $Visual
 @onready var _hurtbox: CollisionShape2D = $CollisionShape2D
@@ -93,11 +95,29 @@ func get_max_hp() -> int:
 func is_defeated() -> bool:
 	return _defeated
 
+func set_slot_index(index: int) -> void:
+	_slot_index = maxi(index, 0)
+
+func get_slot_index() -> int:
+	return _slot_index
+
+func get_commit_target() -> EnemyBase:
+	return _commit_target
+
+func fill_hp() -> void:
+	if _defeated:
+		return
+	_hp = _max_hp
+	_refresh_hp_bar()
+
 func bind_owner(player: Player) -> void:
 	_owner_player = player
 
 func bind_enemies(enemies: Array[EnemyBase]) -> void:
 	_enemies = enemies
+
+func bind_allies(allies: Array[CompanionBase]) -> void:
+	_allies = allies
 
 func bind_sfx_pool(sfx_pool: SfxPool) -> void:
 	_sfx_pool = sfx_pool
@@ -178,7 +198,11 @@ func _follow_slot() -> Vector2:
 	if _owner_player == null:
 		return global_position
 	var aim: Vector2 = _read_aim_or_left()
-	return _owner_player.global_position - aim * SLOT_BACK_PX + aim.orthogonal() * SLOT_SIDE_PX
+	var pair: int = int(_slot_index / 2)
+	var side_sign: float = -1.0 if (_slot_index % 2) == 1 else 1.0
+	var back: float = SLOT_BACK_PX + float(pair) * 18.0
+	var side: float = SLOT_SIDE_PX + float(pair) * 14.0
+	return _owner_player.global_position - aim * back + aim.orthogonal() * side * side_sign
 
 func _engage_velocity() -> Vector2:
 	var target: EnemyBase = _commit_target
@@ -207,7 +231,7 @@ func _flip_strafe_sign() -> void:
 	_strafe_sign *= -1
 
 func _refresh_commit_target() -> void:
-	if _is_commit_valid(_commit_target):
+	if _is_commit_valid(_commit_target) and not _should_split_from_stack():
 		return
 	_commit_target = _pick_commit_target()
 
@@ -220,7 +244,18 @@ func _is_commit_valid(target: EnemyBase) -> bool:
 		return false
 	return target.global_position.distance_to(_owner_player.global_position) <= _aggro_range + AGGRO_DROP_PX
 
+func _should_split_from_stack() -> bool:
+	if not _is_target_taken(_commit_target):
+		return false
+	return _best_candidate(true) != null
+
 func _pick_commit_target() -> EnemyBase:
+	var unclaimed: EnemyBase = _best_candidate(true)
+	if unclaimed != null:
+		return unclaimed
+	return _best_candidate(false)
+
+func _best_candidate(unclaimed_only: bool) -> EnemyBase:
 	if _owner_player == null:
 		return null
 	var aim: Vector2 = _read_aim_or_left()
@@ -229,6 +264,8 @@ func _pick_commit_target() -> EnemyBase:
 	var best_dist: float = INF
 	for enemy: EnemyBase in _enemies:
 		if enemy == null or enemy.is_in_reserve() or enemy.is_defeated() or enemy.is_entering():
+			continue
+		if unclaimed_only and _is_target_taken(enemy):
 			continue
 		var offset: Vector2 = enemy.global_position - _owner_player.global_position
 		var dist: float = offset.length()
@@ -244,6 +281,16 @@ func _pick_commit_target() -> EnemyBase:
 		best_dot = facing_dot
 		best_dist = dist
 	return best
+
+func _is_target_taken(target: EnemyBase) -> bool:
+	if target == null:
+		return false
+	for ally: CompanionBase in _allies:
+		if ally == null or ally == self or not is_instance_valid(ally) or ally.is_defeated():
+			continue
+		if ally.get_commit_target() == target:
+			return true
+	return false
 
 func _read_aim_or_left() -> Vector2:
 	if _owner_player == null:
@@ -365,6 +412,10 @@ func _defeat() -> void:
 	if _hit_reaction != null:
 		_hit_reaction.begin_death(true)
 	_refresh_hp_bar()
+	_on_defeated()
+
+func _on_defeated() -> void:
+	pass
 
 func _resolve_hit_direction(hit_direction: Vector2) -> Vector2:
 	if not hit_direction.is_zero_approx():

@@ -20,3 +20,12 @@ enum Kind {
 @export var kind: Kind = Kind.MAX_HP_FLAT
 @export var value: float = 0.0
 @export var stackable: bool = false
+## 空字符串 = 全角色可抽；只允许 "" / "boar" / "chicken"。
+@export var character_id: String = "":
+	set(value):
+		character_id = _sanitize_character_id(value)
+
+func _sanitize_character_id(value: String) -> String:
+	if value == "boar" or value == "chicken":
+		return value
+	return ""

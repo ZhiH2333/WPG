@@ -12,7 +12,11 @@
 [ext_resource type="Resource" uid="uid://bs1k7qqljskll" path="res://data/upgrades/extra_pellets.tres" id="9_extra_pellets"]
 [ext_resource type="Resource" uid="uid://delwybcsdjocb" path="res://data/upgrades/steady_rifle.tres" id="10_steady_rifle"]
 [ext_resource type="Resource" uid="uid://ds0x7gsu6xmv" path="res://data/upgrades/thick_hide.tres" id="11_thick_hide"]
+[ext_resource type="Resource" uid="uid://iyu30w844yb5" path="res://data/upgrades/light_step.tres" id="12_light_step"]
+[ext_resource type="Resource" uid="uid://ioqw3vw0lab6" path="res://data/upgrades/beak_shot.tres" id="13_beak_shot"]
+[ext_resource type="Resource" uid="uid://isqxdkt250w7" path="res://data/upgrades/feather_frame.tres" id="14_feather_frame"]
+[ext_resource type="Resource" uid="uid://i475un5o2tb8" path="res://data/upgrades/quick_peck.tres" id="15_quick_peck"]
 
 [resource]
 script = ExtResource("1_script")
-entries = Array[ExtResource("1_fa0af")]([ExtResource("2_max_hp_s"), ExtResource("3_max_hp_m"), ExtResource("4_swift"), ExtResource("5_heavy_round"), ExtResource("6_cadence"), ExtResource("7_long_shot"), ExtResource("8_second_skin"), ExtResource("9_extra_pellets"), ExtResource("10_steady_rifle"), ExtResource("11_thick_hide")])
+entries = Array[ExtResource("1_fa0af")]([ExtResource("2_max_hp_s"), ExtResource("3_max_hp_m"), ExtResource("4_swift"), ExtResource("5_heavy_round"), ExtResource("6_cadence"), ExtResource("7_long_shot"), ExtResource("8_second_skin"), ExtResource("9_extra_pellets"), ExtResource("10_steady_rifle"), ExtResource("11_thick_hide"), ExtResource("12_light_step"), ExtResource("13_beak_shot"), ExtResource("14_feather_frame"), ExtResource("15_quick_peck")])

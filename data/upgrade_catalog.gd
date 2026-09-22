@@ -1,7 +1,7 @@
 extends Resource
 class_name UpgradeCatalog
 
-## 10 条 UpgradeDef 目录。重复 id 记错误并跳过后到的；找不到 id 返回 null。
+## 共享 10 张加角色专属。重复 id 记错误并跳过后到的；找不到 id 返回 null。
 @export var entries: Array[UpgradeDef] = []
 
 var _indexed: bool = false

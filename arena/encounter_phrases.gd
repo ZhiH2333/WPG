@@ -4,20 +4,6 @@ class_name EncounterPhrases
 ## 手写战场句读：hold / activate 已有节点。禁止预算、权重随机、WaveDirector。
 const REST_SEC: float = 1.5
 const PHRASE_TOTAL: int = 9
-const P1_NAMES: PackedStringArray = ["MeleeLeft1", "MeleeLeft2", "MeleeLeft3", "MeleeLeft4"]
-const P3_NAMES: PackedStringArray = ["RangedRight1", "RangedRight2", "RangedRight3"]
-const P5_NAMES: PackedStringArray = [
-	"MeleeBottom1", "MeleeBottom2", "MeleeBottom3", "MeleeBottom4", "MeleeBottom5", "MeleeBottom6",
-	"RangedTop1", "RangedTop2",
-	"EliteBottom1",
-	"ChargerRight1",
-]
-const P7_NAMES: PackedStringArray = [
-	"MeleeLeft5", "MeleeLeft6", "MeleeLeft7", "MeleeLeft8", "MeleeLeft9", "MeleeLeft10",
-	"MeleeBottom7", "MeleeBottom8", "MeleeBottom9", "MeleeBottom10",
-	"RangedRight4", "RangedRight5", "RangedRight6",
-	"RangedTop3", "RangedTop4",
-]
 const P1_NAMES_DENSE: PackedStringArray = [
 	"MeleeLeft1", "MeleeLeft2", "MeleeLeft3", "MeleeLeft4", "MeleeLeft5", "MeleeLeft6",
 ]
@@ -259,34 +245,19 @@ func _rest_sec() -> float:
 		loop = _run_session.get_loop_index()
 	return maxf(0.75, REST_SEC - 0.25 * float(mini(loop, 8)))
 
-func _loop_index() -> int:
-	if _run_session == null:
-		return 0
-	return _run_session.get_loop_index()
-
 func _p1_names() -> PackedStringArray:
-	if _loop_index() == 0:
-		return P1_NAMES
 	return P1_NAMES_DENSE
 
 func _p3_names() -> PackedStringArray:
-	if _loop_index() == 0:
-		return P3_NAMES
 	return P3_NAMES_DENSE
 
 func _p5_names() -> PackedStringArray:
-	if _loop_index() == 0:
-		return P5_NAMES
 	return P5_NAMES_DENSE
 
 func _p7_names() -> PackedStringArray:
-	if _loop_index() == 0:
-		return P7_NAMES
 	return P7_NAMES_DENSE
 
 func _p3_overlap_max() -> int:
-	if _loop_index() == 0:
-		return 2
 	return 3
 
 func _stagger_for_side(side: String, index_in_side: int) -> float:

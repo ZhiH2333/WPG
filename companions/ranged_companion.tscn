@@ -1,6 +1,10 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://companions/ranged_companion.gd" id="1_ranged"]
+[ext_resource type="Texture2D" uid="uid://dr7tw2h5chn4s" path="res://images/weapons/pistol.png" id="2_pistol"]
+[ext_resource type="Texture2D" uid="uid://bce5h5awemmnu" path="res://images/weapons/shotgun.png" id="3_shotgun"]
+[ext_resource type="Texture2D" uid="uid://b2lb3ba12phrg" path="res://images/weapons/rifle.png" id="4_rifle"]
+[ext_resource type="Texture2D" uid="uid://ctfdomjqxtehl" path="res://images/weapons/smg.png" id="5_smg"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 12.0
@@ -16,5 +20,28 @@ shape = SubResource("CircleShape2D_body")
 
 [node name="Visual" type="Sprite2D" parent="."]
 
-[node name="Muzzle" type="Marker2D" parent="Visual"]
-position = Vector2(18, 0)
+[node name="Guns" type="Node2D" parent="."]
+position = Vector2(4, 2)
+z_index = 1
+
+[node name="PistolSprite" type="Sprite2D" parent="Guns"]
+scale = Vector2(0.36, 0.36)
+texture = ExtResource("2_pistol")
+
+[node name="ShotgunSprite" type="Sprite2D" parent="Guns"]
+visible = false
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("3_shotgun")
+
+[node name="RifleSprite" type="Sprite2D" parent="Guns"]
+visible = false
+scale = Vector2(0.44, 0.44)
+texture = ExtResource("4_rifle")
+
+[node name="SmgSprite" type="Sprite2D" parent="Guns"]
+visible = false
+scale = Vector2(0.36, 0.36)
+texture = ExtResource("5_smg")
+
+[node name="Muzzle" type="Marker2D" parent="Guns"]
+position = Vector2(59, 13)

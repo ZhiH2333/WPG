@@ -44,7 +44,7 @@ var _gun_buttons: Array[Button] = []
 var _player_input: PlayerInput
 var _session: RunSession
 var _player: Player
-var _companion: CompanionBase
+var _companions: Array[CompanionBase] = []
 var _presented_gold: int = 0
 var _displayed_gold: float = 0.0
 var _anim_tween: Tween
@@ -120,8 +120,8 @@ func bind_session(session: RunSession) -> void:
 func bind_player(player: Player) -> void:
 	_player = player
 
-func bind_companion(companion: CompanionBase) -> void:
-	_companion = companion
+func bind_companions(companions: Array[CompanionBase]) -> void:
+	_companions = companions.duplicate()
 
 func is_open() -> bool:
 	return _open
@@ -452,17 +452,12 @@ func _read_weapon_name() -> String:
 	return weapon.get_display_name()
 
 func _format_companion() -> String:
-	if _companion == null or not is_instance_valid(_companion):
-		return "none"
-	var title: String = String(_companion.get_companion_id()).capitalize()
-	if title.is_empty():
-		title = "Companion"
-	if _companion.is_defeated():
-		return "%s (down)" % title
-	var ranged: RangedCompanion = _companion as RangedCompanion
-	if ranged == null:
-		return title
-	return "%s · %s" % [title, ranged.get_weapon_display_name()]
+	var alive: int = 0
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion) or companion.is_defeated():
+			continue
+		alive += 1
+	return "Gunner %d/%d" % [alive, RunSession.COMPANION_CAP]
 
 func _format_owned() -> String:
 	if _session == null:
@@ -589,18 +584,28 @@ func _is_card_disabled(card: ShopCard, gold: int, cost: int) -> bool:
 			return true
 		if card.consumable.id == STIM_ID and _stim_bought:
 			return true
-		if _is_heal_kind(card.consumable.kind) and _is_player_full_hp():
+		if card.consumable.kind == ConsumableDef.Kind.HEAL_FLAT and _is_player_full_hp():
+			return true
+		if card.consumable.kind == ConsumableDef.Kind.HEAL_FULL and _is_full_heal_unneeded():
 			return true
 	return false
-
-func _is_heal_kind(kind: ConsumableDef.Kind) -> bool:
-	return kind == ConsumableDef.Kind.HEAL_FLAT or kind == ConsumableDef.Kind.HEAL_FULL
 
 func _is_player_full_hp() -> bool:
 	if _player == null:
 		return false
 	var health: PlayerHealth = _player.get_player_health()
 	return health.get_hp() >= health.get_max_hp()
+
+func _is_full_heal_unneeded() -> bool:
+	return _is_player_full_hp() and _are_living_companions_full_hp()
+
+func _are_living_companions_full_hp() -> bool:
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion) or companion.is_defeated():
+			continue
+		if companion.get_hp() < companion.get_max_hp():
+			return false
+	return true
 
 func _read_gold() -> int:
 	if _session != null:

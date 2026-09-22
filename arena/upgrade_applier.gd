@@ -82,7 +82,7 @@ func _apply_pawn(pawn: Player, baseline: Dictionary) -> void:
 	if pawn == null:
 		return
 	var totals: Dictionary = _empty_totals()
-	_accumulate_owned(totals)
+	_accumulate_owned(pawn, totals)
 	var health: PlayerHealth = pawn.get_player_health()
 	health.apply_max_hp(maxi(MIN_MAX_HP, int(baseline["max_hp"]) + int(totals["max_hp_flat"])))
 	health.i_frame_sec = maxf(MIN_I_FRAME_SEC, float(baseline["i_frame_sec"]) + float(totals["i_frame_flat"]))
@@ -123,8 +123,8 @@ func _empty_totals() -> Dictionary:
 		"knockback_taken_pct": 0.0,
 	}
 
-func _accumulate_owned(totals: Dictionary) -> void:
-	if _session == null:
+func _accumulate_owned(pawn: Player, totals: Dictionary) -> void:
+	if _session == null or pawn == null:
 		return
 	var catalog: UpgradeCatalog = _session.get_catalog()
 	if catalog == null:
@@ -132,6 +132,8 @@ func _accumulate_owned(totals: Dictionary) -> void:
 	for upgrade_id: String in _session.get_owned_upgrade_ids():
 		var def: UpgradeDef = catalog.get_by_id(StringName(upgrade_id))
 		if def == null:
+			continue
+		if not def.character_id.is_empty() and pawn.get_character_id() != def.character_id:
 			continue
 		_add_def(def, totals)
 

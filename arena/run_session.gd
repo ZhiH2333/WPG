@@ -17,8 +17,13 @@ const SHOP_COSTS: Dictionary = {
 	"extra_pellets": 30,
 	"steady_rifle": 30,
 	"thick_hide": 30,
+	"light_step": 30,
+	"beak_shot": 30,
+	"feather_frame": 45,
+	"quick_peck": 30,
 }
 const SHOP_COST_FALLBACK: int = 30
+const COMPANION_CAP: int = 10
 
 var _player: Player
 var _players: Array[Player] = []
@@ -26,7 +31,7 @@ var _encounter: EncounterPhrases
 var _catalog: UpgradeCatalog
 var _companion_catalog: CompanionCatalog
 var _consumable_catalog: ConsumableCatalog
-var _has_living_companion: bool = false
+var _living_companion_count: int = 0
 var _outcome: Outcome = Outcome.PLAYING
 var _loop_goal: int = 0
 var _elapsed_sec: float = 0.0
@@ -64,11 +69,17 @@ func bind_companion_catalog(catalog: CompanionCatalog) -> void:
 func bind_consumable_catalog(catalog: ConsumableCatalog) -> void:
 	_consumable_catalog = catalog
 
-func set_has_living_companion(alive: bool) -> void:
-	_has_living_companion = alive
+func set_living_companion_count(count: int) -> void:
+	_living_companion_count = clampi(count, 0, COMPANION_CAP)
+
+func get_living_companion_count() -> int:
+	return _living_companion_count
 
 func has_living_companion() -> bool:
-	return _has_living_companion
+	return _living_companion_count > 0
+
+func can_buy_companion() -> bool:
+	return _living_companion_count < COMPANION_CAP
 
 func configure_mode(loop_goal: int) -> void:
 	_loop_goal = maxi(loop_goal, 0)
@@ -87,20 +98,16 @@ func try_grant(upgrade_id: StringName) -> bool:
 		return false
 	if not def.stackable and has_upgrade(upgrade_id):
 		return false
+	if not _is_def_for_present(def, _present_character_ids()):
+		return false
 	_owned_ids.append(String(upgrade_id))
 	return true
 
 func draft_offer(count: int = 3) -> Array[UpgradeDef]:
 	var picked: Array[UpgradeDef] = []
-	if _catalog == null or count <= 0:
+	if count <= 0:
 		return picked
-	var pool: Array[UpgradeDef] = []
-	for def: UpgradeDef in _catalog.get_all():
-		if def == null:
-			continue
-		if not def.stackable and has_upgrade(def.id):
-			continue
-		pool.append(def)
+	var pool: Array[UpgradeDef] = _collect_pool_defs()
 	_shuffle_defs(pool)
 	var take: int = mini(count, pool.size())
 	for i: int in take:
@@ -112,7 +119,7 @@ func draft_shop_cards(count: int = 3) -> Array[ShopCard]:
 	if count <= 0:
 		return cards
 	var gunner: CompanionDef = _find_shop_gunner()
-	var include_companion: bool = gunner != null and not _has_living_companion
+	var include_companion: bool = gunner != null and can_buy_companion()
 	var upgrade_count: int = count
 	if include_companion:
 		upgrade_count = count - 1
@@ -130,15 +137,10 @@ func list_shop_catalog() -> Array[ShopCard]:
 			if def == null:
 				continue
 			cards.append(ShopCard.for_consumable(def))
-	if _catalog != null:
-		for def: UpgradeDef in _catalog.get_all():
-			if def == null:
-				continue
-			if not def.stackable and has_upgrade(def.id):
-				continue
-			cards.append(ShopCard.for_upgrade(def))
+	for def: UpgradeDef in _collect_pool_defs():
+		cards.append(ShopCard.for_upgrade(def))
 	var gunner: CompanionDef = _find_shop_gunner()
-	if gunner != null and not _has_living_companion:
+	if gunner != null and can_buy_companion():
 		cards.append(ShopCard.for_companion(gunner))
 	return cards
 
@@ -227,7 +229,7 @@ func restart() -> void:
 	_pending_level = 0
 	_kill_count = 0
 	_gold = 0
-	_has_living_companion = false
+	_living_companion_count = 0
 	_rng.randomize()
 
 func tick(delta: float) -> void:
@@ -302,6 +304,39 @@ func get_owned_count() -> int:
 
 func has_upgrade(upgrade_id: StringName) -> bool:
 	return String(upgrade_id) in _owned_ids
+
+func _collect_pool_defs() -> Array[UpgradeDef]:
+	var pool: Array[UpgradeDef] = []
+	if _catalog == null:
+		return pool
+	var present: PackedStringArray = _present_character_ids()
+	for def: UpgradeDef in _catalog.get_all():
+		if def == null:
+			continue
+		if not _is_def_for_present(def, present):
+			continue
+		if not def.stackable and has_upgrade(def.id):
+			continue
+		pool.append(def)
+	return pool
+
+func _present_character_ids() -> PackedStringArray:
+	var ids: PackedStringArray = PackedStringArray()
+	for pawn: Player in _players:
+		if pawn == null:
+			continue
+		var character_id: String = pawn.get_character_id()
+		if character_id.is_empty() or character_id in ids:
+			continue
+		ids.append(character_id)
+	if ids.is_empty():
+		ids.append("boar")
+	return ids
+
+func _is_def_for_present(def: UpgradeDef, present: PackedStringArray) -> bool:
+	if def.character_id.is_empty():
+		return true
+	return def.character_id in present
 
 func _shuffle_defs(defs: Array[UpgradeDef]) -> void:
 	for i: int in range(defs.size() - 1, 0, -1):

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://ioqw3vw0lab6"]
+
+[ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"beak_shot"
+title = "Beak Shot"
+description = "Damage +4"
+kind = 2
+value = 4.0
+stackable = true
+character_id = "chicken"

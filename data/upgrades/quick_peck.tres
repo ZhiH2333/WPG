@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://i475un5o2tb8"]
+
+[ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"quick_peck"
+title = "Quick Peck"
+description = "Fire rate +12%"
+kind = 3
+value = 0.12
+stackable = true
+character_id = "chicken"
