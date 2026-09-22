@@ -3,6 +3,7 @@ class_name RecordCard
 
 ## 档位主卡工厂。LIST / LAN PICK 共用大卡；Profile 概览行与排行行不带头像。不含删除钮，不含 pressed 连接。全是 static，不是 Autoload，禁止 get_tree() / get_viewport()。尺寸由调用方传入，禁止再乘 ui_scale。
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
+const ARENA_CATALOG: ArenaCatalog = preload("res://data/arena_catalog.tres")
 const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const RANK_WIDTH: float = 56.0
 const RANK_BAR_HEIGHT: float = 28.0
@@ -56,6 +57,12 @@ static func format_loop_badge(loop_goal: int) -> String:
 		return "%d loops" % loop_goal
 	return "Inf"
 
+static func format_arena_name(arena_id: String) -> String:
+	var def: ArenaDef = ARENA_CATALOG.get_by_id(StringName(arena_id))
+	if def != null and not def.display_name.is_empty():
+		return def.display_name
+	return arena_id
+
 static func resolve_body_texture(character_id: String) -> Texture2D:
 	var def: CharacterDef = CATALOG.get_by_id(StringName(character_id))
 	if def != null and def.body_texture != null:
@@ -73,7 +80,7 @@ static func _make_overview_name_label(record: GameRecord) -> Label:
 static func _make_overview_meta_label(record: GameRecord) -> Label:
 	var label: Label = Label.new()
 	label.theme_type_variation = &"OfferDesc"
-	label.text = "%s  %s" % [_read_display_name(record.character_id), format_loop_badge(record.loop_goal)]
+	label.text = "%s  %s  ·  %s" % [_read_display_name(record.character_id), format_loop_badge(record.loop_goal), format_arena_name(record.arena_id)]
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
@@ -129,7 +136,7 @@ static func _make_meta_box(record: GameRecord) -> VBoxContainer:
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var meta: Label = Label.new()
 	meta.theme_type_variation = &"OfferDesc"
-	meta.text = "%s  %s" % [_read_display_name(record.character_id), format_loop_badge(record.loop_goal)]
+	meta.text = "%s  %s  ·  %s" % [_read_display_name(record.character_id), format_loop_badge(record.loop_goal), format_arena_name(record.arena_id)]
 	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(title)
 	box.add_child(meta)

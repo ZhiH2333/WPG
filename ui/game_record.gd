@@ -10,6 +10,7 @@ var id: String = ""
 var name: String = ""
 var character_id: String = CHARACTER_BOAR
 var loop_goal: int = 0
+var arena_id: String = "yard"
 var created_at: int = 0
 var best_score: int = 0
 var history: Array[Dictionary] = []
@@ -20,6 +21,7 @@ func to_dictionary() -> Dictionary:
 		"name": name,
 		"character_id": character_id,
 		"loop_goal": loop_goal,
+		"arena_id": arena_id,
 		"created_at": created_at,
 		"best_score": best_score,
 		"history": _duplicate_history(),
@@ -31,6 +33,7 @@ static func from_dictionary(data: Dictionary) -> GameRecord:
 	record.name = str(data.get("name", ""))
 	record.character_id = _sanitize_character_id(str(data.get("character_id", CHARACTER_BOAR)))
 	record.loop_goal = maxi(int(data.get("loop_goal", 0)), 0)
+	record.arena_id = _sanitize_arena_id(str(data.get("arena_id", "yard")))
 	record.created_at = int(data.get("created_at", 0))
 	record.best_score = int(data.get("best_score", 0))
 	record.history = _parse_history(data.get("history", []))
@@ -70,6 +73,11 @@ static func _sanitize_character_id(value: String) -> String:
 	if value == CHARACTER_BOAR or value == CHARACTER_CHICKEN:
 		return value
 	return CHARACTER_BOAR
+
+static func _sanitize_arena_id(value: String) -> String:
+	if value == "pit":
+		return "pit"
+	return "yard"
 
 static func _sanitize_outcome(value: String) -> String:
 	if value == "dead" or value == "cleared" or value == "quit":

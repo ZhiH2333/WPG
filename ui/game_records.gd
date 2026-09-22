@@ -56,7 +56,7 @@ static func get_record(id: String) -> GameRecord:
 			return record
 	return null
 
-static func create_record(name: String, character_id: String, loop_goal: int) -> GameRecord:
+static func create_record(name: String, character_id: String, loop_goal: int, arena_id: String = "yard") -> GameRecord:
 	load_from_disk()
 	if _records.size() >= MAX_RECORDS:
 		return null
@@ -64,6 +64,7 @@ static func create_record(name: String, character_id: String, loop_goal: int) ->
 	record.id = _make_record_id()
 	record.loop_goal = maxi(loop_goal, 0)
 	record.character_id = _character_id_for_write(character_id)
+	record.arena_id = _arena_id_for_write(arena_id)
 	record.name = _resolve_name(name, record.character_id, record.loop_goal)
 	record.created_at = int(Time.get_unix_time_from_system())
 	record.best_score = 0
@@ -80,12 +81,12 @@ static func delete_record(id: String) -> bool:
 	save_to_disk()
 	return true
 
-static func ensure_playable_record(character_id: String, loop_goal: int) -> GameRecord:
+static func ensure_playable_record(character_id: String, loop_goal: int, arena_id: String = "yard") -> GameRecord:
 	load_from_disk()
-	var matched: GameRecord = _find_earliest_match(character_id, loop_goal)
+	var matched: GameRecord = _find_earliest_match(character_id, loop_goal, arena_id)
 	if matched != null:
 		return matched
-	var created: GameRecord = create_record("", character_id, loop_goal)
+	var created: GameRecord = create_record("", character_id, loop_goal, arena_id)
 	if created != null:
 		return created
 	var fallback: Array[GameRecord] = list_records()
@@ -148,6 +149,11 @@ static func _character_id_for_write(requested: String) -> String:
 		return requested
 	return "boar"
 
+static func _arena_id_for_write(requested: String) -> String:
+	if requested == "pit":
+		return "pit"
+	return "yard"
+
 static func _resolve_name(name: String, character_id: String, loop_goal: int) -> String:
 	if not name.strip_edges().is_empty():
 		return name.strip_edges()
@@ -169,12 +175,15 @@ static func _find_record_index(id: String) -> int:
 			return i
 	return -1
 
-static func _find_earliest_match(character_id: String, loop_goal: int) -> GameRecord:
+static func _find_earliest_match(character_id: String, loop_goal: int, arena_id: String) -> GameRecord:
+	var wanted_arena: String = _arena_id_for_write(arena_id)
 	var matched: GameRecord = null
 	for record: GameRecord in _records:
 		if record.character_id != character_id:
 			continue
 		if not _is_same_loop_goal_bucket(loop_goal, record.loop_goal):
+			continue
+		if record.arena_id != wanted_arena:
 			continue
 		if matched == null or record.created_at < matched.created_at:
 			matched = record

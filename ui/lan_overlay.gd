@@ -1,7 +1,7 @@
 extends Control
 class_name LanOverlay
 
-## 主菜单局域网叠层：HOME / PICK / HOST / JOIN。Host 可借已有档预填角色和 loop_goal，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。
+## 主菜单局域网叠层：HOME / PICK / HOST / JOIN。Host 可借已有档预填角色、loop_goal 和地图，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。
 signal start_lan
 
 enum View { HOME, PICK, HOST, JOIN }
@@ -21,6 +21,7 @@ var _guest_id: int = 0
 var _handshake_ok: bool = false
 var _host_started: bool = false
 var _picked_record_id: String = ""
+var _selected_arena_id: String = "yard"
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
@@ -38,6 +39,8 @@ var _picked_record_id: String = ""
 @onready var _record_hint: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/RecordHint
 @onready var _host_boar: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Characters/Boar
 @onready var _host_chicken: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Characters/Chicken
+@onready var _host_yard: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Yard
+@onready var _host_pit: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Pit
 @onready var _loop_slider: HSlider = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/Slider
 @onready var _loop_label: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/LoopLabel
 @onready var _start_button: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Start
@@ -47,6 +50,7 @@ var _picked_record_id: String = ""
 @onready var _join_boar: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Boar
 @onready var _join_chicken: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Chicken
 @onready var _join_goal: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/GoalLabel
+@onready var _join_map: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/MapLabel
 @onready var _join_wait: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/WaitingLabel
 @onready var _back_button: Button = $Center/Panel/Column/Back
 
@@ -62,6 +66,8 @@ func _ready() -> void:
 	_custom_button.pressed.connect(_on_custom_pressed)
 	_host_boar.pressed.connect(func() -> void: _select_character(CHAR_BOAR))
 	_host_chicken.pressed.connect(func() -> void: _select_character(CHAR_CHICKEN))
+	_host_yard.pressed.connect(func() -> void: _select_arena("yard"))
+	_host_pit.pressed.connect(func() -> void: _select_arena("pit"))
 	_join_boar.pressed.connect(func() -> void: _select_character(CHAR_BOAR))
 	_join_chicken.pressed.connect(func() -> void: _select_character(CHAR_CHICKEN))
 	_loop_slider.value_changed.connect(_on_loop_changed)
@@ -195,6 +201,7 @@ func _enter_pick() -> void:
 func _enter_host() -> void:
 	_picked_record_id = ""
 	_reset_character()
+	_select_arena("yard")
 	_loop_slider.value = float(DEFAULT_LOOP_GOAL)
 	_refresh_loop_label()
 	_apply_host_config_lock(false)
@@ -203,6 +210,7 @@ func _enter_host() -> void:
 func _enter_host_from_record(record: GameRecord) -> void:
 	_picked_record_id = record.id
 	_select_character(record.character_id)
+	_select_arena(record.arena_id)
 	_loop_slider.value = float(mini(maxi(record.loop_goal, 0), 50))
 	_refresh_loop_label()
 	_record_hint.text = record.name
@@ -241,6 +249,7 @@ func _enter_join() -> void:
 	_join_edit.text = GameLaunch.DEFAULT_JOIN_ADDRESS
 	_join_status.text = ""
 	_join_goal.visible = false
+	_join_map.visible = false
 	_join_wait.visible = false
 	_connect_button.disabled = false
 	_wire_multiplayer()
@@ -262,6 +271,7 @@ func _on_connect_pressed() -> void:
 	_join_status.text = "connecting"
 	_join_wait.visible = false
 	_join_goal.visible = false
+	_join_map.visible = false
 	_connect_button.disabled = true
 	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
 	var err: Error = peer.create_client(_join_edit.text.strip_edges(), GameLaunch.NET_PORT)
@@ -339,6 +349,7 @@ func _on_server_disconnected() -> void:
 	_connect_button.disabled = false
 	_join_wait.visible = false
 	_join_goal.visible = false
+	_join_map.visible = false
 	_clear_peer()
 
 @rpc("authority", "call_remote", "reliable")
@@ -363,6 +374,7 @@ func rpc_hello_ok() -> void:
 	_handshake_ok = true
 	_host_status.text = "guest connected"
 	_refresh_host_start()
+	_push_session_to_guest()
 
 @rpc("any_peer", "call_remote", "reliable")
 func rpc_guest_character(character_id: String) -> void:
@@ -373,11 +385,12 @@ func rpc_guest_character(character_id: String) -> void:
 	_guest_character_id = GameLaunch._sanitize_character_id(character_id)
 
 @rpc("authority", "call_remote", "reliable")
-func rpc_begin(host_character_id: String, guest_character_id: String, loop_goal: int) -> void:
+func rpc_begin(host_character_id: String, guest_character_id: String, loop_goal: int, arena_id: String) -> void:
 	_host_started = true
 	GameLaunch.set_net_role(GameLaunch.NetRole.GUEST)
 	GameLaunch.set_join_address(_join_edit.text)
 	GameLaunch.set_lan_loadout(host_character_id, guest_character_id, loop_goal)
+	GameLaunch.set_arena_id(arena_id)
 	start_lan.emit()
 
 @rpc("authority", "call_remote", "reliable")
@@ -388,15 +401,23 @@ func rpc_goal(loop_goal: int) -> void:
 		return
 	_join_goal.text = "goal  Inf"
 
+@rpc("authority", "call_remote", "reliable")
+func rpc_arena(arena_id: String) -> void:
+	var id: String = GameLaunch._sanitize_arena_id(arena_id)
+	_join_map.visible = true
+	_join_map.text = "map  %s" % RecordCard.format_arena_name(id)
+
 func _on_start_pressed() -> void:
 	if not _handshake_ok or _guest_id == 0:
 		return
 	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
+	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
 	GameLaunch.set_net_role(GameLaunch.NetRole.HOST)
 	GameLaunch.set_lan_loadout(_selected_character_id, _guest_character_id, loop_goal)
+	GameLaunch.set_arena_id(arena_id)
 	_host_started = true
 	rpc_goal.rpc_id(_guest_id, loop_goal)
-	rpc_begin.rpc_id(_guest_id, _selected_character_id, _guest_character_id, loop_goal)
+	rpc_begin.rpc_id(_guest_id, _selected_character_id, _guest_character_id, loop_goal, arena_id)
 	start_lan.emit()
 
 func _on_loop_changed(_value: float) -> void:
@@ -412,6 +433,19 @@ func _select_character(character_id: String) -> void:
 	_join_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
 	if _view == View.JOIN and multiplayer.multiplayer_peer != null:
 		rpc_guest_character.rpc_id(1, _selected_character_id)
+
+func _select_arena(arena_id: String) -> void:
+	_selected_arena_id = GameLaunch._sanitize_arena_id(arena_id)
+	_host_yard.button_pressed = _selected_arena_id == "yard"
+	_host_pit.button_pressed = _selected_arena_id == "pit"
+	if _handshake_ok and _guest_id != 0:
+		rpc_arena.rpc_id(_guest_id, _selected_arena_id)
+
+func _push_session_to_guest() -> void:
+	if not _handshake_ok or _guest_id == 0:
+		return
+	rpc_goal.rpc_id(_guest_id, maxi(roundi(_loop_slider.value), 0))
+	rpc_arena.rpc_id(_guest_id, GameLaunch._sanitize_arena_id(_selected_arena_id))
 
 func _reset_character() -> void:
 	_select_character(CHAR_BOAR)
@@ -432,6 +466,10 @@ func _apply_host_config_lock(locked: bool) -> void:
 	_host_chicken.disabled = locked
 	_host_boar.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
 	_host_chicken.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
+	_host_yard.disabled = locked
+	_host_pit.disabled = locked
+	_host_yard.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
+	_host_pit.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
 	_loop_slider.editable = not locked
 	_record_hint.visible = locked
 	if not locked:

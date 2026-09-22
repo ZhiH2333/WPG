@@ -165,7 +165,9 @@ func _enter_multi_flow() -> void:
 	_lan_overlay.open()
 
 func _enter_record(id: String) -> void:
+	var record: GameRecord = GameRecords.get_record(id)
 	GameLaunch.set_active_record_id(id)
+	GameLaunch.set_arena_id(record.arena_id if record != null else "yard")
 	get_tree().change_scene_to_file(SANDBOX_SCENE)
 
 func _enter_lan() -> void:

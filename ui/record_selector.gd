@@ -17,6 +17,7 @@ var _view: View = View.LIST
 var _anim_tween: Tween
 var _pending_delete_id: String = ""
 var _selected_character_id: String = CHAR_BOAR
+var _selected_arena_id: String = "yard"
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
@@ -27,6 +28,8 @@ var _selected_character_id: String = CHAR_BOAR
 @onready var _editor_root: Control = $Center/Panel/Column/Content/EditorRoot
 @onready var _boar_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar
 @onready var _chicken_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken
+@onready var _yard_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas/Yard
+@onready var _pit_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas/Pit
 @onready var _loop_slider: HSlider = $Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow/Slider
 @onready var _loop_label: Label = $Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow/LoopLabel
 @onready var _name_edit: LineEdit = $Center/Panel/Column/Content/EditorRoot/Center/Column/NameEdit
@@ -44,6 +47,8 @@ func _ready() -> void:
 	_new_button.pressed.connect(_on_new_pressed)
 	_boar_button.pressed.connect(_on_boar_pressed)
 	_chicken_button.pressed.connect(_on_chicken_pressed)
+	_yard_button.pressed.connect(_on_yard_pressed)
+	_pit_button.pressed.connect(_on_pit_pressed)
 	_loop_slider.value_changed.connect(_on_loop_changed)
 	_confirm_button.pressed.connect(_on_confirm_pressed)
 	_delete_yes.pressed.connect(_on_delete_yes_pressed)
@@ -167,6 +172,12 @@ func _on_boar_pressed() -> void:
 func _on_chicken_pressed() -> void:
 	_select_character(CHAR_CHICKEN)
 
+func _on_yard_pressed() -> void:
+	_select_arena("yard")
+
+func _on_pit_pressed() -> void:
+	_select_arena("pit")
+
 func _on_loop_changed(_value: float) -> void:
 	_refresh_loop_label()
 
@@ -174,7 +185,7 @@ func _on_confirm_pressed() -> void:
 	if not _open or _view != View.EDITOR:
 		return
 	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
-	var record: GameRecord = GameRecords.create_record(_name_edit.text, _selected_character_id, loop_goal)
+	var record: GameRecord = GameRecords.create_record(_name_edit.text, _selected_character_id, loop_goal, _selected_arena_id)
 	if record == null:
 		return
 	selected_record.emit(record.id)
@@ -194,7 +205,7 @@ func _enter_editor() -> void:
 	_delete_root.visible = false
 	_editor_root.visible = true
 	_reset_editor()
-	_play_card_enter([_boar_button, _chicken_button, _confirm_button, _back_button])
+	_play_card_enter([_boar_button, _chicken_button, _yard_button, _pit_button, _confirm_button, _back_button])
 	_boar_button.grab_focus()
 
 func _show_list_nodes() -> void:
@@ -208,6 +219,7 @@ func _is_deleting() -> bool:
 
 func _reset_editor() -> void:
 	_select_character(CHAR_BOAR)
+	_select_arena("yard")
 	_loop_slider.set_value_no_signal(float(DEFAULT_LOOP_GOAL))
 	_refresh_loop_label()
 	_name_edit.text = ""
@@ -216,6 +228,11 @@ func _select_character(character_id: String) -> void:
 	_selected_character_id = character_id
 	_boar_button.set_pressed_no_signal(character_id == CHAR_BOAR)
 	_chicken_button.set_pressed_no_signal(character_id == CHAR_CHICKEN)
+
+func _select_arena(arena_id: String) -> void:
+	_selected_arena_id = GameLaunch._sanitize_arena_id(arena_id)
+	_yard_button.set_pressed_no_signal(_selected_arena_id == "yard")
+	_pit_button.set_pressed_no_signal(_selected_arena_id == "pit")
 
 func _refresh_loop_label() -> void:
 	_loop_label.text = RecordCard.format_loop_badge(maxi(roundi(_loop_slider.value), 0))

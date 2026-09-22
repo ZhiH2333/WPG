@@ -7,7 +7,7 @@ enum NetRole { OFFLINE, HOST, GUEST }
 
 const SOLO_LOOP_GOAL: int = 20 ## 滑杆默认与缺档 Solo 隐式档，不是运行时硬锁终点
 const NET_PORT: int = 17777
-const NET_PROTOCOL: int = 1
+const NET_PROTOCOL: int = 2
 const DEFAULT_JOIN_ADDRESS := "127.0.0.1"
 
 static var _mode: Mode = Mode.INFINITE
