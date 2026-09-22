@@ -4,7 +4,8 @@
 [ext_resource type="Script" path="res://data/arena_catalog.gd" id="1_script"]
 [ext_resource type="Resource" path="res://data/arenas/yard.tres" id="2_yard"]
 [ext_resource type="Resource" path="res://data/arenas/pit.tres" id="3_pit"]
+[ext_resource type="Resource" path="res://data/arenas/keep.tres" id="4_keep"]
 
 [resource]
 script = ExtResource("1_script")
-entries = Array[ExtResource("1_def")]([ExtResource("2_yard"), ExtResource("3_pit")])
+entries = Array[ExtResource("1_def")]([ExtResource("2_yard"), ExtResource("3_pit"), ExtResource("4_keep")])

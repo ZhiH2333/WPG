@@ -30,6 +30,7 @@ var _selected_arena_id: String = "yard"
 @onready var _chicken_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken
 @onready var _yard_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas/Yard
 @onready var _pit_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas/Pit
+@onready var _keep_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas/Keep
 @onready var _loop_slider: HSlider = $Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow/Slider
 @onready var _loop_label: Label = $Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow/LoopLabel
 @onready var _name_edit: LineEdit = $Center/Panel/Column/Content/EditorRoot/Center/Column/NameEdit
@@ -49,6 +50,7 @@ func _ready() -> void:
 	_chicken_button.pressed.connect(_on_chicken_pressed)
 	_yard_button.pressed.connect(_on_yard_pressed)
 	_pit_button.pressed.connect(_on_pit_pressed)
+	_keep_button.pressed.connect(_on_keep_pressed)
 	_loop_slider.value_changed.connect(_on_loop_changed)
 	_confirm_button.pressed.connect(_on_confirm_pressed)
 	_delete_yes.pressed.connect(_on_delete_yes_pressed)
@@ -178,6 +180,9 @@ func _on_yard_pressed() -> void:
 func _on_pit_pressed() -> void:
 	_select_arena("pit")
 
+func _on_keep_pressed() -> void:
+	_select_arena("keep")
+
 func _on_loop_changed(_value: float) -> void:
 	_refresh_loop_label()
 
@@ -205,7 +210,7 @@ func _enter_editor() -> void:
 	_delete_root.visible = false
 	_editor_root.visible = true
 	_reset_editor()
-	_play_card_enter([_boar_button, _chicken_button, _yard_button, _pit_button, _confirm_button, _back_button])
+	_play_card_enter([_boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _back_button])
 	_boar_button.grab_focus()
 
 func _show_list_nodes() -> void:
@@ -233,6 +238,7 @@ func _select_arena(arena_id: String) -> void:
 	_selected_arena_id = GameLaunch._sanitize_arena_id(arena_id)
 	_yard_button.set_pressed_no_signal(_selected_arena_id == "yard")
 	_pit_button.set_pressed_no_signal(_selected_arena_id == "pit")
+	_keep_button.set_pressed_no_signal(_selected_arena_id == "keep")
 
 func _refresh_loop_label() -> void:
 	_loop_label.text = RecordCard.format_loop_badge(maxi(roundi(_loop_slider.value), 0))

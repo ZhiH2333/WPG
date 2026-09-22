@@ -9,6 +9,7 @@ const SOLO_LOOP_GOAL: int = 20 ## 滑杆默认与缺档 Solo 隐式档，不是�
 const NET_PORT: int = 17777
 const NET_PROTOCOL: int = 2
 const DEFAULT_JOIN_ADDRESS := "127.0.0.1"
+const ARENA_CATALOG: ArenaCatalog = preload("res://data/arena_catalog.tres")
 
 static var _mode: Mode = Mode.INFINITE
 static var _active_record_id: String = ""
@@ -85,6 +86,4 @@ static func _sanitize_character_id(requested: String) -> String:
 	return "boar"
 
 static func _sanitize_arena_id(requested: String) -> String:
-	if requested == "pit":
-		return "pit"
-	return "yard"
+	return ARENA_CATALOG.sanitize(requested)

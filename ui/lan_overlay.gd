@@ -41,6 +41,7 @@ var _selected_arena_id: String = "yard"
 @onready var _host_chicken: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Characters/Chicken
 @onready var _host_yard: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Yard
 @onready var _host_pit: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Pit
+@onready var _host_keep: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Keep
 @onready var _loop_slider: HSlider = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/Slider
 @onready var _loop_label: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/LoopLabel
 @onready var _start_button: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Start
@@ -68,6 +69,7 @@ func _ready() -> void:
 	_host_chicken.pressed.connect(func() -> void: _select_character(CHAR_CHICKEN))
 	_host_yard.pressed.connect(func() -> void: _select_arena("yard"))
 	_host_pit.pressed.connect(func() -> void: _select_arena("pit"))
+	_host_keep.pressed.connect(func() -> void: _select_arena("keep"))
 	_join_boar.pressed.connect(func() -> void: _select_character(CHAR_BOAR))
 	_join_chicken.pressed.connect(func() -> void: _select_character(CHAR_CHICKEN))
 	_loop_slider.value_changed.connect(_on_loop_changed)
@@ -438,6 +440,7 @@ func _select_arena(arena_id: String) -> void:
 	_selected_arena_id = GameLaunch._sanitize_arena_id(arena_id)
 	_host_yard.button_pressed = _selected_arena_id == "yard"
 	_host_pit.button_pressed = _selected_arena_id == "pit"
+	_host_keep.button_pressed = _selected_arena_id == "keep"
 	if _handshake_ok and _guest_id != 0:
 		rpc_arena.rpc_id(_guest_id, _selected_arena_id)
 
@@ -468,8 +471,10 @@ func _apply_host_config_lock(locked: bool) -> void:
 	_host_chicken.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
 	_host_yard.disabled = locked
 	_host_pit.disabled = locked
+	_host_keep.disabled = locked
 	_host_yard.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
 	_host_pit.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
+	_host_keep.focus_mode = Control.FOCUS_NONE if locked else Control.FOCUS_ALL
 	_loop_slider.editable = not locked
 	_record_hint.visible = locked
 	if not locked:

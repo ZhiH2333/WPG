@@ -5,6 +5,7 @@ class_name GameRecord
 const MAX_HISTORY: int = 10
 const CHARACTER_BOAR := "boar"
 const CHARACTER_CHICKEN := "chicken"
+const ARENA_CATALOG: ArenaCatalog = preload("res://data/arena_catalog.tres")
 
 var id: String = ""
 var name: String = ""
@@ -75,9 +76,7 @@ static func _sanitize_character_id(value: String) -> String:
 	return CHARACTER_BOAR
 
 static func _sanitize_arena_id(value: String) -> String:
-	if value == "pit":
-		return "pit"
-	return "yard"
+	return ARENA_CATALOG.sanitize(value)
 
 static func _sanitize_outcome(value: String) -> String:
 	if value == "dead" or value == "cleared" or value == "quit":

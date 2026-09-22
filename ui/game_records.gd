@@ -150,9 +150,7 @@ static func _character_id_for_write(requested: String) -> String:
 	return "boar"
 
 static func _arena_id_for_write(requested: String) -> String:
-	if requested == "pit":
-		return "pit"
-	return "yard"
+	return GameRecord._sanitize_arena_id(requested)
 
 static func _resolve_name(name: String, character_id: String, loop_goal: int) -> String:
 	if not name.strip_edges().is_empty():

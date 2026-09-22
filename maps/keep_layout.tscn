@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://maps/arena_block.tscn" id="1_block"]
+
+[node name="KeepLayout" type="Node2D"]
+
+[node name="WallNorthL" parent="." instance=ExtResource("1_block")]
+position = Vector2(-200, -120)
+block_size = Vector2(240, 48)
+
+[node name="WallNorthR" parent="." instance=ExtResource("1_block")]
+position = Vector2(200, -120)
+block_size = Vector2(240, 48)
+
+[node name="BunkerSW" parent="." instance=ExtResource("1_block")]
+position = Vector2(-200, 120)
+block_size = Vector2(48, 160)
+
+[node name="BunkerSE" parent="." instance=ExtResource("1_block")]
+position = Vector2(200, 120)
+block_size = Vector2(48, 160)

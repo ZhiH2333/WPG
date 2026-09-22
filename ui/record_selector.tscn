@@ -296,6 +296,16 @@ mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Pit"
 
+[node name="Keep" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas"]
+custom_minimum_size = Vector2(200, 56)
+layout_mode = 2
+toggle_mode = true
+action_mode = 0
+button_group = SubResource("group_arena")
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Keep"
+
 [node name="LoopRow" type="HBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column"]
 layout_mode = 2
 mouse_filter = 2

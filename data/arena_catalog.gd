@@ -27,8 +27,6 @@ func get_by_id(arena_id: StringName) -> ArenaDef:
 	return _by_id[arena_id] as ArenaDef
 
 func sanitize(requested: String) -> String:
-	if requested != "yard" and requested != "pit":
-		return DEFAULT_ID
 	if get_by_id(StringName(requested)) == null:
 		return DEFAULT_ID
 	return requested

@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 2。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 2。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -1351,6 +1351,20 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 **当时不做：** 第三张地图、改 Pit 柱坐标/尺寸、改句读名字/P0–P8 人数、改敌人 `_ready` 身份、给已有档做「编辑地图」、房间浏览器、新 wav / 新 PNG、改 ShopOffer / Pack / Stim / Gunner、改 Motor 420 / `look_ahead=100`、HUD 锚点、算分公式、UpgradeOffer 再改、Autoload、`Engine.time_scale`、`reload_current_scene`、WinnerPage 分数滚动。
 
+## Day 69（已完成）：第三套碰撞 Keep + 选图第三枚钮
+
+同一份 CombatSandbox 能换第三套碰撞：Keep 北墙缺口 + 西南/东南碉堡 + 绿灰砖。New Record / LAN Host 第三枚 Keep 钮；点 Keep 档进 Keep。Autoload 仍为 0。没有第四张图、没有 Battle、不改句读/敌人数字、不改 Pit、不扩协议。
+
+- **目录**：`data/arenas/keep.tres`：`id="keep"`，`display_name="Keep"`，`tile_color=Color(0.15, 0.19, 0.17)`，`grout_color=Color(0.08, 0.11, 0.10)`，`layout=maps/keep_layout.tscn`。仍是 64px 勾缝砖、最近邻、无噪声、无暗角。`arena_catalog.tres` 顺序 yard, pit, keep。
+- **layout**：四块 `ArenaBlock`。WallNorthL `(-200, -120)` 240×48；WallNorthR `(200, -120)` 240×48；BunkerSW `(-200, 120)` 48×160；BunkerSE `(200, 120)` 48×160。北墙在 x∈(-80,80) 断开。不要第五块，不要斜放，不要改外墙。躲开玩家 `(0,0)`、Guest `(80,0)`、跟班相对 `(±48, 24)`、MeleeLeft / MeleeBottom / EliteBottom / RangedRight / RangedTop / ChargerRight / BossCenter。y=0 中轴在 |x|<176 内可穿过。
+- **sanitize**：`ArenaCatalog.sanitize(requested)`：`get_by_id` 非 null 则返回 requested，否则 `DEFAULT_ID "yard"`。不再写死两元素白名单。`GameLaunch._sanitize_arena_id` / `GameRecord._sanitize_arena_id` preload 目录调 `sanitize`。`GameRecords._arena_id_for_write` 走同一份。旧 JSON 无/非法 `arena_id` 仍当 yard。`save_version` 仍为 1。隐式档 / `ensure_playable_record` 默认仍 yard。
+- **选图 UI**：RecordSelector EDITOR Arenas HBox 第三枚 Keep，与 Yard/Pit 同一 ButtonGroup、`OfferButton`、toggle、`200×56`、只要文字。`_select_arena` 三钮 pressed 对齐；`_reset_editor` 仍 yard；`_on_keep_pressed` → `_select_arena("keep")`。LanOverlay HostRoot 同样第三枚；`_select_arena` 推 `rpc_arena`；借档若 `arena_id==keep` 则三钮全锁、Keep 显示按下。Guest MapLabel `"map  Keep"`（走 `RecordCard.format_arena_name`）。不要下拉、不要预览小地图、不要绑 1/2/3。
+- **F7**：目录顺序 yard, pit, keep，debug 单机三循环，立刻换碰撞，不写回 `Record.arena_id`。暂停 / 三选一 / 商店 / 结算 / LAN 忽略。Retry / R / Winner Retry 不准 take Launch，不准换 `_arena_id`。
+- **协议**：`NET_PROTOCOL` 仍为 2。`arena_id` 已是字符串，不 bump。
+
+**当时不做：** 第四张地图、Battle / 友军伤害、改 Pit 柱、改句读名字/P0–P8 人数、改敌人 `_ready` 身份、给已有档做 Edit Record、房间浏览器、不扩协议、新 wav / 新 PNG、改 ShopOffer / Pack / Stim / Gunner、改 Motor 420 / `look_ahead=100`、HUD 锚点、算分公式、UpgradeOffer 再改、Autoload、`Engine.time_scale`、`reload_current_scene`、WinnerPage 分数滚动。
+
+
 ## 剩余表
 
 
@@ -1394,7 +1408,9 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 **Day 68 = 选图进档 / LAN（已完成）**：Record 增 `arena_id`；New Record / Host 两枚 Yard/Pit 钮；点已有档按档进图；协议 2；借档锁定地图。没有第三张图，没有 Edit Record。
 
-**下一步 Day 69 = 句读密度**（1.0 线）；若仍走原表则第三张地图。
+**Day 69 = 第三套碰撞 Keep（已完成）**：Keep 北墙缺口 + 西南/东南碉堡、绿灰砖、第三枚钮、sanitize 改目录判定。没有第四张图，没有 Battle，不改 Pit，不扩协议。
+
+**下一步 Day 70 = 句读密度**（loop 0 走 DENSE）。
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1406,7 +1422,7 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。后续第三张地图；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑）。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。后续波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 
