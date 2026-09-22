@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ArenaDef" format=3]
+
+[ext_resource type="Script" path="res://data/arena_def.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://maps/yard_layout.tscn" id="2_layout"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"yard"
+display_name = "Yard"
+layout_scene = ExtResource("2_layout")
+tile_color = Color(0.17, 0.19, 0.23, 1)
+grout_color = Color(0.10, 0.11, 0.13, 1)

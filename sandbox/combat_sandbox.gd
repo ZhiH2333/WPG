@@ -13,6 +13,7 @@ const UPGRADE_CATALOG: UpgradeCatalog = preload("res://data/upgrade_catalog.tres
 const CHARACTER_CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const COMPANION_CATALOG: CompanionCatalog = preload("res://data/companion_catalog.tres")
 const CONSUMABLE_CATALOG: ConsumableCatalog = preload("res://data/consumable_catalog.tres")
+const ARENA_CATALOG: ArenaCatalog = preload("res://data/arena_catalog.tres")
 const RANGED_COMPANION_SCENE: PackedScene = preload("res://companions/ranged_companion.tscn")
 const COMPANION_SPAWN_LEFT: Vector2 = Vector2(-48, 24)
 const COMPANION_SPAWN_RIGHT: Vector2 = Vector2(48, 24)
@@ -47,10 +48,13 @@ var _guest_pawn: Player
 var _lan_paused: bool = false
 var _last_owned_label: String = ""
 var _companion: CompanionBase = null
+var _arena_id: String = "yard"
 
 @onready var _viewport_container: SubViewportContainer = $ViewportContainer
 @onready var _game_viewport: SubViewport = $ViewportContainer/GameViewport
+@onready var _floor: ArenaFloor = $ViewportContainer/GameViewport/World/Floor
 @onready var _walls: Node2D = $ViewportContainer/GameViewport/World/Walls
+@onready var _obstacles: Node2D = $ViewportContainer/GameViewport/World/Obstacles
 @onready var _player: Player = $ViewportContainer/GameViewport/World/Player
 @onready var _player_camera: PlayerCamera = $ViewportContainer/GameViewport/World/PlayerCamera
 @onready var _aim_reticle: AimReticle = $ViewportContainer/GameViewport/World/AimReticle
@@ -248,6 +252,10 @@ func _bind_runtime() -> void:
 	_run_session.bind_consumable_catalog(CONSUMABLE_CATALOG)
 	_assert_upgrade_catalog()
 	_bind_playable_record()
+	_arena_id = GameLaunch.take_arena_id()
+	if ARENA_CATALOG.get_by_id(StringName(_arena_id)) == null:
+		_arena_id = "yard"
+	_apply_arena(_arena_id)
 	if _is_lan():
 		_run_session.configure_mode(int(_lan_loadout.get("loop_goal", 0)))
 	else:
@@ -285,6 +293,7 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_shop_offer(_shop_offer)
 	_debug_overlay.bind_winner_page(_winner_page)
 	_debug_overlay.bind_record_id(_record_id)
+	_debug_overlay.bind_arena_id(_arena_id)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_p2(_guest_pawn)
 	_debug_overlay.set_last_grant_id("-")
@@ -383,6 +392,7 @@ func _reset_sandbox() -> void:
 	if _shop_offer.is_open():
 		_close_shop()
 	_park_combat_pools()
+	_apply_arena(_arena_id)
 	_clear_companion()
 	_run_session.restart()
 	_upgrade_applier.apply_owned()
@@ -660,6 +670,53 @@ func _apply_wall_layers() -> void:
 		body.collision_layer = GameCollisionLayers.MASK_WALL
 		body.collision_mask = GameCollisionLayers.MASK_NONE
 
+func _apply_arena(id: String) -> void:
+	_clear_obstacles()
+	var def: ArenaDef = ARENA_CATALOG.get_by_id(StringName(id))
+	if def == null:
+		def = ARENA_CATALOG.get_by_id(&"yard")
+	if def == null:
+		return
+	_floor.apply_palette(def.tile_color, def.grout_color)
+	if def.layout_scene != null:
+		var layout: Node = def.layout_scene.instantiate()
+		_obstacles.add_child(layout)
+	_apply_obstacle_layers(_obstacles)
+	_debug_overlay.bind_arena_id(String(def.id))
+
+func _clear_obstacles() -> void:
+	var leftovers: Array[Node] = []
+	for child: Node in _obstacles.get_children():
+		leftovers.append(child)
+	for child: Node in leftovers:
+		_obstacles.remove_child(child)
+		child.queue_free()
+
+func _apply_obstacle_layers(root: Node) -> void:
+	var body: StaticBody2D = root as StaticBody2D
+	if body != null:
+		body.collision_layer = GameCollisionLayers.MASK_WALL
+		body.collision_mask = GameCollisionLayers.MASK_NONE
+	for child: Node in root.get_children():
+		_apply_obstacle_layers(child)
+
+func _debug_cycle_arena() -> void:
+	if _pause_overlay.is_open() or _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+		return
+	var arenas: Array[ArenaDef] = ARENA_CATALOG.get_all()
+	if arenas.is_empty():
+		return
+	var next_index: int = 0
+	for i: int in arenas.size():
+		if String(arenas[i].id) == _arena_id:
+			next_index = (i + 1) % arenas.size()
+			break
+	_arena_id = String(arenas[next_index].id)
+	if ARENA_CATALOG.get_by_id(StringName(_arena_id)) == null:
+		_arena_id = "yard"
+	_apply_arena(_arena_id)
+	_host_reset_sandbox()
+
 func _is_pause_toggle(event: InputEvent) -> bool:
 	if event.is_action_pressed("ui_cancel"):
 		return true
@@ -835,6 +892,10 @@ func _try_debug_hotkeys(event: InputEvent) -> void:
 	if key.physical_keycode == KEY_F1:
 		get_viewport().set_input_as_handled()
 		_debug_swap_character()
+		return
+	if key.physical_keycode == KEY_F7:
+		get_viewport().set_input_as_handled()
+		_debug_cycle_arena()
 		return
 	if key.physical_keycode == KEY_F8:
 		get_viewport().set_input_as_handled()

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ArenaCatalog" format=3]
+
+[ext_resource type="Script" path="res://data/arena_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://data/arena_catalog.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/arenas/yard.tres" id="2_yard"]
+[ext_resource type="Resource" path="res://data/arenas/pit.tres" id="3_pit"]
+
+[resource]
+script = ExtResource("1_script")
+entries = Array[ExtResource("1_def")]([ExtResource("2_yard"), ExtResource("3_pit")])

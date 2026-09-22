@@ -9,6 +9,9 @@ const FLOOR_SIZE := Vector2(1600.0, 900.0)
 const GROUT_COLOR := Color(0.10, 0.11, 0.13, 1)
 const TILE_COLOR := Color(0.17, 0.19, 0.23, 1)
 
+var _tile_color: Color = TILE_COLOR
+var _grout_color: Color = GROUT_COLOR
+
 func _ready() -> void:
 	z_index = -10
 	centered = true
@@ -17,6 +20,11 @@ func _ready() -> void:
 	texture_repeat = TEXTURE_REPEAT_ENABLED
 	region_enabled = true
 	region_rect = Rect2(Vector2.ZERO, FLOOR_SIZE)
+	texture = _make_tile_texture()
+
+func apply_palette(tile: Color, grout: Color) -> void:
+	_tile_color = tile
+	_grout_color = grout
 	texture = _make_tile_texture()
 
 func _make_tile_texture() -> ImageTexture:
@@ -28,9 +36,9 @@ func _make_tile_texture() -> ImageTexture:
 
 func _pixel_color(x: int, y: int) -> Color:
 	if x < GROUT_PX or y < GROUT_PX:
-		return GROUT_COLOR
+		return _grout_color
 	if x < GROUT_PX + BEVEL_PX or y < GROUT_PX + BEVEL_PX:
-		return TILE_COLOR.lightened(0.07)
+		return _tile_color.lightened(0.07)
 	if x >= TILE_PX - BEVEL_PX or y >= TILE_PX - BEVEL_PX:
-		return TILE_COLOR.darkened(0.08)
-	return TILE_COLOR
+		return _tile_color.darkened(0.08)
+	return _tile_color

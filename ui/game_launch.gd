@@ -1,7 +1,7 @@
 extends Object
 class_name GameLaunch
 
-## 一次性把模式、档位 id 和局域网身份带进沙盒。不是 Autoload，不是 Node，禁止 get_tree()。默认 Infinite / OFFLINE，take 后打回缺省。只传 id，不塞 Record 对象。
+## 一次性把模式、档位 id、局域网身份和竞技场 id 带进沙盒。不是 Autoload，不是 Node，禁止 get_tree()。默认 Infinite / OFFLINE / yard，take 后打回缺省。只传 id，不塞 Record / ArenaDef 对象。
 enum Mode { SOLO, INFINITE }
 enum NetRole { OFFLINE, HOST, GUEST }
 
@@ -17,6 +17,7 @@ static var _join_address: String = DEFAULT_JOIN_ADDRESS
 static var _lan_host_character_id: String = "boar"
 static var _lan_guest_character_id: String = "boar"
 static var _lan_loop_goal: int = 0
+static var _arena_id: String = "yard"
 
 static func set_mode(mode: Mode) -> void:
 	_mode = mode
@@ -70,7 +71,20 @@ static func take_lan_loadout() -> Dictionary:
 	_lan_loop_goal = 0
 	return loadout
 
+static func set_arena_id(id: String) -> void:
+	_arena_id = _sanitize_arena_id(id)
+
+static func take_arena_id() -> String:
+	var current: String = _arena_id
+	_arena_id = "yard"
+	return _sanitize_arena_id(current)
+
 static func _sanitize_character_id(requested: String) -> String:
 	if requested == "chicken":
 		return "chicken"
 	return "boar"
+
+static func _sanitize_arena_id(requested: String) -> String:
+	if requested == "pit":
+		return "pit"
+	return "yard"

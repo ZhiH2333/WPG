@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://maps/arena_block.gd" id="1_block"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_block"]
+size = Vector2(96, 96)
+
+[node name="ArenaBlock" type="StaticBody2D"]
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("1_block")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_block")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.11, 0.12, 0.15, 1)
+
+[node name="EdgeShadow" type="Polygon2D" parent="."]
+color = Color(0.06, 0.07, 0.09, 1)
+
+[node name="EdgeHighlight" type="Polygon2D" parent="."]
+color = Color(0.22, 0.24, 0.28, 1)

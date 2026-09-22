@@ -1318,6 +1318,22 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 **当时不做：** 第二张地图、主动技能 / 技能栏 / 冷却 UI、LAN 同步跟班/药、Skip / 金币 / 消耗品 / 第四张卡、目录化、新 wav、改 ShopOffer / `list_shop_catalog` / Pack / Stim / Gunner 数字、改 `draft_offer` / `try_grant` / 句读 acknowledge / `pending_level` / `rpc_offer_open` 三元组、Joypad 重绑、虚拟摇杆、Autoload、`Engine.time_scale`、`reload_current_scene`、WinnerPage 分数滚动。
 
+## Day 67（已完成）：同一沙盒两套碰撞布局 Yard / Pit
+
+同一份 CombatSandbox 能换第二套碰撞：Yard 空场（现状）+ Pit 四柱掩体 + 地板换色。菜单外观一字不改。Play / 隐式档 / LAN 默认仍是 Yard。Autoload 仍为 0。没有菜单选图、没有 `records.json` 的 `arena_id`、没有第三张图、不改句读/敌人数字、不扩 LAN rpc。
+
+- **数据**：`ArenaDef`（`id` / `display_name` / `layout_scene` / `tile_color` / `grout_color`）。禁止 `skeleton_scene`、禁止敌人列表、禁止 BGM 路径。
+- **目录**：`ArenaCatalog` 抄 `CharacterCatalog`。`DEFAULT_ID="yard"`，合法 id 只有 `yard` / `pit`；`get_by_id` 找不到返回 `null`；`sanitize` 非法打回 `yard`。重复 id `push_error` 并跳过后到的。不是 Node，不是 Autoload，禁止 `get_tree()`。
+- **两份 layout**：`maps/yard_layout.tscn` 空 Node2D；`maps/pit_layout.tscn` 四根 `ArenaBlock`：PillarNW / NE / SW / SE 中心 `(±280, ±180)`，一律 96×96。躲开玩家 `(0,0)`、Guest `(80,0)`、跟班相对 `(±48, 24)`、现有敌人出生点与中轴。
+- **ArenaBlock**：`StaticBody2D`，layer=`MASK_WALL`，mask=`NONE`。视觉抄外墙三块 Polygon2D。`_ready` 按 `block_size` 重建 polygon，不每帧 `queue_redraw`。禁止新贴图。
+- **地板**：`ArenaFloor.apply_palette(tile, grout)` 记下颜色、重建 ImageTexture。`_ready` 仍默认冷色。`TILE_PX` / `GROUT_PX` / `BEVEL_PX` / `FLOOR_SIZE` 不动。Pit 暖灰褐 `Color(0.20, 0.18, 0.16)` / `Color(0.12, 0.11, 0.10)`。
+- **沙盒**：World 下空节点 `Obstacles`（与 Walls 平级）。外墙四块留在 `combat_sandbox.tscn`，尺寸位置不动。`_apply_arena` 清 Obstacles、换色、instantiate layout、子树再赋 WALL layer。敌人节点不搬家。
+- **GameLaunch**：`set_arena_id` / `take_arena_id`，take 后打回 `yard`，非法打回 `yard`。只传 id。本阶段 MainMenu / RecordSelector / LanOverlay 不调用。Retry / R / Winner Retry 不准 take，不换 `_arena_id`。
+- **F7**：debug 单机循环 yard→pit→yard，立刻 `_apply_arena` + `_host_reset_sandbox`。暂停 / 三选一 / 商店 / 结算忽略。LAN 忽略。无新 InputMap action，`physical_keycode` 抄 F8。
+- **Overlay**：`bind_arena_id`，状态行 `arena: yard|pit`。不要第五块 HUD。
+
+**当时不做：** RecordSelector / New Record / LanOverlay 选图 UI、`records.json` 加 `arena_id`、第三张地图、改句读名字/P0–P8 人数、改敌人 `_ready` 身份数字、扩 rpc 加 map 字段。
+
 ## 剩余表
 
 
@@ -1357,7 +1373,9 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 **Day 60 不开工**：视觉统一到 Day 59 收束。
 
-**下一步 Day 67 = 第二张竞技场地图**：不同碰撞布局，复用同一套敌人/升级/商店。
+**Day 67 = 同一沙盒两套碰撞（已完成）**：Yard 空场 + Pit 四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`。菜单不选图。
+
+**下一步 Day 68 = 选图接进 New Record / LAN Host**：Record 增 `arena_id`。
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1369,7 +1387,7 @@ UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
-3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`），菜单仍不选图。后续把选图接进 RecordSelector/LanOverlay 的新建流程（Record 增 `arena_id`）；第三张地图；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 

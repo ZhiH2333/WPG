@@ -140,6 +140,8 @@ polygon = PackedVector2Array(-20, -490, -14, -490, -14, 490, -20, 490)
 color = Color(0.06, 0.07, 0.09, 1)
 polygon = PackedVector2Array(14, -490, 20, -490, 20, 490, 14, 490)
 
+[node name="Obstacles" type="Node2D" parent="ViewportContainer/GameViewport/World"]
+
 [node name="Enemies" type="Node2D" parent="ViewportContainer/GameViewport/World"]
 
 [node name="MeleeLeft1" parent="ViewportContainer/GameViewport/World/Enemies" instance=ExtResource("7_melee")]
