@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name UpgradeOffer
 
-## 句间三选一。只负责展示与点选，不自己 grant。PROCESS_MODE_ALWAYS：单机选卡时 CombatSandbox 会冻场景树。卡片 osu 式错峰进场，逻辑开关仍瞬时。hover/click/back 与商店同套手感，punch 只装饰。
+## 句间三选一。FloatingPanel 小面板 + 标题 PICK ONE，只负责展示与点选，不自己 grant。PROCESS_MODE_ALWAYS：单机选卡时 CombatSandbox 会冻场景树。卡片 osu 式错峰进场，逻辑开关仍瞬时。hover/click/back 与商店同套手感，punch 只装饰。
 signal picked(upgrade_id: StringName)
 signal cancelled
 
@@ -24,7 +24,8 @@ var _sfx_gate: Dictionary = {}
 @onready var _root: Control = $Root
 @onready var _dimmer: ColorRect = $Root/Dimmer
 @onready var _center: CenterContainer = $Root/Center
-@onready var _card_root: HBoxContainer = $Root/Center/Column/Cards
+@onready var _panel: PanelContainer = $Root/Center/Panel
+@onready var _card_root: HBoxContainer = $Root/Center/Panel/Column/Cards
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
@@ -37,25 +38,26 @@ func _ready() -> void:
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_cards = [
-		$Root/Center/Column/Cards/Card0 as Button,
-		$Root/Center/Column/Cards/Card1 as Button,
-		$Root/Center/Column/Cards/Card2 as Button,
+		_card_root.get_node("Card0") as Button,
+		_card_root.get_node("Card1") as Button,
+		_card_root.get_node("Card2") as Button,
 	]
 	_titles = [
-		$Root/Center/Column/Cards/Card0/VBox/Title as Label,
-		$Root/Center/Column/Cards/Card1/VBox/Title as Label,
-		$Root/Center/Column/Cards/Card2/VBox/Title as Label,
+		_card_root.get_node("Card0/VBox/Title") as Label,
+		_card_root.get_node("Card1/VBox/Title") as Label,
+		_card_root.get_node("Card2/VBox/Title") as Label,
 	]
 	_descs = [
-		$Root/Center/Column/Cards/Card0/VBox/Desc as Label,
-		$Root/Center/Column/Cards/Card1/VBox/Desc as Label,
-		$Root/Center/Column/Cards/Card2/VBox/Desc as Label,
+		_card_root.get_node("Card0/VBox/Desc") as Label,
+		_card_root.get_node("Card1/VBox/Desc") as Label,
+		_card_root.get_node("Card2/VBox/Desc") as Label,
 	]
 	for i: int in _cards.size():
 		var card: Button = _cards[i]
 		card.pressed.connect(_on_card_pressed.bind(i))
 		card.pivot_offset = card.custom_minimum_size * 0.5
 		_wire_hover(card, _on_card_hover_entered.bind(card), _on_card_hover_exited.bind(card))
+	UiFit.connect_refit(_root, _on_viewport_size_changed)
 
 func bind_session(_session: RunSession) -> void:
 	pass
@@ -72,11 +74,13 @@ func present(defs: Array[UpgradeDef]) -> void:
 	_open = not _defs.is_empty()
 	visible = _open
 	_root.modulate.a = 1.0
+	if _open:
+		_fit_panel()
 	_refresh_cards()
 	_reset_card_motion()
 	if not _open:
 		return
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _center, _cards, true)
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, _cards, true)
 
 func close() -> void:
 	_open = false
@@ -99,6 +103,19 @@ func get_offer_ids_label() -> String:
 	for def: UpgradeDef in _defs:
 		parts.append(String(def.id))
 	return ",".join(parts)
+
+func _on_viewport_size_changed() -> void:
+	if not _open:
+		return
+	_fit_panel()
+
+func _fit_panel() -> void:
+	if _panel == null or _root == null:
+		return
+	UiFit.apply_floating_panel(_root, _panel, UiFit.OFFER_PANEL_MAX, UiFit.OFFER_PANEL_MIN)
+	_panel.custom_minimum_size = UiFit.offer_panel_size(_root)
+	if _center != null:
+		_center.notification(Container.NOTIFICATION_SORT_CHILDREN)
 
 func _process(_delta: float) -> void:
 	if not _open or _player_input == null:

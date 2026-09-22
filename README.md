@@ -1307,6 +1307,17 @@ UpgradeOffer 三张卡摸起来像 Day 64 商店卡。布局、抽卡、LAN 协�
 
 **当时不做：** FloatingPanel 换皮、Skip/金币/消耗品、目录化、新 wav、ShopOffer 再改、主动技能 / 技能栏 / 冷却 UI、战斗 HUD 跟班血条、LAN 扩协议、改 `draft_offer` / `try_grant` / 句读 acknowledge / `pending_level` / `rpc_offer_open` 三元组、改四把枪/敌人身份、Motor / 相机 / 击退 / hitstop / XP / gold / 加压、HUD 锚点、算分公式、`records.json`、10 张卡 `value`、TopBar / LogoButton、Autoload、`Engine.time_scale`、`reload_current_scene`、WinnerPage 分数滚动。
 
+## Day 66（已完成）：句读三选一收成 FloatingPanel 小面板
+
+UpgradeOffer 换成和商店 / Profile 同一族的 `FloatingPanel` 小面板。句间与升级共用同一块面板、同一个标题 `PICK ONE`。抽卡、点选、LAN 协议、Day 65 音效/hover/punch 全部保留。Autoload 仍为 0。没有新 wav、没有脚本 `StyleBoxFlat.new()`、没有 Skip、没有目录化、ShopOffer 未改。
+
+- **场景**：`Root/Dimmer` + `Center/Panel`（`FloatingPanel`，`custom_minimum_size=1040×380`）。`Column` 顶栏 `FloatingHeader` 文案 `PICK ONE`，其下三张 `OfferButton` 仍 `280×180` 居中，底栏 Hint 仍 `1 / 2 / 3`。不要状态栏、不要金币、不要 Continue、不要第四张卡。`HoverSfx` / `ClickSfx` / `BackSfx` 仍挂在 CanvasLayer 根上。
+- **UiFit**：新增 `OFFER_PANEL_MAX=1040×380`、`OFFER_PANEL_MIN=920×300`、`offer_panel_size`（leftover 减 `PANEL_MARGIN` 后各自 `clampf` 到 MIN/MAX，**禁止**走 `_fit_in`，否则 `MIN_PANEL_HEIGHT=480` 会把小面板撑成竖条空商店）。`apply_floating_panel` 增加可选 `min_size`，默认仍 `640×480`；Shop / Profile 调用语义不变。
+- **进场**：`present` 先 `_fit_panel` 再 `_refresh_cards` / `_reset_card_motion`，然后 `UiAnim.enter_overlay(self, _dimmer, _panel, _cards, true)`。不要再对全屏 `_center` 做进场。`close` 仍 `exit_overlay` 0.15s。三张卡错峰仍 `CARD_STAGGER_SEC=0.06`。视口 `size_changed` / `Root.resized` 走 `UiFit.connect_refit`。
+- **输入 / 信号**：1/2/3、十字左/上/右、Esc / Start、`picked` / `cancelled` 一字不改。点选仍瞬时 emit；punch 只装饰。三张永远可点，不要 Error、不要 `Button.disabled`、不要金币。
+
+**当时不做：** 第二张地图、主动技能 / 技能栏 / 冷却 UI、LAN 同步跟班/药、Skip / 金币 / 消耗品 / 第四张卡、目录化、新 wav、改 ShopOffer / `list_shop_catalog` / Pack / Stim / Gunner 数字、改 `draft_offer` / `try_grant` / 句读 acknowledge / `pending_level` / `rpc_offer_open` 三元组、Joypad 重绑、虚拟摇杆、Autoload、`Engine.time_scale`、`reload_current_scene`、WinnerPage 分数滚动。
+
 ## 剩余表
 
 
@@ -1342,9 +1353,11 @@ UpgradeOffer 三张卡摸起来像 Day 64 商店卡。布局、抽卡、LAN 协�
 
 **Day 65 = 句读三选一 hover/click/back（已完成）**：三态音效 + hover 1.02 + 点选 punch；Esc/Start 仍 cancelled。布局/抽卡/LAN 不变。
 
+**Day 66 = 句读三选一 FloatingPanel 小面板（已完成）**：标题 PICK ONE、三张卡仍居中；61–66 收束。
+
 **Day 60 不开工**：视觉统一到 Day 59 收束。
 
-**下一步 Day 66 = UpgradeOffer 收成 FloatingPanel 小面板**：标题 PICK ONE、三张卡仍居中，61–66 收束。
+**下一步 Day 67 = 第二张竞技场地图**：不同碰撞布局，复用同一套敌人/升级/商店。
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1355,7 +1368,7 @@ UpgradeOffer 三张卡摸起来像 Day 64 商店卡。布局、抽卡、LAN 协�
 按五个阶段推进，每个阶段仍按“一天一个可验收交付”的节奏拆解，具体某天的详细契约在开工前用一份新 prompt 敲定，不在这里一次性写死：
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
-2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
+2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
 3. **Day 67–80　内容与地图广度**：第二张/第三张竞技场地图（不同碰撞布局、不同环境美术，复用同一套敌人/升级系统）；地图选择接进 RecordSelector/LanOverlay 的新建流程；波次/Boss 词表扩充；鸡角色专属卡池补齐（Day 46 留的坑，主动技能仍不做）。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。

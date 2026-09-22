@@ -4,12 +4,14 @@ class_name UiFit
 ## 按可见逻辑尺寸收缩大面板和两列卡片。content_scale_factor 已经放大整棵树，禁止再乘 ui_scale。
 ## 商店 CanvasLayer：Root/Center 刚显示时可能是 (0, 0)，按视口逻辑尺寸钉住再居中。
 ## 主菜单叠层：FULL_RECT + offset_top=60。打开时 host.size 往往还是整屏，CenterContainer 会按整屏居中，进场动画再把这个偏下的 y 锁住；改窗口才会重新 sort。只钉 Center 到「视口减去顶栏」的剩余矩形，不改叠层自己的 FULL_RECT。
-## 宽高各自钳，不锁死设计稿宽高比。
+## 宽高各自钳，不锁死设计稿宽高比。句读三选一走 offer_panel_size，禁止走 _fit_in（MIN_PANEL_HEIGHT=480 会把 380 高的小面板撑成商店高）。
 const DESIGN := Vector2(1920, 1080)
 const PREFERRED_PANEL := Vector2(1680, 920)
 const PREFERRED_CARD := Vector2(780, 140)
 const PREFERRED_PORTRAIT: float = 96.0
 const SHOP_PANEL_MAX := Vector2(1480, 820)
+const OFFER_PANEL_MAX := Vector2(1040, 380)
+const OFFER_PANEL_MIN := Vector2(920, 300)
 const PANEL_MARGIN: float = 48.0
 const CARD_H_SEP: float = 16.0
 const CARD_INSET: float = 104.0
@@ -60,13 +62,20 @@ static func panel_size(from: CanvasItem) -> Vector2:
 static func shop_panel_size(from: CanvasItem) -> Vector2:
 	return _fit_in(leftover_size(from), SHOP_PANEL_MAX)
 
-static func _fit_in(avail: Vector2, preferred: Vector2) -> Vector2:
+static func offer_panel_size(from: CanvasItem) -> Vector2:
+	var leftover: Vector2 = leftover_size(from)
 	return Vector2(
-		minf(preferred.x, maxf(MIN_PANEL_WIDTH, avail.x - PANEL_MARGIN)),
-		minf(preferred.y, maxf(MIN_PANEL_HEIGHT, avail.y - PANEL_MARGIN))
+		clampf(leftover.x - PANEL_MARGIN, OFFER_PANEL_MIN.x, OFFER_PANEL_MAX.x),
+		clampf(leftover.y - PANEL_MARGIN, OFFER_PANEL_MIN.y, OFFER_PANEL_MAX.y)
 	)
 
-static func apply_floating_panel(host: Control, panel: Control, preferred: Vector2 = PREFERRED_PANEL) -> Vector2:
+static func _fit_in(avail: Vector2, preferred: Vector2, min_size: Vector2 = Vector2(MIN_PANEL_WIDTH, MIN_PANEL_HEIGHT)) -> Vector2:
+	return Vector2(
+		minf(preferred.x, maxf(min_size.x, avail.x - PANEL_MARGIN)),
+		minf(preferred.y, maxf(min_size.y, avail.y - PANEL_MARGIN))
+	)
+
+static func apply_floating_panel(host: Control, panel: Control, preferred: Vector2 = PREFERRED_PANEL, min_size: Vector2 = Vector2(MIN_PANEL_WIDTH, MIN_PANEL_HEIGHT)) -> Vector2:
 	var vis: Vector2 = visible_size(host)
 	var inset: float = 0.0
 	if host != null:
@@ -74,7 +83,7 @@ static func apply_floating_panel(host: Control, panel: Control, preferred: Vecto
 		if inset <= 0.0:
 			pin_to_visible(host, vis)
 	var leftover: Vector2 = Vector2(vis.x, maxf(vis.y - inset, 1.0))
-	var fitted: Vector2 = _fit_in(leftover, preferred)
+	var fitted: Vector2 = _fit_in(leftover, preferred, min_size)
 	panel.custom_minimum_size = fitted
 	var center: Control = panel.get_parent() as Control
 	if center != null and center != host:

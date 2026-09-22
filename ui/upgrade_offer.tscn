@@ -37,25 +37,48 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Column" type="VBoxContainer" parent="Root/Center"]
+[node name="Panel" type="PanelContainer" parent="Root/Center"]
+custom_minimum_size = Vector2(1040, 380)
 layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"FloatingPanel"
+
+[node name="Column" type="VBoxContainer" parent="Root/Center/Panel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Cards" type="HBoxContainer" parent="Root/Center/Column"]
+[node name="Header" type="HBoxContainer" parent="Root/Center/Panel/Column"]
 layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"FloatingHeader"
+text = "PICK ONE"
+vertical_alignment = 1
+
+[node name="Cards" type="HBoxContainer" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Card0" type="Button" parent="Root/Center/Column/Cards"]
+[node name="Card0" type="Button" parent="Root/Center/Panel/Column/Cards"]
 custom_minimum_size = Vector2(280, 180)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card0"]
+[node name="VBox" type="VBoxContainer" parent="Root/Center/Panel/Column/Cards/Card0"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -69,25 +92,25 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card0/VBox"]
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Cards/Card0/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card0/VBox"]
+[node name="Desc" type="Label" parent="Root/Center/Panel/Column/Cards/Card0/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 autowrap_mode = 2
 
-[node name="Card1" type="Button" parent="Root/Center/Column/Cards"]
+[node name="Card1" type="Button" parent="Root/Center/Panel/Column/Cards"]
 custom_minimum_size = Vector2(280, 180)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card1"]
+[node name="VBox" type="VBoxContainer" parent="Root/Center/Panel/Column/Cards/Card1"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -101,25 +124,25 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card1/VBox"]
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Cards/Card1/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card1/VBox"]
+[node name="Desc" type="Label" parent="Root/Center/Panel/Column/Cards/Card1/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 autowrap_mode = 2
 
-[node name="Card2" type="Button" parent="Root/Center/Column/Cards"]
+[node name="Card2" type="Button" parent="Root/Center/Panel/Column/Cards"]
 custom_minimum_size = Vector2(280, 180)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Root/Center/Column/Cards/Card2"]
+[node name="VBox" type="VBoxContainer" parent="Root/Center/Panel/Column/Cards/Card2"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -133,20 +156,21 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Root/Center/Column/Cards/Card2/VBox"]
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Cards/Card2/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Root/Center/Column/Cards/Card2/VBox"]
+[node name="Desc" type="Label" parent="Root/Center/Panel/Column/Cards/Card2/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 autowrap_mode = 2
 
-[node name="Hint" type="Label" parent="Root/Center/Column"]
+[node name="Hint" type="Label" parent="Root/Center/Panel/Column"]
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "1 / 2 / 3"
