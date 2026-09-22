@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 2。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 2。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -1378,6 +1378,19 @@ loop 0 也走已有 DENSE 名单；鸡能抽到 4 张专属卡，猪永远只能
 
 **当时不做：** WinnerPage 分数滚动、菜单↔战斗 BGM 交叉淡、跟班 LAN 同步、Battle / 友军伤害、新 Kind、新敌人。
 
+## Day 71（已完成）：Winner 滚动 + 换场 BGM 淡
+
+结算数字会滚，换场音乐会淡。场景无法真·重叠，所以是先淡出再切、进场再淡入。Autoload 仍为 0。没有新 wav/mp3、没有新 AudioBus、没有 Credits、没有版本号 UI、没有 Battle。
+
+- **WinnerPage 滚动**：`SCORE_STAGGER_SEC=0.08`、`SCORE_ROLL_SEC=0.32`、`SCORE_TOTAL_SEC=0.40`、`SCORE_FADE_SEC=0.18`，TRANS_QUINT EASE_OUT。Title / RecordName 跟现有 `enter_overlay` 一起出现。LoopBreak / KillsBreak / GoldBreak / TimeBreak 错峰淡入，右侧点数从 0 滚到 `loop*1000` / `kills*5` / `gold*2` / `floori(time)`；Time 左侧仍是 `time  %.1fs  →  %d`。CLEARED 才出现 `cleared  +5000` 行（5000 不滚）。Score 从 `score  0` 滚到 `GameRecords.compute_score` 返回值，禁止拆解行再加一遍。NEW BEST 在总分到位前 hidden，到位后若本局分 > previous_best 再显示；LAN 永不显示。Summary 跟总分同一拍淡入（owned 不逐字滚）。右侧 history 在总分开始滚时按 `SCORE_STAGGER_SEC` 错峰淡入，文案仍 `#%d  %d   L%d  %s  %.1fs`，hist 分数不再 count-up。Retry / Menu 的 `enter_overlay` 错峰保留，开窗即可点。
+- **snap**：已打开时点 Retry / Menu / Esc / Start，若滚动没完先 kill tween、写成最终文案、NEW BEST 按最终条件显示，再走现有 close/emit。点 Retry / Menu 逻辑仍瞬时 emit，不等滚动结束。`close()` 必须 kill 滚动 tween。`present()` 开头把拆解行 `modulate.a` 收成 0、Score 写成 `score  0`、NEW BEST hidden。
+- **BGM 淡**：`SILENCE_DB=-80`、`BGM_FADE_SEC=0.45`。淡出 TRANS_QUINT EASE_IN，淡入 TRANS_QUINT EASE_OUT。Tween 一律 `TWEEN_PAUSE_PROCESS`。禁止新 Autoload、禁止 `get_tree().root.add_child` 常驻播放器、禁止把 `AudioStreamPlayer` 从将卸掉的场景 reparent 出去。
+- **MainMenu**：`_music_fade`（0=静音，1=满）。`_process`：`overlay_db = lerpf(MUSIC_DB_NORMAL, MUSIC_DB_DIMMED, _focus_amount)`，`volume_db = lerpf(SILENCE_DB, overlay_db, _music_fade)`。进场 `_music_fade` 0→1。点已有档 / LAN 走 `_leave_to_sandbox()`：`_leaving` 闸，淡出后再 `change_scene_to_file`。Exit / quit 仍瞬间退。叠层打开时 -6→-16 的 dim 保留，不要改 `BLUR_MAX` / `DIM_MAX` / `FOCUS_SMOOTH`。
+- **CombatSandbox**：进场 `war.mp3` 从静音淡到 `COMBAT_MUSIC_DB=-22`。`_ensure_combat_music` 没在播才 play，已在播不 `seek(0)`、不把音量打回满。`_return_to_menu` 先清跟班 / 写盘 / 关 peer，再 `tree.paused=false`，CombatMusic 临时 `ALWAYS`，淡出后再切菜单。Retry / R / `_host_reset_sandbox` / F7 / F8 一律不动 CombatMusic。F6 直进沙盒只做战斗曲淡入。暂停仍冻树，平时仍 INHERIT（暂停即静音），Continue 从同一位置续播、不要淡。Winner 打开时 war.mp3 继续 -22，不再衰减一层。
+- **LAN**：Winner 同样滚数字；history 仍空。Guest Retry 仍禁用。`NET_PROTOCOL` 仍为 2，不扩 rpc。
+
+**当时不做：** Credits 叠层、Settings 版本号、跟班 LAN 同步、Battle / 友军伤害、Autoload 音乐、Music/SFX 分轨滑条、新 AudioBus、新 mp3 / wav / PNG。
+
 ## 剩余表
 
 
@@ -1425,7 +1438,9 @@ loop 0 也走已有 DENSE 名单；鸡能抽到 4 张专属卡，猪永远只能
 
 **Day 70 = 第一轮就密 + 鸡 4 卡（已完成）**：loop 0 走 DENSE；鸡专属 4 张按在场角色过滤；Applier 只给鸡生效。协议仍 2。
 
-**下一步 Day 71 = WinnerPage 分数逐行滚出 + 菜单↔战斗 BGM 交叉淡。**
+**Day 71 = Winner 滚动 + 换场 BGM 淡（已完成）**：WinnerPage 拆解错峰滚出 + snap；菜单↔沙盒先淡出再切、进场淡入。Retry 不停曲。Autoload 仍为 0。
+
+**下一步 Day 72 = RecordSelector / LAN / Profile / Pause 补齐 hover/click/back，Credits 叠层，Settings 显示版本号。**
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1437,8 +1452,8 @@ loop 0 也走已有 DENSE 名单；鸡能抽到 4 张专属卡，猪永远只能
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。后续波次/Boss 词表扩充。
-4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；WinnerPage 分数拆解逐行显现动画；BGM 随场景/强度过渡（osu storyboard 式淡入淡出，而不是硬切）。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。后续波次/Boss 词表扩充。
+4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 
 **验收口径（每一天通用）**：本 Day README 里列出的「当时不做」清单之外的行为不应出现改动；新增/变更的脚本、场景、theme 项都要在 README 对应 Day 小节里落字，agent 交付前必须自查 README 是否已同步——这正是本次修的问题（Day 52/53 曾漏更新）。

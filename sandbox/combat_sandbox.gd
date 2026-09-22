@@ -9,6 +9,8 @@ const HIT_SPARK_CAPACITY: int = 64
 const DEATH_SHARD_SCENE: PackedScene = preload("res://combat/death_shard.tscn")
 const DEATH_SHARD_CAPACITY: int = 64
 const COMBAT_MUSIC_DB: float = -22.0
+const SILENCE_DB: float = -80.0
+const BGM_FADE_SEC: float = 0.45
 const UPGRADE_CATALOG: UpgradeCatalog = preload("res://data/upgrade_catalog.tres")
 const CHARACTER_CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const COMPANION_CATALOG: CompanionCatalog = preload("res://data/companion_catalog.tres")
@@ -39,6 +41,7 @@ var _progress_written: bool = false
 var _record_id: String = ""
 var _god_mode: bool = false
 var _leaving: bool = false
+var _music_tween: Tween
 var _reset_frame: int = -1
 var _net_role: GameLaunch.NetRole = GameLaunch.NetRole.OFFLINE
 var _lan_loadout: Dictionary = {}
@@ -99,6 +102,8 @@ func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _process(delta: float) -> void:
+	if _leaving:
+		return
 	if _pause_overlay.is_open() and not _is_lan():
 		return
 	if _is_guest():
@@ -142,6 +147,8 @@ func _input(event: InputEvent) -> void:
 		_ensure_combat_music()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _leaving:
+		return
 	if _is_pause_toggle(event):
 		get_viewport().set_input_as_handled()
 		_on_pause_toggle()
@@ -182,8 +189,12 @@ func _start_combat_music() -> void:
 	var mp3: AudioStreamMP3 = _combat_music.stream as AudioStreamMP3
 	if mp3 != null:
 		mp3.loop = true
-	_combat_music.volume_db = COMBAT_MUSIC_DB
+	_combat_music.volume_db = SILENCE_DB
 	_ensure_combat_music()
+	UiAnim.kill_tween(_music_tween)
+	_music_tween = create_tween()
+	_music_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_music_tween.tween_property(_combat_music, "volume_db", COMBAT_MUSIC_DB, BGM_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
 func _ensure_combat_music() -> void:
 	if _combat_music.stream != null and not _combat_music.playing:
@@ -749,6 +760,8 @@ func _on_pause_toggle() -> void:
 	_pause_overlay.open()
 
 func _on_pause_resumed() -> void:
+	if _leaving:
+		return
 	_apply_render_scale()
 	_set_offer_picks_enabled(true)
 	if _upgrade_offer.is_open() or _shop_offer.is_open():
@@ -851,6 +864,8 @@ func _show_winner_if_needed() -> void:
 	_sync_system_cursor()
 
 func _on_winner_retry() -> void:
+	if _leaving:
+		return
 	if not _winner_page.is_open():
 		return
 	if _is_guest():
@@ -883,7 +898,18 @@ func _return_to_menu() -> void:
 	var tree: SceneTree = get_tree()
 	if tree != null:
 		tree.paused = false
-		tree.change_scene_to_file(MENU_SCENE)
+	_combat_music.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiAnim.kill_tween(_music_tween)
+	_music_tween = create_tween()
+	_music_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_music_tween.tween_property(_combat_music, "volume_db", SILENCE_DB, BGM_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	_music_tween.finished.connect(_finish_return_to_menu)
+
+func _finish_return_to_menu() -> void:
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	tree.change_scene_to_file(MENU_SCENE)
 
 func _try_debug_hotkeys(event: InputEvent) -> void:
 	if _is_lan():

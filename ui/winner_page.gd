@@ -6,13 +6,26 @@ signal retry_pressed
 signal menu_pressed
 
 const HIST_ROWS: int = 10
+const SCORE_STAGGER_SEC: float = 0.08
+const SCORE_ROLL_SEC: float = 0.32
+const SCORE_TOTAL_SEC: float = 0.40
+const SCORE_FADE_SEC: float = 0.18
 
 var _open: bool = false
 var _anim_tween: Tween
+var _score_tween: Tween
 var _hist_labels: Array[Label] = []
 var _this_score: int = 0
 var _this_timestamp: int = 0
 var _retry_allowed: bool = true
+var _roll_done: bool = true
+var _is_lan: bool = false
+var _previous_best: int = 0
+var _final_loop: int = 0
+var _final_kills: int = 0
+var _final_gold: int = 0
+var _final_time_sec: float = 0.0
+var _summary_text: String = ""
 
 @onready var _root: Control = $Root
 @onready var _dimmer: ColorRect = $Root/Dimmer
@@ -63,6 +76,8 @@ func present(record_id: String, session: RunSession, previous_best: int) -> void
 		return
 	if session == null:
 		return
+	UiAnim.kill_tween(_score_tween)
+	_roll_done = false
 	var lan: bool = record_id.is_empty()
 	var record: GameRecord = null
 	if not lan:
@@ -80,6 +95,7 @@ func present(record_id: String, session: RunSession, previous_best: int) -> void
 		_fill_history(null)
 	else:
 		_fill_history(record)
+	_reset_score_visuals()
 	_open = true
 	visible = true
 	_root.modulate.a = 1.0
@@ -87,6 +103,7 @@ func present(record_id: String, session: RunSession, previous_best: int) -> void
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_retry_button, _menu_button])
+	_play_score_roll()
 	_retry_button.grab_focus()
 
 func close() -> void:
@@ -94,6 +111,7 @@ func close() -> void:
 		return
 	_open = false
 	_set_interactive(false)
+	UiAnim.kill_tween(_score_tween)
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.exit_overlay(self, _root)
 	_anim_tween.finished.connect(_finish_close)
@@ -126,16 +144,24 @@ func _on_menu_pressed() -> void:
 func _emit_retry() -> void:
 	if not _open or not _retry_allowed:
 		return
+	_snap_score_roll()
 	_play_click()
 	retry_pressed.emit()
 
 func _emit_menu() -> void:
 	if not _open:
 		return
+	_snap_score_roll()
 	_play_click()
 	menu_pressed.emit()
 
 func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, previous_best: int, lan: bool = false) -> void:
+	_is_lan = lan
+	_previous_best = previous_best
+	_final_loop = loop_index
+	_final_kills = kills
+	_final_gold = gold
+	_final_time_sec = time_sec
 	if outcome == "cleared":
 		_title.text = "CLEARED"
 		_title.theme_type_variation = &"ClearedTitle"
@@ -144,27 +170,23 @@ func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_i
 		_title.theme_type_variation = &"RunSummaryTitle"
 	if lan:
 		_record_name.text = "LAN"
-		_new_best.visible = false
 	elif record != null and not record.name.is_empty():
 		_record_name.text = record.name
-		_new_best.visible = _this_score > previous_best
 	else:
 		_record_name.text = "-"
-		_new_best.visible = _this_score > previous_best
-	_score_label.text = "score  %d" % _this_score
-	_loop_break.text = "loop  %d  ×1000  =  %d" % [loop_index, loop_index * 1000]
-	_kills_break.text = "kills  %d  ×5  =  %d" % [kills, kills * 5]
-	_gold_break.text = "gold  %d  ×2  =  %d" % [gold, gold * 2]
-	_time_break.text = "time  %.1fs  →  %d" % [time_sec, floori(time_sec)]
 	_cleared_bonus.visible = outcome == "cleared"
 	_cleared_bonus.text = "cleared  +5000"
-	_summary.text = "loop  %d    kills  %d    gold  %d    time  %.1fs    owned  %s" % [
+	_summary_text = "loop  %d    kills  %d    gold  %d    time  %.1fs    owned  %s" % [
 		loop_index,
 		kills,
 		gold,
 		time_sec,
 		_format_owned(session),
 	]
+	_summary.text = _summary_text
+	_write_break_texts(0, 0, 0, 0)
+	_score_label.text = "score  0"
+	_new_best.visible = false
 
 func _fill_history(record: GameRecord) -> void:
 	if record == null or record.history.is_empty():
@@ -196,6 +218,119 @@ func _fill_history(record: GameRecord) -> void:
 		_rank_label.text = "rank  -"
 	else:
 		_rank_label.text = "rank  %d / %d" % [highlight + 1, record.history.size()]
+
+func _reset_score_visuals() -> void:
+	_new_best.visible = false
+	_score_label.text = "score  0"
+	_write_break_texts(0, 0, 0, 0)
+	for item: CanvasItem in _list_roll_fade_items():
+		item.modulate.a = 0.0
+
+func _play_score_roll() -> void:
+	UiAnim.kill_tween(_score_tween)
+	_roll_done = false
+	_score_tween = create_tween().set_parallel(true)
+	_score_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var beat: int = 0
+	_append_break_roll(beat, _assign_loop_points, float(_final_loop * 1000), _loop_break)
+	beat += 1
+	_append_break_roll(beat, _assign_kills_points, float(_final_kills * 5), _kills_break)
+	beat += 1
+	_append_break_roll(beat, _assign_gold_points, float(_final_gold * 2), _gold_break)
+	beat += 1
+	_append_break_roll(beat, _assign_time_points, float(floori(_final_time_sec)), _time_break)
+	beat += 1
+	if _cleared_bonus.visible:
+		_append_fade(_cleared_bonus, beat)
+		beat += 1
+	var total_delay: float = SCORE_STAGGER_SEC * float(beat)
+	_score_tween.tween_method(_assign_score_points, 0.0, float(_this_score), SCORE_TOTAL_SEC).set_delay(total_delay).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	_append_fade(_summary, beat)
+	_score_tween.tween_callback(_reveal_new_best).set_delay(total_delay + SCORE_TOTAL_SEC)
+	_append_history_fades(total_delay)
+	_score_tween.finished.connect(_mark_roll_done)
+
+func _append_break_roll(beat: int, assign: Callable, to_value: float, item: CanvasItem) -> void:
+	var delay: float = SCORE_STAGGER_SEC * float(beat)
+	_append_fade(item, beat)
+	_score_tween.tween_method(assign, 0.0, to_value, SCORE_ROLL_SEC).set_delay(delay).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+
+func _append_fade(item: CanvasItem, beat: int) -> void:
+	_append_fade_at(item, SCORE_STAGGER_SEC * float(beat))
+
+func _append_fade_at(item: CanvasItem, delay: float) -> void:
+	if item == null or not item.visible:
+		return
+	_score_tween.tween_property(item, "modulate:a", 1.0, SCORE_FADE_SEC).set_delay(delay).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+
+func _append_history_fades(start_delay: float) -> void:
+	_append_fade_at(_rank_label, start_delay)
+	if _hist_empty.visible:
+		_append_fade_at(_hist_empty, start_delay)
+		return
+	var hist_index: int = 0
+	for row: Label in _hist_labels:
+		if not row.visible:
+			continue
+		_append_fade_at(row, start_delay + SCORE_STAGGER_SEC * float(hist_index))
+		hist_index += 1
+
+func _assign_loop_points(value: float) -> void:
+	_loop_break.text = "loop  %d  ×1000  =  %d" % [_final_loop, roundi(value)]
+
+func _assign_kills_points(value: float) -> void:
+	_kills_break.text = "kills  %d  ×5  =  %d" % [_final_kills, roundi(value)]
+
+func _assign_gold_points(value: float) -> void:
+	_gold_break.text = "gold  %d  ×2  =  %d" % [_final_gold, roundi(value)]
+
+func _assign_time_points(value: float) -> void:
+	_time_break.text = "time  %.1fs  →  %d" % [_final_time_sec, roundi(value)]
+
+func _assign_score_points(value: float) -> void:
+	_score_label.text = "score  %d" % roundi(value)
+
+func _snap_score_roll() -> void:
+	if _roll_done:
+		return
+	UiAnim.kill_tween(_score_tween)
+	_write_final_score_texts()
+	_reveal_new_best()
+	_roll_done = true
+
+func _write_final_score_texts() -> void:
+	_write_break_texts(_final_loop * 1000, _final_kills * 5, _final_gold * 2, floori(_final_time_sec))
+	_score_label.text = "score  %d" % _this_score
+	_summary.text = _summary_text
+	for item: CanvasItem in _list_roll_fade_items():
+		item.modulate.a = 1.0
+
+func _write_break_texts(loop_pts: int, kill_pts: int, gold_pts: int, time_pts: int) -> void:
+	_loop_break.text = "loop  %d  ×1000  =  %d" % [_final_loop, loop_pts]
+	_kills_break.text = "kills  %d  ×5  =  %d" % [_final_kills, kill_pts]
+	_gold_break.text = "gold  %d  ×2  =  %d" % [_final_gold, gold_pts]
+	_time_break.text = "time  %.1fs  →  %d" % [_final_time_sec, time_pts]
+
+func _reveal_new_best() -> void:
+	if _is_lan:
+		_new_best.visible = false
+		return
+	_new_best.visible = _this_score > _previous_best
+
+func _mark_roll_done() -> void:
+	_roll_done = true
+	_reveal_new_best()
+
+func _list_roll_fade_items() -> Array[CanvasItem]:
+	var items: Array[CanvasItem] = [_loop_break, _kills_break, _gold_break, _time_break, _summary, _rank_label]
+	if _cleared_bonus.visible:
+		items.append(_cleared_bonus)
+	if _hist_empty.visible:
+		items.append(_hist_empty)
+	for row: Label in _hist_labels:
+		if row.visible:
+			items.append(row)
+	return items
 
 func _find_highlight_index(history: Array[Dictionary]) -> int:
 	for i: int in history.size():

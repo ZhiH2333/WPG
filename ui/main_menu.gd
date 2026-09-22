@@ -7,6 +7,8 @@ const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
 const TOP_BAR_HEIGHT: float = 60.0
 const MUSIC_DB_NORMAL: float = -6.0
 const MUSIC_DB_DIMMED: float = -16.0
+const SILENCE_DB: float = -80.0
+const BGM_FADE_SEC: float = 0.45
 const BLUR_MAX: float = 2.6
 const DIM_MAX: float = 0.35
 const FOCUS_SMOOTH: float = 9.0
@@ -14,7 +16,10 @@ const LOGO_POP_SEC: float = 0.5
 const STRIP_HOVER_SEC: float = 0.12
 
 var _enter_tween: Tween
+var _music_fade_tween: Tween
 var _focus_amount: float = 0.0
+var _music_fade: float = 0.0
+var _leaving: bool = false
 var _last_clock_second: int = -1
 var _hover_tweens: Dictionary = {}
 
@@ -82,7 +87,8 @@ func _process(delta: float) -> void:
 	var mat: ShaderMaterial = _blur_layer.material as ShaderMaterial
 	mat.set_shader_parameter("blur_amount", BLUR_MAX * _focus_amount)
 	mat.set_shader_parameter("dim_amount", DIM_MAX * _focus_amount)
-	_music.volume_db = lerpf(MUSIC_DB_NORMAL, MUSIC_DB_DIMMED, _focus_amount)
+	var overlay_db: float = lerpf(MUSIC_DB_NORMAL, MUSIC_DB_DIMMED, _focus_amount)
+	_music.volume_db = lerpf(SILENCE_DB, overlay_db, _music_fade)
 	_refresh_clock(false)
 
 func _input(event: InputEvent) -> void:
@@ -165,13 +171,33 @@ func _enter_multi_flow() -> void:
 	_lan_overlay.open()
 
 func _enter_record(id: String) -> void:
+	if _leaving:
+		return
 	var record: GameRecord = GameRecords.get_record(id)
 	GameLaunch.set_active_record_id(id)
 	GameLaunch.set_arena_id(record.arena_id if record != null else "yard")
-	get_tree().change_scene_to_file(SANDBOX_SCENE)
+	_leave_to_sandbox()
 
 func _enter_lan() -> void:
-	get_tree().change_scene_to_file(SANDBOX_SCENE)
+	if _leaving:
+		return
+	_leave_to_sandbox()
+
+func _leave_to_sandbox() -> void:
+	if _leaving:
+		return
+	_leaving = true
+	UiAnim.kill_tween(_music_fade_tween)
+	_music_fade_tween = create_tween()
+	_music_fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_music_fade_tween.tween_property(self, "_music_fade", 0.0, BGM_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	_music_fade_tween.finished.connect(_finish_leave_to_sandbox)
+
+func _finish_leave_to_sandbox() -> void:
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	tree.change_scene_to_file(SANDBOX_SCENE)
 
 func _enter_leaderboard() -> void:
 	if _overlay.is_open():
@@ -239,8 +265,13 @@ func _start_music() -> void:
 	var mp3: AudioStreamMP3 = _music.stream as AudioStreamMP3
 	if mp3 != null:
 		mp3.loop = true
-	_music.volume_db = MUSIC_DB_NORMAL
+	_music_fade = 0.0
+	_music.volume_db = SILENCE_DB
 	_ensure_music()
+	UiAnim.kill_tween(_music_fade_tween)
+	_music_fade_tween = create_tween()
+	_music_fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_music_fade_tween.tween_property(self, "_music_fade", 1.0, BGM_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
 func _ensure_music() -> void:
 	if _music.stream != null and not _music.playing:
