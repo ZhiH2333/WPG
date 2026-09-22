@@ -408,3 +408,12 @@ size_flags_horizontal = 0
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Back"
+
+
+[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="BackSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="ErrorSfx" type="AudioStreamPlayer" parent="."]

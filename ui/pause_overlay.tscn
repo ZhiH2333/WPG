@@ -362,3 +362,6 @@ process_mode = 3
 
 [node name="ClickSfx" type="AudioStreamPlayer" parent="."]
 process_mode = 3
+
+[node name="BackSfx" type="AudioStreamPlayer" parent="."]
+process_mode = 3

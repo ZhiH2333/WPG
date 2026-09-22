@@ -1391,6 +1391,28 @@ loop 0 也走已有 DENSE 名单；鸡能抽到 4 张专属卡，猪永远只能
 
 **当时不做：** Credits 叠层、Settings 版本号、跟班 LAN 同步、Battle / 友军伤害、Autoload 音乐、Music/SFX 分轨滑条、新 AudioBus、新 mp3 / wav / PNG。
 
+## Day 72（已完成）：剩余叠层四态音效 + Credits + 版本 1.0.0
+
+各菜单叠层自己管 hover/click/back；Settings 显示 `version  1.0.0`；Credits 小面板挂在 Settings 下。Autoload 仍为 0。没有新 wav、没有新 Autoload、没有跟班 LAN、没有 Battle、没有分轨滑条。
+
+- **音效**：RecordSelector / LanOverlay / Profile / Leaderboard / ModeChoice / Settings / Credits 各自挂 `AudioStreamPlayer`，`GameAudio.load_wav` 现有 `ui_hover.wav` / `ui_click.wav` / `ui_back.wav`。RecordSelector 满 12 点 `+ New Record` 与 LAN `_create_server` 失败走 Error（现有 `click.wav`，与商店 ErrorSfx 同一文件）。同一帧同一种最多 1 次（`Engine.get_process_frames()` 门闩）。`MainMenu._wire_button_sounds` 跳过这些叠层子孙。动态档卡由叠层自己 wire。
+- **Pause / Winner**：Continue / Esc / Quit / Menu = Back；Retry / Settings = Click。
+- **版本**：`project.godot` `config/version="1.0.0"`；`GameSettings.VERSION` / `get_version()`；Settings 副标题下 VersionLabel `version  1.0.0`。标题仍是 Settings，副标题仍是 `Change game settings`。
+- **Credits**：Settings Data 节 CREDITS 钮打开 FloatingPanel 960×720；名单锁死；`github.com/ZhiH2333` → `OS.shell_open("https://github.com/ZhiH2333")`；Esc 先关 Credits。`Settings.close` 若 Credits 开着先关 Credits。Credits 打开时菜单 dim 走现有 -6→-16。
+
+**当时不做：** 跟班 LAN 同步、Battle / 友军伤害、Music/SFX 分轨滑条、新 wav、新 Autoload。
+
+## 过渡加载界面（已完成）
+
+菜单进档 / LAN 进沙盒、Pause Quit / Winner Menu 回菜单时盖一层 LOADING，避免换场黑一下或卡在旧画面。Autoload 仍为 0。Retry / R / `_host_reset_sandbox` 不盖。BGM 仍先淡 0.45s 再切。没有新 wav / PNG / 字体。
+
+- **LoadingScreen**：`CanvasLayer` layer 80，挂在树根上贯穿全程，不是 Autoload。底图复用 `images/mainmenu.png`，`loading_blur.gdshader` 高 LOD 超级模糊并压暗。标题 `LOADING` 96px；720×18 滑块 0.42s 单向、余弦对称往返（左右同速），前缘跟相位、尾部按速度 smoothstep 拉长最多 88px；下方 `loading  <资源名>` 轮播依赖项，结束显示 `ready`。不播 BGM。
+- **离场**：`present_on` 盖住当前场并 `load_threaded_request`。BGM 淡完 `switch_current` 只通知这张盖可以换场，不再 `change_scene` 到第二张加载页。
+- **交接**：最少停 0.35s 且资源就绪后，在盖下面 `change_scene_to_packed`，再淡出盖。目标空则回主菜单。
+- **GameLaunch**：`set_next_scene` / `peek_next_scene` / `take_next_scene`，仍禁止 `get_tree()`。`NET_PROTOCOL` 仍为 2。
+
+**当时不做：** 跟班 LAN 同步、Battle、分轨滑条、新 Autoload、把 Retry 也改成换场加载。
+
 ## 剩余表
 
 
@@ -1440,7 +1462,11 @@ loop 0 也走已有 DENSE 名单；鸡能抽到 4 张专属卡，猪永远只能
 
 **Day 71 = Winner 滚动 + 换场 BGM 淡（已完成）**：WinnerPage 拆解错峰滚出 + snap；菜单↔沙盒先淡出再切、进场淡入。Retry 不停曲。Autoload 仍为 0。
 
-**下一步 Day 72 = RecordSelector / LAN / Profile / Pause 补齐 hover/click/back，Credits 叠层，Settings 显示版本号。**
+**Day 72 = 剩余叠层四态音效 + Credits + 版本 1.0.0（已完成）**：叠层自管 hover/click/back；动态档卡有声；Pause Continue/Esc/Quit 与 Winner Menu/Esc 走 Back；Settings `version  1.0.0`；Credits 小面板。Autoload 仍为 0。
+
+**过渡加载界面（已完成）**：进档 / 退战斗盖 LOADING；BGM 仍淡 0.45s；Retry 不盖。Autoload 仍为 0。
+
+**下一步 Day 73 = LAN Co-op 同步跟班和药（协议 +1）。**
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1452,7 +1478,7 @@ loop 0 也走已有 DENSE 名单；鸡能抽到 4 张专属卡，猪永远只能
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD、不做 LAN 同步药和跟班。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。后续波次/Boss 词表扩充。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。后续波次/Boss 词表扩充。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 

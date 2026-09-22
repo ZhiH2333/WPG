@@ -2,6 +2,7 @@ extends Object
 class_name GameSettings
 
 ## 音量、显示与按键。全是 static，不是 Autoload，不进场景树。唯一读写 user://settings.cfg。
+const VERSION: String = "1.0.0"
 const PATH := "user://settings.cfg"
 const DEFAULT_VOLUME: float = 1.0
 const MUTE_THRESHOLD: float = 0.001
@@ -100,6 +101,9 @@ static func apply() -> void:
 		][_msaa_index]
 		root.content_scale_factor = _ui_scale
 	_apply_key_bindings()
+
+static func get_version() -> String:
+	return VERSION
 
 static func get_volume() -> float:
 	return _volume

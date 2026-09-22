@@ -6,6 +6,7 @@ signal view_ranking_pressed
 
 var _open: bool = false
 var _anim_tween: Tween
+var _sfx_gate: Dictionary = {}
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
@@ -18,12 +19,20 @@ var _anim_tween: Tween
 @onready var _records_rows: VBoxContainer = $Center/Panel/Column/Content/Center/Columns/RecordsColumn/Rows
 @onready var _rank_button: Button = $Center/Panel/Column/Header/RankButton
 @onready var _back_button: Button = $Center/Panel/Column/Back
+@onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
+@onready var _click_sfx: AudioStreamPlayer = $ClickSfx
+@onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
+	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
+	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_rank_button.pressed.connect(_emit_view_ranking)
-	_back_button.pressed.connect(close)
+	_back_button.pressed.connect(_on_back_pressed)
+	_wire_hover(_rank_button)
+	_wire_hover(_back_button)
 	UiFit.connect_refit(self, _on_host_resized)
 
 func is_open() -> bool:
@@ -67,9 +76,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		close()
+		_on_back_pressed()
+
+func _on_back_pressed() -> void:
+	if not _open:
+		return
+	_play_back()
+	close()
 
 func _emit_view_ranking() -> void:
+	_play_click()
 	view_ranking_pressed.emit()
 
 func _refresh_stats() -> void:
@@ -119,3 +135,29 @@ func _on_host_resized() -> void:
 
 func _fit_panel() -> void:
 	UiFit.apply_floating_panel(self, _panel)
+
+func _wire_hover(button: BaseButton) -> void:
+	if button.mouse_entered.is_connected(_play_hover):
+		return
+	button.mouse_entered.connect(_play_hover)
+	button.focus_entered.connect(_play_hover)
+
+func _play_hover() -> void:
+	if not _open:
+		return
+	_play_stream(_hover_sfx, &"hover")
+
+func _play_click() -> void:
+	_play_stream(_click_sfx, &"click")
+
+func _play_back() -> void:
+	_play_stream(_back_sfx, &"back")
+
+func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
+	if player == null or player.stream == null:
+		return
+	var frame: int = Engine.get_process_frames()
+	if int(_sfx_gate.get(key, -1)) == frame:
+		return
+	_sfx_gate[key] = frame
+	player.play()

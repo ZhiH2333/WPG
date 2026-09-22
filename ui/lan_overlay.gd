@@ -15,6 +15,7 @@ const DEFAULT_LOOP_GOAL: int = 20
 var _open: bool = false
 var _view: View = View.HOME
 var _anim_tween: Tween
+var _sfx_gate: Dictionary = {}
 var _selected_character_id: String = CHAR_BOAR
 var _guest_character_id: String = CHAR_BOAR
 var _guest_id: int = 0
@@ -54,28 +55,38 @@ var _selected_arena_id: String = "yard"
 @onready var _join_map: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/MapLabel
 @onready var _join_wait: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/WaitingLabel
 @onready var _back_button: Button = $Center/Panel/Column/Back
+@onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
+@onready var _click_sfx: AudioStreamPlayer = $ClickSfx
+@onready var _back_sfx: AudioStreamPlayer = $BackSfx
+@onready var _error_sfx: AudioStreamPlayer = $ErrorSfx
 
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
+	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
+	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
+	_error_sfx.stream = GameAudio.load_wav("res://audio/click.wav")
 	_fill_character(_host_boar, CHAR_BOAR)
 	_fill_character(_host_chicken, CHAR_CHICKEN)
 	_fill_character(_join_boar, CHAR_BOAR)
 	_fill_character(_join_chicken, CHAR_CHICKEN)
 	_host_button.pressed.connect(_on_home_host_pressed)
-	_join_button.pressed.connect(_enter_join)
+	_join_button.pressed.connect(_on_home_join_pressed)
 	_custom_button.pressed.connect(_on_custom_pressed)
-	_host_boar.pressed.connect(func() -> void: _select_character(CHAR_BOAR))
-	_host_chicken.pressed.connect(func() -> void: _select_character(CHAR_CHICKEN))
-	_host_yard.pressed.connect(func() -> void: _select_arena("yard"))
-	_host_pit.pressed.connect(func() -> void: _select_arena("pit"))
-	_host_keep.pressed.connect(func() -> void: _select_arena("keep"))
-	_join_boar.pressed.connect(func() -> void: _select_character(CHAR_BOAR))
-	_join_chicken.pressed.connect(func() -> void: _select_character(CHAR_CHICKEN))
+	_host_boar.pressed.connect(_on_character_pressed.bind(CHAR_BOAR))
+	_host_chicken.pressed.connect(_on_character_pressed.bind(CHAR_CHICKEN))
+	_host_yard.pressed.connect(_on_arena_pressed.bind("yard"))
+	_host_pit.pressed.connect(_on_arena_pressed.bind("pit"))
+	_host_keep.pressed.connect(_on_arena_pressed.bind("keep"))
+	_join_boar.pressed.connect(_on_character_pressed.bind(CHAR_BOAR))
+	_join_chicken.pressed.connect(_on_character_pressed.bind(CHAR_CHICKEN))
 	_loop_slider.value_changed.connect(_on_loop_changed)
 	_start_button.pressed.connect(_on_start_pressed)
 	_connect_button.pressed.connect(_on_connect_pressed)
 	_back_button.pressed.connect(_handle_back)
+	for button: Button in [_host_button, _join_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
+		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
 	_show_home(false)
 
@@ -138,13 +149,16 @@ func _input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("weapon_pistol"):
 		get_viewport().set_input_as_handled()
+		_play_click()
 		_select_character(CHAR_BOAR)
 		return
 	if event.is_action_pressed("weapon_shotgun"):
 		get_viewport().set_input_as_handled()
+		_play_click()
 		_select_character(CHAR_CHICKEN)
 
 func _handle_back() -> void:
+	_play_back()
 	if _view == View.HOME:
 		close()
 		return
@@ -170,6 +184,7 @@ func _show_home(animate: bool) -> void:
 		_host_button.grab_focus()
 
 func _on_home_host_pressed() -> void:
+	_play_click()
 	GameRecords.load_from_disk()
 	if GameRecords.list_records().is_empty():
 		_enter_host()
@@ -179,6 +194,7 @@ func _on_home_host_pressed() -> void:
 func _on_custom_pressed() -> void:
 	if not _open or _view != View.PICK:
 		return
+	_play_click()
 	_enter_host()
 
 func _on_pick_record_pressed(record_id: String) -> void:
@@ -187,6 +203,7 @@ func _on_pick_record_pressed(record_id: String) -> void:
 	var record: GameRecord = GameRecords.get_record(record_id)
 	if record == null:
 		return
+	_play_click()
 	_picked_record_id = record.id
 	_enter_host_from_record(record)
 
@@ -233,6 +250,7 @@ func _begin_host() -> void:
 	_refresh_host_start()
 	if not _create_server():
 		_host_status.text = "bind failed"
+		_play_error()
 		_refresh_host_start()
 		return
 	_wire_multiplayer()
@@ -269,6 +287,7 @@ func _create_server() -> bool:
 func _on_connect_pressed() -> void:
 	if _view != View.JOIN:
 		return
+	_play_click()
 	_clear_peer()
 	_join_status.text = "connecting"
 	_join_wait.visible = false
@@ -412,6 +431,7 @@ func rpc_arena(arena_id: String) -> void:
 func _on_start_pressed() -> void:
 	if not _handshake_ok or _guest_id == 0:
 		return
+	_play_click()
 	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
 	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
 	GameLaunch.set_net_role(GameLaunch.NetRole.HOST)
@@ -511,6 +531,7 @@ func _make_pick_card(record: GameRecord) -> Button:
 	var card: Vector2 = _fit_card_size()
 	var button: Button = RecordCard.make_main_card(record, card, UiFit.portrait_px(card))
 	button.pressed.connect(_on_pick_record_pressed.bind(record.id))
+	_wire_hover(button)
 	return button
 
 func _fit_pick_scroll() -> void:
@@ -595,3 +616,44 @@ func _fit_panel() -> void:
 		var button: Button = child as Button
 		if button != null:
 			button.custom_minimum_size = card
+
+func _on_home_join_pressed() -> void:
+	_play_click()
+	_enter_join()
+
+func _on_character_pressed(character_id: String) -> void:
+	_play_click()
+	_select_character(character_id)
+
+func _on_arena_pressed(arena_id: String) -> void:
+	_play_click()
+	_select_arena(arena_id)
+
+func _wire_hover(button: BaseButton) -> void:
+	if button.mouse_entered.is_connected(_play_hover):
+		return
+	button.mouse_entered.connect(_play_hover)
+	button.focus_entered.connect(_play_hover)
+
+func _play_hover() -> void:
+	if not _open:
+		return
+	_play_stream(_hover_sfx, &"hover")
+
+func _play_click() -> void:
+	_play_stream(_click_sfx, &"click")
+
+func _play_back() -> void:
+	_play_stream(_back_sfx, &"back")
+
+func _play_error() -> void:
+	_play_stream(_error_sfx, &"error")
+
+func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
+	if player == null or player.stream == null:
+		return
+	var frame: int = Engine.get_process_frames()
+	if int(_sfx_gate.get(key, -1)) == frame:
+		return
+	_sfx_gate[key] = frame
+	player.play()

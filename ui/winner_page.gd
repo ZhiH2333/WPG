@@ -14,6 +14,7 @@ const SCORE_FADE_SEC: float = 0.18
 var _open: bool = false
 var _anim_tween: Tween
 var _score_tween: Tween
+var _sfx_gate: Dictionary = {}
 var _hist_labels: Array[Label] = []
 var _this_score: int = 0
 var _this_timestamp: int = 0
@@ -47,6 +48,7 @@ var _summary_text: String = ""
 @onready var _menu_button: Button = $Root/Center/Panel/Column/Buttons/Menu
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
+@onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
 	layer = 22
@@ -54,6 +56,7 @@ func _ready() -> void:
 	_open = false
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
+	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_retry_button.pressed.connect(_on_retry_pressed)
 	_menu_button.pressed.connect(_on_menu_pressed)
 	_retry_button.mouse_entered.connect(_play_hover)
@@ -152,7 +155,7 @@ func _emit_menu() -> void:
 	if not _open:
 		return
 	_snap_score_roll()
-	_play_click()
+	_play_back()
 	menu_pressed.emit()
 
 func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, previous_best: int, lan: bool = false) -> void:
@@ -377,11 +380,21 @@ func _set_interactive(enabled: bool) -> void:
 	_menu_button.disabled = not enabled
 
 func _play_hover() -> void:
-	if not _open or _hover_sfx.stream == null:
+	if not _open:
 		return
-	_hover_sfx.play()
+	_play_stream(_hover_sfx, &"hover")
 
 func _play_click() -> void:
-	if _click_sfx.stream == null:
+	_play_stream(_click_sfx, &"click")
+
+func _play_back() -> void:
+	_play_stream(_back_sfx, &"back")
+
+func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
+	if player == null or player.stream == null:
 		return
-	_click_sfx.play()
+	var frame: int = Engine.get_process_frames()
+	if int(_sfx_gate.get(key, -1)) == frame:
+		return
+	_sfx_gate[key] = frame
+	player.play()

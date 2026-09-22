@@ -15,6 +15,7 @@ const CHAR_CHICKEN := "chicken"
 var _open: bool = false
 var _view: View = View.LIST
 var _anim_tween: Tween
+var _sfx_gate: Dictionary = {}
 var _pending_delete_id: String = ""
 var _selected_character_id: String = CHAR_BOAR
 var _selected_arena_id: String = "yard"
@@ -39,10 +40,18 @@ var _selected_arena_id: String = "yard"
 @onready var _delete_yes: Button = $Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons/Yes
 @onready var _delete_no: Button = $Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons/No
 @onready var _back_button: Button = $Center/Panel/Column/Back
+@onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
+@onready var _click_sfx: AudioStreamPlayer = $ClickSfx
+@onready var _back_sfx: AudioStreamPlayer = $BackSfx
+@onready var _error_sfx: AudioStreamPlayer = $ErrorSfx
 
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
+	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
+	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
+	_error_sfx.stream = GameAudio.load_wav("res://audio/click.wav")
 	_fill_editor_character(_boar_button, CHAR_BOAR)
 	_fill_editor_character(_chicken_button, CHAR_CHICKEN)
 	_new_button.pressed.connect(_on_new_pressed)
@@ -56,6 +65,8 @@ func _ready() -> void:
 	_delete_yes.pressed.connect(_on_delete_yes_pressed)
 	_delete_no.pressed.connect(_on_delete_no_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
+	for button: Button in [_new_button, _boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _delete_yes, _delete_no, _back_button]:
+		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
 	_show_list_nodes()
 
@@ -116,13 +127,16 @@ func _input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("weapon_pistol"):
 		get_viewport().set_input_as_handled()
+		_play_click()
 		_select_character(CHAR_BOAR)
 		return
 	if event.is_action_pressed("weapon_shotgun"):
 		get_viewport().set_input_as_handled()
+		_play_click()
 		_select_character(CHAR_CHICKEN)
 
 func _handle_back() -> void:
+	_play_back()
 	if _is_deleting():
 		_cancel_delete()
 		return
@@ -135,18 +149,24 @@ func _on_back_pressed() -> void:
 	_handle_back()
 
 func _on_new_pressed() -> void:
-	if not _open or _new_button.disabled:
+	if not _open:
 		return
+	if GameRecords.list_records().size() >= GameRecords.get_max_records():
+		_play_error()
+		return
+	_play_click()
 	_enter_editor()
 
 func _on_record_pressed(record_id: String) -> void:
 	if not _open or _view != View.LIST or _is_deleting():
 		return
+	_play_click()
 	selected_record.emit(record_id)
 
 func _on_delete_pressed(record_id: String) -> void:
 	if not _open or _view != View.LIST:
 		return
+	_play_click()
 	_pending_delete_id = record_id
 	_list_root.visible = false
 	_editor_root.visible = false
@@ -154,6 +174,7 @@ func _on_delete_pressed(record_id: String) -> void:
 	_delete_no.grab_focus()
 
 func _on_delete_yes_pressed() -> void:
+	_play_click()
 	if _pending_delete_id.is_empty():
 		_enter_list(true)
 		return
@@ -162,25 +183,30 @@ func _on_delete_yes_pressed() -> void:
 	_enter_list(true)
 
 func _on_delete_no_pressed() -> void:
-	_cancel_delete()
+	_handle_back()
 
 func _cancel_delete() -> void:
 	_pending_delete_id = ""
 	_enter_list(false)
 
 func _on_boar_pressed() -> void:
+	_play_click()
 	_select_character(CHAR_BOAR)
 
 func _on_chicken_pressed() -> void:
+	_play_click()
 	_select_character(CHAR_CHICKEN)
 
 func _on_yard_pressed() -> void:
+	_play_click()
 	_select_arena("yard")
 
 func _on_pit_pressed() -> void:
+	_play_click()
 	_select_arena("pit")
 
 func _on_keep_pressed() -> void:
+	_play_click()
 	_select_arena("keep")
 
 func _on_loop_changed(_value: float) -> void:
@@ -189,9 +215,11 @@ func _on_loop_changed(_value: float) -> void:
 func _on_confirm_pressed() -> void:
 	if not _open or _view != View.EDITOR:
 		return
+	_play_click()
 	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
 	var record: GameRecord = GameRecords.create_record(_name_edit.text, _selected_character_id, loop_goal, _selected_arena_id)
 	if record == null:
+		_play_error()
 		return
 	selected_record.emit(record.id)
 
@@ -266,9 +294,8 @@ func _clear_record_rows() -> void:
 		child.queue_free()
 
 func _update_new_button() -> void:
-	var is_full: bool = GameRecords.list_records().size() >= GameRecords.get_max_records()
-	_new_button.disabled = is_full
-	_new_button.focus_mode = Control.FOCUS_NONE if is_full else Control.FOCUS_ALL
+	_new_button.disabled = false
+	_new_button.focus_mode = Control.FOCUS_ALL
 
 func _fit_scroll() -> void:
 	_scroll.scroll_vertical = 0
@@ -324,6 +351,7 @@ func _make_delete_button(record_id: String) -> Button:
 	button.theme_type_variation = &"OfferButton"
 	button.text = "×"
 	button.pressed.connect(_on_delete_pressed.bind(record_id))
+	_wire_hover(button)
 	return button
 
 func _fit_card_size() -> Vector2:
@@ -336,6 +364,7 @@ func _make_main_card(record: GameRecord) -> Button:
 	var card: Vector2 = _fit_card_size()
 	var button: Button = RecordCard.make_main_card(record, card, UiFit.portrait_px(card))
 	button.pressed.connect(_on_record_pressed.bind(record.id))
+	_wire_hover(button)
 	return button
 
 func _fill_editor_character(button: Button, character_id: String) -> void:
@@ -365,3 +394,32 @@ func _fit_panel() -> void:
 		var button: Button = child as Button
 		if button != null:
 			button.custom_minimum_size = card
+
+func _wire_hover(button: BaseButton) -> void:
+	if button.mouse_entered.is_connected(_play_hover):
+		return
+	button.mouse_entered.connect(_play_hover)
+	button.focus_entered.connect(_play_hover)
+
+func _play_hover() -> void:
+	if not _open:
+		return
+	_play_stream(_hover_sfx, &"hover")
+
+func _play_click() -> void:
+	_play_stream(_click_sfx, &"click")
+
+func _play_back() -> void:
+	_play_stream(_back_sfx, &"back")
+
+func _play_error() -> void:
+	_play_stream(_error_sfx, &"error")
+
+func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
+	if player == null or player.stream == null:
+		return
+	var frame: int = Engine.get_process_frames()
+	if int(_sfx_gate.get(key, -1)) == frame:
+		return
+	_sfx_gate[key] = frame
+	player.play()

@@ -22,6 +22,7 @@ var _music_fade: float = 0.0
 var _leaving: bool = false
 var _last_clock_second: int = -1
 var _hover_tweens: Dictionary = {}
+var _sfx_gate: Dictionary = {}
 
 @onready var _blur_layer: ColorRect = $BlurLayer
 @onready var _logo_button: TextureButton = $Center/Column/Logo
@@ -98,26 +99,6 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		if _overlay.is_open():
-			get_viewport().set_input_as_handled()
-			_overlay.close()
-			return
-		if _mode_choice.is_open():
-			get_viewport().set_input_as_handled()
-			_mode_choice.close()
-			return
-		if _profile_overlay.is_open():
-			get_viewport().set_input_as_handled()
-			_profile_overlay.close()
-			return
-		if _leaderboard_overlay.is_open():
-			get_viewport().set_input_as_handled()
-			_leaderboard_overlay.close()
-			return
-		if _lan_overlay.is_open():
-			get_viewport().set_input_as_handled()
-			_lan_overlay.close()
-			return
 		return
 	if event.is_action_pressed("ui_accept"):
 		if _any_overlay_open():
@@ -129,7 +110,7 @@ func _any_overlay_open() -> bool:
 	return _overlay.is_open() or _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open()
 
 func _should_blur_menu() -> bool:
-	return _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open()
+	return _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open() or _overlay.is_credits_open()
 
 func _on_play_pressed() -> void:
 	if _overlay.is_open():
@@ -187,6 +168,7 @@ func _leave_to_sandbox() -> void:
 	if _leaving:
 		return
 	_leaving = true
+	LoadingScreen.present_on(self, SANDBOX_SCENE)
 	UiAnim.kill_tween(_music_fade_tween)
 	_music_fade_tween = create_tween()
 	_music_fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
@@ -194,10 +176,7 @@ func _leave_to_sandbox() -> void:
 	_music_fade_tween.finished.connect(_finish_leave_to_sandbox)
 
 func _finish_leave_to_sandbox() -> void:
-	var tree: SceneTree = get_tree()
-	if tree == null:
-		return
-	tree.change_scene_to_file(SANDBOX_SCENE)
+	LoadingScreen.switch_current(get_tree())
 
 func _enter_leaderboard() -> void:
 	if _overlay.is_open():
@@ -280,14 +259,14 @@ func _ensure_music() -> void:
 func _wire_button_sounds() -> void:
 	for entry: Variant in find_children("*", "BaseButton", true, false):
 		var button: BaseButton = entry as BaseButton
-		if button == null:
+		if button == null or _is_overlay_owned(button):
 			continue
 		button.mouse_entered.connect(_play_hover)
 		button.focus_entered.connect(_play_hover)
 		if button == _home_button or button == _quit_button:
-			button.pressed.connect(_back_sfx.play)
+			button.pressed.connect(_play_back)
 		else:
-			button.pressed.connect(_click_sfx.play)
+			button.pressed.connect(_play_click)
 
 func _wire_strip_hover(button: Button) -> void:
 	var bg: ColorRect = button.get_node("Bg") as ColorRect
@@ -314,10 +293,31 @@ func _set_strip_hover(button: Button, mat: ShaderMaterial, hovered: bool) -> voi
 	)
 	tween.tween_property(button, "scale", to_scale, STRIP_HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
+func _is_overlay_owned(node: Node) -> bool:
+	var current: Node = node
+	while current != null and current != self:
+		if current is SettingsOverlay or current is RecordSelector or current is LanOverlay or current is ProfileOverlay or current is RecordLeaderboardOverlay or current is ModeChoiceOverlay or current is CreditsOverlay:
+			return true
+		current = current.get_parent()
+	return false
+
 func _play_hover() -> void:
-	if _hover_sfx.stream == null:
+	_play_stream(_hover_sfx, &"hover")
+
+func _play_click() -> void:
+	_play_stream(_click_sfx, &"click")
+
+func _play_back() -> void:
+	_play_stream(_back_sfx, &"back")
+
+func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
+	if player == null or player.stream == null:
 		return
-	_hover_sfx.play()
+	var frame: int = Engine.get_process_frames()
+	if int(_sfx_gate.get(key, -1)) == frame:
+		return
+	_sfx_gate[key] = frame
+	player.play()
 
 func _play_enter_animation() -> void:
 	UiAnim.kill_tween(_enter_tween)

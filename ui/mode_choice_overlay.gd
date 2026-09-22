@@ -7,19 +7,29 @@ signal multi_pressed
 
 var _open: bool = false
 var _anim_tween: Tween
+var _sfx_gate: Dictionary = {}
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _cards: HBoxContainer = $Center/Cards
 @onready var _solo_button: Button = $Center/Cards/Solo
 @onready var _multi_button: Button = $Center/Cards/Multi
 @onready var _back_button: Button = $Back
+@onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
+@onready var _click_sfx: AudioStreamPlayer = $ClickSfx
+@onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_solo_button.pressed.connect(func() -> void: solo_pressed.emit())
-	_multi_button.pressed.connect(func() -> void: multi_pressed.emit())
-	_back_button.pressed.connect(close)
+	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
+	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
+	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
+	_solo_button.pressed.connect(_on_solo_pressed)
+	_multi_button.pressed.connect(_on_multi_pressed)
+	_back_button.pressed.connect(_on_back_pressed)
+	_wire_hover(_solo_button)
+	_wire_hover(_multi_button)
+	_wire_hover(_back_button)
 
 func is_open() -> bool:
 	return _open
@@ -59,4 +69,44 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		close()
+		_on_back_pressed()
+
+func _on_solo_pressed() -> void:
+	_play_click()
+	solo_pressed.emit()
+
+func _on_multi_pressed() -> void:
+	_play_click()
+	multi_pressed.emit()
+
+func _on_back_pressed() -> void:
+	if not _open:
+		return
+	_play_back()
+	close()
+
+func _wire_hover(button: BaseButton) -> void:
+	if button.mouse_entered.is_connected(_play_hover):
+		return
+	button.mouse_entered.connect(_play_hover)
+	button.focus_entered.connect(_play_hover)
+
+func _play_hover() -> void:
+	if not _open:
+		return
+	_play_stream(_hover_sfx, &"hover")
+
+func _play_click() -> void:
+	_play_stream(_click_sfx, &"click")
+
+func _play_back() -> void:
+	_play_stream(_back_sfx, &"back")
+
+func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
+	if player == null or player.stream == null:
+		return
+	var frame: int = Engine.get_process_frames()
+	if int(_sfx_gate.get(key, -1)) == frame:
+		return
+	_sfx_gate[key] = frame
+	player.play()

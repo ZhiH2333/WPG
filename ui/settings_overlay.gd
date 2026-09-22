@@ -34,6 +34,7 @@ var _current_section: SettingsSection = null
 var _close_on_up: bool = false
 var _sections: Array[SettingsSection] = []
 var _navs: Array[SettingsNavButton] = []
+var _sfx_gate: Dictionary = {}
 
 @onready var _dimmer: ColorRect = %Dimmer
 @onready var _drawer: Control = %Drawer
@@ -63,12 +64,22 @@ var _navs: Array[SettingsNavButton] = []
 @onready var _delete_button: HoldConfirmButton = %DeleteButton
 @onready var _status_label: Label = %StatusLabel
 @onready var _preview: AudioStreamPlayer = %Preview
+@onready var _version_label: Label = %VersionLabel
+@onready var _credits_button: Button = %CreditsButton
+@onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
+@onready var _click_sfx: AudioStreamPlayer = $ClickSfx
+@onready var _back_sfx: AudioStreamPlayer = $BackSfx
+@onready var _credits: CreditsOverlay = $CreditsOverlay
 
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process(false)
 	_preview.stream = GameAudio.load_wav("res://audio/click.wav")
+	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
+	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
+	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
+	_version_label.text = "version  %s" % GameSettings.get_version()
 	_msaa_option.clear()
 	_msaa_option.add_item("Off")
 	_msaa_option.add_item("2x")
@@ -78,14 +89,14 @@ func _ready() -> void:
 	_navs = [_audio_nav, _display_nav, _controls_nav, _data_nav]
 	_tag_searchable()
 	_build_bind_rows()
-	_audio_nav.pressed.connect(_scroll_to_section.bind(_audio_section))
-	_display_nav.pressed.connect(_scroll_to_section.bind(_display_section))
-	_controls_nav.pressed.connect(_scroll_to_section.bind(_controls_section))
-	_data_nav.pressed.connect(_scroll_to_section.bind(_data_section))
-	_audio_section.selected_requested.connect(_scroll_to_section.bind(_audio_section))
-	_display_section.selected_requested.connect(_scroll_to_section.bind(_display_section))
-	_controls_section.selected_requested.connect(_scroll_to_section.bind(_controls_section))
-	_data_section.selected_requested.connect(_scroll_to_section.bind(_data_section))
+	_audio_nav.pressed.connect(_on_nav_pressed.bind(_audio_section))
+	_display_nav.pressed.connect(_on_nav_pressed.bind(_display_section))
+	_controls_nav.pressed.connect(_on_nav_pressed.bind(_controls_section))
+	_data_nav.pressed.connect(_on_nav_pressed.bind(_data_section))
+	_audio_section.selected_requested.connect(_on_nav_pressed.bind(_audio_section))
+	_display_section.selected_requested.connect(_on_nav_pressed.bind(_display_section))
+	_controls_section.selected_requested.connect(_on_nav_pressed.bind(_controls_section))
+	_data_section.selected_requested.connect(_on_nav_pressed.bind(_data_section))
 	_dimmer.gui_input.connect(_on_dimmer_gui_input)
 	_search.text_changed.connect(_on_search_changed)
 	_volume_slider.value_changed.connect(_on_volume_changed)
@@ -98,6 +109,7 @@ func _ready() -> void:
 	_vsync_check.toggled.connect(_on_vsync_toggled)
 	_msaa_option.item_selected.connect(_on_msaa_selected)
 	_delete_button.confirmed.connect(_on_delete_all_confirmed)
+	_credits_button.pressed.connect(_on_credits_pressed)
 	_volume_slider.scrollable = false
 	_render_scale_slider.scrollable = false
 	_ui_scale_slider.scrollable = false
@@ -108,9 +120,13 @@ func _ready() -> void:
 	resized.connect(_apply_drawer_layout)
 	_apply_drawer_layout()
 	_fit_sections()
+	_wire_overlay_sounds()
 
 func is_open() -> bool:
 	return _open
+
+func is_credits_open() -> bool:
+	return _credits != null and _credits.is_open()
 
 func open() -> void:
 	_search.set_block_signals(true)
@@ -150,6 +166,8 @@ func close() -> void:
 	if not _open:
 		return
 	_cancel_listen()
+	if _credits != null and _credits.is_open():
+		_credits.close()
 	_open = false
 	_hold_search_focus = false
 	_close_on_up = false
@@ -242,6 +260,9 @@ func _input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
+		if _credits != null and _credits.is_open():
+			_credits.close_from_user()
+			return
 		_on_back_pressed()
 		return
 	if _mouse_over_drawer() and _consume_keyboard_scroll(event):
@@ -272,6 +293,7 @@ func _on_dimmer_gui_input(event: InputEvent) -> void:
 		return
 	_close_on_up = false
 	if not _drawer.get_global_rect().has_point(get_global_mouse_position()):
+		_play_back()
 		close()
 
 func _screen_w() -> float:
@@ -361,6 +383,7 @@ func _consume_keyboard_scroll(event: InputEvent) -> bool:
 
 func _on_back_pressed() -> void:
 	# osu FocusedTextBox: first Back clears search, second hides the overlay.
+	_play_back()
 	if not _search.text.is_empty():
 		_search.text = ""
 		_search.grab_focus()
@@ -536,6 +559,7 @@ func _tag_searchable() -> void:
 	_vsync_check.get_parent().set_meta("settings_search", "vsync display")
 	_msaa_option.get_parent().set_meta("settings_search", "msaa antialias")
 	_delete_button.set_meta("settings_search", "delete data progress records")
+	_credits_button.set_meta("settings_search", "credits about version")
 	var warning: Node = _data_section.body.get_node_or_null("Warning")
 	if warning != null:
 		warning.set_meta("settings_search", "delete data progress records")
@@ -562,6 +586,7 @@ func _on_volume_drag_ended(_value_changed: bool) -> void:
 		_play_preview()
 
 func _on_fullscreen_toggled(pressed: bool) -> void:
+	_play_click()
 	GameSettings.set_fullscreen(pressed)
 	GameSettings.apply()
 	GameSettings.save_to_disk()
@@ -585,16 +610,19 @@ func _on_ui_scale_drag_ended(_value_changed: bool) -> void:
 	GameSettings.save_to_disk()
 
 func _on_vsync_toggled(pressed: bool) -> void:
+	_play_click()
 	GameSettings.set_vsync_enabled(pressed)
 	GameSettings.apply()
 	GameSettings.save_to_disk()
 
 func _on_msaa_selected(index: int) -> void:
+	_play_click()
 	GameSettings.set_msaa_index(index)
 	GameSettings.apply()
 	GameSettings.save_to_disk()
 
 func _on_delete_all_confirmed() -> void:
+	_play_click()
 	var dir: DirAccess = DirAccess.open("user://")
 	if dir != null:
 		if FileAccess.file_exists("user://progress.cfg"):
@@ -630,6 +658,7 @@ func _build_bind_rows() -> void:
 	_controls_section._fit()
 
 func _on_rebind_pressed(button: Button) -> void:
+	_play_click()
 	_begin_listen(button)
 
 func _begin_listen(button: Button) -> void:
@@ -702,6 +731,57 @@ func _play_preview() -> void:
 		return
 	_preview.stop()
 	_preview.play()
+
+func _on_nav_pressed(section: SettingsSection) -> void:
+	_play_click()
+	_scroll_to_section(section)
+
+func _on_credits_pressed() -> void:
+	if not _open:
+		return
+	_play_click()
+	_credits.open()
+
+func _wire_overlay_sounds() -> void:
+	for entry: Variant in find_children("*", "BaseButton", true, false):
+		var button: BaseButton = entry as BaseButton
+		if button == null or _is_credits_owned(button):
+			continue
+		_wire_hover(button)
+
+func _is_credits_owned(node: Node) -> bool:
+	var current: Node = node
+	while current != null and current != self:
+		if current is CreditsOverlay:
+			return true
+		current = current.get_parent()
+	return false
+
+func _wire_hover(button: BaseButton) -> void:
+	if button.mouse_entered.is_connected(_play_hover):
+		return
+	button.mouse_entered.connect(_play_hover)
+	button.focus_entered.connect(_play_hover)
+
+func _play_hover() -> void:
+	if not _open:
+		return
+	_play_stream(_hover_sfx, &"hover")
+
+func _play_click() -> void:
+	_play_stream(_click_sfx, &"click")
+
+func _play_back() -> void:
+	_play_stream(_back_sfx, &"back")
+
+func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
+	if player == null or player.stream == null:
+		return
+	var frame: int = Engine.get_process_frames()
+	if int(_sfx_gate.get(key, -1)) == frame:
+		return
+	_sfx_gate[key] = frame
+	player.play()
 
 func _find_top_bar() -> Control:
 	var parent: Node = get_parent()

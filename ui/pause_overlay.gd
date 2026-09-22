@@ -14,6 +14,7 @@ var _session: RunSession
 var _encounter: EncounterPhrases
 var _anim_tween: Tween
 var _hover_tweens: Dictionary = {}
+var _sfx_gate: Dictionary = {}
 var _last_clock_second: int = -1
 var _owns_tree_pause: bool = false
 
@@ -34,6 +35,7 @@ var _owns_tree_pause: bool = false
 @onready var _overlay: SettingsOverlay = $SettingsOverlay
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
+@onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -42,6 +44,7 @@ func _ready() -> void:
 	_open = false
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
+	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_continue_button.pressed.connect(_on_continue_pressed)
 	_retry_button.pressed.connect(_on_retry_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
@@ -144,7 +147,7 @@ func _is_pause_toggle(event: InputEvent) -> bool:
 func _on_continue_pressed() -> void:
 	if not _open:
 		return
-	_play_click()
+	_play_back()
 	close()
 
 func _on_retry_pressed() -> void:
@@ -156,7 +159,7 @@ func _on_retry_pressed() -> void:
 func _on_quit_pressed() -> void:
 	if not _open:
 		return
-	_play_click()
+	_play_back()
 	_open = false
 	_set_interactive(false)
 	if _overlay.is_open():
@@ -249,11 +252,21 @@ func _set_strip_hover(button: Button, mat: ShaderMaterial, hovered: bool) -> voi
 	tween.tween_property(button, "scale", to_scale, STRIP_HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
 func _play_hover() -> void:
-	if not _open or _hover_sfx.stream == null:
+	if not _open:
 		return
-	_hover_sfx.play()
+	_play_stream(_hover_sfx, &"hover")
 
 func _play_click() -> void:
-	if _click_sfx.stream == null:
+	_play_stream(_click_sfx, &"click")
+
+func _play_back() -> void:
+	_play_stream(_back_sfx, &"back")
+
+func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
+	if player == null or player.stream == null:
 		return
-	_click_sfx.play()
+	var frame: int = Engine.get_process_frames()
+	if int(_sfx_gate.get(key, -1)) == frame:
+		return
+	_sfx_gate[key] = frame
+	player.play()

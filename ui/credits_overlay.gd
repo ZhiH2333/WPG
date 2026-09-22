@@ -1,15 +1,19 @@
 extends Control
-class_name RecordLeaderboardOverlay
+class_name CreditsOverlay
 
-## 主菜单档位排行叠层：只读 GameRecords，按 best_score 降序可视化。不是跨设备排行，不写档。
+## Settings 子叠层：制作组名单。不是独立场景，不换 BGM，不 change_scene。
+const PANEL_PREFERRED := Vector2(960, 720)
+const GITHUB_URL := "https://github.com/ZhiH2333"
+
 var _open: bool = false
 var _anim_tween: Tween
 var _sfx_gate: Dictionary = {}
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
-@onready var _rows: VBoxContainer = $Center/Panel/Column/Content/Scroll/Rows
-@onready var _back_button: Button = $Center/Panel/Column/Header/Back
+@onready var _version_label: Label = $Center/Panel/Column/VersionLabel
+@onready var _back_button: Button = $Center/Panel/Column/Back
+@onready var _github_button: Button = $Center/Panel/Column/Scroll/Body/GithubButton
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
@@ -17,26 +21,33 @@ var _sfx_gate: Dictionary = {}
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	set_process_input(false)
+	_version_label.text = "version  %s" % GameSettings.get_version()
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
-	_back_button.pressed.connect(_on_back_pressed)
+	_back_button.pressed.connect(close_from_user)
+	_github_button.pressed.connect(_on_github_pressed)
+	_dimmer.gui_input.connect(_on_dimmer_gui_input)
 	_wire_hover(_back_button)
+	_wire_hover(_github_button)
 	UiFit.connect_refit(self, _on_host_resized)
 
 func is_open() -> bool:
 	return _open
 
 func open() -> void:
+	if _open:
+		return
 	_open = true
 	visible = true
-	_fit_panel()
-	GameRecords.load_from_disk()
-	_rebuild_rows()
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	set_process_input(true)
+	_fit_panel()
+	move_to_front()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_back_button])
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_back_button], true)
 	_back_button.grab_focus()
 
 func close() -> void:
@@ -44,15 +55,16 @@ func close() -> void:
 		return
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	set_process_input(false)
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_overlay(self, self)
+	_anim_tween = UiAnim.exit_overlay(self, self, true)
 	_anim_tween.finished.connect(_finish_close)
-	_refocus_menu()
 
-func _refocus_menu() -> void:
-	var play: Button = get_parent().get_node_or_null("Center/Column/Buttons/Play") as Button
-	if play != null:
-		play.grab_focus()
+func close_from_user() -> void:
+	if not _open:
+		return
+	_play_back()
+	close()
 
 func _finish_close() -> void:
 	if _open:
@@ -60,51 +72,31 @@ func _finish_close() -> void:
 	visible = false
 	modulate.a = 1.0
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not _open:
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		_on_back_pressed()
+		close_from_user()
+		return
+	var joy: InputEventJoypadButton = event as InputEventJoypadButton
+	if joy != null and joy.pressed and joy.button_index == JOY_BUTTON_START:
+		get_viewport().set_input_as_handled()
+		close_from_user()
 
-func _on_back_pressed() -> void:
+func _on_github_pressed() -> void:
 	if not _open:
 		return
-	_play_back()
-	close()
+	_play_click()
+	OS.shell_open(GITHUB_URL)
 
-func _rebuild_rows() -> void:
-	_clear_rows()
-	var records: Array[GameRecord] = GameRecords.list_records()
-	records.sort_custom(_is_best_score_higher)
-	if records.is_empty():
-		_rows.add_child(_make_empty_hint())
+func _on_dimmer_gui_input(event: InputEvent) -> void:
+	var mouse: InputEventMouseButton = event as InputEventMouseButton
+	if mouse == null or not mouse.pressed or mouse.button_index != MOUSE_BUTTON_LEFT:
 		return
-	var max_score: int = records[0].best_score
-	if max_score <= 0:
-		max_score = 1
-	var rank: int = 1
-	for record: GameRecord in records:
-		_rows.add_child(RecordCard.make_rank_row(rank, record, max_score))
-		rank += 1
-
-func _clear_rows() -> void:
-	var stale: Array[Node] = []
-	for child: Node in _rows.get_children():
-		stale.append(child)
-	for child: Node in stale:
-		_rows.remove_child(child)
-		child.queue_free()
-
-func _make_empty_hint() -> Label:
-	var hint: Label = Label.new()
-	hint.theme_type_variation = &"RunSummaryHint"
-	hint.text = "NO RECORDS YET"
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return hint
-
-func _is_best_score_higher(left: GameRecord, right: GameRecord) -> bool:
-	return left.best_score > right.best_score
+	if _panel.get_global_rect().has_point(get_global_mouse_position()):
+		return
+	close_from_user()
 
 func _on_host_resized() -> void:
 	if not _open:
@@ -112,7 +104,10 @@ func _on_host_resized() -> void:
 	_fit_panel()
 
 func _fit_panel() -> void:
-	UiFit.apply_floating_panel(self, _panel)
+	var host: Control = get_parent() as Control
+	if host == null:
+		host = self
+	UiFit.apply_floating_panel(host, _panel, PANEL_PREFERRED)
 
 func _wire_hover(button: BaseButton) -> void:
 	if button.mouse_entered.is_connected(_play_hover):

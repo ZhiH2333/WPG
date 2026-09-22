@@ -899,6 +899,7 @@ func _return_to_menu() -> void:
 	if tree != null:
 		tree.paused = false
 	_combat_music.process_mode = Node.PROCESS_MODE_ALWAYS
+	LoadingScreen.present_on(self, MENU_SCENE)
 	UiAnim.kill_tween(_music_tween)
 	_music_tween = create_tween()
 	_music_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
@@ -906,10 +907,7 @@ func _return_to_menu() -> void:
 	_music_tween.finished.connect(_finish_return_to_menu)
 
 func _finish_return_to_menu() -> void:
-	var tree: SceneTree = get_tree()
-	if tree == null:
-		return
-	tree.change_scene_to_file(MENU_SCENE)
+	LoadingScreen.switch_current(get_tree())
 
 func _try_debug_hotkeys(event: InputEvent) -> void:
 	if _is_lan():

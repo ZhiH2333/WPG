@@ -177,3 +177,5 @@ text = "Menu"
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 
 [node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="BackSfx" type="AudioStreamPlayer" parent="."]

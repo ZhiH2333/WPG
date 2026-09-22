@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://ui/settings_overlay.gd" id="1_overlay"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" path="res://ui/icons/monitor.png" id="7_monitor"]
 [ext_resource type="Texture2D" path="res://ui/icons/keyboard.png" id="8_keyboard"]
 [ext_resource type="Texture2D" path="res://ui/icons/database.png" id="9_database"]
+[ext_resource type="PackedScene" path="res://ui/credits_overlay.tscn" id="10_credits"]
 
 [node name="SettingsOverlay" type="Control"]
 visible = false
@@ -276,13 +277,22 @@ search_name = "Controls"
 unique_name_in_owner = true
 layout_mode = 2
 header_text = "Data"
-search_name = "Data delete progress records"
+search_name = "Data delete progress records credits about version"
 
 [node name="Warning" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 text = "Deletes progress and records. Settings are kept."
+
+[node name="CreditsButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "CREDITS"
 
 [node name="DeleteButton" parent="Drawer/Panel/Clip/Content/DataSection/Body" instance=ExtResource("3_hold")]
 unique_name_in_owner = true
@@ -309,17 +319,17 @@ unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0)
 layout_mode = 0
 offset_right = 658.0
-offset_bottom = 148.0
+offset_bottom = 172.0
 mouse_filter = 2
 color = Color(0.1, 0.1, 0.1, 1)
 
 [node name="ExpandableHeader" type="MarginContainer" parent="Drawer/Panel"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 96)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 96.0
+offset_bottom = 120.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 12
@@ -345,14 +355,21 @@ mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 text = "Change game settings"
 
+[node name="VersionLabel" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "version  1.0.0"
+
 [node name="SearchWrap" type="MarginContainer" parent="Drawer/Panel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 96.0
-offset_bottom = 148.0
+offset_top = 120.0
+offset_bottom = 172.0
 grow_horizontal = 2
 mouse_filter = 0
 theme_override_constants/margin_left = 12
@@ -369,3 +386,17 @@ caret_blink = true
 
 [node name="Preview" type="AudioStreamPlayer" parent="."]
 unique_name_in_owner = true
+
+[node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="BackSfx" type="AudioStreamPlayer" parent="."]
+
+[node name="CreditsOverlay" parent="." instance=ExtResource("10_credits")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
