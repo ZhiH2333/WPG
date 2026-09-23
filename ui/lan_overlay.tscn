@@ -621,6 +621,14 @@ theme_type_variation = &"OfferDesc"
 text = "mode  Co-op"
 horizontal_alignment = 1
 
+[node name="SeatLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "seat  1"
+horizontal_alignment = 1
+
 [node name="WaitingLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
 visible = false
 layout_mode = 2

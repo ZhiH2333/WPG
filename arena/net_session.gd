@@ -1,9 +1,9 @@
 extends Node
 class_name NetSession
 
-## 沙盒内局域网会话。不是 Autoload。Host 权威，Guest 发输入收快照。手写 RPC，不要 MultiplayerSynchronizer。
-signal peer_lost
-signal input_received(move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int)
+## 沙盒内局域网会话。不是 Autoload。Host 权威，Guest 发输入收快照。手写 RPC，不要 MultiplayerSynchronizer。座位 1～5，peer→seat 查表，禁止写死 seat 2。
+signal peer_lost(peer_id: int)
+signal input_received(seat: int, move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int)
 signal snapshot_received(data: PackedByteArray)
 signal fire_fx_received(seat: int, origin: Vector2, direction: Vector2, weapon_index: int)
 signal offer_open_received(kind: int, id0: String, id1: String, id2: String, gold: int)
@@ -28,12 +28,41 @@ var _role: GameLaunch.NetRole = GameLaunch.NetRole.OFFLINE
 var _send_acc: float = 0.0
 var _wired: bool = false
 var _sandbox: CombatSandbox
+var _local_seat: int = 1
+var _peer_ids: PackedInt32Array = PackedInt32Array()
 
 func configure(role: GameLaunch.NetRole, sandbox: CombatSandbox) -> void:
 	_role = role
 	_sandbox = sandbox
 	_send_acc = 0.0
 	_wire_peer_signals()
+
+func bind_roster(local_seat: int, peer_ids: PackedInt32Array) -> void:
+	_local_seat = clampi(local_seat, 1, GameLaunch.NET_MAX_SEATS)
+	_peer_ids = PackedInt32Array()
+	_peer_ids.resize(GameLaunch.NET_MAX_SEATS)
+	for i: int in mini(peer_ids.size(), GameLaunch.NET_MAX_SEATS):
+		_peer_ids[i] = peer_ids[i]
+
+func seat_for_peer(peer_id: int) -> int:
+	if peer_id <= 0:
+		return 0
+	for i: int in _peer_ids.size():
+		if _peer_ids[i] == peer_id:
+			return i + 1
+	return 0
+
+func release_peer(peer_id: int) -> void:
+	var seat: int = seat_for_peer(peer_id)
+	if seat < 1 or seat > _peer_ids.size():
+		return
+	_peer_ids[seat - 1] = 0
+
+func has_remote_seats() -> bool:
+	for i: int in range(1, _peer_ids.size()):
+		if _peer_ids[i] != 0:
+			return true
+	return false
 
 func is_online() -> bool:
 	return _role != GameLaunch.NetRole.OFFLINE
@@ -45,9 +74,7 @@ func is_guest() -> bool:
 	return _role == GameLaunch.NetRole.GUEST
 
 func get_local_seat() -> int:
-	if _role == GameLaunch.NetRole.GUEST:
-		return 2
-	return 1
+	return _local_seat
 
 func get_unique_id() -> int:
 	if multiplayer.multiplayer_peer == null:
@@ -67,7 +94,6 @@ func send_input(payload: Dictionary) -> void:
 		return
 	rpc_input.rpc_id(
 		1,
-		2,
 		float(payload.get("mx", 0.0)),
 		float(payload.get("my", 0.0)),
 		float(payload.get("ax", 1.0)),
@@ -154,6 +180,8 @@ func _wire_peer_signals() -> void:
 	if _wired:
 		return
 	_wired = true
+	if not multiplayer.peer_connected.is_connected(_on_peer_connected):
+		multiplayer.peer_connected.connect(_on_peer_connected)
 	if not multiplayer.peer_disconnected.is_connected(_on_peer_disconnected):
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	if not multiplayer.server_disconnected.is_connected(_on_server_disconnected):
@@ -163,28 +191,41 @@ func _unwire_peer_signals() -> void:
 	if not _wired:
 		return
 	_wired = false
+	if multiplayer.peer_connected.is_connected(_on_peer_connected):
+		multiplayer.peer_connected.disconnect(_on_peer_connected)
 	if multiplayer.peer_disconnected.is_connected(_on_peer_disconnected):
 		multiplayer.peer_disconnected.disconnect(_on_peer_disconnected)
 	if multiplayer.server_disconnected.is_connected(_on_server_disconnected):
 		multiplayer.server_disconnected.disconnect(_on_server_disconnected)
 
-func _on_peer_disconnected(_id: int) -> void:
+func _on_peer_connected(id: int) -> void:
+	if not is_host() or not is_online():
+		return
+	if seat_for_peer(id) != 0:
+		return
+	multiplayer.multiplayer_peer.disconnect_peer(id)
+
+func _on_peer_disconnected(id: int) -> void:
 	if not is_online():
 		return
-	peer_lost.emit()
+	peer_lost.emit(id)
 
 func _on_server_disconnected() -> void:
 	if not is_online():
 		return
-	peer_lost.emit()
+	peer_lost.emit(1)
+
+func _seat_from_sender() -> int:
+	return seat_for_peer(multiplayer.get_remote_sender_id())
 
 @rpc("any_peer", "call_remote", "unreliable")
-func rpc_input(seat: int, mx: float, my: float, ax: float, ay: float, fire: bool, dash: bool, weapon_slot: int) -> void:
+func rpc_input(mx: float, my: float, ax: float, ay: float, fire: bool, dash: bool, weapon_slot: int) -> void:
 	if not is_host():
 		return
-	if seat != 2:
+	var seat: int = _seat_from_sender()
+	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
 		return
-	input_received.emit(Vector2(mx, my), Vector2(ax, ay), fire, dash, weapon_slot)
+	input_received.emit(seat, Vector2(mx, my), Vector2(ax, ay), fire, dash, weapon_slot)
 
 @rpc("authority", "call_remote", "unreliable")
 func rpc_snapshot(data: PackedByteArray) -> void:
@@ -256,4 +297,7 @@ func rpc_shop_stock(data: PackedByteArray, gold: int, stim_bought: bool) -> void
 func rpc_try_shop(kind: int, item_id: String, extra: int) -> void:
 	if not is_host():
 		return
-	try_shop_received.emit(2, kind, item_id, extra)
+	var seat: int = _seat_from_sender()
+	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
+		return
+	try_shop_received.emit(seat, kind, item_id, extra)

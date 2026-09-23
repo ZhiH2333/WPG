@@ -22,9 +22,9 @@ buses/default_bus_layout="res://default_bus_layout.tres"
 
 [debug]
 
-multirun/number_of_windows=2
+multirun/number_of_windows=5
 multirun/add_custom_args=true
-multirun/window_args=["listen", "join"]
+multirun/window_args=["listen", "join", "join", "join", "join"]
 
 [display]
 

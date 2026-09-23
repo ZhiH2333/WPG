@@ -1,7 +1,7 @@
 extends Control
 class_name LanOverlay
 
-## 主菜单局域网叠层：HOME / PICK / HOST / JOIN。Host 可借已有档预填角色、loop_goal 和地图，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。
+## 主菜单局域网叠层：HOME / PICK / HOST / JOIN。Host 可借已有档预填角色、loop_goal 和地图，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。座位 1～5，第三人进房不踢，满 5 才踢。
 signal start_lan
 
 enum View { HOME, PICK, HOST, JOIN }
@@ -17,13 +17,14 @@ var _view: View = View.HOME
 var _anim_tween: Tween
 var _sfx_gate: Dictionary = {}
 var _selected_character_id: String = CHAR_BOAR
-var _guest_character_id: String = CHAR_BOAR
-var _guest_id: int = 0
-var _handshake_ok: bool = false
 var _host_started: bool = false
 var _picked_record_id: String = ""
 var _selected_arena_id: String = "yard"
 var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
+var _seat_peer_ids: PackedInt32Array = PackedInt32Array()
+var _seat_character_ids: PackedStringArray = PackedStringArray()
+var _seat_handshake: PackedByteArray = PackedByteArray()
+var _roster_character_ids: PackedStringArray = PackedStringArray()
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
@@ -57,6 +58,7 @@ var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
 @onready var _join_goal: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/GoalLabel
 @onready var _join_map: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/MapLabel
 @onready var _join_mode: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/ModeLabel
+@onready var _join_seat: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/SeatLabel
 @onready var _join_wait: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/WaitingLabel
 @onready var _back_button: Button = $Center/Panel/Column/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
@@ -94,6 +96,7 @@ func _ready() -> void:
 	for button: Button in [_host_button, _join_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
 		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
+	_reset_seats()
 	_show_home(false)
 
 func _exit_tree() -> void:
@@ -253,10 +256,8 @@ func _begin_host() -> void:
 	_join_root.visible = false
 	_host_root.visible = true
 	_host_address.text = _format_addresses()
-	_host_status.text = "waiting"
-	_handshake_ok = false
-	_guest_id = 0
-	_guest_character_id = CHAR_BOAR
+	_reset_seats()
+	_refresh_host_status()
 	_refresh_host_start()
 	if not _create_server():
 		_host_status.text = "bind failed"
@@ -278,10 +279,7 @@ func _enter_join() -> void:
 	_reset_character()
 	_join_edit.text = GameLaunch.DEFAULT_JOIN_ADDRESS
 	_join_status.text = ""
-	_join_goal.visible = false
-	_join_map.visible = false
-	_join_mode.visible = false
-	_join_wait.visible = false
+	_hide_join_session_labels()
 	_connect_button.disabled = false
 	_wire_multiplayer()
 	_join_edit.grab_focus()
@@ -289,10 +287,11 @@ func _enter_join() -> void:
 func _create_server() -> bool:
 	_clear_peer()
 	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
-	var err: Error = peer.create_server(GameLaunch.NET_PORT, 2)
+	var err: Error = peer.create_server(GameLaunch.NET_PORT, GameLaunch.NET_MAX_SEATS - 1)
 	if err != OK:
 		return false
 	multiplayer.multiplayer_peer = peer
+	_reset_seats()
 	return true
 
 func _on_connect_pressed() -> void:
@@ -301,10 +300,7 @@ func _on_connect_pressed() -> void:
 	_play_click()
 	_clear_peer()
 	_join_status.text = "connecting"
-	_join_wait.visible = false
-	_join_goal.visible = false
-	_join_map.visible = false
-	_join_mode.visible = false
+	_hide_join_session_labels()
 	_connect_button.disabled = true
 	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
 	var err: Error = peer.create_client(_join_edit.text.strip_edges(), GameLaunch.NET_PORT)
@@ -342,25 +338,23 @@ func _unwire_multiplayer() -> void:
 func _on_peer_connected(id: int) -> void:
 	if not multiplayer.is_server():
 		return
-	if multiplayer.get_peers().size() > 1:
+	var seat: int = _assign_guest_seat(id)
+	if seat < 2:
 		multiplayer.multiplayer_peer.disconnect_peer(id)
 		return
-	_guest_id = id
-	_handshake_ok = false
-	_host_status.text = "waiting"
+	_refresh_host_status()
 	_refresh_host_start()
 	rpc_hello.rpc_id(id, GameLaunch.NET_PROTOCOL)
 
 func _on_peer_disconnected(id: int) -> void:
 	if not multiplayer.is_server():
 		return
-	if id != _guest_id:
+	if _seat_for_peer(id) < 2:
 		return
-	_guest_id = 0
-	_handshake_ok = false
-	_guest_character_id = CHAR_BOAR
-	_host_status.text = "waiting"
+	_clear_seat_of_peer(id)
+	_refresh_host_status()
 	_refresh_host_start()
+	_broadcast_roster()
 
 func _on_connected_to_server() -> void:
 	if _view != View.JOIN:
@@ -371,8 +365,7 @@ func _on_connected_to_server() -> void:
 func _on_connection_failed() -> void:
 	_join_status.text = "refused"
 	_connect_button.disabled = false
-	_join_wait.visible = false
-	_join_mode.visible = false
+	_hide_join_session_labels()
 	_clear_peer()
 
 func _on_server_disconnected() -> void:
@@ -381,10 +374,7 @@ func _on_server_disconnected() -> void:
 	if _join_status.text != "Version mismatch":
 		_join_status.text = "refused"
 	_connect_button.disabled = false
-	_join_wait.visible = false
-	_join_goal.visible = false
-	_join_map.visible = false
-	_join_mode.visible = false
+	_hide_join_session_labels()
 	_clear_peer()
 
 @rpc("authority", "call_remote", "reliable")
@@ -404,27 +394,46 @@ func rpc_hello(protocol: int) -> void:
 func rpc_hello_ok() -> void:
 	if not multiplayer.is_server():
 		return
-	if multiplayer.get_remote_sender_id() != _guest_id:
+	var sender: int = multiplayer.get_remote_sender_id()
+	var seat: int = _seat_for_peer(sender)
+	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
 		return
-	_handshake_ok = true
-	_host_status.text = "guest connected"
+	_seat_handshake[seat - 1] = 1
+	_refresh_host_status()
 	_refresh_host_start()
-	_push_session_to_guest()
+	rpc_assign_seat.rpc_id(sender, seat)
+	_push_session_to_peer(sender)
+	_broadcast_roster()
 
 @rpc("any_peer", "call_remote", "reliable")
 func rpc_guest_character(character_id: String) -> void:
 	if not multiplayer.is_server():
 		return
-	if multiplayer.get_remote_sender_id() != _guest_id:
+	var sender: int = multiplayer.get_remote_sender_id()
+	var seat: int = _seat_for_peer(sender)
+	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
 		return
-	_guest_character_id = GameLaunch._sanitize_character_id(character_id)
+	_seat_character_ids[seat - 1] = GameLaunch._sanitize_character_id(character_id)
+	_broadcast_roster()
 
 @rpc("authority", "call_remote", "reliable")
-func rpc_begin(host_character_id: String, guest_character_id: String, loop_goal: int, arena_id: String, net_play: int) -> void:
+func rpc_assign_seat(seat: int) -> void:
+	var clamped: int = clampi(seat, 1, GameLaunch.NET_MAX_SEATS)
+	GameLaunch.set_local_seat(clamped)
+	_join_seat.visible = true
+	_join_seat.text = "seat  %d" % clamped
+
+@rpc("authority", "call_remote", "reliable")
+func rpc_roster(data: PackedByteArray) -> void:
+	_roster_character_ids = _decode_roster(data)
+	GameLaunch.set_lan_roster(_roster_character_ids, _empty_peer_ids(), 0)
+
+@rpc("authority", "call_remote", "reliable")
+func rpc_begin(loop_goal: int, arena_id: String, net_play: int) -> void:
 	_host_started = true
+	GameLaunch.set_lan_roster(_roster_character_ids, _empty_peer_ids(), loop_goal)
 	GameLaunch.set_net_role(GameLaunch.NetRole.GUEST)
 	GameLaunch.set_join_address(_join_edit.text)
-	GameLaunch.set_lan_loadout(host_character_id, guest_character_id, loop_goal)
 	GameLaunch.set_arena_id(arena_id)
 	GameLaunch.set_net_play(_play_from_net(net_play))
 	start_lan.emit()
@@ -452,25 +461,31 @@ func rpc_play_mode(net_play: int) -> void:
 	_join_mode.text = "mode  Co-op"
 
 func _on_start_pressed() -> void:
-	if not _handshake_ok or _guest_id == 0:
+	if not _can_start():
 		return
 	_play_click()
 	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
 	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
+	_seat_character_ids[0] = _selected_character_id
+	_seat_peer_ids[0] = 1
+	GameLaunch.set_lan_roster(_seat_character_ids.duplicate(), _seat_peer_ids.duplicate(), loop_goal)
+	GameLaunch.set_local_seat(1)
 	GameLaunch.set_net_role(GameLaunch.NetRole.HOST)
-	GameLaunch.set_lan_loadout(_selected_character_id, _guest_character_id, loop_goal)
 	GameLaunch.set_arena_id(arena_id)
 	GameLaunch.set_net_play(_net_play)
 	_host_started = true
-	rpc_goal.rpc_id(_guest_id, loop_goal)
-	rpc_play_mode.rpc_id(_guest_id, int(_net_play))
-	rpc_begin.rpc_id(_guest_id, _selected_character_id, _guest_character_id, loop_goal, arena_id, int(_net_play))
+	var packed: PackedByteArray = _encode_roster()
+	for peer: int in _handshake_guest_peers():
+		rpc_roster.rpc_id(peer, packed)
+		rpc_goal.rpc_id(peer, loop_goal)
+		rpc_arena.rpc_id(peer, arena_id)
+		rpc_play_mode.rpc_id(peer, int(_net_play))
+		rpc_begin.rpc_id(peer, loop_goal, arena_id, int(_net_play))
 	start_lan.emit()
 
 func _on_loop_changed(_value: float) -> void:
 	_refresh_loop_label()
-	if _handshake_ok and _guest_id != 0:
-		rpc_goal.rpc_id(_guest_id, maxi(roundi(_loop_slider.value), 0))
+	_broadcast_goal()
 
 func _select_character(character_id: String) -> void:
 	_selected_character_id = GameLaunch._sanitize_character_id(character_id)
@@ -478,6 +493,9 @@ func _select_character(character_id: String) -> void:
 	_host_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
 	_join_boar.button_pressed = _selected_character_id == CHAR_BOAR
 	_join_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
+	if _view == View.HOST:
+		_seat_character_ids[0] = _selected_character_id
+		_broadcast_roster()
 	if _view == View.JOIN and multiplayer.multiplayer_peer != null:
 		rpc_guest_character.rpc_id(1, _selected_character_id)
 
@@ -486,15 +504,15 @@ func _select_arena(arena_id: String) -> void:
 	_host_yard.button_pressed = _selected_arena_id == "yard"
 	_host_pit.button_pressed = _selected_arena_id == "pit"
 	_host_keep.button_pressed = _selected_arena_id == "keep"
-	if _handshake_ok and _guest_id != 0:
-		rpc_arena.rpc_id(_guest_id, _selected_arena_id)
+	_broadcast_arena()
 
-func _push_session_to_guest() -> void:
-	if not _handshake_ok or _guest_id == 0:
+func _push_session_to_peer(peer: int) -> void:
+	if peer <= 1:
 		return
-	rpc_goal.rpc_id(_guest_id, maxi(roundi(_loop_slider.value), 0))
-	rpc_arena.rpc_id(_guest_id, GameLaunch._sanitize_arena_id(_selected_arena_id))
-	rpc_play_mode.rpc_id(_guest_id, int(_net_play))
+	rpc_roster.rpc_id(peer, _encode_roster())
+	rpc_goal.rpc_id(peer, maxi(roundi(_loop_slider.value), 0))
+	rpc_arena.rpc_id(peer, GameLaunch._sanitize_arena_id(_selected_arena_id))
+	rpc_play_mode.rpc_id(peer, int(_net_play))
 
 func _reset_character() -> void:
 	_select_character(CHAR_BOAR)
@@ -516,8 +534,8 @@ func _select_net_play(play: GameLaunch.NetPlay) -> void:
 	_host_coop.button_pressed = play == GameLaunch.NetPlay.COOP
 	_host_battle.button_pressed = play == GameLaunch.NetPlay.BATTLE
 	_refresh_mode_ui()
-	if _handshake_ok and _guest_id != 0:
-		rpc_play_mode.rpc_id(_guest_id, int(_net_play))
+	_refresh_host_start()
+	_broadcast_play_mode()
 
 func _refresh_mode_ui() -> void:
 	if _net_play == GameLaunch.NetPlay.BATTLE:
@@ -534,7 +552,7 @@ func _refresh_loop_label() -> void:
 	_loop_label.text = RecordCard.format_loop_badge(maxi(roundi(_loop_slider.value), 0))
 
 func _refresh_host_start() -> void:
-	var can_start: bool = _handshake_ok and _guest_id != 0
+	var can_start: bool = _can_start()
 	_start_button.disabled = not can_start
 	_start_button.focus_mode = Control.FOCUS_ALL if can_start else Control.FOCUS_NONE
 
@@ -650,8 +668,8 @@ func _fill_character(button: Button, character_id: String) -> void:
 
 func _clear_peer() -> void:
 	_unwire_multiplayer()
-	_guest_id = 0
-	_handshake_ok = false
+	if not _host_started:
+		_reset_seats()
 	if _host_started:
 		return
 	var peer: MultiplayerPeer = multiplayer.multiplayer_peer
@@ -715,3 +733,156 @@ func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
 		return
 	_sfx_gate[key] = frame
 	player.play()
+
+func _reset_seats() -> void:
+	_seat_peer_ids = PackedInt32Array()
+	_seat_peer_ids.resize(GameLaunch.NET_MAX_SEATS)
+	_seat_peer_ids.fill(0)
+	_seat_peer_ids[0] = 1
+	_seat_character_ids = PackedStringArray()
+	_seat_character_ids.resize(GameLaunch.NET_MAX_SEATS)
+	_seat_character_ids.fill("")
+	_seat_character_ids[0] = _selected_character_id
+	_seat_handshake = PackedByteArray()
+	_seat_handshake.resize(GameLaunch.NET_MAX_SEATS)
+	_seat_handshake.fill(0)
+	_seat_handshake[0] = 1
+	_roster_character_ids = PackedStringArray()
+	_roster_character_ids.resize(GameLaunch.NET_MAX_SEATS)
+
+func _assign_guest_seat(peer_id: int) -> int:
+	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
+		if _seat_peer_ids[seat - 1] != 0:
+			continue
+		_seat_peer_ids[seat - 1] = peer_id
+		_seat_character_ids[seat - 1] = CHAR_BOAR
+		_seat_handshake[seat - 1] = 0
+		return seat
+	return 0
+
+func _clear_seat_of_peer(peer_id: int) -> void:
+	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
+		if _seat_peer_ids[seat - 1] != peer_id:
+			continue
+		_seat_peer_ids[seat - 1] = 0
+		_seat_character_ids[seat - 1] = ""
+		_seat_handshake[seat - 1] = 0
+		return
+
+func _seat_for_peer(peer_id: int) -> int:
+	if peer_id <= 0:
+		return 0
+	for i: int in _seat_peer_ids.size():
+		if _seat_peer_ids[i] == peer_id:
+			return i + 1
+	return 0
+
+func _occupied_count() -> int:
+	var n: int = 0
+	for i: int in _seat_peer_ids.size():
+		if _seat_peer_ids[i] != 0:
+			n += 1
+	return n
+
+func _all_guests_handshake() -> bool:
+	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
+		if _seat_peer_ids[seat - 1] == 0:
+			continue
+		if _seat_handshake[seat - 1] == 0:
+			return false
+	return true
+
+func _can_start() -> bool:
+	var occupied: int = _occupied_count()
+	if occupied < 2 or not _all_guests_handshake():
+		return false
+	if _net_play == GameLaunch.NetPlay.BATTLE:
+		return occupied == 2
+	return occupied <= GameLaunch.NET_MAX_SEATS
+
+func _handshake_guest_peers() -> PackedInt32Array:
+	var peers: PackedInt32Array = PackedInt32Array()
+	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
+		if _seat_peer_ids[seat - 1] == 0 or _seat_handshake[seat - 1] == 0:
+			continue
+		peers.append(_seat_peer_ids[seat - 1])
+	return peers
+
+func _refresh_host_status() -> void:
+	var occupied: int = _occupied_count()
+	if occupied <= 1:
+		_host_status.text = "waiting"
+		return
+	_host_status.text = "%d/%d connected" % [occupied, GameLaunch.NET_MAX_SEATS]
+
+func _encode_roster() -> PackedByteArray:
+	_seat_character_ids[0] = _selected_character_id
+	var buf: StreamPeerBuffer = StreamPeerBuffer.new()
+	var n: int = _occupied_count()
+	buf.put_u8(n)
+	for seat: int in range(1, GameLaunch.NET_MAX_SEATS + 1):
+		if _seat_peer_ids[seat - 1] == 0:
+			continue
+		buf.put_u8(seat)
+		buf.put_utf8_string(_seat_character_ids[seat - 1])
+	return buf.data_array
+
+func _decode_roster(data: PackedByteArray) -> PackedStringArray:
+	var ids: PackedStringArray = PackedStringArray()
+	ids.resize(GameLaunch.NET_MAX_SEATS)
+	if data.is_empty():
+		return ids
+	var buf: StreamPeerBuffer = StreamPeerBuffer.new()
+	buf.data_array = data
+	buf.seek(0)
+	var n: int = buf.get_u8()
+	for _i: int in n:
+		var seat: int = buf.get_u8()
+		var character_id: String = buf.get_utf8_string()
+		if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:
+			continue
+		if character_id.is_empty():
+			ids[seat - 1] = ""
+			continue
+		ids[seat - 1] = GameLaunch._sanitize_character_id(character_id)
+	return ids
+
+func _empty_peer_ids() -> PackedInt32Array:
+	var peers: PackedInt32Array = PackedInt32Array()
+	peers.resize(GameLaunch.NET_MAX_SEATS)
+	peers.fill(0)
+	return peers
+
+func _broadcast_roster() -> void:
+	if not multiplayer.is_server():
+		return
+	var packed: PackedByteArray = _encode_roster()
+	for peer: int in _handshake_guest_peers():
+		rpc_roster.rpc_id(peer, packed)
+
+func _broadcast_goal() -> void:
+	if not multiplayer.is_server():
+		return
+	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
+	for peer: int in _handshake_guest_peers():
+		rpc_goal.rpc_id(peer, loop_goal)
+
+func _broadcast_arena() -> void:
+	if not multiplayer.is_server():
+		return
+	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
+	for peer: int in _handshake_guest_peers():
+		rpc_arena.rpc_id(peer, arena_id)
+
+func _broadcast_play_mode() -> void:
+	if not multiplayer.is_server():
+		return
+	for peer: int in _handshake_guest_peers():
+		rpc_play_mode.rpc_id(peer, int(_net_play))
+
+func _hide_join_session_labels() -> void:
+	_join_wait.visible = false
+	_join_goal.visible = false
+	_join_map.visible = false
+	_join_mode.visible = false
+	_join_seat.visible = false

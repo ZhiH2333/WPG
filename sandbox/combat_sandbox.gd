@@ -32,7 +32,7 @@ const UPGRADE_SKIP_ID := "__skip__"
 const OFFER_PHRASE: int = 0
 const OFFER_LEVEL: int = 1
 const OFFER_SHOP: int = 2
-const SNAPSHOT_VERSION: int = 2
+const SNAPSHOT_VERSION: int = 3
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -45,10 +45,13 @@ var _leaving: bool = false
 var _music_tween: Tween
 var _reset_frame: int = -1
 var _net_role: GameLaunch.NetRole = GameLaunch.NetRole.OFFLINE
-var _lan_loadout: Dictionary = {}
+var _lan_character_ids: PackedStringArray = PackedStringArray()
+var _lan_peer_ids: PackedInt32Array = PackedInt32Array()
+var _lan_loop_goal: int = 0
+var _local_seat: int = 1
 var _pawns: Array[Player] = []
+var _synced_pawns: Array[Player] = []
 var _local_player: Player
-var _guest_pawn: Player
 var _lan_paused: bool = false
 var _last_owned_label: String = ""
 var _companions: Array[CompanionBase] = []
@@ -211,7 +214,11 @@ func _ensure_combat_music() -> void:
 
 func _bind_runtime() -> void:
 	_net_role = GameLaunch.take_net_role()
-	_lan_loadout = GameLaunch.take_lan_loadout()
+	_local_seat = GameLaunch.take_local_seat()
+	var roster: Dictionary = GameLaunch.take_lan_roster()
+	_lan_character_ids = roster.get("character_ids", PackedStringArray())
+	_lan_peer_ids = roster.get("peer_ids", PackedInt32Array())
+	_lan_loop_goal = int(roster.get("loop_goal", 0))
 	_net_play = GameLaunch.take_net_play()
 	_started_as_lan = _is_lan()
 	if _is_lan():
@@ -220,6 +227,7 @@ func _bind_runtime() -> void:
 			_return_to_menu()
 			return
 	_net.configure(_net_role, self)
+	_net.bind_roster(_local_seat, _lan_peer_ids)
 	_net.peer_lost.connect(_on_peer_lost)
 	_net.input_received.connect(_on_net_input)
 	_net.snapshot_received.connect(_on_net_snapshot)
@@ -244,6 +252,8 @@ func _bind_runtime() -> void:
 	_bind_projectile_sparks(_projectiles)
 	_bind_projectile_sparks(_enemy_projectiles)
 	for pawn: Player in _pawns:
+		if pawn == null:
+			continue
 		pawn.bind_projectile_pool(_projectiles)
 		pawn.bind_sfx_pool(_sfx_pool)
 		if pawn == _local_player:
@@ -272,7 +282,7 @@ func _bind_runtime() -> void:
 	_hud.bind_run_session(_run_session)
 	_bind_battle_hud()
 	_bind_weapon_hit_players()
-	_run_session.bind_players(_pawns)
+	_run_session.bind_players(_synced_pawns)
 	_run_session.bind_encounter(_encounter)
 	_run_session.bind_catalog(UPGRADE_CATALOG)
 	_run_session.bind_companion_catalog(COMPANION_CATALOG)
@@ -284,7 +294,7 @@ func _bind_runtime() -> void:
 		_arena_id = "yard"
 	_apply_arena(_arena_id)
 	if _is_lan():
-		_run_session.configure_mode(int(_lan_loadout.get("loop_goal", 0)))
+		_run_session.configure_mode(_lan_loop_goal)
 	else:
 		_run_session.configure_mode(_read_record_loop_goal())
 	_apply_record_character()
@@ -294,7 +304,7 @@ func _bind_runtime() -> void:
 	elif not _is_guest():
 		_apply_loop_pressure()
 		_encounter.restart()
-	_upgrade_applier.bind_players(_pawns)
+	_upgrade_applier.bind_players(_synced_pawns)
 	_upgrade_applier.bind_session(_run_session)
 	_upgrade_applier.capture_baseline()
 	_upgrade_applier.apply_owned()
@@ -324,7 +334,8 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_record_id(_record_id)
 	_debug_overlay.bind_arena_id(_arena_id)
 	_debug_overlay.bind_net_session(_net)
-	_debug_overlay.bind_p2(_guest_pawn)
+	_debug_overlay.bind_p2(_pawn_for_seat(2))
+	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
 	_debug_overlay.bind_net_play(_net_play)
 	_debug_overlay.set_last_grant_id("-")
 
@@ -429,6 +440,8 @@ func _reset_sandbox() -> void:
 	_run_session.restart()
 	_upgrade_applier.apply_owned()
 	for pawn: Player in _pawns:
+		if pawn == null:
+			continue
 		pawn.set_sim_paused(false)
 		pawn.reset_for_sandbox()
 	_hold_all_in_reserve()
@@ -835,9 +848,12 @@ func _on_pause_quit() -> void:
 
 func _apply_record_character() -> void:
 	if _is_lan():
-		_apply_character_id(_pawns[0] if not _pawns.is_empty() else _player, str(_lan_loadout.get("host_character_id", "boar")))
-		if _pawns.size() > 1:
-			_apply_character_id(_pawns[1], str(_lan_loadout.get("guest_character_id", "boar")))
+		for seat: int in range(1, GameLaunch.NET_MAX_SEATS + 1):
+			var pawn: Player = _pawn_for_seat(seat)
+			if pawn == null:
+				continue
+			var character_id: String = _character_id_for_seat(seat)
+			_apply_character_id(pawn, character_id if not character_id.is_empty() else "boar")
 		return
 	var record: GameRecord = GameRecords.get_record(_record_id)
 	var character_id: String = "boar"
@@ -1181,37 +1197,43 @@ func _tick_god_mode_kills() -> void:
 
 func _prepare_pawns() -> void:
 	_pawns.clear()
-	_guest_pawn = null
+	_synced_pawns.clear()
 	_player.set_spawn_position(_player.global_position)
-	_pawns.append(_player)
-	if _is_lan():
-		_guest_pawn = PLAYER_SCENE.instantiate() as Player
-		_guest_pawn.name = "Player2"
-		_players_root.add_child(_guest_pawn)
-		_guest_pawn.global_position = GUEST_SPAWN
-		_guest_pawn.set_spawn_position(GUEST_SPAWN)
-		_pawns.append(_guest_pawn)
-	if _is_guest() and _pawns.size() > 1:
-		_local_player = _pawns[1]
-	else:
-		_local_player = _pawns[0]
-	for pawn: Player in _pawns:
+	if not _is_lan():
+		_pawns.append(_player)
+		_synced_pawns.append(_player)
+		_local_player = _player
+		_apply_pawn_drive(_player, false, true)
+		return
+	var max_seat: int = 1
+	for seat: int in range(1, GameLaunch.NET_MAX_SEATS + 1):
+		if _is_roster_seat_occupied(seat):
+			max_seat = seat
+	for _i: int in max_seat:
+		_pawns.append(null)
+	_pawns[0] = _player
+	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
+		if not _is_roster_seat_occupied(seat):
+			continue
+		var guest: Player = PLAYER_SCENE.instantiate() as Player
+		guest.name = "Player%d" % seat
+		_players_root.add_child(guest)
+		guest.global_position = GUEST_SPAWN
+		guest.set_spawn_position(GUEST_SPAWN)
+		_pawns[seat - 1] = guest
+	_local_player = _pawn_for_seat(_local_seat)
+	if _local_player == null:
+		_local_player = _player
+	for i: int in _pawns.size():
+		var pawn: Player = _pawns[i]
 		if pawn == null:
 			continue
-		if _is_host() and pawn == _guest_pawn:
-			pawn.get_player_input().set_remote_driven(true)
-			pawn.set_simulate_combat(true)
+		var is_local: bool = pawn == _local_player
+		if _is_host():
+			_apply_pawn_drive(pawn, not is_local, true)
 			continue
-		if _is_guest() and pawn != _local_player:
-			pawn.get_player_input().set_remote_driven(true)
-			pawn.set_simulate_combat(false)
-			continue
-		if _is_guest() and pawn == _local_player:
-			pawn.get_player_input().set_remote_driven(false)
-			pawn.set_simulate_combat(false)
-			continue
-		pawn.get_player_input().set_remote_driven(false)
-		pawn.set_simulate_combat(true)
+		_apply_pawn_drive(pawn, not is_local, false)
+	_rebuild_synced_pawns()
 
 func _is_lan() -> bool:
 	return _net_role != GameLaunch.NetRole.OFFLINE
@@ -1254,16 +1276,33 @@ func _resolve_battle_if_needed() -> void:
 		return
 	if _winner_page.is_open() or not _run_session.is_playing():
 		return
-	var host_dead: bool = _pawns.size() > 0 and _pawns[0] != null and _pawns[0].is_defeated()
-	var guest_dead: bool = _pawns.size() > 1 and _pawns[1] != null and _pawns[1].is_defeated()
-	if not host_dead and not guest_dead:
+	if _occupied_seat_count() != 2:
 		return
-	if host_dead and guest_dead:
+	var first: Player = null
+	var second: Player = null
+	var first_seat: int = 0
+	var second_seat: int = 0
+	for i: int in _pawns.size():
+		if _pawns[i] == null:
+			continue
+		if first == null:
+			first = _pawns[i]
+			first_seat = i + 1
+			continue
+		second = _pawns[i]
+		second_seat = i + 1
+	if first == null or second == null:
+		return
+	var first_dead: bool = first.is_defeated()
+	var second_dead: bool = second.is_defeated()
+	if not first_dead and not second_dead:
+		return
+	if first_dead and second_dead:
 		_battle_winner_seat = 0
-	elif host_dead:
-		_battle_winner_seat = 2
+	elif first_dead:
+		_battle_winner_seat = second_seat
 	else:
-		_battle_winner_seat = 1
+		_battle_winner_seat = first_seat
 	_run_session.mark_battle_over()
 
 func _all_pawns_defeated() -> bool:
@@ -1328,10 +1367,14 @@ func flush_net_snapshot() -> void:
 	var buf: StreamPeerBuffer = StreamPeerBuffer.new()
 	buf.put_u8(SNAPSHOT_VERSION)
 	buf.put_u8(1 if _lan_paused else 0)
-	buf.put_u8(_pawns.size())
-	for pawn: Player in _pawns:
+	buf.put_u8(_occupied_seat_count())
+	for i: int in _pawns.size():
+		var pawn: Player = _pawns[i]
+		if pawn == null:
+			continue
 		var aim: Vector2 = pawn.get_player_input().aim_vector
 		var health: PlayerHealth = pawn.get_player_health()
+		buf.put_u8(i + 1)
 		buf.put_float(pawn.global_position.x)
 		buf.put_float(pawn.global_position.y)
 		buf.put_float(pawn.velocity.x)
@@ -1375,10 +1418,11 @@ func flush_net_snapshot() -> void:
 		buf.put_utf8_string(owned[i])
 	_net.send_snapshot(buf.data_array)
 
-func _on_net_input(move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int) -> void:
-	if _guest_pawn == null:
+func _on_net_input(seat: int, move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int) -> void:
+	var pawn: Player = _pawn_for_seat(seat)
+	if pawn == null:
 		return
-	_guest_pawn.get_player_input().apply_remote_frame(move, aim, fire, dash, weapon_slot)
+	pawn.get_player_input().apply_remote_frame(move, aim, fire, dash, weapon_slot)
 
 func _on_net_snapshot(data: PackedByteArray) -> void:
 	if not _is_guest() or data.is_empty():
@@ -1390,7 +1434,9 @@ func _on_net_snapshot(data: PackedByteArray) -> void:
 		return
 	_lan_paused = buf.get_u8() != 0
 	var pawn_count: int = buf.get_u8()
-	for i: int in pawn_count:
+	var seen: Dictionary = {}
+	for _i: int in pawn_count:
+		var seat: int = buf.get_u8()
 		var pos := Vector2(buf.get_float(), buf.get_float())
 		var vel := Vector2(buf.get_float(), buf.get_float())
 		var aim := Vector2(buf.get_float(), buf.get_float())
@@ -1399,10 +1445,13 @@ func _on_net_snapshot(data: PackedByteArray) -> void:
 		var defeated: bool = buf.get_u8() != 0
 		var weapon_index: int = buf.get_u8()
 		var facing_flip: bool = buf.get_u8() != 0
-		if i >= _pawns.size() or _pawns[i] == null:
+		seen[seat] = true
+		var pawn: Player = _ensure_guest_pawn(seat)
+		if pawn == null:
 			continue
-		var local_aim: bool = _pawns[i] != _local_player
-		_pawns[i].apply_net_pose(pos, vel, aim, hp, max_hp, defeated, weapon_index, facing_flip, local_aim)
+		var local_aim: bool = pawn != _local_player
+		pawn.apply_net_pose(pos, vel, aim, hp, max_hp, defeated, weapon_index, facing_flip, local_aim)
+	_free_unseen_guest_pawns(seen)
 	var enemy_count: int = buf.get_u8()
 	for _i: int in enemy_count:
 		var index: int = buf.get_u8()
@@ -1516,19 +1565,28 @@ func _on_net_try_pause() -> void:
 		return
 	_set_lan_paused(true)
 
-func _on_peer_lost() -> void:
+func _on_peer_lost(peer_id: int) -> void:
 	if _leaving:
 		return
 	if _is_guest():
 		_present_host_closed()
 		return
-	if _is_host():
+	if not _is_host():
+		return
+	var seat: int = _net.seat_for_peer(peer_id)
+	_net.release_peer(peer_id)
+	if not _net.has_remote_seats():
 		_convert_lan_host_to_solo()
+		return
+	_remove_seat_pawn(seat)
+	_rebind_after_pawn_change()
 
 func _on_pawn_shot_fired(aim: Vector2, _weapon: Weapon, pawn: Player) -> void:
 	if not _is_host() or pawn == null:
 		return
-	var seat: int = 1 if pawn == _pawns[0] else 2
+	var seat: int = _seat_for_owner(pawn)
+	if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:
+		return
 	_net.send_fire_fx(seat, pawn.get_muzzle_global_position(), aim, pawn.get_weapon_host().get_current_index())
 
 func _broadcast_offer_open(kind: int, defs: Array[UpgradeDef], gold: int) -> void:
@@ -1555,23 +1613,26 @@ func _defs_from_ids(id0: String, id1: String, id2: String) -> Array[UpgradeDef]:
 	return defs
 
 func _pawn_for_seat(seat: int) -> Player:
-	if seat <= 1:
-		if _pawns.is_empty():
-			return _player
-		return _pawns[0]
-	if _pawns.size() > 1:
-		return _pawns[1]
-	return _guest_pawn
+	if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:
+		return null
+	var index: int = seat - 1
+	if index < 0 or index >= _pawns.size():
+		return null
+	return _pawns[index]
 
 func _host_buyer() -> Player:
-	if _pawns.is_empty():
-		return _player
-	return _pawns[0]
+	var pawn: Player = _pawn_for_seat(1)
+	if pawn != null:
+		return pawn
+	return _player
 
 func _seat_for_owner(owner: Player) -> int:
-	if owner != null and _pawns.size() > 1 and owner == _pawns[1]:
-		return 2
-	return 1
+	if owner == null:
+		return 0
+	for i: int in _pawns.size():
+		if _pawns[i] == owner:
+			return i + 1
+	return 0
 
 func _pause_companions(paused: bool) -> void:
 	for companion: CompanionBase in _companions:
@@ -1691,8 +1752,6 @@ func _on_net_shop_stock(data: PackedByteArray, gold: int, stim_bought: bool) -> 
 
 func _on_net_try_shop(seat: int, kind: int, item_id: String, extra: int) -> void:
 	if not _is_host():
-		return
-	if seat != 2:
 		return
 	if not _shop_offer.is_open():
 		return
@@ -1845,7 +1904,7 @@ func _convert_lan_host_to_solo() -> void:
 	_net.close_peer()
 	_net_role = GameLaunch.NetRole.OFFLINE
 	_lan_paused = false
-	_remove_guest_pawn()
+	_remove_remote_pawns()
 	_player.set_simulate_combat(true)
 	_player.get_player_input().set_remote_driven(false)
 	_player.set_sim_paused(false)
@@ -1853,10 +1912,11 @@ func _convert_lan_host_to_solo() -> void:
 		enemy.bind_players(_pawns)
 		enemy.set_sim_paused(false)
 	_pause_companions(false)
-	_run_session.bind_players(_pawns)
-	_upgrade_applier.bind_players(_pawns)
+	_run_session.bind_players(_synced_pawns)
+	_upgrade_applier.bind_players(_synced_pawns)
 	_shop_offer.bind_player(_player)
 	_debug_overlay.bind_p2(null)
+	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_net_play(_net_play)
 	_bind_weapon_hit_players()
@@ -1867,18 +1927,140 @@ func _convert_lan_host_to_solo() -> void:
 		_set_combat_frozen(true)
 	_room_notice.present_toast(RoomNotice.TEXT_GUEST_LEFT)
 
-func _remove_guest_pawn() -> void:
-	if _guest_pawn == null:
+func _remove_remote_pawns() -> void:
+	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
+		_remove_seat_pawn(seat)
+	_pawns.clear()
+	_pawns.append(_player)
+	_synced_pawns.clear()
+	_synced_pawns.append(_player)
+	_local_player = _player
+	_local_seat = 1
+	_sync_companion_bindings()
+
+func _apply_pawn_drive(pawn: Player, remote_driven: bool, simulate_combat: bool) -> void:
+	pawn.get_player_input().set_remote_driven(remote_driven)
+	pawn.set_simulate_combat(simulate_combat)
+
+func _is_roster_seat_occupied(seat: int) -> bool:
+	if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:
+		return false
+	if seat - 1 >= _lan_character_ids.size():
+		return false
+	return not str(_lan_character_ids[seat - 1]).is_empty()
+
+func _character_id_for_seat(seat: int) -> String:
+	if seat < 1 or seat - 1 >= _lan_character_ids.size():
+		return ""
+	return str(_lan_character_ids[seat - 1])
+
+func _rebuild_synced_pawns() -> void:
+	_synced_pawns.clear()
+	for pawn: Player in _pawns:
+		if pawn != null:
+			_synced_pawns.append(pawn)
+
+func _occupied_seat_count() -> int:
+	var n: int = 0
+	for pawn: Player in _pawns:
+		if pawn != null:
+			n += 1
+	return n
+
+func _occupied_seats() -> PackedInt32Array:
+	var seats: PackedInt32Array = PackedInt32Array()
+	for i: int in _pawns.size():
+		if _pawns[i] != null:
+			seats.append(i + 1)
+	return seats
+
+func _ensure_pawn_slot(seat: int) -> void:
+	while _pawns.size() < seat:
+		_pawns.append(null)
+
+func _ensure_guest_pawn(seat: int) -> Player:
+	if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:
+		return null
+	_ensure_pawn_slot(seat)
+	if _pawns[seat - 1] != null:
+		return _pawns[seat - 1]
+	if seat == 1:
+		_pawns[0] = _player
+		_apply_pawn_drive(_player, _player != _local_player, false)
+		_rebuild_synced_pawns()
+		return _player
+	var pawn: Player = PLAYER_SCENE.instantiate() as Player
+	pawn.name = "Player%d" % seat
+	_players_root.add_child(pawn)
+	pawn.global_position = GUEST_SPAWN
+	pawn.set_spawn_position(GUEST_SPAWN)
+	pawn.bind_projectile_pool(_projectiles)
+	pawn.bind_sfx_pool(_sfx_pool)
+	_apply_character_id(pawn, _character_id_for_seat(seat) if not _character_id_for_seat(seat).is_empty() else "boar")
+	_apply_pawn_drive(pawn, pawn != _local_player, false)
+	_pawns[seat - 1] = pawn
+	_rebuild_synced_pawns()
+	_rebind_after_pawn_change()
+	return pawn
+
+func _free_unseen_guest_pawns(seen: Dictionary) -> void:
+	var removed: bool = false
+	for i: int in range(_pawns.size() - 1, -1, -1):
+		var pawn: Player = _pawns[i]
+		if pawn == null:
+			continue
+		var seat: int = i + 1
+		if seen.has(seat):
+			continue
+		if seat == 1:
+			continue
+		_remove_seat_pawn(seat)
+		removed = true
+	_rebuild_synced_pawns()
+	if removed:
+		_rebind_after_pawn_change()
+
+func _drop_synced_pawn(pawn: Player) -> void:
+	for i: int in _synced_pawns.size():
+		if _synced_pawns[i] == pawn:
+			_synced_pawns[i] = null
+			return
+
+func _remove_seat_pawn(seat: int) -> void:
+	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
 		return
-	var guest: Player = _guest_pawn
+	var pawn: Player = _pawn_for_seat(seat)
+	if pawn == null:
+		return
+	var host_pawn: Player = _pawn_for_seat(1)
+	if host_pawn == null:
+		host_pawn = _player
 	for companion: CompanionBase in _companions:
 		if companion == null or not is_instance_valid(companion):
 			continue
-		if companion.get_owner_player() == guest:
-			companion.bind_owner(_player)
-	_pawns = [_player]
-	_guest_pawn = null
-	_local_player = _player
-	if is_instance_valid(guest):
-		guest.queue_free()
+		if companion.get_owner_player() == pawn:
+			companion.bind_owner(host_pawn)
+	_drop_synced_pawn(pawn)
+	_pawns[seat - 1] = null
+	if _local_player == pawn:
+		_local_player = _player
+	if is_instance_valid(pawn):
+		pawn.queue_free()
+	while _pawns.size() > 1 and _pawns[_pawns.size() - 1] == null:
+		_pawns.pop_back()
 	_sync_companion_bindings()
+
+func _rebind_after_pawn_change() -> void:
+	_bind_enemies(_enemies)
+	_run_session.bind_players(_synced_pawns)
+	_upgrade_applier.bind_players(_synced_pawns)
+	if _local_player != null:
+		_shop_offer.bind_player(_local_player)
+		_hud.bind_player(_local_player)
+		_hud.bind_weapon_host(_local_player.get_weapon_host())
+	_bind_weapon_hit_players()
+	_bind_battle_hud()
+	_debug_overlay.bind_p2(_pawn_for_seat(2))
+	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
+	_debug_overlay.bind_net_session(_net)
+	_debug_overlay.bind_net_play(_net_play)
