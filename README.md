@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 4。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 有 Master / Music / SFX 三轨音量和显示项。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火；Dash 默认 A、切枪默认十字键，可在 Settings Controls 的 Pad 列改按钮，摇杆和扳机不重绑。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 4。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 有 Master / Music / SFX 三轨音量和显示项。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火；Dash 默认 A、切枪默认十字键，可在 Settings Controls 的 Pad 列改按钮，摇杆和扳机不重绑。冲突会旁白并播 Error；RESTORE DEFAULTS 只清键位，Start 仍暂停/关店/取消三选一。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -1464,6 +1464,17 @@ Settings Controls 补 `weapon_smg` 键盘重绑，并给 Dash / 四把枪加 Pad
 
 **当时不做：** Restore Defaults、虚拟摇杆、导出、第五栏 Gamepad、5 人/P2P、主动技能、改协议 4、改 SNAPSHOT_VERSION、改战斗数字、新 wav、新 PNG、新 CanvasLayer、Autoload、把 Joy 写进 `move_*` / `dash` / `weapon_*`、重绑摇杆轴/扳机轴/开火、把 Start/Guide 绑成 Dash 或切枪。
 
+
+## Day 77（已完成）：Controls 打磨
+
+冲突从只闪 IN USE 升级成旁白 + Error。RESTORE DEFAULTS 只清键位。商店 PICK_GUN 跟手柄枪绑定走。Start 仍是系统键。Autoload 仍为 0。协议仍 4。Solo / Infinite / LAN Co-op / Battle 与 Day 76 相同。
+
+- **GameSettings**：`reset_controls()` 只 `_key_overrides.clear()` 与 `_joy_overrides.clear()`，不 apply、不 save、不动音量/显示。`find_key_conflict` 表内其它动作同键返回其 action id，否则 `""`。`find_joy_conflict`：START/GUIDE → `"reserved"`；越界或不在 `REBINDABLE_JOY_ACTIONS` → `"invalid"`；表内其它同号 → 那个 action id；否则 `""`。`set_key_for_action` / `set_joy_button_for_action` 仍只 return false，不拼句子。不新开 settings.cfg 节。
+- **Settings Controls**：保留 analog hint。hint 下 `BindStatus`（RunSummaryHint，IGNORE，默认空）。冲突钮仍 "IN USE" 0.6s；reserved 旁白 `"Start is reserved."` / `"Guide is reserved."`；占用 `"%s is used by %s."`（键盘 `OS.get_keycode_string`，手柄 `joy_label`）；invalid 旁白空仍闪 IN USE。成功 / Esc / `open()` 清空旁白。冲突播 Error（`click.wav` 走 SFX，`_sfx_gate`），不播 click。Body 底 `RESTORE DEFAULTS` OfferButton 高 56：`reset_controls` + apply + save + 刷新钮 + `"Controls restored."` + click。搜索 meta `"restore defaults reset keys gamepad"`。听 Pad 按 Start 走冲突 UI，不关 Settings。摇杆/扳机仍忽略。不要第五栏。
+- **ShopOffer PICK_GUN**：删写死四向 DPAD。对 `REBINDABLE_JOY_ACTIONS` 里四把枪（跳过 dash）用 `get_joy_button_for_action` 比对 → 槽 0..3。Start 仍 Back。浏览态 Joy 除 Start 外不买货。`_process` 仍可读 PlayerInput 槽。三选一十字键左/上/右仍点卡 0/1/2，不跟枪绑定走。
+
+**当时不做：** 第五栏 Gamepad、虚拟摇杆、导出、5 人/P2P、主动技能、改协议 4、改 SNAPSHOT_VERSION、改战斗数字、新 wav、新 PNG、新 CanvasLayer、Autoload、把 Joy 写进 InputMap、Restore 清音量/显示、重绑摇杆轴/扳机轴/开火、把 Start/Guide 绑成 Dash 或切枪、三选一改成跟枪绑定。
+
 ## 剩余表
 
 
@@ -1525,9 +1536,11 @@ Settings Controls 补 `weapon_smg` 键盘重绑，并给 Dash / 四把枪加 Pad
 
 **Day 76 = 键盘 Smg 重绑 + 手柄按钮落盘（已完成）**：`weapon_smg` 进键盘重绑；`[gamepad]` 五键落盘；Pad 列听钮；PlayerInput Dash/切枪/认领读绑定；摇杆/扳机不重绑；Joy 不进 InputMap。
 
-**下一步 Day 77 = 手柄页打磨（冲突提示、Restore Defaults、暂停/商店/三选一仍认 Start；2 人 Co-op / Battle 手柄过一遍）。**
+**Day 77 = Controls 打磨（已完成）**：冲突旁白 + Error、RESTORE DEFAULTS 只清键位、商店 PICK_GUN 跟手柄枪绑定；Start 仍暂停/关店/取消三选一。Restore 不清音量。
 
-**完整手柄适配后置（已拍板）**：虚拟摇杆布局编辑与触屏整包仍后置到 Day 81+。Day 76 已做 Settings 手柄按钮落盘；Day 57 的右摇杆 `map_aim_stick` 保留。
+**下一步 Day 78 = 座位 2→5**（pawn 数组 1～5、快照、owner_seat、商店 try_shop 不再 seat!=2；协议 5；第三人不再被踢，HUD/出生点这一天可以仍按两人显示）。
+
+**完整手柄适配后置（已拍板）**：虚拟摇杆布局编辑与触屏整包仍后置到 Day 81+。Day 76 已做 Settings 手柄按钮落盘；Day 77 已做冲突旁白、Restore Defaults、商店选枪跟绑定。Day 57 的右摇杆 `map_aim_stick` 保留。
 
 > **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Day 58 已完成第三刀：Settings 抽屉。TopBar、LogoButton 仍用旧皮。
 
@@ -1537,8 +1550,8 @@ Settings Controls 补 `weapon_smg` 键盘重绑，并给 Dash / 四把枪加 Pad
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD。LAN 同步药和跟班已在 Day 73 落地。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。Day 75 已做 Master / Music / SFX 分轨。Day 76 已做键盘 Smg 重绑 + 手柄按钮落盘。下一步 Day 77 手柄页打磨（冲突提示、Restore Defaults、暂停/商店/三选一仍认 Start；2 人 Co-op / Battle 手柄过一遍）。导出 Win/macOS/Linux 与 profiling 仍后置。后续波次/Boss 词表扩充。
-4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。**虚拟摇杆**仍排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同。Joypad 按钮落盘已在 Day 76 完成。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。Day 75 已做 Master / Music / SFX 分轨。Day 76 已做键盘 Smg 重绑 + 手柄按钮落盘。Day 77 已做 Controls 打磨（冲突旁白、Restore Defaults、商店选枪跟绑定、Start 仍系统键）。下一步 Day 78 座位 2→5（pawn 数组 1～5、快照、owner_seat、商店 try_shop 不再 seat!=2；协议 5；第三人不再被踢，HUD/出生点这一天可以仍按两人显示）。导出 Win/macOS/Linux 与 profiling 仍后置。后续波次/Boss 词表扩充。
+4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。**虚拟摇杆**仍排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同。Joypad 按钮落盘已在 Day 76 完成；Day 77 已打磨冲突旁白与 Restore。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 
 **验收口径（每一天通用）**：本 Day README 里列出的「当时不做」清单之外的行为不应出现改动；新增/变更的脚本、场景、theme 项都要在 README 对应 Day 小节里落字，agent 交付前必须自查 README 是否已同步——这正是本次修的问题（Day 52/53 曾漏更新）。

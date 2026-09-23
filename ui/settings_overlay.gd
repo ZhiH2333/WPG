@@ -26,6 +26,7 @@ var _joy_button_by_action: Dictionary = {}
 var _listening_action: String = ""
 var _listening_button: Button = null
 var _listening_joy: bool = false
+var _bind_status: Label
 var _scroll_current: float = 0.0
 var _scroll_target: float = 0.0
 var _distance_decay: float = DISTANCE_DECAY_SCROLL
@@ -73,6 +74,7 @@ var _sfx_gate: Dictionary = {}
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
+@onready var _error_sfx: AudioStreamPlayer = $ErrorSfx
 @onready var _credits: CreditsOverlay = $CreditsOverlay
 
 func _ready() -> void:
@@ -83,6 +85,7 @@ func _ready() -> void:
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
+	_error_sfx.stream = GameAudio.load_wav("res://audio/click.wav")
 	_version_label.text = "version  %s" % GameSettings.get_version()
 	_msaa_option.clear()
 	_msaa_option.add_item("Off")
@@ -151,6 +154,7 @@ func open() -> void:
 	_cancel_listen()
 	_refresh_key_labels()
 	_status_label.text = ""
+	_clear_bind_status()
 	_open = true
 	_hold_search_focus = true
 	_distance_decay = DISTANCE_DECAY_JUMP
@@ -667,6 +671,15 @@ func _build_bind_rows() -> void:
 	hint.text = "Sticks stay analog. Pad column rebinds Dash and guns."
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(hint)
+	var bind_status: Label = Label.new()
+	bind_status.name = "BindStatus"
+	bind_status.theme_type_variation = &"RunSummaryHint"
+	bind_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bind_status.text = ""
+	body.add_child(bind_status)
+	bind_status.owner = self
+	bind_status.unique_name_in_owner = true
+	_bind_status = bind_status
 	for action: String in GameSettings.REBINDABLE_ACTIONS:
 		var row: HBoxContainer = HBoxContainer.new()
 		row.set_meta("settings_search", GameSettings.action_display_name(action))
@@ -697,6 +710,18 @@ func _build_bind_rows() -> void:
 			_joy_button_by_action[pad] = action
 			row.add_child(pad)
 		body.add_child(row)
+	var restore: Button = Button.new()
+	restore.name = "RestoreButton"
+	restore.theme_type_variation = &"OfferButton"
+	restore.custom_minimum_size = Vector2(0, 56)
+	restore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	restore.mouse_filter = Control.MOUSE_FILTER_STOP
+	restore.text = "RESTORE DEFAULTS"
+	restore.set_meta("settings_search", "restore defaults reset keys gamepad")
+	restore.pressed.connect(_on_restore_pressed)
+	body.add_child(restore)
+	restore.owner = self
+	restore.unique_name_in_owner = true
 	_controls_section._fit()
 
 func _on_rebind_pressed(button: Button) -> void:
@@ -746,6 +771,7 @@ func _cancel_listen() -> void:
 	_listening_button = null
 	_listening_action = ""
 	_listening_joy = false
+	_clear_bind_status()
 
 func _handle_listen_event(event: InputEvent) -> void:
 	var key_event: InputEventKey = event as InputEventKey
@@ -777,18 +803,16 @@ func _handle_rebind_key(key_event: InputEventKey) -> void:
 	if button == null or not is_instance_valid(button):
 		_search.grab_focus()
 		return
-	if GameSettings.set_key_for_action(action, key_event.physical_keycode):
+	var keycode: int = key_event.physical_keycode
+	var occupier: String = GameSettings.find_key_conflict(action, keycode)
+	if occupier.is_empty() and GameSettings.set_key_for_action(action, keycode):
 		GameSettings.apply()
 		GameSettings.save_to_disk()
 		button.text = GameSettings.key_label_for_action(action)
+		_clear_bind_status()
 		_search.grab_focus()
 		return
-	button.text = "IN USE"
-	_search.grab_focus()
-	var tree: SceneTree = get_tree()
-	if tree == null:
-		return
-	tree.create_timer(IN_USE_FLASH_SEC).timeout.connect(_restore_bind_label.bind(button, action))
+	_fail_bind(button, action, _key_conflict_text(keycode, occupier))
 
 func _handle_rebind_joy(joy_event: InputEventJoypadButton) -> void:
 	var action: String = _listening_action
@@ -799,17 +823,15 @@ func _handle_rebind_joy(joy_event: InputEventJoypadButton) -> void:
 	if button == null or not is_instance_valid(button):
 		_search.grab_focus()
 		return
-	if GameSettings.set_joy_button_for_action(action, joy_event.button_index):
+	var joy_button: int = joy_event.button_index
+	var conflict: String = GameSettings.find_joy_conflict(action, joy_button)
+	if conflict.is_empty() and GameSettings.set_joy_button_for_action(action, joy_button):
 		GameSettings.save_to_disk()
 		button.text = GameSettings.joy_label_for_action(action)
+		_clear_bind_status()
 		_search.grab_focus()
 		return
-	button.text = "IN USE"
-	_search.grab_focus()
-	var tree: SceneTree = get_tree()
-	if tree == null:
-		return
-	tree.create_timer(IN_USE_FLASH_SEC).timeout.connect(_restore_bind_label.bind(button, action))
+	_fail_bind(button, action, _joy_conflict_text(joy_button, conflict))
 
 func _restore_bind_label(button: Button, action: String) -> void:
 	if not is_instance_valid(button):
@@ -832,6 +854,50 @@ func _refresh_key_labels() -> void:
 		if button == null or button == _listening_button:
 			continue
 		button.text = GameSettings.joy_label_for_action(str(_joy_button_by_action[button]))
+
+func _on_restore_pressed() -> void:
+	_play_click()
+	_cancel_listen()
+	GameSettings.reset_controls()
+	GameSettings.apply()
+	GameSettings.save_to_disk()
+	_refresh_key_labels()
+	_set_bind_status("Controls restored.")
+
+func _clear_bind_status() -> void:
+	_set_bind_status("")
+
+func _set_bind_status(text: String) -> void:
+	if _bind_status == null:
+		return
+	_bind_status.text = text
+
+func _key_conflict_text(keycode: int, occupier: String) -> String:
+	if occupier.is_empty():
+		return ""
+	return "%s is used by %s." % [OS.get_keycode_string(keycode as Key), GameSettings.action_display_name(occupier)]
+
+func _joy_conflict_text(joy_button: int, conflict: String) -> String:
+	if conflict == "reserved":
+		if joy_button == JOY_BUTTON_START:
+			return "Start is reserved."
+		if joy_button == JOY_BUTTON_GUIDE:
+			return "Guide is reserved."
+		return ""
+	if conflict.is_empty() or conflict == "invalid":
+		return ""
+	return "%s is used by %s." % [GameSettings.joy_label_for_action(conflict), GameSettings.action_display_name(conflict)]
+
+func _fail_bind(button: Button, action: String, status: String) -> void:
+	button.text = "IN USE"
+	_set_bind_status(status)
+	_play_error()
+	_search.grab_focus()
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	tree.create_timer(IN_USE_FLASH_SEC).timeout.connect(_restore_bind_label.bind(button, action))
+
 func _sync_render_scale_label(slider_value: float) -> void:
 	_render_scale_label.text = "Render Resolution  %d%%" % int(slider_value)
 
@@ -885,6 +951,9 @@ func _play_click() -> void:
 
 func _play_back() -> void:
 	_play_stream(_back_sfx, &"back")
+
+func _play_error() -> void:
+	_play_stream(_error_sfx, &"error")
 
 func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
 	if player == null or player.stream == null:

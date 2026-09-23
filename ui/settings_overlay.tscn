@@ -441,6 +441,9 @@ bus = &"SFX"
 [node name="BackSfx" type="AudioStreamPlayer" parent="."]
 bus = &"SFX"
 
+[node name="ErrorSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
+
 [node name="CreditsOverlay" parent="." instance=ExtResource("10_credits")]
 layout_mode = 1
 anchors_preset = 15

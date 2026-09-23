@@ -261,21 +261,31 @@ func _handle_joy_button(joy_button: InputEventJoypadButton) -> void:
 		return
 	if _view != View.PICK_GUN:
 		return
-	if joy_button.button_index == JOY_BUTTON_DPAD_LEFT:
-		get_viewport().set_input_as_handled()
-		_pick_gun(0)
+	var slot: int = _joy_gun_slot(joy_button.button_index)
+	if slot < 0:
 		return
-	if joy_button.button_index == JOY_BUTTON_DPAD_UP:
-		get_viewport().set_input_as_handled()
-		_pick_gun(1)
-		return
-	if joy_button.button_index == JOY_BUTTON_DPAD_RIGHT:
-		get_viewport().set_input_as_handled()
-		_pick_gun(2)
-		return
-	if joy_button.button_index == JOY_BUTTON_DPAD_DOWN:
-		get_viewport().set_input_as_handled()
-		_pick_gun(3)
+	get_viewport().set_input_as_handled()
+	_pick_gun(slot)
+
+## PICK_GUN 跟当前手柄枪绑定走。跳过 dash，Start 不进这里。
+func _joy_gun_slot(button_index: int) -> int:
+	for action: String in GameSettings.REBINDABLE_JOY_ACTIONS:
+		if action == "dash":
+			continue
+		if GameSettings.get_joy_button_for_action(action) != button_index:
+			continue
+		match action:
+			"weapon_pistol":
+				return 0
+			"weapon_shotgun":
+				return 1
+			"weapon_rifle":
+				return 2
+			"weapon_smg":
+				return 3
+			_:
+				return -1
+	return -1
 
 func _on_gun_pressed(index: int) -> void:
 	_pick_gun(index)

@@ -133,6 +133,11 @@ static func apply() -> void:
 		root.content_scale_factor = _ui_scale
 	_apply_key_bindings()
 
+## 只清键位覆盖。调用方再 apply / save。音量与显示不动。
+static func reset_controls() -> void:
+	_key_overrides.clear()
+	_joy_overrides.clear()
+
 static func _apply_bus_volume(bus_name: String, linear: float) -> void:
 	var bus: int = AudioServer.get_bus_index(bus_name)
 	if bus < 0:
@@ -211,6 +216,15 @@ static func set_key_for_action(action: String, physical_keycode: int) -> bool:
 		_key_overrides[action] = physical_keycode
 	return true
 
+## 表内其它动作占用同一物理键则返回其 action id，否则空串。
+static func find_key_conflict(action: String, physical_keycode: int) -> String:
+	for other: String in REBINDABLE_ACTIONS:
+		if other == action:
+			continue
+		if get_key_for_action(other) == physical_keycode:
+			return other
+	return ""
+
 static func key_label_for_action(action: String) -> String:
 	return OS.get_keycode_string(get_key_for_action(action) as Key)
 
@@ -234,6 +248,21 @@ static func set_joy_button_for_action(action: String, button: int) -> bool:
 	else:
 		_joy_overrides[action] = button
 	return true
+
+## reserved=Start/Guide；invalid=越界或不在手柄表；否则返回占用者 action id。
+static func find_joy_conflict(action: String, button: int) -> String:
+	if button == JOY_BUTTON_START or button == JOY_BUTTON_GUIDE:
+		return "reserved"
+	if button < 0 or button >= JOY_BUTTON_MAX:
+		return "invalid"
+	if not REBINDABLE_JOY_ACTIONS.has(action):
+		return "invalid"
+	for other: String in REBINDABLE_JOY_ACTIONS:
+		if other == action:
+			continue
+		if get_joy_button_for_action(other) == button:
+			return other
+	return ""
 
 static func joy_label_for_action(action: String) -> String:
 	var button: int = get_joy_button_for_action(action)
