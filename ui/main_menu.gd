@@ -4,6 +4,7 @@ class_name MainMenu
 ## 主菜单：字标在上，Settings / Play / Exit 三颗平行四边形按钮并排在下。
 ## Play 先问 Solo / Multi。顶栏 Solo / Multi 直达。叠层打开时背景模糊 + 音乐衰减。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
+const LOADING_SCREEN_SCRIPT := preload("res://ui/loading_screen.gd")
 const TOP_BAR_HEIGHT: float = 60.0
 const MUSIC_DB_NORMAL: float = -6.0
 const MUSIC_DB_DIMMED: float = -16.0
@@ -168,7 +169,7 @@ func _leave_to_sandbox() -> void:
 	if _leaving:
 		return
 	_leaving = true
-	LoadingScreen.present_on(self, SANDBOX_SCENE)
+	LOADING_SCREEN_SCRIPT.present_on(self, SANDBOX_SCENE)
 	UiAnim.kill_tween(_music_fade_tween)
 	_music_fade_tween = create_tween()
 	_music_fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
@@ -176,7 +177,7 @@ func _leave_to_sandbox() -> void:
 	_music_fade_tween.finished.connect(_finish_leave_to_sandbox)
 
 func _finish_leave_to_sandbox() -> void:
-	LoadingScreen.switch_current(get_tree())
+	LOADING_SCREEN_SCRIPT.switch_current(get_tree())
 
 func _enter_leaderboard() -> void:
 	if _overlay.is_open():

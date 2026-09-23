@@ -13,7 +13,7 @@ const BAR_STRETCH_MAX: float = 88.0
 const STATUS_STEP_SEC: float = 0.06
 const REVEAL_DELAY_SEC: float = 0.05
 
-static var _active: LoadingScreen = null
+static var _active: CanvasLayer = null
 
 var _target_path: String = ""
 var _hold_left: float = 0.0
@@ -39,15 +39,15 @@ static func present_on(host: Node, next_scene: String) -> void:
 	if host == null:
 		return
 	var tree: SceneTree = host.get_tree()
-	var cover: LoadingScreen = _ensure_cover(tree)
+	var cover: CanvasLayer = _ensure_cover(tree)
 	if cover == null:
 		return
-	cover.present_cover()
+	cover.call("present_cover")
 
 static func switch_current(tree: SceneTree) -> void:
-	var cover: LoadingScreen = _find_active(tree)
+	var cover: CanvasLayer = _find_active(tree)
 	if cover != null:
-		cover.mark_leave_ready()
+		cover.call("mark_leave_ready")
 		return
 	var path: String = GameLaunch.take_next_scene()
 	if path.is_empty():
@@ -55,8 +55,8 @@ static func switch_current(tree: SceneTree) -> void:
 	if tree != null:
 		tree.change_scene_to_file(path)
 
-static func _ensure_cover(tree: SceneTree) -> LoadingScreen:
-	var cover: LoadingScreen = _find_active(tree)
+static func _ensure_cover(tree: SceneTree) -> CanvasLayer:
+	var cover: CanvasLayer = _find_active(tree)
 	if cover != null:
 		return cover
 	if tree == null:
@@ -64,25 +64,30 @@ static func _ensure_cover(tree: SceneTree) -> LoadingScreen:
 	var packed: PackedScene = load(PATH) as PackedScene
 	if packed == null:
 		return null
-	cover = packed.instantiate() as LoadingScreen
+	cover = packed.instantiate() as CanvasLayer
 	if cover == null:
 		return null
 	tree.root.add_child(cover)
 	_active = cover
 	return cover
 
-static func _find_active(tree: SceneTree) -> LoadingScreen:
+static func _find_active(tree: SceneTree) -> CanvasLayer:
 	if _active != null and is_instance_valid(_active):
 		return _active
 	_active = null
 	if tree == null:
 		return null
 	for child: Node in tree.root.get_children():
-		var cover: LoadingScreen = child as LoadingScreen
-		if cover != null:
-			_active = cover
-			return cover
+		if _is_cover(child):
+			_active = child as CanvasLayer
+			return _active
 	return null
+
+static func _is_cover(node: Node) -> bool:
+	if node == null:
+		return false
+	var script: Script = node.get_script() as Script
+	return script != null and script.resource_path.ends_with("loading_screen.gd")
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -165,9 +170,11 @@ func _tick_bar(delta: float) -> void:
 	_bar_stretch = lerpf(_bar_stretch, target_stretch, 1.0 - exp(-BAR_TAIL_FOLLOW * delta))
 	var going_right: bool = sin(phase) >= 0.0
 	var base_left: float = ping * travel
-	var left: float = base_left - _bar_stretch if going_right else base_left
+	var left: float = base_left
+	if going_right:
+		left = base_left - _bar_stretch
 	var width: float = BAR_BASE_W + _bar_stretch
-	left = clampf(left, 0.0, maxf(track_w - BAR_BASE_W, 0.0))
+	left = clampf(left, 0.0, maxf(track_w - width, 0.0))
 	width = minf(width, track_w - left)
 	_bar_fill.position = Vector2(left, 0.0)
 	_bar_fill.size = Vector2(maxf(width, 1.0), _bar_track.size.y)
