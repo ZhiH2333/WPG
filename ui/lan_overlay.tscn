@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://ui/lan_overlay.gd" id="1_lan"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
@@ -6,6 +6,8 @@
 [sub_resource type="ButtonGroup" id="group_host_character"]
 
 [sub_resource type="ButtonGroup" id="group_host_arena"]
+
+[sub_resource type="ButtonGroup" id="group_host_mode"]
 
 [sub_resource type="ButtonGroup" id="group_join_character"]
 
@@ -382,6 +384,33 @@ mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Keep"
 
+[node name="Modes" type="HBoxContainer" parent="Center/Panel/Column/Content/HostRoot/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Coop" type="Button" parent="Center/Panel/Column/Content/HostRoot/Center/Column/Modes"]
+custom_minimum_size = Vector2(200, 56)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+action_mode = 0
+button_group = SubResource("group_host_mode")
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Co-op"
+
+[node name="Battle" type="Button" parent="Center/Panel/Column/Content/HostRoot/Center/Column/Modes"]
+custom_minimum_size = Vector2(200, 56)
+layout_mode = 2
+toggle_mode = true
+action_mode = 0
+button_group = SubResource("group_host_mode")
+mouse_filter = 0
+theme_type_variation = &"OfferButton"
+text = "Battle"
+
 [node name="LoopRow" type="HBoxContainer" parent="Center/Panel/Column/Content/HostRoot/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
@@ -584,6 +613,14 @@ theme_type_variation = &"OfferDesc"
 text = "map  Yard"
 horizontal_alignment = 1
 
+[node name="ModeLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "mode  Co-op"
+horizontal_alignment = 1
+
 [node name="WaitingLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
 visible = false
 layout_mode = 2
@@ -599,7 +636,6 @@ size_flags_horizontal = 0
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Back"
-
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 

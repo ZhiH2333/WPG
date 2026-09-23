@@ -283,6 +283,12 @@ func mark_cleared() -> void:
 	_outcome = Outcome.CLEARED
 	_pending_level = 0
 
+func mark_battle_over() -> void:
+	if _outcome != Outcome.PLAYING:
+		return
+	_outcome = Outcome.DEAD
+	_pending_level = 0
+
 func get_elapsed_sec() -> float:
 	return _elapsed_sec
 

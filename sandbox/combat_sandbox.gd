@@ -55,6 +55,8 @@ var _companions: Array[CompanionBase] = []
 var _shop_stim_bought: bool = false
 var _started_as_lan: bool = false
 var _arena_id: String = "yard"
+var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
+var _battle_winner_seat: int = 0
 
 @onready var _viewport_container: SubViewportContainer = $ViewportContainer
 @onready var _game_viewport: SubViewport = $ViewportContainer/GameViewport
@@ -128,19 +130,22 @@ func _process(delta: float) -> void:
 		elif _run_session.is_player_dead() or _run_session.is_cleared():
 			_show_winner_if_needed()
 		return
-	_tick_god_mode_kills()
-	if _run_session.is_playing() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
-		_encounter.tick(delta)
-	if _run_session.is_playing() and _encounter.is_awaiting_offer() and not _upgrade_offer.is_open() and not _shop_offer.is_open():
-		_open_offer_if_needed()
-	elif _run_session.is_playing() and _run_session.has_pending_level() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _all_pawns_defeated():
-		_open_level_offer_if_needed()
-	if _upgrade_offer.is_open() and _all_pawns_defeated():
-		_abort_offer()
-	if _shop_offer.is_open() and _all_pawns_defeated():
-		_abort_shop()
-	if _run_session.is_playing() and not _all_pawns_defeated() and _encounter.is_done() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _run_session.has_pending_level():
-		_loop_phrases()
+	if _is_battle():
+		_resolve_battle_if_needed()
+	else:
+		_tick_god_mode_kills()
+		if _run_session.is_playing() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
+			_encounter.tick(delta)
+		if _run_session.is_playing() and _encounter.is_awaiting_offer() and not _upgrade_offer.is_open() and not _shop_offer.is_open():
+			_open_offer_if_needed()
+		elif _run_session.is_playing() and _run_session.has_pending_level() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _all_pawns_defeated():
+			_open_level_offer_if_needed()
+		if _upgrade_offer.is_open() and _all_pawns_defeated():
+			_abort_offer()
+		if _shop_offer.is_open() and _all_pawns_defeated():
+			_abort_shop()
+		if _run_session.is_playing() and not _all_pawns_defeated() and _encounter.is_done() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _run_session.has_pending_level():
+			_loop_phrases()
 	_run_session.tick(delta)
 	if _run_session.is_player_dead() or _run_session.is_cleared():
 		_show_winner_if_needed()
@@ -207,6 +212,7 @@ func _ensure_combat_music() -> void:
 func _bind_runtime() -> void:
 	_net_role = GameLaunch.take_net_role()
 	_lan_loadout = GameLaunch.take_lan_loadout()
+	_net_play = GameLaunch.take_net_play()
 	_started_as_lan = _is_lan()
 	if _is_lan():
 		GameLaunch.take_join_address()
@@ -264,6 +270,8 @@ func _bind_runtime() -> void:
 	_hud.bind_weapon_host(_local_player.get_weapon_host())
 	_hud.bind_encounter(_encounter)
 	_hud.bind_run_session(_run_session)
+	_bind_battle_hud()
+	_bind_weapon_hit_players()
 	_run_session.bind_players(_pawns)
 	_run_session.bind_encounter(_encounter)
 	_run_session.bind_catalog(UPGRADE_CATALOG)
@@ -281,7 +289,9 @@ func _bind_runtime() -> void:
 		_run_session.configure_mode(_read_record_loop_goal())
 	_apply_record_character()
 	_run_session.restart()
-	if not _is_guest():
+	if _is_battle():
+		_pause_battle_world()
+	elif not _is_guest():
 		_apply_loop_pressure()
 		_encounter.restart()
 	_upgrade_applier.bind_players(_pawns)
@@ -315,6 +325,7 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_arena_id(_arena_id)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_p2(_guest_pawn)
+	_debug_overlay.bind_net_play(_net_play)
 	_debug_overlay.set_last_grant_id("-")
 
 func _collect_enemies() -> Array[EnemyBase]:
@@ -421,10 +432,13 @@ func _reset_sandbox() -> void:
 		pawn.set_sim_paused(false)
 		pawn.reset_for_sandbox()
 	_hold_all_in_reserve()
-	if not _is_guest():
+	if _is_battle():
+		_pause_battle_world()
+	elif not _is_guest():
 		_apply_loop_pressure()
 		_encounter.restart()
 	_debug_overlay.set_last_grant_id("-")
+	_battle_winner_seat = 0
 	_progress_written = false
 	_last_owned_label = ""
 	_set_offer_input_lock(false)
@@ -629,7 +643,7 @@ func _set_combat_frozen(frozen: bool) -> void:
 			if pawn != null:
 				pawn.set_sim_paused(frozen)
 		for enemy: EnemyBase in _enemies:
-			enemy.set_sim_paused(frozen)
+			enemy.set_sim_paused(true if _is_battle() else frozen)
 		_pause_companions(frozen)
 		return
 	var tree: SceneTree = get_tree()
@@ -875,9 +889,13 @@ func _show_winner_if_needed() -> void:
 				_run_session.get_loop_index(),
 				_run_session.get_kill_count(),
 				_run_session.get_gold(),
-				_run_session.get_elapsed_sec()
+				_run_session.get_elapsed_sec(),
+				_battle_winner_seat if _is_battle() else 0
 			)
-		_winner_page.present("", _run_session, 0)
+		if _is_battle():
+			_winner_page.present("", _run_session, 0, _battle_winner_seat, _net.get_local_seat(), true)
+		else:
+			_winner_page.present("", _run_session, 0)
 		_set_offer_input_lock(true)
 		_sync_system_cursor()
 		return
@@ -988,6 +1006,8 @@ func _debug_cycle_companion() -> void:
 	ranged.apply_weapon(next_index)
 
 func _spawn_companion(companion_id: StringName, weapon_index: int, owner: Player = null) -> void:
+	if _is_battle():
+		return
 	if _is_guest():
 		return
 	if _count_living_companions() >= RunSession.COMPANION_CAP:
@@ -1196,11 +1216,55 @@ func _prepare_pawns() -> void:
 func _is_lan() -> bool:
 	return _net_role != GameLaunch.NetRole.OFFLINE
 
+func _is_battle() -> bool:
+	return _is_lan() and _net_play == GameLaunch.NetPlay.BATTLE
+
 func _is_host() -> bool:
 	return _net_role == GameLaunch.NetRole.HOST
 
 func _is_guest() -> bool:
 	return _net_role == GameLaunch.NetRole.GUEST
+
+func _pause_battle_world() -> void:
+	_hold_all_in_reserve()
+	for enemy: EnemyBase in _enemies:
+		enemy.set_sim_paused(true)
+
+func _bind_weapon_hit_players() -> void:
+	var hit_players: bool = _is_battle()
+	for pawn: Player in _pawns:
+		if pawn == null:
+			continue
+		for weapon: Weapon in pawn.get_weapon_host().get_weapons():
+			weapon.bind_hit_players(hit_players)
+
+func _bind_battle_hud() -> void:
+	_hud.set_battle(_is_battle())
+	_hud.bind_rival(_find_rival_pawn())
+	_debug_overlay.bind_net_play(_net_play)
+
+func _find_rival_pawn() -> Player:
+	for pawn: Player in _pawns:
+		if pawn != null and pawn != _local_player:
+			return pawn
+	return null
+
+func _resolve_battle_if_needed() -> void:
+	if not _is_battle() or not _is_host():
+		return
+	if _winner_page.is_open() or not _run_session.is_playing():
+		return
+	var host_dead: bool = _pawns.size() > 0 and _pawns[0] != null and _pawns[0].is_defeated()
+	var guest_dead: bool = _pawns.size() > 1 and _pawns[1] != null and _pawns[1].is_defeated()
+	if not host_dead and not guest_dead:
+		return
+	if host_dead and guest_dead:
+		_battle_winner_seat = 0
+	elif host_dead:
+		_battle_winner_seat = 2
+	else:
+		_battle_winner_seat = 1
+	_run_session.mark_battle_over()
 
 func _all_pawns_defeated() -> bool:
 	if _pawns.is_empty():
@@ -1221,7 +1285,7 @@ func _set_lan_paused(paused: bool) -> void:
 		if pawn != null:
 			pawn.set_sim_paused(paused)
 	for enemy: EnemyBase in _enemies:
-		enemy.set_sim_paused(paused)
+		enemy.set_sim_paused(true if _is_battle() else paused)
 	_pause_companions(paused)
 	if paused:
 		if not _pause_overlay.is_open():
@@ -1371,7 +1435,7 @@ func _on_net_snapshot(data: PackedByteArray) -> void:
 		_last_owned_label = owned_label
 		_upgrade_applier.apply_owned()
 	_sync_lan_pause_overlay()
-	if _run_session.is_player_dead() or _run_session.is_cleared():
+	if not _is_battle() and (_run_session.is_player_dead() or _run_session.is_cleared()):
 		_show_winner_if_needed()
 
 func _on_net_fire_fx(seat: int, origin: Vector2, direction: Vector2, weapon_index: int) -> void:
@@ -1411,12 +1475,13 @@ func _on_net_offer_close(_picked_id: String) -> void:
 		_close_shop()
 	_upgrade_applier.apply_owned()
 
-func _on_net_winner(outcome: String, loop_index: int, kills: int, gold: int, time_sec: float) -> void:
+func _on_net_winner(outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, winner_seat: int = 0) -> void:
 	if not _is_guest():
 		return
 	var outcome_code: int = int(RunSession.Outcome.DEAD)
 	if outcome == "cleared":
 		outcome_code = int(RunSession.Outcome.CLEARED)
+	_battle_winner_seat = winner_seat
 	_run_session.apply_net_session(
 		loop_index,
 		gold,
@@ -1793,6 +1858,9 @@ func _convert_lan_host_to_solo() -> void:
 	_shop_offer.bind_player(_player)
 	_debug_overlay.bind_p2(null)
 	_debug_overlay.bind_net_session(_net)
+	_debug_overlay.bind_net_play(_net_play)
+	_bind_weapon_hit_players()
+	_bind_battle_hud()
 	if _pause_overlay.is_open():
 		_pause_overlay.adopt_tree_pause()
 	elif _upgrade_offer.is_open() or _shop_offer.is_open():

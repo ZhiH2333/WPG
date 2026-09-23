@@ -1,29 +1,38 @@
 extends CanvasLayer
 class_name Hud
 
-## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。只读 getter，禁止自管一份 HP。
-## 血条/XP 条数值用指数缓动追目标（osu 式），数字仍瞬时；锚点布局不改。
+## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。Battle 右上对手血条、Phrase 为 BATTLE。只读 getter，禁止自管一份 HP。
+## 血条/XP 条数值用指数缓动追目标（osu 式），数字仍瞬时；左下锚点布局不改。
 const HP_LOW_THRESHOLD: int = 20
 const BAR_SMOOTHING: float = 10.0
 const FILL_STYLE_NORMAL: StringName = &""
 const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
 
 var _player: Player
+var _rival: Player
 var _weapon_host: WeaponHost
 var _encounter: EncounterPhrases
 var _run_session: RunSession
 var _hp_is_low: bool = false
+var _is_battle: bool = false
 
 @onready var _hp_bar: ProgressBar = $Root/BottomLeft/HpRow/HpBar
 @onready var _hp_label: Label = $Root/BottomLeft/HpRow/HpLabel
 @onready var _xp_bar: ProgressBar = $Root/BottomLeft/XpRow/XpBar
 @onready var _xp_label: Label = $Root/BottomLeft/XpRow/XpLabel
+@onready var _xp_row: HBoxContainer = $Root/BottomLeft/XpRow
 @onready var _weapon_label: Label = $Root/BottomLeft/WeaponLabel
 @onready var _gold_label: Label = $Root/BottomLeft/GoldLabel
 @onready var _phrase_label: Label = $Root/PhraseLabel
+@onready var _rival_row: HBoxContainer = $Root/TopRight/RivalRow
+@onready var _rival_bar: ProgressBar = $Root/TopRight/RivalRow/HpBar
+@onready var _rival_label: Label = $Root/TopRight/RivalRow/HpLabel
 
 func bind_player(player: Player) -> void:
 	_player = player
+
+func bind_rival(player: Player) -> void:
+	_rival = player
 
 func bind_weapon_host(host: WeaponHost) -> void:
 	_weapon_host = host
@@ -34,12 +43,22 @@ func bind_encounter(encounter: EncounterPhrases) -> void:
 func bind_run_session(session: RunSession) -> void:
 	_run_session = session
 
+func set_battle(battle: bool) -> void:
+	_is_battle = battle
+	if _rival_row != null:
+		_rival_row.visible = battle
+	if _xp_row != null:
+		_xp_row.visible = not battle
+	if _gold_label != null:
+		_gold_label.visible = not battle
+
 func _process(delta: float) -> void:
 	_refresh_hp(delta)
 	_refresh_xp(delta)
 	_refresh_gold()
 	_refresh_weapon()
 	_refresh_phrase()
+	_refresh_rival(delta)
 
 func _refresh_hp(delta: float) -> void:
 	var hp: int = 0
@@ -97,6 +116,9 @@ func _refresh_weapon() -> void:
 	_weapon_label.text = weapon.get_display_name()
 
 func _refresh_phrase() -> void:
+	if _is_battle:
+		_phrase_label.text = "BATTLE"
+		return
 	var phrase: String = "-"
 	if _encounter != null:
 		phrase = _encounter.get_phrase_label()
@@ -107,3 +129,16 @@ func _refresh_phrase() -> void:
 		_phrase_label.text = "L%d/%d  %s" % [loop_index, _run_session.get_loop_goal(), phrase]
 		return
 	_phrase_label.text = "L%d  %s" % [loop_index, phrase]
+
+func _refresh_rival(delta: float) -> void:
+	if not _is_battle or _rival_row == null or not _rival_row.visible:
+		return
+	var hp: int = 0
+	var max_hp: int = 100
+	if _rival != null:
+		var health: PlayerHealth = _rival.get_player_health()
+		hp = health.get_hp()
+		max_hp = health.get_max_hp()
+	_rival_bar.max_value = float(max_hp)
+	_rival_bar.value = _approach_bar(_rival_bar.value, float(hp), delta)
+	_rival_label.text = "rival  %d/%d" % [hp, max_hp]

@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 3。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 4。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -1427,6 +1427,20 @@ LAN P8 和离线同一套目录商店；药、跟班、升级由 Host 权威结�
 
 **当时不做：** Battle / 友军伤害、房间浏览器、3～5 人、P2P、断线重连、改 Gunner 140/520/70、改 Pack/Stim 数字、改 COMPANION_CAP=10、改四把枪/敌人身份、Motor 420 / `look_ahead=100`、HUD 锚点、算分公式、`records.json`、10+4 张卡 value、UpgradeOffer 再改、第三张图以外的地图、Autoload、`Engine.time_scale`、`reload_current_scene`、新 PNG、新 wav、手柄重绑、主动技能、战斗 HUD 跟班条。
 
+## Day 74（已完成）：LAN Battle 2 人
+
+LAN 2 人 Battle：Host 选模式，无句读无商店，玩家弹打得到对方，先倒下的输。Co-op 路径与 Day 73 相同。Autoload 仍为 0。不写 `records.json`。
+
+- **协议**：`GameLaunch.NET_PROTOCOL = 4`。`enum NetPlay { COOP, BATTLE }`；`set_net_play` / `take_net_play()`，take 后打回 COOP。`rpc_begin(..., arena_id, net_play)` 第五参 0=Co-op / 1=Battle。Host 改选立刻 `rpc_play_mode`。协议 3 旧 Guest：Version mismatch。NetPlay 不进 records.json。
+- **LanOverlay**：HostRoot 在 Arenas 与 LoopRow 之间加 Modes（Co-op / Battle，OfferButton，200×56）。默认 Co-op；`_reset` 打回 Co-op。Battle 时 Loop 滑杆 disabled，标签 `battle`，不改 loop_goal。借档仍锁角色/地图/loop，Modes 可点。Guest `ModeLabel`：`mode  Co-op` / `mode  Battle`。
+- **Battle 战场**：`_is_battle()` 时敌人全部 `hold_in_reserve` + `set_sim_paused(true)`；不 `encounter.restart()` / tick；不开 UpgradeOffer / ShopOffer；不 spawn 跟班；金币/XP 保持 0。Co-op 仍目录店、仍同步药和 Gunner、仍句读。
+- **友军伤害**：仅 Battle 玩家枪 `hit_players=true`，mask 加 `MASK_PLAYER`。`reset(..., owner, hit_players)`；owner 存活且 `hit == owner` 则忽略（不火花、不回收、不伤自己）。打到对方 Player 走 `PlayerHealth.apply_damage`。Co-op / 跟班弹仍不得打队友和跟班。禁止新物理层。
+- **胜负**：Host 一人倒下即结算，禁止走 `_all_pawns_defeated`。双方同帧 defeated → DRAW（`winner_seat=0`）；仅 Host 倒 → 2；仅 Guest 倒 → 1。`rpc_winner` 末尾加 `winner_seat`。`RunSession.mark_battle_over()` 把 outcome 设 DEAD。Guest 以 Host 包为准。Retry：Host 重置两人体力/位置/枪，仍是 Battle，不 take Launch；Guest 不能点 Retry。
+- **Winner**：Battle 标题 DRAW / KO（赢方 ClearedTitle，输方 RunSummaryTitle）；`record_name = "BATTLE"`；隐藏 loop/kills/gold/cleared bonus；score 文案 `time  %.1fs`；NewBest 永不出现；右侧 history 仍空。
+- **Hud**：Battle 右上 `RivalRow`（200×12 + `rival  n/m`）；Phrase `BATTLE`；XP/gold 行隐藏。左下锚点不改。Debug Overlay lan 行加 `play: coop|battle`。
+
+**当时不做：** 房间浏览器、3～5 人 FFA、P2P、断线重连、Joypad 重绑、虚拟摇杆、主动技能、战斗 HUD 跟班条、改 Gunner 140/520/70、改 Pack/Stim 数字、改 COMPANION_CAP=10、改四把枪/敌人身份、Motor 420 / `look_ahead=100`、HUD 左下锚点、算分公式、records.json 字段、10+4 张卡 value、UpgradeOffer 再改、第四张图、Autoload、`Engine.time_scale`、`reload_current_scene`、新 PNG、新 wav、玩家身体互撞、近战拳头互殴、Battle 里刷怪/跟班/商店。
+
 ## 剩余表
 
 
@@ -1482,7 +1496,9 @@ LAN P8 和离线同一套目录商店；药、跟班、升级由 Host 权威结�
 
 **Day 73 = LAN 同步跟班和药（已完成）**：协议 3、快照 v2、LAN P8 目录连买；药/跟班/升级 Host 权威；Guest 傀儡 Gunner + fire_fx。没有 Battle、没有 5 人房、不改数字、不写档。
 
-**下一步 Day 74 = Battle 2 人（关句读/商店、玩家弹打得到对方、不写档）。**
+**Day 74 = Battle 2 人（已完成）**：协议 4、Host 选 Co-op/Battle、无句读无商店、玩家弹打得到对方、先倒的输、不写档。
+
+**下一步 Day 75 = 导出 Win/macOS/Linux + Pit/Keep/Co-op/Battle profiling。**
 
 **完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
 
@@ -1494,7 +1510,7 @@ LAN P8 和离线同一套目录商店；药、跟班、升级由 Host 权威结�
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD。LAN 同步药和跟班已在 Day 73 落地。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。下一步 Day 74 Battle 2 人。后续波次/Boss 词表扩充。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。下一步 Day 75 导出 Win/macOS/Linux + Pit/Keep/Co-op/Battle profiling。后续波次/Boss 词表扩充。
 4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 

@@ -10,6 +10,8 @@ var _pool: ProjectilePool
 var _spark_pool: HitSparkPool
 var _in_flight: bool = false
 var _is_player_shot: bool = true
+var _hit_players: bool = false
+var _shot_owner: Node = null
 var _velocity: Vector2 = Vector2.ZERO
 var _damage: int = 0
 var _lifetime_sec: float = 0.9
@@ -34,9 +36,11 @@ func bind_spark_pool(pool: HitSparkPool) -> void:
 func is_parked() -> bool:
 	return not _in_flight
 
-func reset(spawn_position: Vector2, flight_velocity: Vector2, damage: int, lifetime_sec: float, visual_scale: float = 1.0, is_player_shot: bool = true, fx_only: bool = false) -> void:
+func reset(spawn_position: Vector2, flight_velocity: Vector2, damage: int, lifetime_sec: float, visual_scale: float = 1.0, is_player_shot: bool = true, fx_only: bool = false, owner: Node = null, hit_players: bool = false) -> void:
 	_in_flight = true
 	_is_player_shot = is_player_shot
+	_shot_owner = owner
+	_hit_players = hit_players
 	_damage = damage
 	_lifetime_sec = lifetime_sec
 	_age_sec = 0.0
@@ -65,6 +69,8 @@ func park() -> void:
 	_velocity = Vector2.ZERO
 	_age_sec = 0.0
 	_is_player_shot = true
+	_hit_players = false
+	_shot_owner = null
 	_reset_visual()
 	visible = false
 	monitoring = false
@@ -92,6 +98,8 @@ func _on_area_entered(area: Area2D) -> void:
 func _handle_hit(hit: Node) -> void:
 	if not _in_flight:
 		return
+	if _shot_owner != null and is_instance_valid(_shot_owner) and hit == _shot_owner:
+		return
 	global_position = _last_global_position
 	_spawn_hit_spark()
 	_apply_hit_damage(hit)
@@ -99,6 +107,11 @@ func _handle_hit(hit: Node) -> void:
 
 func _apply_hit_damage(hit: Node) -> void:
 	if _is_player_shot:
+		if _hit_players:
+			var player: Player = hit as Player
+			if player != null and player != _shot_owner:
+				player.get_player_health().apply_damage(_damage, global_position, _hit_direction())
+				return
 		_damage_enemy_side(hit)
 		return
 	_damage_player_side(hit)
@@ -132,7 +145,10 @@ func _spawn_hit_spark() -> void:
 func _apply_faction_collision() -> void:
 	if _is_player_shot:
 		collision_layer = GameCollisionLayers.MASK_PLAYER_BULLET
-		collision_mask = GameCollisionLayers.MASK_ENEMY | GameCollisionLayers.MASK_WALL
+		if _hit_players:
+			collision_mask = GameCollisionLayers.MASK_ENEMY | GameCollisionLayers.MASK_WALL | GameCollisionLayers.MASK_PLAYER
+		else:
+			collision_mask = GameCollisionLayers.MASK_ENEMY | GameCollisionLayers.MASK_WALL
 		return
 	collision_layer = GameCollisionLayers.MASK_ENEMY_BULLET
 	collision_mask = GameCollisionLayers.MASK_PLAYER | GameCollisionLayers.MASK_WALL

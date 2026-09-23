@@ -21,6 +21,7 @@ var _this_timestamp: int = 0
 var _retry_allowed: bool = true
 var _roll_done: bool = true
 var _is_lan: bool = false
+var _is_battle_result: bool = false
 var _previous_best: int = 0
 var _final_loop: int = 0
 var _final_kills: int = 0
@@ -74,13 +75,14 @@ func set_retry_allowed(allowed: bool) -> void:
 	if _open:
 		_retry_button.disabled = not allowed
 
-func present(record_id: String, session: RunSession, previous_best: int) -> void:
+func present(record_id: String, session: RunSession, previous_best: int, winner_seat: int = 0, local_seat: int = 1, battle: bool = false) -> void:
 	if _open:
 		return
 	if session == null:
 		return
 	UiAnim.kill_tween(_score_tween)
 	_roll_done = false
+	_is_battle_result = battle
 	var lan: bool = record_id.is_empty()
 	var record: GameRecord = null
 	if not lan:
@@ -91,9 +93,14 @@ func present(record_id: String, session: RunSession, previous_best: int) -> void
 	var kills: int = session.get_kill_count()
 	var gold: int = session.get_gold()
 	var time_sec: float = session.get_elapsed_sec()
-	_this_score = GameRecords.compute_score(loop_index, kills, gold, time_sec, outcome)
+	if battle:
+		_this_score = 0
+	else:
+		_this_score = GameRecords.compute_score(loop_index, kills, gold, time_sec, outcome)
 	_this_timestamp = int(Time.get_unix_time_from_system())
 	_fill_left(record, session, outcome, loop_index, kills, gold, time_sec, previous_best, lan)
+	if battle:
+		_apply_battle_result(winner_seat, local_seat)
 	if lan:
 		_fill_history(null)
 	else:
@@ -165,6 +172,10 @@ func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_i
 	_final_kills = kills
 	_final_gold = gold
 	_final_time_sec = time_sec
+	_loop_break.visible = true
+	_kills_break.visible = true
+	_gold_break.visible = true
+	_time_break.visible = true
 	if outcome == "cleared":
 		_title.text = "CLEARED"
 		_title.theme_type_variation = &"ClearedTitle"
@@ -222,9 +233,31 @@ func _fill_history(record: GameRecord) -> void:
 	else:
 		_rank_label.text = "rank  %d / %d" % [highlight + 1, record.history.size()]
 
+func _apply_battle_result(winner_seat: int, local_seat: int) -> void:
+	if winner_seat == 0:
+		_title.text = "DRAW"
+		_title.theme_type_variation = &"RunSummaryTitle"
+	elif local_seat == winner_seat:
+		_title.text = "KO"
+		_title.theme_type_variation = &"ClearedTitle"
+	else:
+		_title.text = "KO"
+		_title.theme_type_variation = &"RunSummaryTitle"
+	_record_name.text = "BATTLE"
+	_loop_break.visible = false
+	_kills_break.visible = false
+	_gold_break.visible = false
+	_time_break.visible = false
+	_cleared_bonus.visible = false
+	_new_best.visible = false
+	_score_label.text = "time  0.0s"
+
 func _reset_score_visuals() -> void:
 	_new_best.visible = false
-	_score_label.text = "score  0"
+	if _is_battle_result:
+		_score_label.text = "time  0.0s"
+	else:
+		_score_label.text = "score  0"
 	_write_break_texts(0, 0, 0, 0)
 	for item: CanvasItem in _list_roll_fade_items():
 		item.modulate.a = 0.0
@@ -234,6 +267,12 @@ func _play_score_roll() -> void:
 	_roll_done = false
 	_score_tween = create_tween().set_parallel(true)
 	_score_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	if _is_battle_result:
+		_score_tween.tween_method(_assign_battle_time, 0.0, _final_time_sec, SCORE_TOTAL_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+		_append_fade(_summary, 0)
+		_append_history_fades(SCORE_TOTAL_SEC)
+		_score_tween.finished.connect(_mark_roll_done)
+		return
 	var beat: int = 0
 	_append_break_roll(beat, _assign_loop_points, float(_final_loop * 1000), _loop_break)
 	beat += 1
@@ -293,6 +332,9 @@ func _assign_time_points(value: float) -> void:
 func _assign_score_points(value: float) -> void:
 	_score_label.text = "score  %d" % roundi(value)
 
+func _assign_battle_time(value: float) -> void:
+	_score_label.text = "time  %.1fs" % value
+
 func _snap_score_roll() -> void:
 	if _roll_done:
 		return
@@ -303,7 +345,10 @@ func _snap_score_roll() -> void:
 
 func _write_final_score_texts() -> void:
 	_write_break_texts(_final_loop * 1000, _final_kills * 5, _final_gold * 2, floori(_final_time_sec))
-	_score_label.text = "score  %d" % _this_score
+	if _is_battle_result:
+		_score_label.text = "time  %.1fs" % _final_time_sec
+	else:
+		_score_label.text = "score  %d" % _this_score
 	_summary.text = _summary_text
 	for item: CanvasItem in _list_roll_fade_items():
 		item.modulate.a = 1.0
@@ -315,7 +360,7 @@ func _write_break_texts(loop_pts: int, kill_pts: int, gold_pts: int, time_pts: i
 	_time_break.text = "time  %.1fs  →  %d" % [_final_time_sec, time_pts]
 
 func _reveal_new_best() -> void:
-	if _is_lan:
+	if _is_lan or _is_battle_result:
 		_new_best.visible = false
 		return
 	_new_best.visible = _this_score > _previous_best

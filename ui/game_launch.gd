@@ -1,19 +1,21 @@
 extends Object
 class_name GameLaunch
 
-## 一次性把模式、档位 id、局域网身份、竞技场 id 和换场目标带进下一场。不是 Autoload，不是 Node，禁止 get_tree()。默认 Infinite / OFFLINE / yard，take 后打回缺省。只传 id，不塞 Record / ArenaDef 对象。
+## 一次性把模式、档位 id、局域网身份、对局模式、竞技场 id 和换场目标带进下一场。不是 Autoload，不是 Node，禁止 get_tree()。默认 Infinite / OFFLINE / COOP / yard，take 后打回缺省。只传 id，不塞 Record / ArenaDef 对象。NetPlay 不进 records.json。
 enum Mode { SOLO, INFINITE }
 enum NetRole { OFFLINE, HOST, GUEST }
+enum NetPlay { COOP, BATTLE }
 
 const SOLO_LOOP_GOAL: int = 20 ## 滑杆默认与缺档 Solo 隐式档，不是运行时硬锁终点
 const NET_PORT: int = 17777
-const NET_PROTOCOL: int = 3
+const NET_PROTOCOL: int = 4
 const DEFAULT_JOIN_ADDRESS := "127.0.0.1"
 const ARENA_CATALOG: ArenaCatalog = preload("res://data/arena_catalog.tres")
 
 static var _mode: Mode = Mode.INFINITE
 static var _active_record_id: String = ""
 static var _net_role: NetRole = NetRole.OFFLINE
+static var _net_play: NetPlay = NetPlay.COOP
 static var _join_address: String = DEFAULT_JOIN_ADDRESS
 static var _lan_host_character_id: String = "boar"
 static var _lan_guest_character_id: String = "boar"
@@ -43,6 +45,14 @@ static func set_net_role(role: NetRole) -> void:
 static func take_net_role() -> NetRole:
 	var current: NetRole = _net_role
 	_net_role = NetRole.OFFLINE
+	return current
+
+static func set_net_play(play: NetPlay) -> void:
+	_net_play = play
+
+static func take_net_play() -> NetPlay:
+	var current: NetPlay = _net_play
+	_net_play = NetPlay.COOP
 	return current
 
 static func set_join_address(address: String) -> void:

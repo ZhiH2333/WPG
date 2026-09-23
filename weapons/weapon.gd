@@ -13,6 +13,7 @@ class_name Weapon
 var _player_input: PlayerInput
 var _pool: ProjectilePool
 var _player: Player
+var _hit_players: bool = false
 var _next_fire_at_msec: int = 0
 var _shot_refused_count: int = 0
 var _is_active: bool = false
@@ -28,6 +29,9 @@ func bind_player_input(player_input: PlayerInput) -> void:
 
 func bind_projectile_pool(pool: ProjectilePool) -> void:
 	_pool = pool
+
+func bind_hit_players(hit_players: bool) -> void:
+	_hit_players = hit_players
 
 func get_display_name() -> String:
 	return "Weapon"
@@ -96,20 +100,21 @@ func _on_fire_released(now_msec: int) -> void:
 	if _should_reset_cooldown_on_release():
 		_next_fire_at_msec = mini(_next_fire_at_msec, now_msec)
 
-func spawn_fx_shot(origin: Vector2, aim: Vector2) -> void:
+func spawn_fx_shot(origin: Vector2, aim: Vector2, owner: Node = null) -> void:
 	if _pool == null:
 		return
 	var pellet_count: int = _pellets_per_shot()
 	var visual_scale: float = _pellet_visual_scale()
 	var direction_aim: Vector2 = Vector2.RIGHT if aim.is_zero_approx() else aim.normalized()
+	var shot_owner: Node = _resolve_shot_owner(owner)
 	for index: int in pellet_count:
 		var projectile: Projectile = _pool.acquire()
 		if projectile == null:
 			return
 		var direction: Vector2 = _direction_for_pellet(direction_aim, index, pellet_count)
-		projectile.reset(origin, direction * projectile_speed, damage, lifetime, visual_scale, true, true)
+		projectile.reset(origin, direction * projectile_speed, damage, lifetime, visual_scale, true, true, shot_owner, false)
 
-func fire_at(origin: Vector2, aim: Vector2) -> bool:
+func fire_at(origin: Vector2, aim: Vector2, owner: Node = null) -> bool:
 	if _pool == null:
 		return false
 	var now_msec: int = Time.get_ticks_msec()
@@ -121,9 +126,10 @@ func fire_at(origin: Vector2, aim: Vector2) -> bool:
 		return false
 	var direction_aim: Vector2 = Vector2.RIGHT if aim.is_zero_approx() else aim.normalized()
 	var visual_scale: float = _pellet_visual_scale()
+	var shot_owner: Node = _resolve_shot_owner(owner)
 	for index: int in pellet_count:
 		var direction: Vector2 = _direction_for_pellet(direction_aim, index, pellet_count)
-		acquired[index].reset(origin, direction * projectile_speed, damage, lifetime, visual_scale)
+		acquired[index].reset(origin, direction * projectile_speed, damage, lifetime, visual_scale, true, false, shot_owner, _hit_players)
 	_on_shot_success()
 	_next_fire_at_msec = now_msec + _get_fire_interval_msec()
 	return true
@@ -138,9 +144,10 @@ func _try_fire() -> bool:
 	var aim: Vector2 = _resolve_aim_direction()
 	var muzzle: Vector2 = _player.get_muzzle_global_position()
 	var visual_scale: float = _pellet_visual_scale()
+	var shot_owner: Node = _resolve_shot_owner(null)
 	for index: int in pellet_count:
 		var direction: Vector2 = _direction_for_pellet(aim, index, pellet_count)
-		acquired[index].reset(muzzle, direction * projectile_speed, damage, lifetime, visual_scale)
+		acquired[index].reset(muzzle, direction * projectile_speed, damage, lifetime, visual_scale, true, false, shot_owner, _hit_players)
 	_player.notify_shot_fired(aim, self)
 	return true
 
@@ -218,3 +225,10 @@ func _find_player() -> Player:
 			return player
 		node = node.get_parent()
 	return null
+
+func _resolve_shot_owner(owner: Node) -> Node:
+	if owner != null:
+		return owner
+	if _player != null:
+		return _player
+	return get_parent()

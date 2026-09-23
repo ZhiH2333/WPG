@@ -8,7 +8,7 @@ signal snapshot_received(data: PackedByteArray)
 signal fire_fx_received(seat: int, origin: Vector2, direction: Vector2, weapon_index: int)
 signal offer_open_received(kind: int, id0: String, id1: String, id2: String, gold: int)
 signal offer_close_received(picked_id: String)
-signal winner_received(outcome: String, loop_index: int, kills: int, gold: int, time_sec: float)
+signal winner_received(outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, winner_seat: int)
 signal reset_received
 signal return_menu_received
 signal try_pick_received(upgrade_id: String)
@@ -97,10 +97,10 @@ func send_offer_close(picked_id: String) -> void:
 		return
 	rpc_offer_close.rpc(picked_id)
 
-func send_winner(outcome: String, loop_index: int, kills: int, gold: int, time_sec: float) -> void:
+func send_winner(outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, winner_seat: int = 0) -> void:
 	if not is_host():
 		return
-	rpc_winner.rpc(outcome, loop_index, kills, gold, time_sec)
+	rpc_winner.rpc(outcome, loop_index, kills, gold, time_sec, winner_seat)
 
 func send_reset() -> void:
 	if not is_host():
@@ -211,10 +211,10 @@ func rpc_offer_close(picked_id: String) -> void:
 	offer_close_received.emit(picked_id)
 
 @rpc("authority", "call_remote", "reliable")
-func rpc_winner(outcome: String, loop_index: int, kills: int, gold: int, time_sec: float) -> void:
+func rpc_winner(outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, winner_seat: int = 0) -> void:
 	if not is_guest():
 		return
-	winner_received.emit(outcome, loop_index, kills, gold, time_sec)
+	winner_received.emit(outcome, loop_index, kills, gold, time_sec, winner_seat)
 
 @rpc("authority", "call_remote", "reliable")
 func rpc_reset() -> void:

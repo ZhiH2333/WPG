@@ -23,6 +23,7 @@ var _handshake_ok: bool = false
 var _host_started: bool = false
 var _picked_record_id: String = ""
 var _selected_arena_id: String = "yard"
+var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
@@ -43,6 +44,8 @@ var _selected_arena_id: String = "yard"
 @onready var _host_yard: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Yard
 @onready var _host_pit: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Pit
 @onready var _host_keep: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Keep
+@onready var _host_coop: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Modes/Coop
+@onready var _host_battle: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Modes/Battle
 @onready var _loop_slider: HSlider = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/Slider
 @onready var _loop_label: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/LoopLabel
 @onready var _start_button: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Start
@@ -53,6 +56,7 @@ var _selected_arena_id: String = "yard"
 @onready var _join_chicken: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Chicken
 @onready var _join_goal: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/GoalLabel
 @onready var _join_map: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/MapLabel
+@onready var _join_mode: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/ModeLabel
 @onready var _join_wait: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/WaitingLabel
 @onready var _back_button: Button = $Center/Panel/Column/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
@@ -79,13 +83,15 @@ func _ready() -> void:
 	_host_yard.pressed.connect(_on_arena_pressed.bind("yard"))
 	_host_pit.pressed.connect(_on_arena_pressed.bind("pit"))
 	_host_keep.pressed.connect(_on_arena_pressed.bind("keep"))
+	_host_coop.pressed.connect(_on_mode_pressed.bind(GameLaunch.NetPlay.COOP))
+	_host_battle.pressed.connect(_on_mode_pressed.bind(GameLaunch.NetPlay.BATTLE))
 	_join_boar.pressed.connect(_on_character_pressed.bind(CHAR_BOAR))
 	_join_chicken.pressed.connect(_on_character_pressed.bind(CHAR_CHICKEN))
 	_loop_slider.value_changed.connect(_on_loop_changed)
 	_start_button.pressed.connect(_on_start_pressed)
 	_connect_button.pressed.connect(_on_connect_pressed)
 	_back_button.pressed.connect(_handle_back)
-	for button: Button in [_host_button, _join_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
+	for button: Button in [_host_button, _join_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
 		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
 	_show_home(false)
@@ -102,6 +108,7 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_picked_record_id = ""
+	_reset_play_mode()
 	_fit_panel()
 	_show_home(true)
 	UiAnim.kill_tween(_anim_tween)
@@ -174,6 +181,7 @@ func _handle_back() -> void:
 func _show_home(animate: bool) -> void:
 	_view = View.HOME
 	_picked_record_id = ""
+	_reset_play_mode()
 	_pick_root.visible = false
 	_host_root.visible = false
 	_join_root.visible = false
@@ -220,6 +228,7 @@ func _enter_pick() -> void:
 func _enter_host() -> void:
 	_picked_record_id = ""
 	_reset_character()
+	_reset_play_mode()
 	_select_arena("yard")
 	_loop_slider.value = float(DEFAULT_LOOP_GOAL)
 	_refresh_loop_label()
@@ -233,6 +242,7 @@ func _enter_host_from_record(record: GameRecord) -> void:
 	_loop_slider.value = float(mini(maxi(record.loop_goal, 0), 50))
 	_refresh_loop_label()
 	_record_hint.text = record.name
+	_reset_play_mode()
 	_apply_host_config_lock(true)
 	_begin_host()
 
@@ -270,6 +280,7 @@ func _enter_join() -> void:
 	_join_status.text = ""
 	_join_goal.visible = false
 	_join_map.visible = false
+	_join_mode.visible = false
 	_join_wait.visible = false
 	_connect_button.disabled = false
 	_wire_multiplayer()
@@ -293,6 +304,7 @@ func _on_connect_pressed() -> void:
 	_join_wait.visible = false
 	_join_goal.visible = false
 	_join_map.visible = false
+	_join_mode.visible = false
 	_connect_button.disabled = true
 	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
 	var err: Error = peer.create_client(_join_edit.text.strip_edges(), GameLaunch.NET_PORT)
@@ -360,6 +372,7 @@ func _on_connection_failed() -> void:
 	_join_status.text = "refused"
 	_connect_button.disabled = false
 	_join_wait.visible = false
+	_join_mode.visible = false
 	_clear_peer()
 
 func _on_server_disconnected() -> void:
@@ -371,6 +384,7 @@ func _on_server_disconnected() -> void:
 	_join_wait.visible = false
 	_join_goal.visible = false
 	_join_map.visible = false
+	_join_mode.visible = false
 	_clear_peer()
 
 @rpc("authority", "call_remote", "reliable")
@@ -406,12 +420,13 @@ func rpc_guest_character(character_id: String) -> void:
 	_guest_character_id = GameLaunch._sanitize_character_id(character_id)
 
 @rpc("authority", "call_remote", "reliable")
-func rpc_begin(host_character_id: String, guest_character_id: String, loop_goal: int, arena_id: String) -> void:
+func rpc_begin(host_character_id: String, guest_character_id: String, loop_goal: int, arena_id: String, net_play: int) -> void:
 	_host_started = true
 	GameLaunch.set_net_role(GameLaunch.NetRole.GUEST)
 	GameLaunch.set_join_address(_join_edit.text)
 	GameLaunch.set_lan_loadout(host_character_id, guest_character_id, loop_goal)
 	GameLaunch.set_arena_id(arena_id)
+	GameLaunch.set_net_play(_play_from_net(net_play))
 	start_lan.emit()
 
 @rpc("authority", "call_remote", "reliable")
@@ -428,6 +443,14 @@ func rpc_arena(arena_id: String) -> void:
 	_join_map.visible = true
 	_join_map.text = "map  %s" % RecordCard.format_arena_name(id)
 
+@rpc("authority", "call_remote", "reliable")
+func rpc_play_mode(net_play: int) -> void:
+	_join_mode.visible = true
+	if net_play == int(GameLaunch.NetPlay.BATTLE):
+		_join_mode.text = "mode  Battle"
+		return
+	_join_mode.text = "mode  Co-op"
+
 func _on_start_pressed() -> void:
 	if not _handshake_ok or _guest_id == 0:
 		return
@@ -437,9 +460,11 @@ func _on_start_pressed() -> void:
 	GameLaunch.set_net_role(GameLaunch.NetRole.HOST)
 	GameLaunch.set_lan_loadout(_selected_character_id, _guest_character_id, loop_goal)
 	GameLaunch.set_arena_id(arena_id)
+	GameLaunch.set_net_play(_net_play)
 	_host_started = true
 	rpc_goal.rpc_id(_guest_id, loop_goal)
-	rpc_begin.rpc_id(_guest_id, _selected_character_id, _guest_character_id, loop_goal, arena_id)
+	rpc_play_mode.rpc_id(_guest_id, int(_net_play))
+	rpc_begin.rpc_id(_guest_id, _selected_character_id, _guest_character_id, loop_goal, arena_id, int(_net_play))
 	start_lan.emit()
 
 func _on_loop_changed(_value: float) -> void:
@@ -469,11 +494,43 @@ func _push_session_to_guest() -> void:
 		return
 	rpc_goal.rpc_id(_guest_id, maxi(roundi(_loop_slider.value), 0))
 	rpc_arena.rpc_id(_guest_id, GameLaunch._sanitize_arena_id(_selected_arena_id))
+	rpc_play_mode.rpc_id(_guest_id, int(_net_play))
 
 func _reset_character() -> void:
 	_select_character(CHAR_BOAR)
 
+func _reset_play_mode() -> void:
+	_select_net_play(GameLaunch.NetPlay.COOP)
+
+func _play_from_net(net_play: int) -> GameLaunch.NetPlay:
+	if net_play == int(GameLaunch.NetPlay.BATTLE):
+		return GameLaunch.NetPlay.BATTLE
+	return GameLaunch.NetPlay.COOP
+
+func _on_mode_pressed(play: GameLaunch.NetPlay) -> void:
+	_play_click()
+	_select_net_play(play)
+
+func _select_net_play(play: GameLaunch.NetPlay) -> void:
+	_net_play = play
+	_host_coop.button_pressed = play == GameLaunch.NetPlay.COOP
+	_host_battle.button_pressed = play == GameLaunch.NetPlay.BATTLE
+	_refresh_mode_ui()
+	if _handshake_ok and _guest_id != 0:
+		rpc_play_mode.rpc_id(_guest_id, int(_net_play))
+
+func _refresh_mode_ui() -> void:
+	if _net_play == GameLaunch.NetPlay.BATTLE:
+		_loop_slider.editable = false
+		_loop_label.text = "battle"
+		return
+	_loop_slider.editable = _picked_record_id.is_empty()
+	_refresh_loop_label()
+
 func _refresh_loop_label() -> void:
+	if _net_play == GameLaunch.NetPlay.BATTLE:
+		_loop_label.text = "battle"
+		return
 	_loop_label.text = RecordCard.format_loop_badge(maxi(roundi(_loop_slider.value), 0))
 
 func _refresh_host_start() -> void:
@@ -499,6 +556,7 @@ func _apply_host_config_lock(locked: bool) -> void:
 	_record_hint.visible = locked
 	if not locked:
 		_record_hint.text = ""
+	_refresh_mode_ui()
 
 func _refresh_pick() -> void:
 	GameRecords.load_from_disk()
