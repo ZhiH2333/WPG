@@ -34,6 +34,8 @@ const ARROW_FALLBACK: Dictionary = {
 }
 
 static var _volume: float = DEFAULT_VOLUME
+static var _music_volume: float = DEFAULT_VOLUME
+static var _sfx_volume: float = DEFAULT_VOLUME
 static var _fullscreen: bool = false
 static var _render_scale: float = 1.0
 static var _ui_scale: float = 1.0
@@ -43,6 +45,8 @@ static var _key_overrides: Dictionary = {}
 
 static func load_from_disk() -> void:
 	_volume = DEFAULT_VOLUME
+	_music_volume = DEFAULT_VOLUME
+	_sfx_volume = DEFAULT_VOLUME
 	_fullscreen = false
 	_render_scale = 1.0
 	_ui_scale = 1.0
@@ -55,6 +59,8 @@ static func load_from_disk() -> void:
 	if cfg.load(PATH) != OK:
 		return
 	_volume = clampf(float(cfg.get_value("audio", "volume", DEFAULT_VOLUME)), 0.0, 1.0)
+	_music_volume = clampf(float(cfg.get_value("audio", "music", DEFAULT_VOLUME)), 0.0, 1.0)
+	_sfx_volume = clampf(float(cfg.get_value("audio", "sfx", DEFAULT_VOLUME)), 0.0, 1.0)
 	_fullscreen = bool(cfg.get_value("display", "fullscreen", false))
 	_render_scale = clampf(float(cfg.get_value("display", "render_scale", 1.0)), 0.1, 1.0)
 	_ui_scale = clampf(float(cfg.get_value("display", "ui_scale", 1.0)), 0.8, 1.3)
@@ -69,6 +75,8 @@ static func load_from_disk() -> void:
 static func save_to_disk() -> void:
 	var cfg: ConfigFile = ConfigFile.new()
 	cfg.set_value("audio", "volume", _volume)
+	cfg.set_value("audio", "music", _music_volume)
+	cfg.set_value("audio", "sfx", _sfx_volume)
 	cfg.set_value("display", "fullscreen", _fullscreen)
 	cfg.set_value("display", "render_scale", _render_scale)
 	cfg.set_value("display", "ui_scale", _ui_scale)
@@ -79,12 +87,9 @@ static func save_to_disk() -> void:
 	cfg.save(PATH)
 
 static func apply() -> void:
-	var bus: int = AudioServer.get_bus_index("Master")
-	if _volume <= MUTE_THRESHOLD:
-		AudioServer.set_bus_mute(bus, true)
-	else:
-		AudioServer.set_bus_mute(bus, false)
-		AudioServer.set_bus_volume_db(bus, linear_to_db(clampf(_volume, MUTE_THRESHOLD, 1.0)))
+	_apply_bus_volume("Master", _volume)
+	_apply_bus_volume("Music", _music_volume)
+	_apply_bus_volume("SFX", _sfx_volume)
 	if _fullscreen:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	else:
@@ -102,6 +107,16 @@ static func apply() -> void:
 		root.content_scale_factor = _ui_scale
 	_apply_key_bindings()
 
+static func _apply_bus_volume(bus_name: String, linear: float) -> void:
+	var bus: int = AudioServer.get_bus_index(bus_name)
+	if bus < 0:
+		return
+	if linear <= MUTE_THRESHOLD:
+		AudioServer.set_bus_mute(bus, true)
+	else:
+		AudioServer.set_bus_mute(bus, false)
+		AudioServer.set_bus_volume_db(bus, linear_to_db(clampf(linear, MUTE_THRESHOLD, 1.0)))
+
 static func get_version() -> String:
 	return VERSION
 
@@ -110,6 +125,18 @@ static func get_volume() -> float:
 
 static func set_volume(value: float) -> void:
 	_volume = clampf(value, 0.0, 1.0)
+
+static func get_music_volume() -> float:
+	return _music_volume
+
+static func set_music_volume(value: float) -> void:
+	_music_volume = clampf(value, 0.0, 1.0)
+
+static func get_sfx_volume() -> float:
+	return _sfx_volume
+
+static func set_sfx_volume(value: float) -> void:
+	_sfx_volume = clampf(value, 0.0, 1.0)
 
 static func is_fullscreen() -> bool:
 	return _fullscreen

@@ -411,9 +411,13 @@ text = "Back"
 
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 
 [node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 
 [node name="BackSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 
 [node name="ErrorSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"

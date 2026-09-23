@@ -175,7 +175,10 @@ theme_type_variation = &"PillNeutral"
 text = "Menu"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 
 [node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 
 [node name="BackSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"

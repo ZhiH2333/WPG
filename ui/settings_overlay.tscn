@@ -145,9 +145,53 @@ theme_override_constants/separation = 8
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Volume"
+text = "Master"
 
 [node name="VolumeSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/VolumeBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 0
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+value = 1.0
+scrollable = false
+
+[node name="MusicBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/AudioSection/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="MusicLabel" type="Label" parent="Drawer/Panel/Clip/Content/AudioSection/Body/MusicBlock"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "Music"
+
+[node name="MusicSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/MusicBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 0
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+value = 1.0
+scrollable = false
+
+[node name="SfxBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/AudioSection/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="SfxLabel" type="Label" parent="Drawer/Panel/Clip/Content/AudioSection/Body/SfxBlock"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "SFX"
+
+[node name="SfxSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/SfxBlock"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
@@ -386,12 +430,16 @@ caret_blink = true
 
 [node name="Preview" type="AudioStreamPlayer" parent="."]
 unique_name_in_owner = true
+bus = &"SFX"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 
 [node name="ClickSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 
 [node name="BackSfx" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 
 [node name="CreditsOverlay" parent="." instance=ExtResource("10_credits")]
 layout_mode = 1

@@ -54,6 +54,8 @@ var _sfx_gate: Dictionary = {}
 @onready var _controls_section: SettingsSection = %ControlsSection
 @onready var _data_section: SettingsSection = %DataSection
 @onready var _volume_slider: HSlider = %VolumeSlider
+@onready var _music_slider: HSlider = %MusicSlider
+@onready var _sfx_slider: HSlider = %SfxSlider
 @onready var _fullscreen_check: CheckBox = %FullscreenCheck
 @onready var _render_scale_label: Label = %RenderScaleLabel
 @onready var _render_scale_slider: HSlider = %RenderScaleSlider
@@ -101,6 +103,10 @@ func _ready() -> void:
 	_search.text_changed.connect(_on_search_changed)
 	_volume_slider.value_changed.connect(_on_volume_changed)
 	_volume_slider.drag_ended.connect(_on_volume_drag_ended)
+	_music_slider.value_changed.connect(_on_music_changed)
+	_music_slider.drag_ended.connect(_on_music_drag_ended)
+	_sfx_slider.value_changed.connect(_on_sfx_changed)
+	_sfx_slider.drag_ended.connect(_on_sfx_drag_ended)
 	_fullscreen_check.toggled.connect(_on_fullscreen_toggled)
 	_render_scale_slider.value_changed.connect(_on_render_scale_changed)
 	_render_scale_slider.drag_ended.connect(_on_render_scale_drag_ended)
@@ -111,6 +117,8 @@ func _ready() -> void:
 	_delete_button.confirmed.connect(_on_delete_all_confirmed)
 	_credits_button.pressed.connect(_on_credits_pressed)
 	_volume_slider.scrollable = false
+	_music_slider.scrollable = false
+	_sfx_slider.scrollable = false
 	_render_scale_slider.scrollable = false
 	_ui_scale_slider.scrollable = false
 	_search.focus_mode = Control.FOCUS_ALL
@@ -552,7 +560,9 @@ func _matches(node: Node, query: String) -> bool:
 	return query in blob
 
 func _tag_searchable() -> void:
-	_volume_slider.get_parent().set_meta("settings_search", "volume audio")
+	_volume_slider.get_parent().set_meta("settings_search", "volume audio master")
+	_music_slider.get_parent().set_meta("settings_search", "volume audio music bgm")
+	_sfx_slider.get_parent().set_meta("settings_search", "volume audio sfx sound")
 	_fullscreen_check.get_parent().set_meta("settings_search", "fullscreen display")
 	_render_scale_slider.get_parent().set_meta("settings_search", "render resolution scale")
 	_ui_scale_slider.get_parent().set_meta("settings_search", "ui scale")
@@ -566,6 +576,8 @@ func _tag_searchable() -> void:
 
 func _sync_from_settings() -> void:
 	_volume_slider.set_value_no_signal(GameSettings.get_volume())
+	_music_slider.set_value_no_signal(GameSettings.get_music_volume())
+	_sfx_slider.set_value_no_signal(GameSettings.get_sfx_volume())
 	_fullscreen_check.set_pressed_no_signal(GameSettings.is_fullscreen())
 	var render_percent: float = GameSettings.get_render_scale() * 100.0
 	_render_scale_slider.set_value_no_signal(render_percent)
@@ -582,7 +594,23 @@ func _on_volume_changed(value: float) -> void:
 
 func _on_volume_drag_ended(_value_changed: bool) -> void:
 	GameSettings.save_to_disk()
-	if GameSettings.get_volume() > 0.0:
+	if GameSettings.get_volume() > 0.0 and GameSettings.get_sfx_volume() > 0.0:
+		_play_preview()
+
+func _on_music_changed(value: float) -> void:
+	GameSettings.set_music_volume(value)
+	GameSettings.apply()
+
+func _on_music_drag_ended(_value_changed: bool) -> void:
+	GameSettings.save_to_disk()
+
+func _on_sfx_changed(value: float) -> void:
+	GameSettings.set_sfx_volume(value)
+	GameSettings.apply()
+
+func _on_sfx_drag_ended(_value_changed: bool) -> void:
+	GameSettings.save_to_disk()
+	if GameSettings.get_volume() > 0.0 and GameSettings.get_sfx_volume() > 0.0:
 		_play_preview()
 
 func _on_fullscreen_toggled(pressed: bool) -> void:

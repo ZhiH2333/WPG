@@ -267,6 +267,7 @@ script = ExtResource("23_shard_pool")
 [node name="CombatMusic" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("24_music")
 volume_db = -22.0
+bus = &"Music"
 
 [node name="EncounterPhrases" type="Node" parent="."]
 script = ExtResource("10_encounter")

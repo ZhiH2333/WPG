@@ -30,6 +30,7 @@ func _ready() -> void:
 	_started_msec.resize(VOICE_COUNT)
 	for i: int in VOICE_COUNT:
 		var voice: AudioStreamPlayer = AudioStreamPlayer.new()
+		voice.bus = "SFX"
 		add_child(voice)
 		_voices.append(voice)
 		_started_msec[i] = 0

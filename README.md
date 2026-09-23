@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 4。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 仍只有音量/全屏。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐，中央上方是 `images/logo.png` 字标，下方 Settings / Play / Exit 三颗平行四边形按钮并排。点 Logo 或 Play 弹出 SOLO / MULTI 两张卡（ModeChoiceOverlay，不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。顶栏 Home 右边成对放 SOLO / MULTI，跳过 Mode Choice 直达。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 4。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 有 Master / Music / SFX 三轨音量和显示项。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火、A 冲刺。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -1441,6 +1441,18 @@ LAN 2 人 Battle：Host 选模式，无句读无商店，玩家弹打得到对�
 
 **当时不做：** 房间浏览器、3～5 人 FFA、P2P、断线重连、Joypad 重绑、虚拟摇杆、主动技能、战斗 HUD 跟班条、改 Gunner 140/520/70、改 Pack/Stim 数字、改 COMPANION_CAP=10、改四把枪/敌人身份、Motor 420 / `look_ahead=100`、HUD 左下锚点、算分公式、records.json 字段、10+4 张卡 value、UpgradeOffer 再改、第四张图、Autoload、`Engine.time_scale`、`reload_current_scene`、新 PNG、新 wav、玩家身体互撞、近战拳头互殴、Battle 里刷怪/跟班/商店。
 
+## Day 75（已完成）：Master / Music / SFX 分轨
+
+Master 仍是总闸。Music / SFX 各一条总线，send 到 Master。用户增益只打在总线（线性相乘 = dB 相加）；菜单/战斗淡出仍走现在的节点 `volume_db` 曲线。Autoload 仍为 0。`GameSettings.VERSION` 仍 `"1.0.0"`。协议仍 4。Solo / Infinite / LAN Co-op / Battle 与 Day 74 相同。
+
+- **总线**：`res://default_bus_layout.tres`。Master 引擎自带；Music / SFX `send=&"Master"`。不要 Voice / Ambience / UI / FX。`project.godot` 增加 `[audio] buses/default_bus_layout="res://default_bus_layout.tres"`。不改 rendering / stretch / 物理层 / InputMap。
+- **GameSettings**：保留 `_volume` = Master，钥匙仍 `audio/volume`。新增 `_music_volume` / `_sfx_volume`，默认 `DEFAULT_VOLUME=1.0`，钥匙 `audio/music`、`audio/sfx`。旧 cfg 缺这两把读成 1.0，不改写已有 `audio/volume`。`apply()` 三总线走同一套 `_apply_bus_volume`：linear ≤ `MUTE_THRESHOLD=0.001` 则 mute，否则 unmute + `linear_to_db(clamp)`。`get_bus_index < 0` 则 return，不 `push_error`。`get_volume` / `set_volume` 仍是 Master。三个 setter 都 clamp 0..1，不在 setter 里 save。
+- **节点 vs 总线**：菜单 `$Music.bus = "Music"`，`_process` 仍 `lerpf(SILENCE_DB, overlay_db, _music_fade)`，overlay_db 仍 -6 / -16。战斗 `$CombatMusic.bus = "Music"`，tween 目标仍 `SILENCE_DB` / `COMBAT_MUSIC_DB(-22)`。不要把滑条写进节点 `volume_db`。结果：淡入淡出曲线不变，再乘 Music 滑条，再乘 Master。
+- **播放器**：Music 总线 = `main_menu.tscn` `$Music`、`combat_sandbox.tscn` `$CombatMusic`。SFX 总线 = 所有 HoverSfx / ClickSfx / BackSfx / ErrorSfx / Settings `%Preview`，以及 `SfxPool._ready` 里 `voice.bus = "SFX"`。SfxPool 各枪/受击/击杀的 `voice.volume_db`（-4 / -6 / -7 / -8 / -10）不改。tscn 写 `bus = &"SFX"` 或 `&"Music"`，不运行时遍历树改 bus。
+- **Settings Audio**：保留 `%VolumeSlider` 当 Master，VolumeLabel 文案 `"Master"`。VolumeBlock 后追加 MusicBlock / SfxBlock（同样 VBox `separation=8`，HSlider unique `MusicSlider` / `SfxSlider`，0..1 step 0.01，`scrollable=false`，`custom_minimum_size.y=28`）。不要百分号。`_tag_searchable`：VolumeBlock `"volume audio master"`，MusicBlock `"volume audio music bgm"`，SfxBlock `"volume audio sfx sound"`。`_sync_from_settings` 三根 `set_value_no_signal`。拖动立刻 `set_*` + `apply()`；松手 `save_to_disk`。Master 或 SFX 松手且 `get_volume()>0` 且 `get_sfx_volume()>0` 才 `_play_preview`；Music 松手不播 click。侧栏仍 Audio / Display / Controls / Data。
+
+**当时不做：** 手柄重绑、导出、5 人/P2P、主动技能、改协议 4、改 SNAPSHOT_VERSION、改战斗数字、Voice/Ambience 第三条玩法总线、新 wav、新 PNG、新 CanvasLayer、Autoload、把滑条增益写进节点 `volume_db`、改 `MUSIC_DB_NORMAL` / -16 / -22、改 SfxPool 各枪 `volume_db`、把 `weapon_smg` 加进 `REBINDABLE_ACTIONS`。
+
 ## 剩余表
 
 
@@ -1498,9 +1510,11 @@ LAN 2 人 Battle：Host 选模式，无句读无商店，玩家弹打得到对�
 
 **Day 74 = Battle 2 人（已完成）**：协议 4、Host 选 Co-op/Battle、无句读无商店、玩家弹打得到对方、先倒的输、不写档。
 
-**下一步 Day 75 = 导出 Win/macOS/Linux + Pit/Keep/Co-op/Battle profiling。**
+**Day 75 = Master / Music / SFX 分轨（已完成）**：总线布局、settings.cfg 两把新钥匙、Settings 三滑条；旧 cfg 缺钥匙当 1.0；淡出仍走节点 dB，用户增益只在总线。
 
-**完整手柄适配后置（已拍板）**：不在 54–60 做 Joypad 按键重绑、手柄专属 Settings、虚拟摇杆布局编辑。Day 57 的右摇杆 `map_aim_stick` 保留，不再扩展。手柄/触屏整包跟 Day 81+ 或更后的 Virtual Sticks 一起做。
+**下一步 Day 76 = Settings 手柄重绑（Joypad 按钮落盘；右摇杆仍 `map_aim_stick`；顺手把 `weapon_smg` 补进 `REBINDABLE_ACTIONS`）。**
+
+**完整手柄适配后置（已拍板）**：虚拟摇杆布局编辑与触屏整包仍后置到 Day 81+。Day 76 做 Settings 手柄按钮落盘；Day 57 的右摇杆 `map_aim_stick` 保留。
 
 > **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Day 58 已完成第三刀：Settings 抽屉。TopBar、LogoButton 仍用旧皮。
 
@@ -1510,8 +1524,8 @@ LAN 2 人 Battle：Host 选模式，无句读无商店，玩家弹打得到对�
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD。LAN 同步药和跟班已在 Day 73 落地。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。下一步 Day 75 导出 Win/macOS/Linux + Pit/Keep/Co-op/Battle profiling。后续波次/Boss 词表扩充。
-4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。**完整手柄适配 + 虚拟摇杆**排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同，不提前做 Joypad 重绑。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。Day 75 已做 Master / Music / SFX 分轨。下一步 Day 76 Settings 手柄重绑（Joypad 按钮落盘；右摇杆仍 `map_aim_stick`；顺手把 `weapon_smg` 补进 `REBINDABLE_ACTIONS`）。导出 Win/macOS/Linux 与 profiling 仍后置。后续波次/Boss 词表扩充。
+4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。**虚拟摇杆**仍排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同。Joypad 按钮落盘排在 Day 76。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 
 **验收口径（每一天通用）**：本 Day README 里列出的「当时不做」清单之外的行为不应出现改动；新增/变更的脚本、场景、theme 项都要在 README 对应 Day 小节里落字，agent 交付前必须自查 README 是否已同步——这正是本次修的问题（Day 52/53 曾漏更新）。

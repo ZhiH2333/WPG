@@ -288,12 +288,16 @@ mouse_filter = 2
 stream = ExtResource("7_music")
 volume_db = -6.0
 autoplay = true
+bus = &"Music"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="." unique_id=1695307025]
+bus = &"SFX"
 
 [node name="ClickSfx" type="AudioStreamPlayer" parent="." unique_id=368153545]
+bus = &"SFX"
 
 [node name="BackSfx" type="AudioStreamPlayer" parent="." unique_id=523452819]
+bus = &"SFX"
 
 [node name="SettingsOverlay" parent="." unique_id=929522329 instance=ExtResource("3_overlay")]
 layout_mode = 1

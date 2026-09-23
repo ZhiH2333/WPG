@@ -362,9 +362,12 @@ offset_top = 60.0
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 process_mode = 3
+bus = &"SFX"
 
 [node name="ClickSfx" type="AudioStreamPlayer" parent="."]
 process_mode = 3
+bus = &"SFX"
 
 [node name="BackSfx" type="AudioStreamPlayer" parent="."]
 process_mode = 3
+bus = &"SFX"
