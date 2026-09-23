@@ -25,13 +25,14 @@ var _owns_tree_pause: bool = false
 @onready var _retry_button: Button = $Root/Center/Column/Retry
 @onready var _quit_button: Button = $Root/Center/Column/Quit
 @onready var _stats_label: Label = $Root/Center/Column/Stats
-@onready var _top_bar: PanelContainer = $TopBar
-@onready var _settings_button: Button = $TopBar/Row/SettingsButton
-@onready var _phase_label: Label = $TopBar/Row/PhaseBox/Phase
-@onready var _playtime_label: Label = $TopBar/Row/PlaytimeBox/Playtime
-@onready var _profile_button: Button = $TopBar/Row/Profile
-@onready var _profile_name: Label = $TopBar/Row/Profile/Layout/Name
-@onready var _clock_label: Label = $TopBar/Row/TimeBox/Clock
+@onready var _top_bar_layer: CanvasLayer = $TopBarLayer
+@onready var _top_bar: PanelContainer = $TopBarLayer/TopBar
+@onready var _settings_button: Button = $TopBarLayer/TopBar/Row/SettingsButton
+@onready var _phase_label: Label = $TopBarLayer/TopBar/Row/PhaseBox/Phase
+@onready var _playtime_label: Label = $TopBarLayer/TopBar/Row/PlaytimeBox/Playtime
+@onready var _profile_button: Button = $TopBarLayer/TopBar/Row/Profile
+@onready var _profile_name: Label = $TopBarLayer/TopBar/Row/Profile/Layout/Name
+@onready var _clock_label: Label = $TopBarLayer/TopBar/Row/TimeBox/Clock
 @onready var _overlay: SettingsOverlay = $SettingsOverlay
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
@@ -71,12 +72,41 @@ func bind_encounter(encounter: EncounterPhrases) -> void:
 func is_open() -> bool:
 	return _open
 
+func show_top_bar() -> void:
+	visible = true
+	_top_bar_layer.visible = true
+	_top_bar.visible = true
+	_top_bar.modulate.a = 1.0
+	if not _open:
+		_root.visible = false
+	_refresh_clock(true)
+	_refresh_run_status()
+	_refresh_profile_name()
+
+func hide_top_bar() -> void:
+	_root.visible = true
+	if _open:
+		return
+	_top_bar_layer.visible = false
+	visible = false
+
+func adopt_tree_pause() -> void:
+	if not _open:
+		return
+	_owns_tree_pause = true
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		tree.paused = true
+
 func open(freeze_tree: bool = true) -> void:
 	if _open:
 		return
 	_open = true
 	visible = true
+	_root.visible = true
 	_root.modulate.a = 1.0
+	_top_bar_layer.visible = true
+	_top_bar.visible = true
 	_top_bar.modulate.a = 1.0
 	_set_interactive(true)
 	_refresh_stats()
@@ -113,15 +143,18 @@ func close(emit_resumed: bool = true) -> void:
 func _finish_close() -> void:
 	if _open:
 		return
+	_top_bar_layer.visible = false
 	visible = false
+	_root.visible = true
 	_root.modulate.a = 1.0
 	_top_bar.modulate.a = 1.0
 
 func _process(_delta: float) -> void:
-	if not _open:
+	if not visible:
 		return
 	_refresh_clock(false)
-	_refresh_run_status()
+	if _open:
+		_refresh_run_status()
 
 func _input(event: InputEvent) -> void:
 	if not visible:

@@ -43,6 +43,8 @@ var _strafe_sign: int = 1
 var _strafe_flip_left_sec: float = STRAFE_FLIP_SEC
 var _hp_bar: WorldHpBar
 var _slot_index: int = 0
+var _sim_paused: bool = false
+var _remote_puppet: bool = false
 
 @onready var _visual: Sprite2D = $Visual
 @onready var _hurtbox: CollisionShape2D = $CollisionShape2D
@@ -101,6 +103,39 @@ func set_slot_index(index: int) -> void:
 func get_slot_index() -> int:
 	return _slot_index
 
+func get_owner_player() -> Player:
+	return _owner_player
+
+func get_aim_vector() -> Vector2:
+	return _read_aim_or_left()
+
+func set_sim_paused(paused: bool) -> void:
+	_sim_paused = paused
+	_refresh_physics_enabled()
+
+func set_remote_puppet(enabled: bool) -> void:
+	_remote_puppet = enabled
+	if enabled:
+		set_physics_process(false)
+		return
+	_refresh_physics_enabled()
+
+func apply_net_pose(pos: Vector2, hp: int, max_hp: int, defeated: bool, weapon_index: int, aim: Vector2, owner: Player) -> void:
+	global_position = pos
+	velocity = Vector2.ZERO
+	_max_hp = maxi(1, max_hp)
+	_hp = clampi(hp, 0, _max_hp)
+	if owner != null:
+		_owner_player = owner
+	if not aim.is_zero_approx():
+		_flip_h = (aim.x > 0.0) != _native_faces_right()
+		_apply_flip(_flip_h)
+	if defeated and not _defeated:
+		_defeat()
+	else:
+		_refresh_hp_bar()
+	_apply_net_visual(weapon_index, aim)
+
 func get_commit_target() -> EnemyBase:
 	return _commit_target
 
@@ -125,8 +160,17 @@ func bind_sfx_pool(sfx_pool: SfxPool) -> void:
 func bind_projectile_pool(_pool: ProjectilePool) -> void:
 	pass
 
+func _refresh_physics_enabled() -> void:
+	if _remote_puppet or _sim_paused:
+		set_physics_process(false)
+		return
+	set_physics_process(true)
+
+func _apply_net_visual(_weapon_index: int, _aim: Vector2) -> void:
+	pass
+
 func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = Vector2.ZERO) -> void:
-	if _defeated or _i_frame_left_sec > 0.0 or amount <= 0:
+	if _remote_puppet or _defeated or _i_frame_left_sec > 0.0 or amount <= 0:
 		return
 	var direction: Vector2 = _resolve_hit_direction(hit_direction)
 	_hp = maxi(0, _hp - amount)
@@ -142,7 +186,7 @@ func apply_damage(amount: int, hit_position: Vector2, hit_direction: Vector2 = V
 		_defeat()
 
 func _physics_process(delta: float) -> void:
-	if _defeated:
+	if _remote_puppet or _sim_paused or _defeated:
 		return
 	_tick_ai_state(delta)
 	velocity = velocity.move_toward(_compute_desired_velocity(), _acceleration * delta)

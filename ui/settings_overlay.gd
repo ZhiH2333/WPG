@@ -790,4 +790,7 @@ func _find_top_bar() -> Control:
 	var top_bar: Control = parent.get_node_or_null("TopBar") as Control
 	if top_bar != null:
 		return top_bar
+	top_bar = parent.get_node_or_null("TopBarLayer/TopBar") as Control
+	if top_bar != null:
+		return top_bar
 	return parent.get_node_or_null("Root/TopBar") as Control

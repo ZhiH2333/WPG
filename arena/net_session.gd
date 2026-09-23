@@ -14,9 +14,15 @@ signal return_menu_received
 signal try_pick_received(upgrade_id: String)
 signal try_unpause_received
 signal try_pause_received
+signal shop_stock_received(data: PackedByteArray, gold: int, stim_bought: bool)
+signal try_shop_received(seat: int, kind: int, item_id: String, extra: int)
 
 const SEND_HZ: float = 20.0
 const SEND_INTERVAL: float = 1.0 / SEND_HZ
+const COMPANION_FIRE_SEAT_BASE: int = 10
+const SHOP_KIND_UPGRADE: int = 0
+const SHOP_KIND_CONSUMABLE: int = 1
+const SHOP_KIND_COMPANION: int = 2
 
 var _role: GameLaunch.NetRole = GameLaunch.NetRole.OFFLINE
 var _send_acc: float = 0.0
@@ -120,6 +126,16 @@ func send_try_pause() -> void:
 	if not is_guest():
 		return
 	rpc_try_pause.rpc_id(1)
+
+func send_shop_stock(data: PackedByteArray, gold: int, stim_bought: bool) -> void:
+	if not is_host():
+		return
+	rpc_shop_stock.rpc(data, gold, stim_bought)
+
+func send_try_shop(kind: int, item_id: String, extra: int) -> void:
+	if not is_guest():
+		return
+	rpc_try_shop.rpc_id(1, kind, item_id, extra)
 
 func _process(delta: float) -> void:
 	if not is_online() or _sandbox == null:
@@ -229,3 +245,15 @@ func rpc_try_pause() -> void:
 	if not is_host():
 		return
 	try_pause_received.emit()
+
+@rpc("authority", "call_remote", "reliable")
+func rpc_shop_stock(data: PackedByteArray, gold: int, stim_bought: bool) -> void:
+	if not is_guest():
+		return
+	shop_stock_received.emit(data, gold, stim_bought)
+
+@rpc("any_peer", "call_remote", "reliable")
+func rpc_try_shop(kind: int, item_id: String, extra: int) -> void:
+	if not is_host():
+		return
+	try_shop_received.emit(2, kind, item_id, extra)

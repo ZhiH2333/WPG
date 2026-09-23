@@ -133,10 +133,10 @@ func get_shop_mode_label() -> String:
 		return "catalog"
 	return "lan3"
 
-func present(cards: Array[ShopCard], gold: int) -> void:
+func present(cards: Array[ShopCard], gold: int, stim_bought: bool = false) -> void:
 	_kill_shop_tweens()
 	_clear_shelf()
-	_stim_bought = false
+	_stim_bought = stim_bought
 	_last_bought_identity = &""
 	_presented_gold = gold
 	_displayed_gold = float(_read_gold())
@@ -155,9 +155,10 @@ func present(cards: Array[ShopCard], gold: int) -> void:
 	_fit_panel()
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [], true)
 
-func refresh_stock(cards: Array[ShopCard]) -> void:
+func refresh_stock(cards: Array[ShopCard], stim_bought: bool = false) -> void:
 	if not _open:
 		return
+	_stim_bought = stim_bought
 	_pending_companion = null
 	_view = View.BROWSE
 	_apply_stock(cards)
@@ -320,8 +321,6 @@ func _pick_card(card: ShopCard) -> void:
 	if card.kind == ShopCard.Kind.CONSUMABLE:
 		if card.consumable == null:
 			return
-		if card.consumable.id == STIM_ID:
-			_stim_bought = true
 		_last_bought_identity = _card_identity(card)
 		picked_consumable.emit(card.consumable.id)
 		return

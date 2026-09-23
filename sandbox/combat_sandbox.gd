@@ -32,7 +32,7 @@ const UPGRADE_SKIP_ID := "__skip__"
 const OFFER_PHRASE: int = 0
 const OFFER_LEVEL: int = 1
 const OFFER_SHOP: int = 2
-const SNAPSHOT_VERSION: int = 1
+const SNAPSHOT_VERSION: int = 2
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -52,6 +52,8 @@ var _guest_pawn: Player
 var _lan_paused: bool = false
 var _last_owned_label: String = ""
 var _companions: Array[CompanionBase] = []
+var _shop_stim_bought: bool = false
+var _started_as_lan: bool = false
 var _arena_id: String = "yard"
 
 @onready var _viewport_container: SubViewportContainer = $ViewportContainer
@@ -81,6 +83,7 @@ var _arena_id: String = "yard"
 @onready var _pause_overlay: PauseOverlay = $PauseOverlay
 @onready var _players_root: Node2D = $ViewportContainer/GameViewport/World/Players
 @onready var _net: NetSession = $NetSession
+@onready var _room_notice: RoomNotice = $RoomNotice
 
 func _ready() -> void:
 	GameSettings.load_from_disk()
@@ -204,6 +207,7 @@ func _ensure_combat_music() -> void:
 func _bind_runtime() -> void:
 	_net_role = GameLaunch.take_net_role()
 	_lan_loadout = GameLaunch.take_lan_loadout()
+	_started_as_lan = _is_lan()
 	if _is_lan():
 		GameLaunch.take_join_address()
 		if multiplayer.multiplayer_peer == null:
@@ -218,10 +222,13 @@ func _bind_runtime() -> void:
 	_net.offer_close_received.connect(_on_net_offer_close)
 	_net.winner_received.connect(_on_net_winner)
 	_net.reset_received.connect(_reset_sandbox)
-	_net.return_menu_received.connect(_return_to_menu)
+	_net.return_menu_received.connect(_on_net_return_menu)
+	_room_notice.dismissed.connect(_on_room_notice_dismissed)
 	_net.try_pick_received.connect(_on_net_try_pick)
 	_net.try_unpause_received.connect(_on_net_try_unpause)
 	_net.try_pause_received.connect(_on_net_try_pause)
+	_net.shop_stock_received.connect(_on_net_shop_stock)
+	_net.try_shop_received.connect(_on_net_try_shop)
 	_prepare_pawns()
 	var player_input: PlayerInput = _local_player.get_player_input()
 	_projectiles.setup(_projectiles, PROJECTILE_SCENE, POOL_CAPACITY)
@@ -286,7 +293,7 @@ func _bind_runtime() -> void:
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
 	_upgrade_offer.cancelled.connect(_on_pause_toggle)
 	_shop_offer.bind_session(_run_session)
-	_shop_offer.bind_player(_player)
+	_shop_offer.bind_player(_local_player)
 	_shop_offer.bind_player_input(player_input)
 	_shop_offer.bought.connect(_on_shop_bought)
 	_shop_offer.picked_companion.connect(_on_shop_companion_picked)
@@ -347,8 +354,8 @@ func _on_enemy_defeated(_enemy: EnemyBase) -> void:
 	_run_session.add_gold(_enemy.get_gold_reward())
 
 func _assert_upgrade_catalog() -> void:
-	if UPGRADE_CATALOG.get_count() != 10:
-		push_error("升级目录条目数应为 10，实际 %d" % UPGRADE_CATALOG.get_count())
+	if UPGRADE_CATALOG.get_count() != 14:
+		push_error("升级目录条目数应为 14，实际 %d" % UPGRADE_CATALOG.get_count())
 	for upgrade_id: String in REQUIRED_UPGRADE_IDS:
 		if UPGRADE_CATALOG.get_by_id(StringName(upgrade_id)) == null:
 			push_error("升级目录缺少 id: %s" % upgrade_id)
@@ -365,11 +372,12 @@ func _loop_phrases() -> void:
 	if cards.is_empty():
 		_finish_loop_after_shop()
 		return
+	_shop_stim_bought = false
 	_set_combat_frozen(true)
-	_shop_offer.present(cards, _run_session.get_gold())
+	_shop_offer.present(cards, _run_session.get_gold(), false)
 	_set_offer_input_lock(true)
-	if _is_lan():
-		_broadcast_offer_open(OFFER_SHOP, _upgrade_defs_from_shop_cards(cards), _run_session.get_gold())
+	if _is_host():
+		_broadcast_shop_stock(cards)
 
 func _finish_loop_after_shop() -> void:
 	_run_session.notify_phrase_loop()
@@ -405,6 +413,7 @@ func _reset_sandbox() -> void:
 		_close_shop()
 	_park_combat_pools()
 	_apply_arena(_arena_id)
+	_shop_stim_bought = false
 	_clear_companion()
 	_run_session.restart()
 	_upgrade_applier.apply_owned()
@@ -489,8 +498,23 @@ func _close_offer() -> void:
 
 func _on_shop_bought(upgrade_id: StringName) -> void:
 	if _is_guest():
-		_net.send_try_pick(String(upgrade_id))
+		_net.send_try_shop(NetSession.SHOP_KIND_UPGRADE, String(upgrade_id), 0)
 		return
+	_host_buy_upgrade(upgrade_id)
+
+func _on_shop_companion_picked(companion_id: StringName, weapon_index: int) -> void:
+	if _is_guest():
+		_net.send_try_shop(NetSession.SHOP_KIND_COMPANION, String(companion_id), weapon_index)
+		return
+	_host_buy_companion(companion_id, weapon_index, _host_buyer())
+
+func _on_shop_consumable_picked(consumable_id: StringName) -> void:
+	if _is_guest():
+		_net.send_try_shop(NetSession.SHOP_KIND_CONSUMABLE, String(consumable_id), 0)
+		return
+	_host_buy_consumable(consumable_id, _host_buyer())
+
+func _host_buy_upgrade(upgrade_id: StringName) -> void:
 	if not _shop_offer.is_open():
 		return
 	if _all_pawns_defeated() or not _run_session.is_playing():
@@ -506,16 +530,9 @@ func _on_shop_bought(upgrade_id: StringName) -> void:
 		return
 	_upgrade_applier.apply_owned()
 	_debug_overlay.set_last_grant_id(String(upgrade_id))
-	if _is_lan():
-		_close_shop()
-		_broadcast_offer_close(String(upgrade_id))
-		_finish_loop_after_shop()
-		return
 	_refresh_open_shop()
 
-func _on_shop_companion_picked(companion_id: StringName, weapon_index: int) -> void:
-	if _is_guest() or _is_lan():
-		return
+func _host_buy_companion(companion_id: StringName, weapon_index: int, owner: Player) -> void:
 	if not _shop_offer.is_open():
 		return
 	if _all_pawns_defeated() or not _run_session.is_playing():
@@ -533,19 +550,21 @@ func _on_shop_companion_picked(companion_id: StringName, weapon_index: int) -> v
 	if not _run_session.try_spend(cost):
 		push_error("商店扣款失败：companion=%s cost=%d gold=%d" % [String(companion_id), cost, _run_session.get_gold()])
 		return
-	_spawn_companion(companion_id, weapon_index)
+	_spawn_companion(companion_id, weapon_index, owner)
 	_refresh_open_shop()
 
-func _on_shop_consumable_picked(consumable_id: StringName) -> void:
-	if _is_lan():
-		return
+func _host_buy_consumable(consumable_id: StringName, buyer: Player) -> void:
 	if not _shop_offer.is_open():
 		return
 	if _all_pawns_defeated() or not _run_session.is_playing():
 		_abort_shop()
 		return
+	if buyer == null:
+		return
 	var def: ConsumableDef = CONSUMABLE_CATALOG.get_by_id(consumable_id)
 	if def == null:
+		return
+	if not _can_buy_consumable(def, buyer):
 		return
 	var cost: int = def.shop_cost
 	if _run_session.get_gold() < cost:
@@ -553,17 +572,21 @@ func _on_shop_consumable_picked(consumable_id: StringName) -> void:
 	if not _run_session.try_spend(cost):
 		push_error("商店扣款失败：consumable=%s cost=%d gold=%d" % [String(consumable_id), cost, _run_session.get_gold()])
 		return
-	_apply_consumable(def)
+	_apply_consumable(def, buyer)
 	_refresh_open_shop()
 
-func _apply_consumable(def: ConsumableDef) -> void:
-	var health: PlayerHealth = _player.get_player_health()
+func _apply_consumable(def: ConsumableDef, buyer: Player = null) -> void:
+	var pawn: Player = buyer if buyer != null else _host_buyer()
+	if pawn == null:
+		return
+	var health: PlayerHealth = pawn.get_player_health()
 	if def.kind == ConsumableDef.Kind.HEAL_FULL:
 		health.fill_hp()
 		_fill_companion_hp()
 		return
 	if def.kind == ConsumableDef.Kind.I_FRAME:
 		health.apply_bonus_i_frame(def.value)
+		_shop_stim_bought = true
 		return
 	health.heal(int(def.value))
 
@@ -573,7 +596,9 @@ func _refresh_open_shop() -> void:
 	_run_session.set_living_companion_count(_count_living_companions())
 	_shop_offer.bind_companions(_companions)
 	var cards: Array[ShopCard] = _run_session.list_shop_catalog()
-	_shop_offer.refresh_stock(cards)
+	_shop_offer.refresh_stock(cards, _shop_stim_bought)
+	if _is_host():
+		_broadcast_shop_stock(cards)
 
 func _on_shop_skipped() -> void:
 	if _is_guest():
@@ -591,6 +616,7 @@ func _abort_shop() -> void:
 	_close_shop()
 
 func _close_shop() -> void:
+	_shop_stim_bought = false
 	_shop_offer.close()
 	_set_offer_input_lock(false)
 	_set_combat_frozen(false)
@@ -604,6 +630,7 @@ func _set_combat_frozen(frozen: bool) -> void:
 				pawn.set_sim_paused(frozen)
 		for enemy: EnemyBase in _enemies:
 			enemy.set_sim_paused(frozen)
+		_pause_companions(frozen)
 		return
 	var tree: SceneTree = get_tree()
 	if tree == null:
@@ -841,8 +868,8 @@ func _show_winner_if_needed() -> void:
 	if _winner_page.is_open():
 		return
 	_winner_page.set_retry_allowed(not _is_guest())
-	if _is_lan():
-		if _is_host():
+	if _is_lan() or _started_as_lan:
+		if _is_host() and _is_lan():
 			_net.send_winner(
 				_record_outcome(),
 				_run_session.get_loop_index(),
@@ -878,7 +905,7 @@ func _on_winner_menu() -> void:
 	_return_to_menu()
 
 func _record_progress_if_needed() -> void:
-	if _is_lan():
+	if _is_lan() or _started_as_lan:
 		return
 	if _progress_written:
 		return
@@ -960,11 +987,12 @@ func _debug_cycle_companion() -> void:
 		return
 	ranged.apply_weapon(next_index)
 
-func _spawn_companion(companion_id: StringName, weapon_index: int) -> void:
-	if _is_lan() or _is_guest():
+func _spawn_companion(companion_id: StringName, weapon_index: int, owner: Player = null) -> void:
+	if _is_guest():
 		return
 	if _count_living_companions() >= RunSession.COMPANION_CAP:
 		return
+	var owner_pawn: Player = owner if owner != null else _player
 	var def: CompanionDef = COMPANION_CATALOG.get_by_id(companion_id)
 	if def == null:
 		return
@@ -973,8 +1001,8 @@ func _spawn_companion(companion_id: StringName, weapon_index: int) -> void:
 		return
 	_companions_root.add_child(companion)
 	companion.apply_def(def)
-	companion.global_position = _pick_companion_spawn(def.hurtbox_radius, _count_living_companions())
-	companion.bind_owner(_player)
+	companion.global_position = _pick_companion_spawn(def.hurtbox_radius, _count_living_companions(), owner_pawn)
+	companion.bind_owner(owner_pawn)
 	companion.bind_enemies(_enemies)
 	companion.bind_allies(_companions)
 	companion.bind_sfx_pool(_sfx_pool)
@@ -982,15 +1010,19 @@ func _spawn_companion(companion_id: StringName, weapon_index: int) -> void:
 	var ranged: RangedCompanion = companion as RangedCompanion
 	if ranged != null:
 		ranged.apply_weapon(weapon_index)
+		ranged.shot_fired.connect(_on_companion_shot_fired.bind(ranged))
+	if _is_lan() and (_shop_offer.is_open() or _upgrade_offer.is_open() or _lan_paused):
+		companion.set_sim_paused(true)
 	_companions.append(companion)
 	_reindex_companion_slots()
 	_sync_companion_bindings()
 
-func _pick_companion_spawn(radius: float, slot: int) -> Vector2:
-	var origin: Vector2 = _player.global_position
+func _pick_companion_spawn(radius: float, slot: int, owner: Player = null) -> Vector2:
+	var origin_pawn: Player = owner if owner != null else _player
+	var origin: Vector2 = origin_pawn.global_position if origin_pawn != null else Vector2.ZERO
 	var aim: Vector2 = Vector2.LEFT
-	if _player != null:
-		var raw: Vector2 = _player.get_player_input().aim_vector
+	if origin_pawn != null:
+		var raw: Vector2 = origin_pawn.get_player_input().aim_vector
 		if not raw.is_zero_approx():
 			aim = raw.normalized()
 	var pair: int = int(slot / 2)
@@ -1068,24 +1100,8 @@ func _fill_companion_hp() -> void:
 		companion.fill_hp()
 
 func _draft_shop_cards_for_loop() -> Array[ShopCard]:
-	if _is_lan():
-		return _shop_cards_from_upgrades(_run_session.draft_offer(3))
 	_run_session.set_living_companion_count(_count_living_companions())
 	return _run_session.list_shop_catalog()
-
-func _shop_cards_from_upgrades(defs: Array[UpgradeDef]) -> Array[ShopCard]:
-	var cards: Array[ShopCard] = []
-	for def: UpgradeDef in defs:
-		cards.append(ShopCard.for_upgrade(def))
-	return cards
-
-func _upgrade_defs_from_shop_cards(cards: Array[ShopCard]) -> Array[UpgradeDef]:
-	var defs: Array[UpgradeDef] = []
-	for card: ShopCard in cards:
-		if card == null or card.kind != ShopCard.Kind.UPGRADE or card.upgrade == null:
-			continue
-		defs.append(card.upgrade)
-	return defs
 
 func _debug_swap_character() -> void:
 	if _pause_overlay.is_open() or _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
@@ -1206,6 +1222,7 @@ func _set_lan_paused(paused: bool) -> void:
 			pawn.set_sim_paused(paused)
 	for enemy: EnemyBase in _enemies:
 		enemy.set_sim_paused(paused)
+	_pause_companions(paused)
 	if paused:
 		if not _pause_overlay.is_open():
 			_set_offer_input_lock(true)
@@ -1275,6 +1292,7 @@ func flush_net_snapshot() -> void:
 		buf.put_float(enemy.global_position.x)
 		buf.put_float(enemy.global_position.y)
 		buf.put_u16(clampi(enemy.get_hp(), 0, 65535))
+	_write_companion_snapshot(buf)
 	buf.put_u16(clampi(_run_session.get_loop_index(), 0, 65535))
 	buf.put_u16(clampi(_run_session.get_gold(), 0, 65535))
 	buf.put_u16(clampi(_run_session.get_kill_count(), 0, 65535))
@@ -1330,6 +1348,7 @@ func _on_net_snapshot(data: PackedByteArray) -> void:
 		if index < 0 or index >= _enemies.size():
 			continue
 		_enemies[index].apply_net_state(pos, hp, (flags & 2) != 0, (flags & 1) != 0)
+	_read_companion_snapshot(buf)
 	var loop_index: int = buf.get_u16()
 	var gold: int = buf.get_u16()
 	var kills: int = buf.get_u16()
@@ -1356,6 +1375,9 @@ func _on_net_snapshot(data: PackedByteArray) -> void:
 		_show_winner_if_needed()
 
 func _on_net_fire_fx(seat: int, origin: Vector2, direction: Vector2, weapon_index: int) -> void:
+	if seat >= NetSession.COMPANION_FIRE_SEAT_BASE:
+		_play_companion_fire_fx(seat - NetSession.COMPANION_FIRE_SEAT_BASE, origin, direction, weapon_index)
+		return
 	var pawn: Player = _pawn_for_seat(seat)
 	if pawn == null:
 		return
@@ -1370,15 +1392,14 @@ func _on_net_fire_fx(seat: int, origin: Vector2, direction: Vector2, weapon_inde
 func _on_net_offer_open(kind: int, id0: String, id1: String, id2: String, gold: int) -> void:
 	if not _is_guest():
 		return
+	if kind == OFFER_SHOP:
+		return
 	var defs: Array[UpgradeDef] = _defs_from_ids(id0, id1, id2)
 	if defs.is_empty():
 		return
 	_set_combat_frozen(true)
-	if kind == OFFER_SHOP:
-		_shop_offer.present(_shop_cards_from_upgrades(defs), gold)
-	else:
-		_offer_is_phrase = kind == OFFER_PHRASE
-		_upgrade_offer.present(defs)
+	_offer_is_phrase = kind == OFFER_PHRASE
+	_upgrade_offer.present(defs)
 	_set_offer_input_lock(true)
 
 func _on_net_offer_close(_picked_id: String) -> void:
@@ -1417,9 +1438,6 @@ func _on_net_try_pick(upgrade_id: String) -> void:
 		return
 	if _upgrade_offer.is_open():
 		_on_upgrade_picked(StringName(upgrade_id))
-		return
-	if _shop_offer.is_open():
-		_on_shop_bought(StringName(upgrade_id))
 
 func _on_net_try_unpause() -> void:
 	if not _is_host():
@@ -1434,7 +1452,13 @@ func _on_net_try_pause() -> void:
 	_set_lan_paused(true)
 
 func _on_peer_lost() -> void:
-	_return_to_menu()
+	if _leaving:
+		return
+	if _is_guest():
+		_present_host_closed()
+		return
+	if _is_host():
+		_convert_lan_host_to_solo()
 
 func _on_pawn_shot_fired(aim: Vector2, _weapon: Weapon, pawn: Player) -> void:
 	if not _is_host() or pawn == null:
@@ -1473,3 +1497,320 @@ func _pawn_for_seat(seat: int) -> Player:
 	if _pawns.size() > 1:
 		return _pawns[1]
 	return _guest_pawn
+
+func _host_buyer() -> Player:
+	if _pawns.is_empty():
+		return _player
+	return _pawns[0]
+
+func _seat_for_owner(owner: Player) -> int:
+	if owner != null and _pawns.size() > 1 and owner == _pawns[1]:
+		return 2
+	return 1
+
+func _pause_companions(paused: bool) -> void:
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion):
+			continue
+		companion.set_sim_paused(paused)
+
+func _can_buy_consumable(def: ConsumableDef, buyer: Player) -> bool:
+	if def.id == ShopOffer.STIM_ID and _shop_stim_bought:
+		return false
+	if def.kind == ConsumableDef.Kind.HEAL_FLAT and _is_pawn_full_hp(buyer):
+		return false
+	if def.kind == ConsumableDef.Kind.HEAL_FULL and _is_pawn_full_hp(buyer) and _are_living_companions_full_hp():
+		return false
+	return true
+
+func _is_pawn_full_hp(pawn: Player) -> bool:
+	if pawn == null:
+		return false
+	var health: PlayerHealth = pawn.get_player_health()
+	return health.get_hp() >= health.get_max_hp()
+
+func _are_living_companions_full_hp() -> bool:
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion) or companion.is_defeated():
+			continue
+		if companion.get_hp() < companion.get_max_hp():
+			return false
+	return true
+
+func _broadcast_shop_stock(cards: Array[ShopCard]) -> void:
+	if not _is_host():
+		return
+	_net.send_shop_stock(_encode_shop_stock(cards), _run_session.get_gold(), _shop_stim_bought)
+
+func _encode_shop_stock(cards: Array[ShopCard]) -> PackedByteArray:
+	var packed: Array[ShopCard] = []
+	for card: ShopCard in cards:
+		if _shop_card_net_id(card).is_empty():
+			continue
+		packed.append(card)
+	var buf: StreamPeerBuffer = StreamPeerBuffer.new()
+	buf.put_u8(mini(packed.size(), 255))
+	for card: ShopCard in packed:
+		buf.put_u8(_shop_card_net_kind(card))
+		buf.put_utf8_string(_shop_card_net_id(card))
+	return buf.data_array
+
+func _decode_shop_stock(data: PackedByteArray) -> Array[ShopCard]:
+	var cards: Array[ShopCard] = []
+	if data.is_empty():
+		return cards
+	var buf: StreamPeerBuffer = StreamPeerBuffer.new()
+	buf.data_array = data
+	buf.seek(0)
+	var n: int = buf.get_u8()
+	for _i: int in n:
+		var kind: int = buf.get_u8()
+		var item_id: String = buf.get_utf8_string()
+		var card: ShopCard = _shop_card_from_net(kind, item_id)
+		if card != null:
+			cards.append(card)
+	return cards
+
+func _shop_card_net_kind(card: ShopCard) -> int:
+	if card.kind == ShopCard.Kind.CONSUMABLE:
+		return NetSession.SHOP_KIND_CONSUMABLE
+	if card.kind == ShopCard.Kind.COMPANION:
+		return NetSession.SHOP_KIND_COMPANION
+	return NetSession.SHOP_KIND_UPGRADE
+
+func _shop_card_net_id(card: ShopCard) -> String:
+	if card == null:
+		return ""
+	if card.kind == ShopCard.Kind.CONSUMABLE:
+		if card.consumable == null:
+			return ""
+		return String(card.consumable.id)
+	if card.kind == ShopCard.Kind.COMPANION:
+		if card.companion == null:
+			return ""
+		return String(card.companion.id)
+	if card.upgrade == null:
+		return ""
+	return String(card.upgrade.id)
+
+func _shop_card_from_net(kind: int, item_id: String) -> ShopCard:
+	if kind == NetSession.SHOP_KIND_CONSUMABLE:
+		var consumable: ConsumableDef = CONSUMABLE_CATALOG.get_by_id(StringName(item_id))
+		if consumable == null:
+			return null
+		return ShopCard.for_consumable(consumable)
+	if kind == NetSession.SHOP_KIND_COMPANION:
+		var companion: CompanionDef = COMPANION_CATALOG.get_by_id(StringName(item_id))
+		if companion == null:
+			return null
+		return ShopCard.for_companion(companion)
+	var upgrade: UpgradeDef = UPGRADE_CATALOG.get_by_id(StringName(item_id))
+	if upgrade == null:
+		return null
+	return ShopCard.for_upgrade(upgrade)
+
+func _on_net_shop_stock(data: PackedByteArray, gold: int, stim_bought: bool) -> void:
+	if not _is_guest():
+		return
+	var cards: Array[ShopCard] = _decode_shop_stock(data)
+	_shop_stim_bought = stim_bought
+	_apply_guest_shop_gold(gold)
+	if not _shop_offer.is_open():
+		if cards.is_empty():
+			return
+		_set_combat_frozen(true)
+		_shop_offer.present(cards, gold, stim_bought)
+		_set_offer_input_lock(true)
+		return
+	_shop_offer.refresh_stock(cards, stim_bought)
+
+func _on_net_try_shop(seat: int, kind: int, item_id: String, extra: int) -> void:
+	if not _is_host():
+		return
+	if seat != 2:
+		return
+	if not _shop_offer.is_open():
+		return
+	if _all_pawns_defeated() or not _run_session.is_playing():
+		_abort_shop()
+		return
+	var buyer: Player = _pawn_for_seat(seat)
+	if buyer == null:
+		return
+	if kind == NetSession.SHOP_KIND_UPGRADE:
+		_host_buy_upgrade(StringName(item_id))
+		return
+	if kind == NetSession.SHOP_KIND_CONSUMABLE:
+		_host_buy_consumable(StringName(item_id), buyer)
+		return
+	if kind == NetSession.SHOP_KIND_COMPANION:
+		_host_buy_companion(StringName(item_id), extra, buyer)
+
+func _on_companion_shot_fired(origin: Vector2, direction: Vector2, weapon_index: int, companion: RangedCompanion) -> void:
+	if not _is_host() or companion == null:
+		return
+	var slot: int = _companions.find(companion)
+	if slot < 0:
+		return
+	_net.send_fire_fx(NetSession.COMPANION_FIRE_SEAT_BASE + slot, origin, direction, weapon_index)
+
+func _play_companion_fire_fx(slot: int, origin: Vector2, direction: Vector2, weapon_index: int) -> void:
+	if slot < 0 or slot >= _companions.size():
+		return
+	var ranged: RangedCompanion = _companions[slot] as RangedCompanion
+	if ranged == null:
+		return
+	var weapon: Weapon = ranged.get_weapon_at(weapon_index)
+	if weapon == null:
+		return
+	weapon.spawn_fx_shot(origin, direction)
+
+func _write_companion_snapshot(buf: StreamPeerBuffer) -> void:
+	var companion_count: int = mini(_companions.size(), RunSession.COMPANION_CAP)
+	buf.put_u8(companion_count)
+	for i: int in companion_count:
+		var companion: CompanionBase = _companions[i]
+		var flags: int = 0
+		if companion != null and companion.is_defeated():
+			flags |= 1
+		var owner_seat: int = 1
+		var weapon_index: int = 0
+		var pos: Vector2 = Vector2.ZERO
+		var aim: Vector2 = Vector2.RIGHT
+		var hp: int = 0
+		var max_hp: int = 1
+		if companion != null:
+			owner_seat = _seat_for_owner(companion.get_owner_player())
+			pos = companion.global_position
+			aim = companion.get_aim_vector()
+			hp = companion.get_hp()
+			max_hp = companion.get_max_hp()
+			var ranged: RangedCompanion = companion as RangedCompanion
+			if ranged != null:
+				weapon_index = ranged.get_weapon_index()
+		buf.put_u8(i)
+		buf.put_u8(owner_seat)
+		buf.put_u8(clampi(weapon_index, 0, 3))
+		buf.put_u8(flags)
+		buf.put_float(pos.x)
+		buf.put_float(pos.y)
+		buf.put_float(aim.x)
+		buf.put_float(aim.y)
+		buf.put_u16(clampi(hp, 0, 65535))
+		buf.put_u16(clampi(max_hp, 0, 65535))
+
+func _read_companion_snapshot(buf: StreamPeerBuffer) -> void:
+	var companion_count: int = buf.get_u8()
+	_align_companion_puppets(companion_count)
+	for _c: int in companion_count:
+		var slot: int = buf.get_u8()
+		var owner_seat: int = buf.get_u8()
+		var weapon_index: int = buf.get_u8()
+		var flags: int = buf.get_u8()
+		var cpos := Vector2(buf.get_float(), buf.get_float())
+		var caim := Vector2(buf.get_float(), buf.get_float())
+		var chp: int = buf.get_u16()
+		var cmax: int = buf.get_u16()
+		if slot < 0 or slot >= _companions.size():
+			continue
+		var companion: CompanionBase = _companions[slot]
+		if companion == null or not is_instance_valid(companion):
+			continue
+		companion.apply_net_pose(cpos, chp, cmax, (flags & 1) != 0, weapon_index, caim, _pawn_for_seat(owner_seat))
+	_sync_companion_bindings()
+
+func _apply_guest_shop_gold(gold: int) -> void:
+	_run_session.apply_net_session(
+		_run_session.get_loop_index(),
+		gold,
+		_run_session.get_kill_count(),
+		_run_session.get_xp(),
+		_run_session.get_level(),
+		_run_session.get_pending_level_count(),
+		int(_run_session.get_outcome()),
+		_run_session.get_elapsed_sec(),
+		_run_session.get_owned_upgrade_ids()
+	)
+
+func _align_companion_puppets(count: int) -> void:
+	var wanted: int = clampi(count, 0, RunSession.COMPANION_CAP)
+	while _companions.size() > wanted:
+		var extra: CompanionBase = _companions.pop_back()
+		if extra != null and is_instance_valid(extra):
+			extra.queue_free()
+	while _companions.size() < wanted:
+		var before: int = _companions.size()
+		_spawn_companion_puppet()
+		if _companions.size() <= before:
+			break
+
+func _spawn_companion_puppet() -> void:
+	var def: CompanionDef = COMPANION_CATALOG.get_by_id(&"gunner")
+	var companion: CompanionBase = RANGED_COMPANION_SCENE.instantiate() as CompanionBase
+	if companion == null:
+		return
+	_companions_root.add_child(companion)
+	if def != null:
+		companion.apply_def(def)
+	companion.set_remote_puppet(true)
+	companion.bind_projectile_pool(_projectiles)
+	_companions.append(companion)
+
+func _on_net_return_menu() -> void:
+	if _is_guest():
+		_present_host_closed()
+		return
+	_return_to_menu()
+
+func _present_host_closed() -> void:
+	if _leaving:
+		return
+	if _room_notice.is_modal_open():
+		return
+	_pause_overlay.show_top_bar()
+	_room_notice.present_modal(RoomNotice.TEXT_HOST_CLOSED)
+
+func _on_room_notice_dismissed() -> void:
+	_pause_overlay.hide_top_bar()
+	_return_to_menu()
+
+func _convert_lan_host_to_solo() -> void:
+	if not _is_host() or _leaving:
+		return
+	_net.close_peer()
+	_net_role = GameLaunch.NetRole.OFFLINE
+	_lan_paused = false
+	_remove_guest_pawn()
+	_player.set_simulate_combat(true)
+	_player.get_player_input().set_remote_driven(false)
+	_player.set_sim_paused(false)
+	for enemy: EnemyBase in _enemies:
+		enemy.bind_players(_pawns)
+		enemy.set_sim_paused(false)
+	_pause_companions(false)
+	_run_session.bind_players(_pawns)
+	_upgrade_applier.bind_players(_pawns)
+	_shop_offer.bind_player(_player)
+	_debug_overlay.bind_p2(null)
+	_debug_overlay.bind_net_session(_net)
+	if _pause_overlay.is_open():
+		_pause_overlay.adopt_tree_pause()
+	elif _upgrade_offer.is_open() or _shop_offer.is_open():
+		_set_combat_frozen(true)
+	_room_notice.present_toast(RoomNotice.TEXT_GUEST_LEFT)
+
+func _remove_guest_pawn() -> void:
+	if _guest_pawn == null:
+		return
+	var guest: Player = _guest_pawn
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion):
+			continue
+		if companion.get_owner_player() == guest:
+			companion.bind_owner(_player)
+	_pawns = [_player]
+	_guest_pawn = null
+	_local_player = _player
+	if is_instance_valid(guest):
+		guest.queue_free()
+	_sync_companion_bindings()

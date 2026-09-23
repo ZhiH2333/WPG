@@ -2,6 +2,8 @@ extends CompanionBase
 class_name RangedCompanion
 
 ## 远程跟班。库存四把枪走玩家弹池，fire_at 不踢镜头。枪口每帧对准当前目标。
+signal shot_fired(origin: Vector2, direction: Vector2, weapon_index: int)
+
 const FIRE_MIN_PX: float = 90.0
 const FIRE_MAX_PX: float = 460.0
 const WEAPON_COUNT: int = 4
@@ -37,6 +39,19 @@ func apply_weapon(index: int) -> void:
 func get_weapon_index() -> int:
 	return _weapon_index
 
+func get_muzzle_global_position() -> Vector2:
+	return _muzzle_origin()
+
+func get_weapon_at(index: int) -> Weapon:
+	if index < 0 or index >= _weapons.size():
+		return _current_weapon()
+	return _weapons[index]
+
+func get_aim_vector() -> Vector2:
+	if _guns != null:
+		return Vector2.from_angle(_guns.rotation)
+	return super.get_aim_vector()
+
 func get_weapon_display_name() -> String:
 	var weapon: Weapon = _current_weapon()
 	if weapon == null:
@@ -47,7 +62,20 @@ func _on_defeated() -> void:
 	if _guns != null:
 		_guns.visible = false
 
+func _apply_net_visual(weapon_index: int, aim: Vector2) -> void:
+	apply_weapon(weapon_index)
+	if _guns == null:
+		return
+	if _defeated:
+		_guns.visible = false
+		return
+	_guns.visible = true
+	if not aim.is_zero_approx():
+		_guns.rotation = aim.angle()
+
 func _tick_attack(target: EnemyBase, delta: float) -> void:
+	if _remote_puppet:
+		return
 	_aim_gun(target)
 	var weapon: Weapon = _current_weapon()
 	if weapon == null:
@@ -83,7 +111,10 @@ func _try_weapon_fire(weapon: Weapon, target: EnemyBase) -> bool:
 		aim = Vector2.RIGHT
 	else:
 		aim = aim.normalized()
-	return weapon.fire_at(origin, aim)
+	if not weapon.fire_at(origin, aim):
+		return false
+	shot_fired.emit(origin, aim, _weapon_index)
+	return true
 
 func _can_fire_at(origin: Vector2, target: EnemyBase) -> bool:
 	var distance: float = origin.distance_to(target.global_position)
