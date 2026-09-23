@@ -15,6 +15,7 @@ const REBINDABLE_ACTIONS: PackedStringArray = [
 	"weapon_pistol",
 	"weapon_shotgun",
 	"weapon_rifle",
+	"weapon_smg",
 ]
 const DEFAULT_KEYS: Dictionary = {
 	"move_up": KEY_W,
@@ -25,12 +26,28 @@ const DEFAULT_KEYS: Dictionary = {
 	"weapon_pistol": KEY_1,
 	"weapon_shotgun": KEY_2,
 	"weapon_rifle": KEY_3,
+	"weapon_smg": KEY_4,
 }
 const ARROW_FALLBACK: Dictionary = {
 	"move_up": KEY_UP,
 	"move_down": KEY_DOWN,
 	"move_left": KEY_LEFT,
 	"move_right": KEY_RIGHT,
+}
+## 四向走速不是按钮，不要进这张表。
+const REBINDABLE_JOY_ACTIONS: PackedStringArray = [
+	"dash",
+	"weapon_pistol",
+	"weapon_shotgun",
+	"weapon_rifle",
+	"weapon_smg",
+]
+const DEFAULT_JOY: Dictionary = {
+	"dash": JOY_BUTTON_A,
+	"weapon_pistol": JOY_BUTTON_DPAD_LEFT,
+	"weapon_shotgun": JOY_BUTTON_DPAD_UP,
+	"weapon_rifle": JOY_BUTTON_DPAD_RIGHT,
+	"weapon_smg": JOY_BUTTON_DPAD_DOWN,
 }
 
 static var _volume: float = DEFAULT_VOLUME
@@ -42,6 +59,7 @@ static var _ui_scale: float = 1.0
 static var _vsync_enabled: bool = true
 static var _msaa_index: int = 0
 static var _key_overrides: Dictionary = {}
+static var _joy_overrides: Dictionary = {}
 
 static func load_from_disk() -> void:
 	_volume = DEFAULT_VOLUME
@@ -53,6 +71,7 @@ static func load_from_disk() -> void:
 	_vsync_enabled = true
 	_msaa_index = 0
 	_key_overrides.clear()
+	_joy_overrides.clear()
 	if not FileAccess.file_exists(PATH):
 		return
 	var cfg: ConfigFile = ConfigFile.new()
@@ -71,6 +90,11 @@ static func load_from_disk() -> void:
 		var stored: int = int(cfg.get_value("controls", action, default_key))
 		if stored != default_key:
 			_key_overrides[action] = stored
+	for action: String in REBINDABLE_JOY_ACTIONS:
+		var default_button: int = int(DEFAULT_JOY[action])
+		var stored_button: int = int(cfg.get_value("gamepad", action, default_button))
+		if stored_button != default_button:
+			_joy_overrides[action] = stored_button
 
 static func save_to_disk() -> void:
 	var cfg: ConfigFile = ConfigFile.new()
@@ -84,6 +108,8 @@ static func save_to_disk() -> void:
 	cfg.set_value("display", "msaa", _msaa_index)
 	for action: String in REBINDABLE_ACTIONS:
 		cfg.set_value("controls", action, get_key_for_action(action))
+	for action: String in REBINDABLE_JOY_ACTIONS:
+		cfg.set_value("gamepad", action, get_joy_button_for_action(action))
 	cfg.save(PATH)
 
 static func apply() -> void:
@@ -188,6 +214,70 @@ static func set_key_for_action(action: String, physical_keycode: int) -> bool:
 static func key_label_for_action(action: String) -> String:
 	return OS.get_keycode_string(get_key_for_action(action) as Key)
 
+static func get_joy_button_for_action(action: String) -> int:
+	return int(_joy_overrides.get(action, DEFAULT_JOY.get(action, -1)))
+
+static func set_joy_button_for_action(action: String, button: int) -> bool:
+	if not REBINDABLE_JOY_ACTIONS.has(action):
+		return false
+	if button < 0 or button >= JOY_BUTTON_MAX:
+		return false
+	if button == JOY_BUTTON_START or button == JOY_BUTTON_GUIDE:
+		return false
+	for other: String in REBINDABLE_JOY_ACTIONS:
+		if other == action:
+			continue
+		if get_joy_button_for_action(other) == button:
+			return false
+	if button == int(DEFAULT_JOY[action]):
+		_joy_overrides.erase(action)
+	else:
+		_joy_overrides[action] = button
+	return true
+
+static func joy_label_for_action(action: String) -> String:
+	var button: int = get_joy_button_for_action(action)
+	var label: String = _joy_button_string(button)
+	if label.is_empty():
+		return "%d" % button
+	return label
+
+## Godot 4.6 没有 Input.get_joy_button_string。Xbox 短名，能看出 A / D-pad。
+static func _joy_button_string(button: int) -> String:
+	match button:
+		JOY_BUTTON_A:
+			return "A"
+		JOY_BUTTON_B:
+			return "B"
+		JOY_BUTTON_X:
+			return "X"
+		JOY_BUTTON_Y:
+			return "Y"
+		JOY_BUTTON_BACK:
+			return "Back"
+		JOY_BUTTON_GUIDE:
+			return "Guide"
+		JOY_BUTTON_START:
+			return "Start"
+		JOY_BUTTON_LEFT_STICK:
+			return "Left Stick"
+		JOY_BUTTON_RIGHT_STICK:
+			return "Right Stick"
+		JOY_BUTTON_LEFT_SHOULDER:
+			return "Left Shoulder"
+		JOY_BUTTON_RIGHT_SHOULDER:
+			return "Right Shoulder"
+		JOY_BUTTON_DPAD_UP:
+			return "D-pad Up"
+		JOY_BUTTON_DPAD_DOWN:
+			return "D-pad Down"
+		JOY_BUTTON_DPAD_LEFT:
+			return "D-pad Left"
+		JOY_BUTTON_DPAD_RIGHT:
+			return "D-pad Right"
+		_:
+			return ""
+
 static func action_display_name(action: String) -> String:
 	match action:
 		"move_up":
@@ -206,6 +296,8 @@ static func action_display_name(action: String) -> String:
 			return "Shotgun"
 		"weapon_rifle":
 			return "Rifle"
+		"weapon_smg":
+			return "Smg"
 		_:
 			return action
 

@@ -22,8 +22,10 @@ const SCROLL_CENTRE: float = 0.1
 var _open: bool = false
 var _anim_tween: Tween
 var _action_by_button: Dictionary = {}
+var _joy_button_by_action: Dictionary = {}
 var _listening_action: String = ""
 var _listening_button: Button = null
+var _listening_joy: bool = false
 var _scroll_current: float = 0.0
 var _scroll_target: float = 0.0
 var _distance_decay: float = DISTANCE_DECAY_SCROLL
@@ -261,10 +263,7 @@ func _input(event: InputEvent) -> void:
 	if not _open:
 		return
 	if not _listening_action.is_empty():
-		var key_event: InputEventKey = event as InputEventKey
-		if key_event != null and key_event.pressed and not key_event.echo:
-			_handle_rebind_key(key_event)
-			get_viewport().set_input_as_handled()
+		_handle_listen_event(event)
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
@@ -663,6 +662,11 @@ func _on_delete_all_confirmed() -> void:
 
 func _build_bind_rows() -> void:
 	var body: VBoxContainer = _controls_section.body
+	var hint: Label = Label.new()
+	hint.theme_type_variation = &"RunSummaryHint"
+	hint.text = "Sticks stay analog. Pad column rebinds Dash and guns."
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(hint)
 	for action: String in GameSettings.REBINDABLE_ACTIONS:
 		var row: HBoxContainer = HBoxContainer.new()
 		row.set_meta("settings_search", GameSettings.action_display_name(action))
@@ -682,6 +686,16 @@ func _build_bind_rows() -> void:
 		_action_by_button[button] = action
 		row.add_child(name_label)
 		row.add_child(button)
+		if GameSettings.REBINDABLE_JOY_ACTIONS.has(action):
+			var pad: Button = Button.new()
+			pad.theme_type_variation = &"OfferButton"
+			pad.custom_minimum_size = Vector2(160, 44)
+			pad.mouse_filter = Control.MOUSE_FILTER_STOP
+			pad.text = GameSettings.joy_label_for_action(action)
+			pad.set_meta("settings_search", "gamepad joypad pad dash gun")
+			pad.pressed.connect(_on_rebind_joy_pressed.bind(pad))
+			_joy_button_by_action[pad] = action
+			row.add_child(pad)
 		body.add_child(row)
 	_controls_section._fit()
 
@@ -689,13 +703,38 @@ func _on_rebind_pressed(button: Button) -> void:
 	_play_click()
 	_begin_listen(button)
 
+func _on_rebind_joy_pressed(button: Button) -> void:
+	_play_click()
+	_begin_listen_joy(button)
+
+func _restore_other_listen_button(next_button: Button) -> void:
+	if _listening_button == null or not is_instance_valid(_listening_button) or _listening_button == next_button:
+		return
+	_listening_button.text = _bind_label_for_button(_listening_button)
+
+func _bind_label_for_button(button: Button) -> String:
+	if _joy_button_by_action.has(button):
+		return GameSettings.joy_label_for_action(str(_joy_button_by_action[button]))
+	var action: String = str(_action_by_button.get(button, ""))
+	if action.is_empty():
+		return ""
+	return GameSettings.key_label_for_action(action)
+
 func _begin_listen(button: Button) -> void:
-	if _listening_button != null and is_instance_valid(_listening_button) and _listening_button != button:
-		var prev_action: String = str(_action_by_button.get(_listening_button, ""))
-		if not prev_action.is_empty():
-			_listening_button.text = GameSettings.key_label_for_action(prev_action)
+	_restore_other_listen_button(button)
 	_listening_button = button
 	_listening_action = str(_action_by_button[button])
+	_listening_joy = false
+	button.text = "..."
+	var viewport: Viewport = get_viewport()
+	if viewport != null:
+		viewport.gui_release_focus()
+
+func _begin_listen_joy(button: Button) -> void:
+	_restore_other_listen_button(button)
+	_listening_button = button
+	_listening_action = str(_joy_button_by_action[button])
+	_listening_joy = true
 	button.text = "..."
 	var viewport: Viewport = get_viewport()
 	if viewport != null:
@@ -703,11 +742,27 @@ func _begin_listen(button: Button) -> void:
 
 func _cancel_listen() -> void:
 	if _listening_button != null and is_instance_valid(_listening_button):
-		var action: String = str(_action_by_button.get(_listening_button, ""))
-		if not action.is_empty():
-			_listening_button.text = GameSettings.key_label_for_action(action)
+		_listening_button.text = _bind_label_for_button(_listening_button)
 	_listening_button = null
 	_listening_action = ""
+	_listening_joy = false
+
+func _handle_listen_event(event: InputEvent) -> void:
+	var key_event: InputEventKey = event as InputEventKey
+	if key_event != null and key_event.pressed and not key_event.echo:
+		if _listening_joy:
+			if key_event.keycode == KEY_ESCAPE or event.is_action_pressed("ui_cancel"):
+				_cancel_listen()
+				_search.grab_focus()
+		else:
+			_handle_rebind_key(key_event)
+		get_viewport().set_input_as_handled()
+		return
+	var joy_event: InputEventJoypadButton = event as InputEventJoypadButton
+	if joy_event != null and joy_event.pressed:
+		if _listening_joy:
+			_handle_rebind_joy(joy_event)
+		get_viewport().set_input_as_handled()
 
 func _handle_rebind_key(key_event: InputEventKey) -> void:
 	var action: String = _listening_action
@@ -718,6 +773,7 @@ func _handle_rebind_key(key_event: InputEventKey) -> void:
 		return
 	_listening_action = ""
 	_listening_button = null
+	_listening_joy = false
 	if button == null or not is_instance_valid(button):
 		_search.grab_focus()
 		return
@@ -734,10 +790,34 @@ func _handle_rebind_key(key_event: InputEventKey) -> void:
 		return
 	tree.create_timer(IN_USE_FLASH_SEC).timeout.connect(_restore_bind_label.bind(button, action))
 
+func _handle_rebind_joy(joy_event: InputEventJoypadButton) -> void:
+	var action: String = _listening_action
+	var button: Button = _listening_button
+	_listening_action = ""
+	_listening_button = null
+	_listening_joy = false
+	if button == null or not is_instance_valid(button):
+		_search.grab_focus()
+		return
+	if GameSettings.set_joy_button_for_action(action, joy_event.button_index):
+		GameSettings.save_to_disk()
+		button.text = GameSettings.joy_label_for_action(action)
+		_search.grab_focus()
+		return
+	button.text = "IN USE"
+	_search.grab_focus()
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	tree.create_timer(IN_USE_FLASH_SEC).timeout.connect(_restore_bind_label.bind(button, action))
+
 func _restore_bind_label(button: Button, action: String) -> void:
 	if not is_instance_valid(button):
 		return
 	if _listening_button == button:
+		return
+	if _joy_button_by_action.has(button):
+		button.text = GameSettings.joy_label_for_action(action)
 		return
 	button.text = GameSettings.key_label_for_action(action)
 
@@ -747,7 +827,11 @@ func _refresh_key_labels() -> void:
 		if button == null or button == _listening_button:
 			continue
 		button.text = GameSettings.key_label_for_action(str(_action_by_button[button]))
-
+	for entry: Variant in _joy_button_by_action.keys():
+		var button: Button = entry as Button
+		if button == null or button == _listening_button:
+			continue
+		button.text = GameSettings.joy_label_for_action(str(_joy_button_by_action[button]))
 func _sync_render_scale_label(slider_value: float) -> void:
 	_render_scale_label.text = "Render Resolution  %d%%" % int(slider_value)
 

@@ -11,14 +11,9 @@ const AIM_STICK_DEADZONE: float = 0.12
 const FIRE_TRIGGER: float = 0.45
 const AIM_LEAD_PX: float = 140.0
 const MOUSE_STEAL_PX: float = 2.0
-const DPAD_BUTTONS: Array[int] = [
-	JOY_BUTTON_DPAD_LEFT,
-	JOY_BUTTON_DPAD_UP,
-	JOY_BUTTON_DPAD_RIGHT,
-	JOY_BUTTON_DPAD_DOWN,
-]
+const JOY_WEAPON_SLOT_COUNT: int = 4
 
-## 全项目唯一输入合同：键鼠或单把手柄（device_id）。只产出 move/aim/fire。切枪仍由 WeaponHost 另读 1/2/3/4 或该手柄十字键。Dash 不进三量。
+## 全项目唯一输入合同：键鼠或单把手柄（device_id）。只产出 move/aim/fire。切枪仍由 WeaponHost 另读 1/2/3/4 或该手柄当前绑定的枪钮。Dash 不进三量。
 var move_vector: Vector2 = Vector2.ZERO
 var aim_vector: Vector2 = Vector2.RIGHT
 var fire_held: bool = false
@@ -30,8 +25,8 @@ var _need_fire_release: bool = false
 var _device_id: int = DEVICE_KEYBOARD
 var _device_pinned: bool = false
 var _weapon_slot_just_pressed: int = -1
-var _dpad_held: PackedByteArray = PackedByteArray()
-var _joy_a_held: bool = false
+var _joy_weapon_held: PackedByteArray = PackedByteArray()
+var _joy_dash_held: bool = false
 var _need_dash_release: bool = false
 var _last_mouse_world: Vector2 = Vector2.ZERO
 var _has_last_mouse: bool = false
@@ -43,7 +38,7 @@ func _enter_tree() -> void:
 	## 小于 0 更早处理，让同一帧的朝向、相机、准星读到本帧输入。
 	process_priority = -100
 	process_physics_priority = -100
-	_dpad_held.resize(4)
+	_joy_weapon_held.resize(JOY_WEAPON_SLOT_COUNT)
 
 func _process(_delta: float) -> void:
 	update_input()
@@ -119,15 +114,15 @@ func update_input(_delta: float = 0.0) -> void:
 		_device_id = DEVICE_KEYBOARD
 		move_vector = Vector2.ZERO
 		fire_held = false
-		_joy_a_held = false
+		_joy_dash_held = false
 		_keep_last_aim()
-		_clear_dpad_held()
+		_clear_joy_weapon_held()
 		return
 	if _device_id >= 0:
 		_update_from_joy()
 		return
-	_clear_dpad_held()
-	_joy_a_held = false
+	_clear_joy_weapon_held()
+	_joy_dash_held = false
 	_update_move_vector()
 	_update_aim_vector()
 	_update_fire_held()
@@ -205,10 +200,11 @@ func _joy_wants_control(id: int) -> bool:
 		return true
 	if _joy_wants_fire(id):
 		return true
-	if Input.is_joy_button_pressed(id, JOY_BUTTON_A):
-		return true
-	for slot: int in DPAD_BUTTONS.size():
-		if Input.is_joy_button_pressed(id, DPAD_BUTTONS[slot]):
+	return _joy_has_bound_button(id)
+
+func _joy_has_bound_button(id: int) -> bool:
+	for action: String in GameSettings.REBINDABLE_JOY_ACTIONS:
+		if Input.is_joy_button_pressed(id, GameSettings.get_joy_button_for_action(action)):
 			return true
 	return false
 
@@ -230,7 +226,7 @@ func _update_from_joy() -> void:
 	var host: Node2D = get_parent() as Node2D
 	if host != null:
 		mouse_world_position = host.global_position + aim_vector * AIM_LEAD_PX
-	_update_dpad_edges(id)
+	_update_joy_weapon_edges(id)
 	if _fire_suppressed:
 		fire_held = false
 		return
@@ -257,18 +253,22 @@ func _read_aim_stick(id: int) -> Vector2:
 	var raw: Vector2 = _read_stick(id, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y)
 	return map_aim_stick(raw)
 
-func _update_dpad_edges(id: int) -> void:
-	for slot: int in DPAD_BUTTONS.size():
-		var pressed: bool = Input.is_joy_button_pressed(id, DPAD_BUTTONS[slot])
-		var was_held: bool = _dpad_held[slot] != 0
+func _update_joy_weapon_edges(id: int) -> void:
+	var slot: int = 0
+	for action: String in GameSettings.REBINDABLE_JOY_ACTIONS:
+		if action == "dash":
+			continue
+		var pressed: bool = Input.is_joy_button_pressed(id, GameSettings.get_joy_button_for_action(action))
+		var was_held: bool = _joy_weapon_held[slot] != 0
 		if pressed and not was_held and _weapon_slot_just_pressed < 0:
 			_weapon_slot_just_pressed = slot
 			_pending_weapon_slot = slot
-		_dpad_held[slot] = 1 if pressed else 0
+		_joy_weapon_held[slot] = 1 if pressed else 0
+		slot += 1
 
-func _clear_dpad_held() -> void:
-	for slot: int in _dpad_held.size():
-		_dpad_held[slot] = 0
+func _clear_joy_weapon_held() -> void:
+	for slot: int in _joy_weapon_held.size():
+		_joy_weapon_held[slot] = 0
 
 func _is_joy_connected(id: int) -> bool:
 	return Input.get_connected_joypads().has(id)
@@ -320,17 +320,20 @@ func _update_fire_held() -> void:
 		_need_fire_release = false
 	fire_held = pressed
 
+func _get_dash_button() -> int:
+	return GameSettings.get_joy_button_for_action("dash")
+
 func _is_dash_held() -> bool:
 	if _device_id >= 0:
-		return Input.is_joy_button_pressed(_device_id, JOY_BUTTON_A)
+		return Input.is_joy_button_pressed(_device_id, _get_dash_button())
 	return Input.is_action_pressed("dash")
 
 func _update_dash_pressed() -> void:
 	var edge: bool = false
 	if _device_id >= 0:
-		var pressed: bool = Input.is_joy_button_pressed(_device_id, JOY_BUTTON_A)
-		edge = pressed and not _joy_a_held
-		_joy_a_held = pressed
+		var pressed: bool = Input.is_joy_button_pressed(_device_id, _get_dash_button())
+		edge = pressed and not _joy_dash_held
+		_joy_dash_held = pressed
 	else:
 		edge = Input.is_action_just_pressed("dash")
 	if _dash_suppressed:
