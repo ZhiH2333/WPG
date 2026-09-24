@@ -288,7 +288,7 @@ func _bind_runtime() -> void:
 	_hud.bind_weapon_host(_local_player.get_weapon_host())
 	_hud.bind_encounter(_encounter)
 	_hud.bind_run_session(_run_session)
-	_bind_battle_hud()
+	_bind_party_hud()
 	_bind_weapon_hit_players()
 	_run_session.bind_players(_synced_pawns)
 	_run_session.bind_encounter(_encounter)
@@ -342,8 +342,6 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_record_id(_record_id)
 	_debug_overlay.bind_arena_id(_arena_id)
 	_debug_overlay.bind_net_session(_net)
-	_debug_overlay.bind_p2(_pawn_for_seat(2))
-	_debug_overlay.bind_p3(_pawn_for_seat(3))
 	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
 	_debug_overlay.bind_net_play(_net_play)
 	_debug_overlay.set_last_grant_id("-")
@@ -1272,9 +1270,21 @@ func _bind_weapon_hit_players() -> void:
 		for weapon: Weapon in pawn.get_weapon_host().get_weapons():
 			weapon.bind_hit_players(hit_players)
 
-func _bind_battle_hud() -> void:
+func _bind_party_hud() -> void:
 	_hud.set_battle(_is_battle())
 	_hud.bind_rival(_find_rival_pawn())
+	var roster_pawns: Array[Player] = []
+	var roster_seats: PackedInt32Array = PackedInt32Array()
+	for i: int in _pawns.size():
+		var pawn: Player = _pawns[i]
+		if pawn == null or (i + 1) == _local_seat:
+			continue
+		roster_pawns.append(pawn)
+		roster_seats.append(i + 1)
+		if roster_pawns.size() >= Hud.ROSTER_MAX:
+			break
+	_hud.bind_roster(roster_pawns, roster_seats)
+	_debug_overlay.bind_pawns(_pawns.duplicate())
 	_debug_overlay.bind_net_play(_net_play)
 
 func _find_rival_pawn() -> Player:
@@ -1932,13 +1942,11 @@ func _convert_lan_host_to_solo() -> void:
 	_run_session.bind_players(_synced_pawns)
 	_upgrade_applier.bind_players(_synced_pawns)
 	_shop_offer.bind_player(_player)
-	_debug_overlay.bind_p2(null)
-	_debug_overlay.bind_p3(null)
 	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_net_play(_net_play)
 	_bind_weapon_hit_players()
-	_bind_battle_hud()
+	_bind_party_hud()
 	if _pause_overlay.is_open():
 		_pause_overlay.adopt_tree_pause()
 	elif _upgrade_offer.is_open() or _shop_offer.is_open():
@@ -2078,9 +2086,7 @@ func _rebind_after_pawn_change() -> void:
 		_hud.bind_player(_local_player)
 		_hud.bind_weapon_host(_local_player.get_weapon_host())
 	_bind_weapon_hit_players()
-	_bind_battle_hud()
-	_debug_overlay.bind_p2(_pawn_for_seat(2))
-	_debug_overlay.bind_p3(_pawn_for_seat(3))
+	_bind_party_hud()
 	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_net_play(_net_play)

@@ -23,8 +23,7 @@ var _last_grant_id: String = "-"
 var _record_id: String = ""
 var _net_session: NetSession
 var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
-var _p2: Player
-var _p3: Player
+var _pawns: Array[Player] = []
 var _seats_label: String = "1"
 var _companions: Array[CompanionBase] = []
 var _arena_id: String = "yard"
@@ -111,11 +110,8 @@ func bind_net_session(session: NetSession) -> void:
 func bind_net_play(play: GameLaunch.NetPlay) -> void:
 	_net_play = play
 
-func bind_p2(player: Player) -> void:
-	_p2 = player
-
-func bind_p3(player: Player) -> void:
-	_p3 = player
+func bind_pawns(pawns: Array[Player]) -> void:
+	_pawns = pawns
 
 func bind_seats(occupied: PackedInt32Array, local_seat: int) -> void:
 	var parts: PackedStringArray = PackedStringArray()
@@ -154,7 +150,7 @@ func _compose_status_text() -> String:
 	var fps: int = Engine.get_frames_per_second()
 	var velocity: Vector2 = _read_velocity()
 	var weapon: Weapon = _read_weapon()
-	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nspark_active: %d\nspark_free: %d\nshard_active: %d\nshard_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\nchicken_pool: %s\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nshop: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nrecord: %s hist: %d best: %d goal: %d\nchar: %s\n%sscore: %d\nwinner: %s\nnet: %s\nplay: %s\npeer: %d\nseat: %d\nseats: %s\np2_hp: %s\np3_hp: %s\ncompanion: %s\ncompanion_hp: %s\ngun: %s\narena: %s\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
+	return "weapon: %s\nmove_vector: %s\naim_vector: %s\nfire_held: %s\ndevice: %s\nfire_cd: %.3f\nspread_deg: %.2f\npellets: %d\nmouse_world: %s\nvelocity: %s\nspeed: %.1f\nlook_target: %s\ncamera_offset: %s\ncamera_pos: %s\nplayer_hp: %d\nplayer_dead: %s\nactive_bullets: %d\npool_free: %d\nenemy_active: %d\nenemy_free: %d\nspark_active: %d\nspark_free: %d\nshard_active: %d\nshard_free: %d\nlast_shot_refused: %d\nenemies_alive: %s\nenemies_dead: %d\nnearest: %s\nnearest_spd: %.1f\nnearest_dmg: %d\nhitstop_ms: %.1f\nknockback_speed: %.1f\nshake_offset: %s\nshake_speed: %.1f\nai_stagger: %s\nrun: %s\nrun_time: %.2f\nloop: %d\nkills: %d\ngold: %d\nlevel: %d\nxp: %d/%d\npending_lv: %d\ncatalog: %d\nupgrades: %d\nchicken_pool: %s\ngrant: U\ngod: %s\ndash: %s\nlast_grant: %s\noffer: %s\noffer_ids: %s\nshop: %s\nphrase: %s\nphrase_alive: %d\nrest_left: %.2f\nrest_sec: %.2f\nrecord: %s hist: %d best: %d goal: %d\nchar: %s\n%sscore: %d\nwinner: %s\nnet: %s\nplay: %s\npeer: %d\nseat: %d\nseats: %s\nseat_hp: %s\ncompanion: %s\ncompanion_hp: %s\ngun: %s\narena: %s\nreset: R\nesc: pause\nfps: %d\nfps_min_2s: %.1f\nfps_avg_2s: %.1f" % [
 		_read_weapon_name(weapon),
 		_format_vector(_player_input.move_vector),
 		_format_vector(_player_input.aim_vector),
@@ -225,8 +221,7 @@ func _compose_status_text() -> String:
 		_read_peer_id(),
 		_read_seat(),
 		_seats_label,
-		_read_p2_hp(),
-		_read_p3_hp(),
+		_read_seat_hp(),
 		_read_companion_id(),
 		_read_companion_hp(),
 		_read_companion_gun(),
@@ -466,8 +461,11 @@ func _read_owned_chicken_count() -> int:
 func _has_chicken_present() -> bool:
 	if _player != null and _player.get_character_id() == "chicken":
 		return true
-	if _p2 != null and _p2.get_character_id() == "chicken":
-		return true
+	for pawn: Player in _pawns:
+		if pawn == null or not is_instance_valid(pawn):
+			continue
+		if pawn.get_character_id() == "chicken":
+			return true
 	return false
 
 func _read_god_label() -> String:
@@ -757,12 +755,16 @@ func _read_seat() -> int:
 		return 1
 	return _net_session.get_local_seat()
 
-func _read_p2_hp() -> String:
-	if _p2 == null:
-		return "-"
-	return str(_p2.get_player_health().get_hp())
-
-func _read_p3_hp() -> String:
-	if _p3 == null:
-		return "-"
-	return str(_p3.get_player_health().get_hp())
+func _read_seat_hp() -> String:
+	var parts: PackedStringArray = PackedStringArray()
+	for seat: int in range(1, 6):
+		var index: int = seat - 1
+		if index >= _pawns.size():
+			parts.append("-")
+			continue
+		var pawn: Player = _pawns[index]
+		if pawn == null or not is_instance_valid(pawn):
+			parts.append("-")
+			continue
+		parts.append(str(pawn.get_player_health().get_hp()))
+	return ",".join(parts)

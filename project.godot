@@ -16,13 +16,9 @@ run/main_scene="res://ui/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
-[audio]
-
-buses/default_bus_layout="res://default_bus_layout.tres"
-
 [debug]
 
-multirun/number_of_windows=5
+multirun/number_of_windows=3
 multirun/add_custom_args=true
 multirun/window_args=["listen", "join", "join", "join", "join"]
 

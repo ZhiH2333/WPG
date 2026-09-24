@@ -96,7 +96,7 @@ anchor_bottom = 0.0
 offset_left = -280.0
 offset_top = 32.0
 offset_right = -32.0
-offset_bottom = 64.0
+offset_bottom = 176.0
 grow_horizontal = 0
 grow_vertical = 1
 mouse_filter = 2
@@ -122,6 +122,96 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"HudHp"
 text = "rival  0/0"
+
+[node name="Roster" type="VBoxContainer" parent="Root/TopRight"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Row1" type="HBoxContainer" parent="Root/TopRight/Roster"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HpBar" type="ProgressBar" parent="Root/TopRight/Roster/Row1"]
+custom_minimum_size = Vector2(160, 8)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="HpLabel" type="Label" parent="Root/TopRight/Roster/Row1"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudHp"
+text = "s2  0/0"
+
+[node name="Row2" type="HBoxContainer" parent="Root/TopRight/Roster"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HpBar" type="ProgressBar" parent="Root/TopRight/Roster/Row2"]
+custom_minimum_size = Vector2(160, 8)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="HpLabel" type="Label" parent="Root/TopRight/Roster/Row2"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudHp"
+text = "s3  0/0"
+
+[node name="Row3" type="HBoxContainer" parent="Root/TopRight/Roster"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HpBar" type="ProgressBar" parent="Root/TopRight/Roster/Row3"]
+custom_minimum_size = Vector2(160, 8)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="HpLabel" type="Label" parent="Root/TopRight/Roster/Row3"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudHp"
+text = "s4  0/0"
+
+[node name="Row4" type="HBoxContainer" parent="Root/TopRight/Roster"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HpBar" type="ProgressBar" parent="Root/TopRight/Roster/Row4"]
+custom_minimum_size = Vector2(160, 8)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="HpLabel" type="Label" parent="Root/TopRight/Roster/Row4"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudHp"
+text = "s5  0/0"
 
 [node name="PhraseLabel" type="Label" parent="Root"]
 layout_mode = 1

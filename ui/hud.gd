@@ -1,10 +1,11 @@
 extends CanvasLayer
 class_name Hud
 
-## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。Battle 右上对手血条、Phrase 为 BATTLE。只读 getter，禁止自管一份 HP。
+## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。Battle 右上对手血条、Phrase 为 BATTLE。Co-op 占用≥3 时右上 Roster 短血。只读 getter，禁止自管一份 HP。
 ## 血条/XP 条数值用指数缓动追目标（osu 式），数字仍瞬时；左下锚点布局不改。
 const HP_LOW_THRESHOLD: int = 20
 const BAR_SMOOTHING: float = 10.0
+const ROSTER_MAX: int = 4
 const FILL_STYLE_NORMAL: StringName = &""
 const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
 
@@ -15,6 +16,8 @@ var _encounter: EncounterPhrases
 var _run_session: RunSession
 var _hp_is_low: bool = false
 var _is_battle: bool = false
+var _roster_pawns: Array[Player] = [] ## 非本地，已按 seat 升序，长度 0～4
+var _roster_seats: PackedInt32Array = PackedInt32Array()
 
 @onready var _hp_bar: ProgressBar = $Root/BottomLeft/HpRow/HpBar
 @onready var _hp_label: Label = $Root/BottomLeft/HpRow/HpLabel
@@ -27,12 +30,41 @@ var _is_battle: bool = false
 @onready var _rival_row: HBoxContainer = $Root/TopRight/RivalRow
 @onready var _rival_bar: ProgressBar = $Root/TopRight/RivalRow/HpBar
 @onready var _rival_label: Label = $Root/TopRight/RivalRow/HpLabel
+@onready var _roster: VBoxContainer = $Root/TopRight/Roster
 
 func bind_player(player: Player) -> void:
 	_player = player
 
 func bind_rival(player: Player) -> void:
 	_rival = player
+
+func bind_roster(pawns: Array[Player], seats: PackedInt32Array) -> void:
+	_roster_pawns.clear()
+	_roster_seats = PackedInt32Array()
+	var count: int = mini(pawns.size(), seats.size())
+	if count > ROSTER_MAX:
+		count = ROSTER_MAX
+	for i: int in count:
+		_roster_pawns.append(pawns[i])
+		_roster_seats.append(int(seats[i]))
+	_sync_roster_visible()
+
+func _sync_roster_visible() -> void:
+	if _roster == null:
+		return
+	if _is_battle or _roster_pawns.size() < 2:
+		_roster.visible = false
+		_hide_roster_rows()
+		return
+	_roster.visible = true
+
+func _hide_roster_rows() -> void:
+	if _roster == null:
+		return
+	for child: Node in _roster.get_children():
+		var row: CanvasItem = child as CanvasItem
+		if row != null:
+			row.visible = false
 
 func bind_weapon_host(host: WeaponHost) -> void:
 	_weapon_host = host
@@ -51,6 +83,7 @@ func set_battle(battle: bool) -> void:
 		_xp_row.visible = not battle
 	if _gold_label != null:
 		_gold_label.visible = not battle
+	_sync_roster_visible()
 
 func _process(delta: float) -> void:
 	_refresh_hp(delta)
@@ -59,6 +92,7 @@ func _process(delta: float) -> void:
 	_refresh_weapon()
 	_refresh_phrase()
 	_refresh_rival(delta)
+	_refresh_roster(delta)
 
 func _refresh_hp(delta: float) -> void:
 	var hp: int = 0
@@ -142,3 +176,39 @@ func _refresh_rival(delta: float) -> void:
 	_rival_bar.max_value = float(max_hp)
 	_rival_bar.value = _approach_bar(_rival_bar.value, float(hp), delta)
 	_rival_label.text = "rival  %d/%d" % [hp, max_hp]
+
+func _refresh_roster(delta: float) -> void:
+	if _is_battle or _roster == null or not _roster.visible:
+		return
+	for i: int in ROSTER_MAX:
+		_refresh_roster_row(i, delta)
+
+func _refresh_roster_row(index: int, delta: float) -> void:
+	var row: HBoxContainer = _roster.get_child(index) as HBoxContainer
+	if row == null:
+		return
+	if index >= _roster_pawns.size():
+		row.visible = false
+		return
+	var pawn: Player = _roster_pawns[index]
+	if pawn == null or not is_instance_valid(pawn):
+		row.visible = false
+		return
+	row.visible = true
+	var health: PlayerHealth = pawn.get_player_health()
+	var hp: int = health.get_hp()
+	var max_hp: int = health.get_max_hp()
+	var bar: ProgressBar = row.get_node("HpBar") as ProgressBar
+	var label: Label = row.get_node("HpLabel") as Label
+	if bar != null:
+		bar.max_value = float(max_hp)
+		bar.value = _approach_bar(bar.value, float(hp), delta)
+	if label != null:
+		var seat: int = 0
+		if index < _roster_seats.size():
+			seat = _roster_seats[index]
+		label.text = "s%d  %d/%d" % [seat, hp, max_hp]
+	if pawn.is_defeated() or hp <= 0:
+		row.modulate.a = 0.45
+		return
+	row.modulate.a = 1.0

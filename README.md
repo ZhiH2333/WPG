@@ -1500,6 +1500,16 @@ LAN 座位从写死 2 人改成 1～5 同一套路径。协议 5，快照 v3。�
 
 **当时不做：** 3～5 人短血 HUD、房间浏览器、Battle FFA、不改协议 5、不改 SNAPSHOT_VERSION、不改 `rpc_begin` 签名、不改战斗数字、不写档、新 PNG、新 wav、新物理层、新 InputMap action、Autoload。
 
+## Day 80（已完成）：3～5 人右上 Roster 短血
+
+占用 ≥3 的 LAN Co-op，右上给每个非本地座位一条短血。左下仍只绑 `_local_player`（280×16）。2 人 Co-op / 2 人 Battle / Solo 的 HUD 与 Day 79 无法分辨。Autoload 仍为 0。协议仍 5。出生点仍十字。LAN 仍不写档。
+
+- **Hud Roster**：`TopRight` `offset_bottom=176`。`RivalRow` 一字不改（200×12，文案 `"rival  n/m"`）。其下预放 `Roster` VBox（separation=6，默认 hidden）+ Row1..Row4，条 160×8，文案 `"s%d  %d/%d"`。Co-op 占用 < 3：Roster hidden。占用 ≥ 3：按 seat 升序显示非本地短血，最多 4 条。Battle 占用==2：仍 RivalRow，Roster hidden。Solo 右上没有任何血条。倒下的行仍在，血 0、`modulate.a=0.45`。低血换皮只留左下本地条。
+- **CombatSandbox**：`_bind_party_hud` 统一绑 Rival + Roster + Overlay pawns；`_ready` / `_rebind_after_pawn_change` / `_convert_lan_host_to_solo` 都走这里。大厅掉线 / `_remove_seat_pawn` 后重绑；占用掉到 2 则 Roster 收掉。相机仍只跟 `_local_player`。
+- **DebugOverlay**：删 `p2_hp` / `p3_hp`。`seat_hp` 读座位 1～5，空位 `-`（例三人 `100,100,80,-,-`）。`seats:` 行保留。
+
+**当时不做：** 房间浏览器、Battle FFA、不改协议 5、不改出生点、不写档。
+
 ## 剩余表
 
 
@@ -1567,9 +1577,11 @@ LAN 座位从写死 2 人改成 1～5 同一套路径。协议 5，快照 v3。�
 
 **Day 79 = 出生点 1～5 十字 + Co-op 3 人能打（已完成）**：`SEAT_SPAWNS` 十字、相机仍只跟本地；HUD 左下仍本地。LAN 仍不写档。协议仍 5。
 
-**下一步 Day 80 = 3～5 人 HUD 短血**（不要把左下玩家条改掉）。
+**Day 80 = 3～5 人 HUD 短血（已完成）**：右上 Roster；左下玩家条不改；2 人 HUD 与 Day 79 相同。LAN 仍不写档。协议仍 5。
 
-**完整手柄适配后置（已拍板）**：虚拟摇杆布局编辑与触屏整包仍后置到 Day 81+。Day 76 已做 Settings 手柄按钮落盘；Day 77 已做冲突旁白、Restore Defaults、商店选枪跟绑定。Day 57 的右摇杆 `map_aim_stick` 保留。
+**下一步 Day 81 = 房间浏览器**（搜索 + 卡片 + 人数徽标，不是货币；仍手打 IP 为主）。
+
+**完整手柄适配后置（已拍板）**：虚拟摇杆布局编辑与触屏整包仍后置，不插进 Day 81 房间浏览器。Day 76 已做 Settings 手柄按钮落盘；Day 77 已做冲突旁白、Restore Defaults、商店选枪跟绑定。Day 57 的右摇杆 `map_aim_stick` 保留。
 
 > **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Day 58 已完成第三刀：Settings 抽屉。TopBar、LogoButton 仍用旧皮。
 
@@ -1579,8 +1591,8 @@ LAN 座位从写死 2 人改成 1～5 同一套路径。协议 5，快照 v3。�
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD。LAN 同步药和跟班已在 Day 73 落地。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。Day 75 已做 Master / Music / SFX 分轨。Day 76 已做键盘 Smg 重绑 + 手柄按钮落盘。Day 77 已做 Controls 打磨（冲突旁白、Restore Defaults、商店选枪跟绑定、Start 仍系统键）。Day 78 已做座位 1～5（协议 5、快照 v3、第三人不踢、商店/输入按 seat）。Day 79 已做出生点 1～5 十字 + Co-op 3 人能打（相机仍只跟本地）。下一步 Day 80 3～5 人 HUD 短血（不要把左下玩家条改掉）。导出 Win/macOS/Linux 与 profiling 仍后置。后续波次/Boss 词表扩充。
-4. **Day 81–92　UI 动效与音效精修（osu 参考）**：菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。**虚拟摇杆**仍排在本阶段或之后，与触屏同一套 `map_aim_stick` 合同。Joypad 按钮落盘已在 Day 76 完成；Day 77 已打磨冲突旁白与 Restore。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。Day 75 已做 Master / Music / SFX 分轨。Day 76 已做键盘 Smg 重绑 + 手柄按钮落盘。Day 77 已做 Controls 打磨（冲突旁白、Restore Defaults、商店选枪跟绑定、Start 仍系统键）。Day 78 已做座位 1～5（协议 5、快照 v3、第三人不踢、商店/输入按 seat）。Day 79 已做出生点 1～5 十字 + Co-op 3 人能打（相机仍只跟本地）。Day 80 已做 3～5 人 HUD 短血（左下玩家条不改，2 人 HUD 与 Day 79 相同）。下一步 Day 81 房间浏览器（搜索 + 卡片 + 人数徽标，不是货币；仍手打 IP 为主）。导出 Win/macOS/Linux 与 profiling 仍后置。后续波次/Boss 词表扩充。
+4. **Day 81–92　房间浏览器与 UI 精修（osu 参考）**：Day 81 房间浏览器（搜索 + 卡片 + 人数徽标，不是货币；仍手打 IP 为主）。其后菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 
 **验收口径（每一天通用）**：本 Day README 里列出的「当时不做」清单之外的行为不应出现改动；新增/变更的脚本、场景、theme 项都要在 README 对应 Day 小节里落字，agent 交付前必须自查 README 是否已同步——这正是本次修的问题（Day 52/53 曾漏更新）。
