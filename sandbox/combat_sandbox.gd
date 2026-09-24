@@ -143,6 +143,7 @@ func _process(delta: float) -> void:
 		return
 	if _is_battle():
 		_resolve_battle_if_needed()
+		_sync_system_cursor()
 	else:
 		_tick_god_mode_kills()
 		if _run_session.is_playing() and not _upgrade_offer.is_open() and not _shop_offer.is_open() and not _encounter.is_awaiting_offer() and not _run_session.has_pending_level():
@@ -728,7 +729,7 @@ func _on_window_mouse_exited() -> void:
 	_sync_system_cursor()
 
 func _sync_system_cursor() -> void:
-	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _winner_page.is_open() or _run_session.is_player_dead() or _run_session.is_cleared():
+	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _winner_page.is_open() or _run_session.is_player_dead() or _run_session.is_cleared() or _is_local_battle_spectator():
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_aim_reticle.visible = false
 		return
@@ -1251,6 +1252,9 @@ func _is_lan() -> bool:
 func _is_battle() -> bool:
 	return _is_lan() and _net_play == GameLaunch.NetPlay.BATTLE
 
+func _is_local_battle_spectator() -> bool:
+	return _is_battle() and _local_player != null and _local_player.is_defeated()
+
 func _is_host() -> bool:
 	return _net_role == GameLaunch.NetRole.HOST
 
@@ -1298,33 +1302,22 @@ func _resolve_battle_if_needed() -> void:
 		return
 	if _winner_page.is_open() or not _run_session.is_playing():
 		return
-	if _occupied_seat_count() != 2:
+	if _occupied_seat_count() < 2:
 		return
-	var first: Player = null
-	var second: Player = null
-	var first_seat: int = 0
-	var second_seat: int = 0
+	var alive_seat: int = 0
+	var alive_count: int = 0
 	for i: int in _pawns.size():
-		if _pawns[i] == null:
+		var pawn: Player = _pawns[i]
+		if pawn == null or pawn.is_defeated():
 			continue
-		if first == null:
-			first = _pawns[i]
-			first_seat = i + 1
-			continue
-		second = _pawns[i]
-		second_seat = i + 1
-	if first == null or second == null:
+		alive_count += 1
+		alive_seat = i + 1
+	if alive_count >= 2:
 		return
-	var first_dead: bool = first.is_defeated()
-	var second_dead: bool = second.is_defeated()
-	if not first_dead and not second_dead:
-		return
-	if first_dead and second_dead:
-		_battle_winner_seat = 0
-	elif first_dead:
-		_battle_winner_seat = second_seat
+	if alive_count == 1:
+		_battle_winner_seat = alive_seat
 	else:
-		_battle_winner_seat = first_seat
+		_battle_winner_seat = 0
 	_run_session.mark_battle_over()
 
 func _all_pawns_defeated() -> bool:

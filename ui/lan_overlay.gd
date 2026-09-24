@@ -815,8 +815,6 @@ func _can_start() -> bool:
 	var occupied: int = _occupied_count()
 	if occupied < 2 or not _all_guests_handshake():
 		return false
-	if _net_play == GameLaunch.NetPlay.BATTLE:
-		return occupied == 2
 	return occupied <= GameLaunch.NET_MAX_SEATS
 
 func _handshake_guest_peers() -> PackedInt32Array:
@@ -1038,12 +1036,7 @@ func _format_room_meta(room: Dictionary) -> String:
 	return "%s  ·  %s  ·  %s" % [arena_name, mode_name, loop_text]
 
 func _is_room_full(room: Dictionary) -> bool:
-	var occupied: int = int(room["occupied"])
-	if occupied >= int(room["max_seats"]):
-		return true
-	if int(room["net_play"]) == int(GameLaunch.NetPlay.BATTLE) and occupied >= 2:
-		return true
-	return false
+	return int(room["occupied"]) >= int(room["max_seats"])
 
 func _matches_room_query(room: Dictionary, query: String) -> bool:
 	var needle: String = query.strip_edges().to_lower()

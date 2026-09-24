@@ -100,6 +100,9 @@ func _handle_hit(hit: Node) -> void:
 		return
 	if _shot_owner != null and is_instance_valid(_shot_owner) and hit == _shot_owner:
 		return
+	var player: Player = hit as Player
+	if player != null and player.is_defeated():
+		return
 	global_position = _last_global_position
 	_spawn_hit_spark()
 	_apply_hit_damage(hit)

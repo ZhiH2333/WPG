@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name Hud
 
-## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。Battle 右上对手血条、Phrase 为 BATTLE。Co-op 占用≥3 时右上 Roster 短血。只读 getter，禁止自管一份 HP。
+## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。2 人 Battle 右上 RivalRow、Phrase 为 BATTLE。占用≥3 的 Co-op / Battle 右上 Roster 短血。只读 getter，禁止自管一份 HP。
 ## 血条/XP 条数值用指数缓动追目标（osu 式），数字仍瞬时；左下锚点布局不改。
 const HP_LOW_THRESHOLD: int = 20
 const BAR_SMOOTHING: float = 10.0
@@ -50,13 +50,15 @@ func bind_roster(pawns: Array[Player], seats: PackedInt32Array) -> void:
 	_sync_roster_visible()
 
 func _sync_roster_visible() -> void:
-	if _roster == null:
-		return
-	if _is_battle or _roster_pawns.size() < 2:
-		_roster.visible = false
-		_hide_roster_rows()
-		return
-	_roster.visible = true
+	var roster_on: bool = _roster_pawns.size() >= 2
+	if _roster != null:
+		if roster_on:
+			_roster.visible = true
+		else:
+			_roster.visible = false
+			_hide_roster_rows()
+	if _rival_row != null:
+		_rival_row.visible = _is_battle and not roster_on
 
 func _hide_roster_rows() -> void:
 	if _roster == null:
@@ -77,8 +79,6 @@ func bind_run_session(session: RunSession) -> void:
 
 func set_battle(battle: bool) -> void:
 	_is_battle = battle
-	if _rival_row != null:
-		_rival_row.visible = battle
 	if _xp_row != null:
 		_xp_row.visible = not battle
 	if _gold_label != null:
@@ -178,7 +178,7 @@ func _refresh_rival(delta: float) -> void:
 	_rival_label.text = "rival  %d/%d" % [hp, max_hp]
 
 func _refresh_roster(delta: float) -> void:
-	if _is_battle or _roster == null or not _roster.visible:
+	if _roster == null or not _roster.visible:
 		return
 	for i: int in ROSTER_MAX:
 		_refresh_roster_row(i, delta)
