@@ -51,11 +51,15 @@ func bind_player(player: Player) -> void:
 		_players.append(player)
 
 func bind_players(players: Array[Player]) -> void:
-	_players = players.duplicate()
-	if players.is_empty():
+	_players.clear()
+	for pawn: Player in players:
+		if pawn == null:
+			continue
+		_players.append(pawn)
+	if _players.is_empty():
 		_player = null
 		return
-	_player = players[0]
+	_player = _players[0]
 
 func bind_encounter(encounter: EncounterPhrases) -> void:
 	_encounter = encounter

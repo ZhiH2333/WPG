@@ -1,7 +1,7 @@
 extends Node
 class_name UpgradeApplier
 
-## 从底值重算 owned 合计。禁止在当前值上累加，禁止 UpgradeDef 自己改枪。LAN 两人共用同一份 session owned，各自按自己的角色底值重算。
+## 从底值重算 owned 合计。禁止在当前值上累加，禁止 UpgradeDef 自己改枪。LAN 共用同一份 session owned，各自按自己的角色底值重算。底值按 pawn 实例对齐，禁止按下标套给别人。
 const MIN_MAX_HP: int = 1
 const MIN_PELLETS: int = 1
 const MAX_PELLETS: int = 14
@@ -13,20 +13,27 @@ var _player: Player
 var _pawns: Array[Player] = []
 var _session: RunSession
 var _captured: bool = false
-var _pawn_bases: Array[Dictionary] = []
+var _pawn_bases: Dictionary = {} ## instance_id -> 角色底值
 
 func bind_player(player: Player) -> void:
 	_player = player
 	_pawns.clear()
 	if player != null:
 		_pawns.append(player)
+	_forget_missing_bases()
 
 func bind_players(players: Array[Player]) -> void:
-	_pawns = players.duplicate()
-	if players.is_empty():
+	_pawns.clear()
+	for pawn: Player in players:
+		if pawn == null:
+			continue
+		_pawns.append(pawn)
+	if _pawns.is_empty():
 		_player = null
+		_forget_missing_bases()
 		return
-	_player = players[0]
+	_player = _pawns[0]
+	_forget_missing_bases()
 
 func bind_session(session: RunSession) -> void:
 	_session = session
@@ -36,17 +43,43 @@ func capture_baseline() -> void:
 	for pawn: Player in _pawns:
 		if pawn == null:
 			continue
-		_pawn_bases.append(_capture_pawn(pawn))
+		_pawn_bases[pawn.get_instance_id()] = _capture_pawn(pawn)
 	_captured = not _pawn_bases.is_empty()
 	if not _pawns.is_empty():
 		_player = _pawns[0]
 
+func ensure_baselines() -> void:
+	for pawn: Player in _pawns:
+		if pawn == null:
+			continue
+		var id: int = pawn.get_instance_id()
+		if _pawn_bases.has(id):
+			continue
+		_pawn_bases[id] = _capture_pawn(pawn)
+	_captured = not _pawn_bases.is_empty()
+
 func apply_owned() -> void:
 	if not _captured:
 		return
-	var count: int = mini(_pawns.size(), _pawn_bases.size())
-	for i: int in count:
-		_apply_pawn(_pawns[i], _pawn_bases[i])
+	for pawn: Player in _pawns:
+		if pawn == null:
+			continue
+		var id: int = pawn.get_instance_id()
+		if not _pawn_bases.has(id):
+			continue
+		_apply_pawn(pawn, _pawn_bases[id])
+
+func _forget_missing_bases() -> void:
+	var keep: Dictionary = {}
+	for pawn: Player in _pawns:
+		if pawn == null:
+			continue
+		var id: int = pawn.get_instance_id()
+		if _pawn_bases.has(id):
+			keep[id] = _pawn_bases[id]
+	_pawn_bases = keep
+	if _pawn_bases.is_empty():
+		_captured = false
 
 func _capture_pawn(pawn: Player) -> Dictionary:
 	var health: PlayerHealth = pawn.get_player_health()

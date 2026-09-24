@@ -2012,6 +2012,8 @@ func _ensure_guest_pawn(seat: int) -> Player:
 		return _pawns[seat - 1]
 	if seat == 1:
 		_pawns[0] = _player
+		if seat == _local_seat:
+			_local_player = _player
 		_apply_pawn_drive(_player, _player != _local_player, false)
 		_rebuild_synced_pawns()
 		return _player
@@ -2024,6 +2026,8 @@ func _ensure_guest_pawn(seat: int) -> Player:
 	pawn.bind_projectile_pool(_projectiles)
 	pawn.bind_sfx_pool(_sfx_pool)
 	_apply_character_id(pawn, _character_id_for_seat(seat) if not _character_id_for_seat(seat).is_empty() else "boar")
+	if seat == _local_seat:
+		_local_player = pawn
 	_apply_pawn_drive(pawn, pawn != _local_player, false)
 	_pawns[seat - 1] = pawn
 	_rebuild_synced_pawns()
@@ -2039,7 +2043,7 @@ func _free_unseen_guest_pawns(seen: Dictionary) -> void:
 		var seat: int = i + 1
 		if seen.has(seat):
 			continue
-		if seat == 1:
+		if seat == 1 or seat == _local_seat:
 			continue
 		_remove_seat_pawn(seat)
 		removed = true
@@ -2078,13 +2082,26 @@ func _remove_seat_pawn(seat: int) -> void:
 	_sync_companion_bindings()
 
 func _rebind_after_pawn_change() -> void:
+	_rebuild_synced_pawns()
+	var seated: Player = _pawn_for_seat(_local_seat)
+	if seated != null:
+		_local_player = seated
 	_bind_enemies(_enemies)
 	_run_session.bind_players(_synced_pawns)
 	_upgrade_applier.bind_players(_synced_pawns)
+	_upgrade_applier.ensure_baselines()
+	_upgrade_applier.apply_owned()
 	if _local_player != null:
+		var local_input: PlayerInput = _local_player.get_player_input()
 		_shop_offer.bind_player(_local_player)
+		_shop_offer.bind_player_input(local_input)
 		_hud.bind_player(_local_player)
 		_hud.bind_weapon_host(_local_player.get_weapon_host())
+		_player_camera.bind_player(_local_player)
+		_aim_reticle.bind_player_input(local_input)
+		_debug_overlay.bind_player(_local_player)
+		_debug_overlay.bind_weapon_host(_local_player.get_weapon_host())
+		_upgrade_offer.bind_player_input(local_input)
 	_bind_weapon_hit_players()
 	_bind_party_hud()
 	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
