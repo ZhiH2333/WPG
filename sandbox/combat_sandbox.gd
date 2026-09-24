@@ -27,7 +27,15 @@ const REQUIRED_UPGRADE_IDS: PackedStringArray = [
 const GRANT_UPGRADE_ID: StringName = &"max_hp_s"
 const MENU_SCENE := "res://ui/main_menu.tscn"
 const PLAYER_SCENE: PackedScene = preload("res://player/player.tscn")
+## seat 2 别名；seat 3～5 禁止再用。
 const GUEST_SPAWN := Vector2(80, 0)
+const SEAT_SPAWNS: Array[Vector2] = [
+	Vector2(0, 0), ## seat 1 场景 Player 原点
+	GUEST_SPAWN, ## seat 2 现有 Guest
+	Vector2(-80, 0), ## seat 3
+	Vector2(0, 80), ## seat 4
+	Vector2(0, -80), ## seat 5
+]
 const UPGRADE_SKIP_ID := "__skip__"
 const OFFER_PHRASE: int = 0
 const OFFER_LEVEL: int = 1
@@ -335,6 +343,7 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_arena_id(_arena_id)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_p2(_pawn_for_seat(2))
+	_debug_overlay.bind_p3(_pawn_for_seat(3))
 	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
 	_debug_overlay.bind_net_play(_net_play)
 	_debug_overlay.set_last_grant_id("-")
@@ -349,7 +358,7 @@ func _collect_enemies() -> Array[EnemyBase]:
 
 func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 	for enemy: EnemyBase in enemies:
-		enemy.bind_players(_pawns)
+		enemy.bind_players(_synced_pawns)
 		enemy.set_sim_authority(not _is_guest())
 		enemy.bind_sfx_pool(_sfx_pool)
 		if _is_host() or not _is_lan():
@@ -1198,7 +1207,9 @@ func _tick_god_mode_kills() -> void:
 func _prepare_pawns() -> void:
 	_pawns.clear()
 	_synced_pawns.clear()
-	_player.set_spawn_position(_player.global_position)
+	var host_spawn: Vector2 = _spawn_for_seat(1)
+	_player.global_position = host_spawn
+	_player.set_spawn_position(host_spawn)
 	if not _is_lan():
 		_pawns.append(_player)
 		_synced_pawns.append(_player)
@@ -1215,11 +1226,12 @@ func _prepare_pawns() -> void:
 	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
 		if not _is_roster_seat_occupied(seat):
 			continue
+		var spawn: Vector2 = _spawn_for_seat(seat)
 		var guest: Player = PLAYER_SCENE.instantiate() as Player
 		guest.name = "Player%d" % seat
 		_players_root.add_child(guest)
-		guest.global_position = GUEST_SPAWN
-		guest.set_spawn_position(GUEST_SPAWN)
+		guest.global_position = spawn
+		guest.set_spawn_position(spawn)
 		_pawns[seat - 1] = guest
 	_local_player = _pawn_for_seat(_local_seat)
 	if _local_player == null:
@@ -1612,6 +1624,11 @@ func _defs_from_ids(id0: String, id1: String, id2: String) -> Array[UpgradeDef]:
 			defs.append(def)
 	return defs
 
+## 座位 clamp 1～5，取 SEAT_SPAWNS；1/2 仍是 (0,0)/(80,0)。
+func _spawn_for_seat(seat: int) -> Vector2:
+	var index: int = clampi(seat, 1, 5) - 1
+	return SEAT_SPAWNS[index]
+
 func _pawn_for_seat(seat: int) -> Player:
 	if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:
 		return null
@@ -1909,13 +1926,14 @@ func _convert_lan_host_to_solo() -> void:
 	_player.get_player_input().set_remote_driven(false)
 	_player.set_sim_paused(false)
 	for enemy: EnemyBase in _enemies:
-		enemy.bind_players(_pawns)
+		enemy.bind_players(_synced_pawns)
 		enemy.set_sim_paused(false)
 	_pause_companions(false)
 	_run_session.bind_players(_synced_pawns)
 	_upgrade_applier.bind_players(_synced_pawns)
 	_shop_offer.bind_player(_player)
 	_debug_overlay.bind_p2(null)
+	_debug_overlay.bind_p3(null)
 	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_net_play(_net_play)
@@ -1992,8 +2010,9 @@ func _ensure_guest_pawn(seat: int) -> Player:
 	var pawn: Player = PLAYER_SCENE.instantiate() as Player
 	pawn.name = "Player%d" % seat
 	_players_root.add_child(pawn)
-	pawn.global_position = GUEST_SPAWN
-	pawn.set_spawn_position(GUEST_SPAWN)
+	var spawn: Vector2 = _spawn_for_seat(seat)
+	pawn.global_position = spawn
+	pawn.set_spawn_position(spawn)
 	pawn.bind_projectile_pool(_projectiles)
 	pawn.bind_sfx_pool(_sfx_pool)
 	_apply_character_id(pawn, _character_id_for_seat(seat) if not _character_id_for_seat(seat).is_empty() else "boar")
@@ -2061,6 +2080,7 @@ func _rebind_after_pawn_change() -> void:
 	_bind_weapon_hit_players()
 	_bind_battle_hud()
 	_debug_overlay.bind_p2(_pawn_for_seat(2))
+	_debug_overlay.bind_p3(_pawn_for_seat(3))
 	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_net_play(_net_play)
