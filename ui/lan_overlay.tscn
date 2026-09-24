@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://ui/lan_overlay.gd" id="1_lan"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
@@ -10,6 +10,8 @@
 [sub_resource type="ButtonGroup" id="group_host_mode"]
 
 [sub_resource type="ButtonGroup" id="group_join_character"]
+
+[sub_resource type="StyleBoxEmpty" id="sb_create_room_focus"]
 
 [node name="LanOverlay" type="Control"]
 visible = false
@@ -79,6 +81,7 @@ theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 24
 
 [node name="HomeRoot" type="Control" parent="Center/Panel/Column/Content"]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -446,13 +449,12 @@ disabled = true
 text = "Start"
 
 [node name="JoinRoot" type="Control" parent="Center/Panel/Column/Content"]
-visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="Center" type="CenterContainer" parent="Center/Panel/Column/Content/JoinRoot"]
+[node name="Row" type="HBoxContainer" parent="Center/Panel/Column/Content/JoinRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -460,21 +462,24 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_constants/separation = 24
 
-[node name="Column" type="VBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Center"]
+[node name="Form" type="VBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Row"]
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Title" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="Title" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ModeTitle"
 text = "JOIN"
 horizontal_alignment = 1
 
-[node name="Address" type="LineEdit" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="Address" type="LineEdit" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 custom_minimum_size = Vector2(360, 44)
 layout_mode = 2
 mouse_filter = 0
@@ -482,7 +487,7 @@ text = "127.0.0.1"
 placeholder_text = "IPv4"
 caret_blink = true
 
-[node name="Connect" type="Button" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="Connect" type="Button" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -490,19 +495,19 @@ mouse_filter = 0
 theme_type_variation = &"PillPink"
 text = "Connect"
 
-[node name="Status" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="Status" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 horizontal_alignment = 1
 
-[node name="Characters" type="HBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="Characters" type="HBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Boar" type="Button" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters"]
+[node name="Boar" type="Button" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters"]
 custom_minimum_size = Vector2(240, 200)
 layout_mode = 2
 toggle_mode = true
@@ -512,7 +517,7 @@ button_group = SubResource("group_join_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Boar"]
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Boar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -527,14 +532,14 @@ mouse_filter = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Portrait" type="TextureRect" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Boar/VBox"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Title" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Boar/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ModeTitle"
@@ -542,7 +547,7 @@ text = "Boar"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Desc" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Boar/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
@@ -550,7 +555,7 @@ text = "Tanky."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Chicken" type="Button" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters"]
+[node name="Chicken" type="Button" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters"]
 custom_minimum_size = Vector2(240, 200)
 layout_mode = 2
 toggle_mode = true
@@ -559,7 +564,7 @@ button_group = SubResource("group_join_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Chicken"]
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Chicken"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -574,14 +579,14 @@ mouse_filter = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Portrait" type="TextureRect" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Chicken/VBox"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Title" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Chicken/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ModeTitle"
@@ -589,7 +594,7 @@ text = "Chicken"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Desc" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Chicken/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
@@ -597,7 +602,7 @@ text = "Hard to hit."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="GoalLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="GoalLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
@@ -605,7 +610,7 @@ theme_type_variation = &"OfferDesc"
 text = "goal  20"
 horizontal_alignment = 1
 
-[node name="MapLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="MapLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
@@ -613,7 +618,7 @@ theme_type_variation = &"OfferDesc"
 text = "map  Yard"
 horizontal_alignment = 1
 
-[node name="ModeLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="ModeLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
@@ -621,7 +626,7 @@ theme_type_variation = &"OfferDesc"
 text = "mode  Co-op"
 horizontal_alignment = 1
 
-[node name="SeatLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="SeatLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
@@ -629,13 +634,55 @@ theme_type_variation = &"OfferDesc"
 text = "seat  1"
 horizontal_alignment = 1
 
-[node name="WaitingLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Center/Column"]
+[node name="WaitingLabel" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Form"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "waiting for host"
 horizontal_alignment = 1
+
+[node name="Browse" type="VBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Search" type="LineEdit" parent="Center/Panel/Column/Content/JoinRoot/Row/Browse"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+mouse_filter = 0
+placeholder_text = "search ip / map / mode"
+caret_blink = true
+
+[node name="CreateRoom" type="Button" parent="Center/Panel/Column/Content/JoinRoot/Row/Browse"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+theme_override_styles/focus = SubResource("sb_create_room_focus")
+text = "Create a room"
+
+[node name="EmptyHint" type="Label" parent="Center/Panel/Column/Content/JoinRoot/Row/Browse"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "no rooms"
+
+[node name="Scroll" type="ScrollContainer" parent="Center/Panel/Column/Content/JoinRoot/Row/Browse"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="Cards" type="VBoxContainer" parent="Center/Panel/Column/Content/JoinRoot/Row/Browse/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
 
 [node name="Back" type="Button" parent="Center/Panel/Column"]
 custom_minimum_size = Vector2(120, 44)

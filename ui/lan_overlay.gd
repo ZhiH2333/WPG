@@ -1,7 +1,7 @@
 extends Control
 class_name LanOverlay
 
-## 主菜单局域网叠层：HOME / PICK / HOST / JOIN。Host 可借已有档预填角色、loop_goal 和地图，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。座位 1～5，第三人进房不踢，满 5 才踢。
+## 主菜单局域网叠层：JOIN 房间列表 / PICK / HOST。Multi 直接进发现。Create a room 开房。Host 可借已有档预填角色、loop_goal 和地图，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。座位 1～5，第三人进房不踢，满 5 才踢。大厅 Host 听 17778，Guest 探针。
 signal start_lan
 
 enum View { HOME, PICK, HOST, JOIN }
@@ -25,6 +25,7 @@ var _seat_peer_ids: PackedInt32Array = PackedInt32Array()
 var _seat_character_ids: PackedStringArray = PackedStringArray()
 var _seat_handshake: PackedByteArray = PackedByteArray()
 var _roster_character_ids: PackedStringArray = PackedStringArray()
+var _beacon: LanBeacon
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
@@ -50,16 +51,20 @@ var _roster_character_ids: PackedStringArray = PackedStringArray()
 @onready var _loop_slider: HSlider = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/Slider
 @onready var _loop_label: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/LoopLabel
 @onready var _start_button: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Start
-@onready var _join_edit: LineEdit = $Center/Panel/Column/Content/JoinRoot/Center/Column/Address
-@onready var _connect_button: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Connect
-@onready var _join_status: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/Status
-@onready var _join_boar: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Boar
-@onready var _join_chicken: Button = $Center/Panel/Column/Content/JoinRoot/Center/Column/Characters/Chicken
-@onready var _join_goal: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/GoalLabel
-@onready var _join_map: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/MapLabel
-@onready var _join_mode: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/ModeLabel
-@onready var _join_seat: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/SeatLabel
-@onready var _join_wait: Label = $Center/Panel/Column/Content/JoinRoot/Center/Column/WaitingLabel
+@onready var _join_search: LineEdit = $Center/Panel/Column/Content/JoinRoot/Row/Browse/Search
+@onready var _create_room_button: Button = $Center/Panel/Column/Content/JoinRoot/Row/Browse/CreateRoom
+@onready var _join_empty: Label = $Center/Panel/Column/Content/JoinRoot/Row/Browse/EmptyHint
+@onready var _join_cards: VBoxContainer = $Center/Panel/Column/Content/JoinRoot/Row/Browse/Scroll/Cards
+@onready var _join_edit: LineEdit = $Center/Panel/Column/Content/JoinRoot/Row/Form/Address
+@onready var _connect_button: Button = $Center/Panel/Column/Content/JoinRoot/Row/Form/Connect
+@onready var _join_status: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/Status
+@onready var _join_boar: Button = $Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Boar
+@onready var _join_chicken: Button = $Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Chicken
+@onready var _join_goal: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/GoalLabel
+@onready var _join_map: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/MapLabel
+@onready var _join_mode: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/ModeLabel
+@onready var _join_seat: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/SeatLabel
+@onready var _join_wait: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/WaitingLabel
 @onready var _back_button: Button = $Center/Panel/Column/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
@@ -79,6 +84,7 @@ func _ready() -> void:
 	_fill_character(_join_chicken, CHAR_CHICKEN)
 	_host_button.pressed.connect(_on_home_host_pressed)
 	_join_button.pressed.connect(_on_home_join_pressed)
+	_create_room_button.pressed.connect(_on_home_host_pressed)
 	_custom_button.pressed.connect(_on_custom_pressed)
 	_host_boar.pressed.connect(_on_character_pressed.bind(CHAR_BOAR))
 	_host_chicken.pressed.connect(_on_character_pressed.bind(CHAR_CHICKEN))
@@ -93,13 +99,16 @@ func _ready() -> void:
 	_start_button.pressed.connect(_on_start_pressed)
 	_connect_button.pressed.connect(_on_connect_pressed)
 	_back_button.pressed.connect(_handle_back)
-	for button: Button in [_host_button, _join_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
+	for button: Button in [_host_button, _join_button, _create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
 		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
 	_reset_seats()
-	_show_home(false)
+	_ensure_beacon()
+	_join_search.text_changed.connect(_on_join_search_changed)
+	_enter_join()
 
 func _exit_tree() -> void:
+	_stop_beacon()
 	_unwire_multiplayer()
 
 func is_open() -> bool:
@@ -113,10 +122,10 @@ func open() -> void:
 	_picked_record_id = ""
 	_reset_play_mode()
 	_fit_panel()
-	_show_home(true)
+	_enter_join()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_host_button, _join_button, _back_button])
-	_host_button.grab_focus()
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_create_room_button, _connect_button, _back_button])
+	_create_room_button.grab_focus()
 
 func close() -> void:
 	if not _open:
@@ -155,7 +164,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if _is_host_locked():
 		return
-	if _view == View.JOIN and _join_edit.has_focus():
+	if _view == View.JOIN and (_join_edit.has_focus() or _join_search.has_focus()):
 		return
 	if event.is_action_pressed("weapon_pistol"):
 		get_viewport().set_input_as_handled()
@@ -169,32 +178,28 @@ func _input(event: InputEvent) -> void:
 
 func _handle_back() -> void:
 	_play_back()
-	if _view == View.HOME:
+	if _view == View.HOME or _view == View.JOIN:
 		close()
 		return
 	if _view == View.PICK:
-		_show_home(true)
+		_enter_join()
 		return
 	_clear_peer()
 	if _view == View.HOST and not _picked_record_id.is_empty():
 		_enter_pick()
 		return
-	_show_home(true)
+	_enter_join()
 
-func _show_home(animate: bool) -> void:
-	_view = View.HOME
+func _show_home(_animate: bool) -> void:
 	_picked_record_id = ""
 	_reset_play_mode()
-	_pick_root.visible = false
-	_host_root.visible = false
-	_join_root.visible = false
-	_home_root.visible = true
-	if animate:
-		UiAnim.kill_tween(_anim_tween)
-		_anim_tween = UiAnim.enter_overlay(self, _dimmer, null, [_host_button, _join_button, _back_button])
-		_host_button.grab_focus()
+	_enter_join()
 
 func _on_home_host_pressed() -> void:
+	if not _open:
+		return
+	if _view != View.JOIN and _view != View.HOME and _view != View.PICK:
+		return
 	_play_click()
 	GameRecords.load_from_disk()
 	if GameRecords.list_records().is_empty():
@@ -219,6 +224,7 @@ func _on_pick_record_pressed(record_id: String) -> void:
 	_enter_host_from_record(record)
 
 func _enter_pick() -> void:
+	_stop_beacon()
 	_view = View.PICK
 	_home_root.visible = false
 	_host_root.visible = false
@@ -265,6 +271,7 @@ func _begin_host() -> void:
 		_refresh_host_start()
 		return
 	_wire_multiplayer()
+	_start_host_beacon()
 	if _picked_record_id.is_empty():
 		_host_boar.grab_focus()
 		return
@@ -281,8 +288,11 @@ func _enter_join() -> void:
 	_join_status.text = ""
 	_hide_join_session_labels()
 	_connect_button.disabled = false
+	if not _open:
+		return
 	_wire_multiplayer()
-	_join_edit.grab_focus()
+	_start_guest_beacon()
+	_create_room_button.grab_focus()
 
 func _create_server() -> bool:
 	_clear_peer()
@@ -299,6 +309,7 @@ func _on_connect_pressed() -> void:
 		return
 	_play_click()
 	_clear_peer()
+	_start_guest_beacon()
 	_join_status.text = "connecting"
 	_hide_join_session_labels()
 	_connect_button.disabled = true
@@ -367,6 +378,7 @@ func _on_connection_failed() -> void:
 	_connect_button.disabled = false
 	_hide_join_session_labels()
 	_clear_peer()
+	_start_guest_beacon()
 
 func _on_server_disconnected() -> void:
 	if _host_started:
@@ -376,6 +388,7 @@ func _on_server_disconnected() -> void:
 	_connect_button.disabled = false
 	_hide_join_session_labels()
 	_clear_peer()
+	_start_guest_beacon()
 
 @rpc("authority", "call_remote", "reliable")
 func rpc_hello(protocol: int) -> void:
@@ -383,6 +396,7 @@ func rpc_hello(protocol: int) -> void:
 		_join_status.text = "Version mismatch"
 		_connect_button.disabled = false
 		_clear_peer()
+		_start_guest_beacon()
 		return
 	rpc_hello_ok.rpc_id(1)
 	_join_status.text = "connected"
@@ -474,6 +488,7 @@ func _on_start_pressed() -> void:
 	GameLaunch.set_arena_id(arena_id)
 	GameLaunch.set_net_play(_net_play)
 	_host_started = true
+	_stop_beacon()
 	var packed: PackedByteArray = _encode_roster()
 	for peer: int in _handshake_guest_peers():
 		rpc_roster.rpc_id(peer, packed)
@@ -486,6 +501,7 @@ func _on_start_pressed() -> void:
 func _on_loop_changed(_value: float) -> void:
 	_refresh_loop_label()
 	_broadcast_goal()
+	_sync_host_beacon()
 
 func _select_character(character_id: String) -> void:
 	_selected_character_id = GameLaunch._sanitize_character_id(character_id)
@@ -505,6 +521,7 @@ func _select_arena(arena_id: String) -> void:
 	_host_pit.button_pressed = _selected_arena_id == "pit"
 	_host_keep.button_pressed = _selected_arena_id == "keep"
 	_broadcast_arena()
+	_sync_host_beacon()
 
 func _push_session_to_peer(peer: int) -> void:
 	if peer <= 1:
@@ -536,6 +553,7 @@ func _select_net_play(play: GameLaunch.NetPlay) -> void:
 	_refresh_mode_ui()
 	_refresh_host_start()
 	_broadcast_play_mode()
+	_sync_host_beacon()
 
 func _refresh_mode_ui() -> void:
 	if _net_play == GameLaunch.NetPlay.BATTLE:
@@ -667,6 +685,7 @@ func _fill_character(button: Button, character_id: String) -> void:
 		desc.text = def.description if def != null else ""
 
 func _clear_peer() -> void:
+	_stop_beacon()
 	_unwire_multiplayer()
 	if not _host_started:
 		_reset_seats()
@@ -812,8 +831,9 @@ func _refresh_host_status() -> void:
 	var occupied: int = _occupied_count()
 	if occupied <= 1:
 		_host_status.text = "waiting"
-		return
-	_host_status.text = "%d/%d connected" % [occupied, GameLaunch.NET_MAX_SEATS]
+	else:
+		_host_status.text = "%d/%d connected" % [occupied, GameLaunch.NET_MAX_SEATS]
+	_sync_host_beacon()
 
 func _encode_roster() -> PackedByteArray:
 	_seat_character_ids[0] = _selected_character_id
@@ -886,3 +906,175 @@ func _hide_join_session_labels() -> void:
 	_join_map.visible = false
 	_join_mode.visible = false
 	_join_seat.visible = false
+
+func _ensure_beacon() -> void:
+	if _beacon != null:
+		return
+	_beacon = LanBeacon.new()
+	_beacon.rooms_changed.connect(_on_rooms_changed)
+	add_child(_beacon)
+
+func _stop_beacon() -> void:
+	if _beacon == null:
+		return
+	_beacon.stop()
+	_clear_room_cards()
+
+func _start_host_beacon() -> void:
+	if _view != View.HOST or _host_started:
+		return
+	_ensure_beacon()
+	_beacon.start_host(_occupied_count(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
+
+func _sync_host_beacon() -> void:
+	if _view != View.HOST or _host_started or _beacon == null:
+		return
+	_beacon.update_host(_occupied_count(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
+
+func _start_guest_beacon() -> void:
+	if _view != View.JOIN or not _open:
+		return
+	_ensure_beacon()
+	_beacon.start_guest()
+	_rebuild_room_cards()
+
+func _host_loop_goal() -> int:
+	return maxi(roundi(_loop_slider.value), 0)
+
+func _on_rooms_changed() -> void:
+	if _view != View.JOIN:
+		return
+	_rebuild_room_cards()
+
+func _on_join_search_changed(_text: String) -> void:
+	if _view != View.JOIN:
+		return
+	_rebuild_room_cards()
+
+func _rebuild_room_cards() -> void:
+	_clear_room_cards()
+	if _beacon != null and _beacon.has_bind_failed():
+		_join_empty.text = "discover bind failed"
+		_join_empty.visible = true
+		return
+	_join_empty.text = "no rooms"
+	if _beacon == null:
+		_join_empty.visible = true
+		return
+	var shown: int = 0
+	for room: Dictionary in _beacon.get_rooms():
+		if not _matches_room_query(room, _join_search.text):
+			continue
+		_join_cards.add_child(_make_room_card(room))
+		shown += 1
+	_join_empty.visible = shown == 0
+
+func _clear_room_cards() -> void:
+	if _join_cards == null:
+		return
+	var stale: Array[Node] = []
+	for child: Node in _join_cards.get_children():
+		stale.append(child)
+	for child: Node in stale:
+		_join_cards.remove_child(child)
+		child.queue_free()
+
+func _make_room_card(room: Dictionary) -> Button:
+	var button: Button = Button.new()
+	button.custom_minimum_size = Vector2(0, 72)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.theme_type_variation = &"OfferButton"
+	var full: bool = _is_room_full(room)
+	button.disabled = full
+	var inner: HBoxContainer = HBoxContainer.new()
+	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
+	inner.offset_left = 16.0
+	inner.offset_right = -16.0
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.add_theme_constant_override("separation", 16)
+	inner.add_child(_make_room_title_label(str(room["address"])))
+	inner.add_child(_make_room_meta_label(room))
+	inner.add_child(_make_room_badge_label(room))
+	button.add_child(inner)
+	if full:
+		button.gui_input.connect(_on_full_room_gui_input)
+	else:
+		button.pressed.connect(_on_room_card_pressed.bind(str(room["address"])))
+	_wire_hover(button)
+	return button
+
+func _make_room_title_label(address: String) -> Label:
+	var label: Label = Label.new()
+	label.theme_type_variation = &"RunSummaryBody"
+	label.text = address
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+func _make_room_meta_label(room: Dictionary) -> Label:
+	var label: Label = Label.new()
+	label.theme_type_variation = &"OfferDesc"
+	label.text = _format_room_meta(room)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+func _make_room_badge_label(room: Dictionary) -> Label:
+	var label: Label = Label.new()
+	label.theme_type_variation = &"HudHp"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.text = "%d/%d" % [int(room["occupied"]), int(room["max_seats"])]
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+func _format_room_meta(room: Dictionary) -> String:
+	var arena_name: String = RecordCard.format_arena_name(str(room["arena_id"]))
+	var is_battle: bool = int(room["net_play"]) == int(GameLaunch.NetPlay.BATTLE)
+	var mode_name: String = "Battle" if is_battle else "Co-op"
+	var loop_text: String = "battle" if is_battle else RecordCard.format_loop_badge(int(room["loop_goal"]))
+	return "%s  ·  %s  ·  %s" % [arena_name, mode_name, loop_text]
+
+func _is_room_full(room: Dictionary) -> bool:
+	var occupied: int = int(room["occupied"])
+	if occupied >= int(room["max_seats"]):
+		return true
+	if int(room["net_play"]) == int(GameLaunch.NetPlay.BATTLE) and occupied >= 2:
+		return true
+	return false
+
+func _matches_room_query(room: Dictionary, query: String) -> bool:
+	var needle: String = query.strip_edges().to_lower()
+	if needle.is_empty():
+		return true
+	var haystacks: PackedStringArray = PackedStringArray()
+	haystacks.append(str(room["address"]).to_lower())
+	haystacks.append(RecordCard.format_arena_name(str(room["arena_id"])).to_lower())
+	if int(room["net_play"]) == int(GameLaunch.NetPlay.BATTLE):
+		haystacks.append("battle")
+	else:
+		haystacks.append("coop")
+		haystacks.append("co-op")
+	haystacks.append("%d/%d" % [int(room["occupied"]), int(room["max_seats"])])
+	for hay: String in haystacks:
+		if hay.find(needle) >= 0:
+			return true
+	return false
+
+func _on_room_card_pressed(address: String) -> void:
+	if _view != View.JOIN:
+		return
+	_join_edit.text = address
+	_on_connect_pressed()
+
+func _on_full_room_gui_input(event: InputEvent) -> void:
+	if _view != View.JOIN:
+		return
+	if not (event is InputEventMouseButton):
+		return
+	var mouse: InputEventMouseButton = event as InputEventMouseButton
+	if not mouse.pressed or mouse.button_index != MOUSE_BUTTON_LEFT:
+		return
+	_play_error()

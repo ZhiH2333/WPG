@@ -8,6 +8,7 @@ enum NetPlay { COOP, BATTLE }
 
 const SOLO_LOOP_GOAL: int = 20 ## 滑杆默认与缺档 Solo 隐式档，不是运行时硬锁终点
 const NET_PORT: int = 17777
+const NET_DISCOVER_PORT: int = 17778
 const NET_PROTOCOL: int = 5
 const NET_MAX_SEATS: int = 5
 const DEFAULT_JOIN_ADDRESS := "127.0.0.1"
