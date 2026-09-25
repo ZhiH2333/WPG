@@ -83,7 +83,8 @@ func open() -> void:
 	_show_list_nodes()
 	_refresh_list()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, _collect_list_cards())
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
+	UiAnim.enter_cards(self, _collect_list_cards())
 	_focus_list()
 
 func close() -> void:
@@ -93,12 +94,12 @@ func close() -> void:
 	_pending_delete_id = ""
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_overlay(self, self)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
 	_anim_tween.finished.connect(_finish_close)
 	_refocus_menu()
 
 func _refocus_menu() -> void:
-	var play: Button = get_parent().get_node_or_null("Center/Column/Buttons/Play") as Button
+	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
 	if play != null:
 		play.grab_focus()
 
@@ -328,7 +329,7 @@ func _collect_list_cards() -> Array:
 
 func _play_card_enter(cards: Array) -> void:
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, null, null, cards)
+	_anim_tween = UiAnim.enter_cards(self, cards)
 
 func _make_record_row(record: GameRecord) -> Button:
 	var button: Button = _make_main_card(record)

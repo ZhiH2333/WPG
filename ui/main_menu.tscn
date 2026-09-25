@@ -12,31 +12,15 @@
 [ext_resource type="Texture2D" uid="uid://dss7kt840b8h8" path="res://ui/icons/gear.png" id="10_gear"]
 [ext_resource type="Texture2D" uid="uid://qnb6c4ffbepe" path="res://ui/icons/home.png" id="11_home"]
 [ext_resource type="Texture2D" uid="uid://dh1m57uqaxt81" path="res://ui/icons/play.png" id="12_play"]
-[ext_resource type="Texture2D" uid="uid://6aw4021rprgn" path="res://ui/icons/quit.png" id="13_quit"]
 [ext_resource type="Texture2D" uid="uid://b611thnj3ted4" path="res://ui/icons/clock.png" id="14_clock"]
 [ext_resource type="Texture2D" uid="uid://dwkme0ou66p4d" path="res://ui/icons/avatar.png" id="15_avatar"]
 [ext_resource type="PackedScene" path="res://ui/profile_overlay.tscn" id="16_profile"]
 [ext_resource type="PackedScene" path="res://ui/lan_overlay.tscn" id="17_lan"]
 [ext_resource type="PackedScene" path="res://ui/mode_choice_overlay.tscn" id="18_choice"]
 [ext_resource type="PackedScene" path="res://ui/record_leaderboard_overlay.tscn" id="19_leaderboard"]
-[ext_resource type="Texture2D" uid="uid://csol4rnav005e" path="res://ui/icons/solo.png" id="20_solo"]
-[ext_resource type="Texture2D" uid="uid://cmlt4rnav006f" path="res://ui/icons/multi.png" id="21_multi"]
-
-[sub_resource type="ShaderMaterial" id="mat_settings"]
-shader = ExtResource("9_shear")
-shader_parameter/fill_color = Color(0.18, 0.17, 0.2, 0.92)
-shader_parameter/shear = 0.16
-shader_parameter/hover = 0.0
-
 [sub_resource type="ShaderMaterial" id="mat_play"]
 shader = ExtResource("9_shear")
 shader_parameter/fill_color = Color(0.62, 0.3, 0.74, 0.92)
-shader_parameter/shear = 0.16
-shader_parameter/hover = 0.0
-
-[sub_resource type="ShaderMaterial" id="mat_quit"]
-shader = ExtResource("9_shear")
-shader_parameter/fill_color = Color(0.93, 0.32, 0.55, 0.92)
 shader_parameter/shear = 0.16
 shader_parameter/hover = 0.0
 
@@ -102,74 +86,37 @@ texture_normal = ExtResource("8_logo")
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="Buttons" type="HBoxContainer" parent="Center/Column" unique_id=255586938]
+[node name="Identity" type="VBoxContainer" parent="Center/Column"]
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 2
-theme_override_constants/separation = 36
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Settings" type="Button" parent="Center/Column/Buttons" unique_id=31003530]
-custom_minimum_size = Vector2(280, 124)
-layout_mode = 2
-theme_type_variation = &"EmptyButton"
-
-[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Settings" unique_id=206435531]
-material = SubResource("mat_settings")
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Settings" unique_id=544404126]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_right = -16.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Settings/Content" unique_id=1882972999]
+[node name="Avatar" type="TextureRect" parent="Center/Column/Identity"]
+custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = 6
-alignment = 1
-
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Settings/Content/Inner" unique_id=1545483728]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("10_gear")
+texture = ExtResource("15_avatar")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Settings/Content/Inner" unique_id=328555574]
+[node name="Name" type="Label" parent="Center/Column/Identity"]
 layout_mode = 2
 size_flags_horizontal = 4
-theme_type_variation = &"StripCaption"
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
-theme_override_constants/outline_size = 1
-theme_override_font_sizes/font_size = 20
-text = "settings"
+mouse_filter = 2
+theme_type_variation = &"MenuTitle"
+text = "Player"
 horizontal_alignment = 1
-vertical_alignment = 1
 
-[node name="Play" type="Button" parent="Center/Column/Buttons" unique_id=1048514884]
-custom_minimum_size = Vector2(280, 124)
+[node name="Play" type="Button" parent="Center/Column"]
+custom_minimum_size = Vector2(320, 124)
 layout_mode = 2
+size_flags_horizontal = 4
 theme_type_variation = &"EmptyButton"
 
-[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Play" unique_id=2023171475]
+[node name="Bg" type="ColorRect" parent="Center/Column/Play"]
 material = SubResource("mat_play")
 layout_mode = 1
 anchors_preset = 15
@@ -179,7 +126,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Play" unique_id=672004498]
+[node name="Content" type="CenterContainer" parent="Center/Column/Play"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -189,7 +136,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Play/Content" unique_id=2140776719]
+[node name="Inner" type="VBoxContainer" parent="Center/Column/Play/Content"]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -197,82 +144,74 @@ mouse_filter = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Play/Content/Inner" unique_id=312285929]
+[node name="Icon" type="TextureRect" parent="Center/Column/Play/Content/Inner"]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
 mouse_filter = 2
 texture = ExtResource("12_play")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Play/Content/Inner" unique_id=954393537]
+[node name="Caption" type="Label" parent="Center/Column/Play/Content/Inner"]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_type_variation = &"StripCaption"
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
-theme_override_constants/outline_size = 1
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 22
 text = "play"
 horizontal_alignment = 1
-vertical_alignment = 1
 
-[node name="Quit" type="Button" parent="Center/Column/Buttons" unique_id=1323504892]
-custom_minimum_size = Vector2(280, 124)
-layout_mode = 2
-theme_type_variation = &"EmptyButton"
-
-[node name="Bg" type="ColorRect" parent="Center/Column/Buttons/Quit" unique_id=755615749]
-material = SubResource("mat_quit")
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Content" type="CenterContainer" parent="Center/Column/Buttons/Quit" unique_id=1956175940]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_right = -16.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Inner" type="VBoxContainer" parent="Center/Column/Buttons/Quit/Content" unique_id=2037550452]
+[node name="Branches" type="HBoxContainer" parent="Center/Column"]
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Center/Column/Buttons/Quit/Content/Inner" unique_id=258904844]
-custom_minimum_size = Vector2(40, 40)
+[node name="SoloLink" type="Button" parent="Center/Column/Branches"]
+custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("13_quit")
-expand_mode = 1
-stretch_mode = 5
+theme_type_variation = &"IconBarButton"
+text = "Solo"
 
-[node name="Caption" type="Label" parent="Center/Column/Buttons/Quit/Content/Inner" unique_id=1134847290]
+[node name="Dot" type="Label" parent="Center/Column/Branches"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+theme_override_font_sizes/font_size = 18
+text = "·"
+vertical_alignment = 1
+
+[node name="MultiLink" type="Button" parent="Center/Column/Branches"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+theme_type_variation = &"IconBarButton"
+text = "Multiplayer"
+
+[node name="LastActivity" type="Button" parent="Center/Column"]
+visible = false
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_type_variation = &"StripCaption"
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0)
-theme_override_constants/outline_size = 1
-theme_override_font_sizes/font_size = 20
-text = "exit"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_type_variation = &"IconBarButton"
+text = "last"
+
+[node name="Quit" type="Button" parent="."]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -208.0
+offset_top = -92.0
+offset_right = -48.0
+offset_bottom = -48.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"PillRed"
+text = "quit"
 
 [node name="BlurLayer" type="ColorRect" parent="." unique_id=878000642]
 material = SubResource("mat_blur")
@@ -337,60 +276,45 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="SettingsButton" type="Button" parent="TopBar/Row" unique_id=957099772]
-custom_minimum_size = Vector2(168, 60)
+[node name="BrandButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(96, 60)
 layout_mode = 2
 size_flags_vertical = 3
-tooltip_text = "Settings"
 focus_mode = 0
 theme_type_variation = &"IconBarButton"
-text = "Settings"
-icon = ExtResource("10_gear")
+text = "WPG"
 
-[node name="HomeButton" type="Button" parent="TopBar/Row" unique_id=1047269809]
+[node name="HomeButton" type="Button" parent="TopBar/Row"]
 custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
 size_flags_vertical = 3
 tooltip_text = "Home"
-focus_mode = 0
 theme_type_variation = &"IconBarButton"
 text = "Home"
 icon = ExtResource("11_home")
 
-[node name="SoloButton" type="Button" parent="TopBar/Row" unique_id=1962511877]
-custom_minimum_size = Vector2(124, 60)
+[node name="PlayButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_vertical = 3
-tooltip_text = "Solo"
-focus_mode = 0
+tooltip_text = "Play"
 theme_type_variation = &"IconBarButton"
-text = "Solo"
-icon = ExtResource("20_solo")
+text = "Play"
+icon = ExtResource("12_play")
 
-[node name="MultiButton" type="Button" parent="TopBar/Row" unique_id=942381447]
-custom_minimum_size = Vector2(132, 60)
-layout_mode = 2
-size_flags_vertical = 3
-tooltip_text = "Multi"
-focus_mode = 0
-theme_type_variation = &"IconBarButton"
-text = "Multi"
-icon = ExtResource("21_multi")
-
-[node name="Spacer" type="Control" parent="TopBar/Row" unique_id=1930725417]
+[node name="Spacer" type="Control" parent="TopBar/Row"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="Profile" type="Button" parent="TopBar/Row" unique_id=783773110]
+[node name="Profile" type="Button" parent="TopBar/Row"]
 custom_minimum_size = Vector2(188, 60)
 layout_mode = 2
 size_flags_vertical = 3
 tooltip_text = "Profile"
-focus_mode = 0
 theme_type_variation = &"IconBarButton"
 
-[node name="Layout" type="HBoxContainer" parent="TopBar/Row/Profile" unique_id=331471860]
+[node name="Layout" type="HBoxContainer" parent="TopBar/Row/Profile"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -403,13 +327,7 @@ mouse_filter = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="Name" type="Label" parent="TopBar/Row/Profile/Layout" unique_id=2044372741]
-layout_mode = 2
-theme_type_variation = &"ProfileName"
-text = "best  0"
-vertical_alignment = 1
-
-[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile/Layout" unique_id=1361880809]
+[node name="Avatar" type="TextureRect" parent="TopBar/Row/Profile/Layout"]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_vertical = 4
@@ -417,6 +335,21 @@ mouse_filter = 2
 texture = ExtResource("15_avatar")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="Name" type="Label" parent="TopBar/Row/Profile/Layout"]
+layout_mode = 2
+theme_type_variation = &"ProfileName"
+text = "Player"
+vertical_alignment = 1
+
+[node name="SettingsButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(168, 60)
+layout_mode = 2
+size_flags_vertical = 3
+tooltip_text = "Settings"
+theme_type_variation = &"IconBarButton"
+text = "Settings"
+icon = ExtResource("10_gear")
 
 [node name="TimeBox" type="HBoxContainer" parent="TopBar/Row" unique_id=110555020]
 custom_minimum_size = Vector2(0, 60)

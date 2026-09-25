@@ -40,7 +40,7 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _cards, [_solo_button, _multi_button, _back_button])
+	_anim_tween = UiAnim.enter_modal(self, _dimmer, _cards)
 	_solo_button.grab_focus()
 
 func close() -> void:
@@ -49,12 +49,12 @@ func close() -> void:
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_overlay(self, self)
+	_anim_tween = UiAnim.exit_modal(self, _dimmer, _cards)
 	_anim_tween.finished.connect(_finish_close)
 	_refocus_menu()
 
 func _refocus_menu() -> void:
-	var play: Button = get_parent().get_node_or_null("Center/Column/Buttons/Play") as Button
+	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
 	if play != null:
 		play.grab_focus()
 

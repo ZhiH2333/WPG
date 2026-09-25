@@ -124,7 +124,7 @@ func open() -> void:
 	_fit_panel()
 	_enter_join()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_create_room_button, _connect_button, _back_button])
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
 	_create_room_button.grab_focus()
 
 func close() -> void:
@@ -135,9 +135,9 @@ func close() -> void:
 	_clear_peer()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_overlay(self, self)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
 	_anim_tween.finished.connect(_finish_close)
-	var play: Button = get_parent().get_node_or_null("Center/Column/Buttons/Play") as Button
+	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
 	if play != null:
 		play.grab_focus()
 
@@ -645,7 +645,7 @@ func _collect_pick_cards() -> Array:
 
 func _play_pick_enter() -> void:
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, null, null, _collect_pick_cards())
+	_anim_tween = UiAnim.enter_cards(self, _collect_pick_cards())
 
 func _focus_pick() -> void:
 	var first: Node = _pick_cards.get_child(0)

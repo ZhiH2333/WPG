@@ -1,10 +1,10 @@
 extends Control
 class_name MainMenu
 
-## 主菜单：字标在上，Settings / Play / Exit 三颗平行四边形按钮并排在下。
-## Play 先问 Solo / Multi。顶栏 Solo / Multi 直达。叠层打开时背景模糊 + 音乐衰减。
+## 主菜单：顶栏全局导航，中央只有一颗 PLAY。Solo / Multiplayer 是 PLAY 下的文字链。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
 const LOADING_SCREEN_SCRIPT := preload("res://ui/loading_screen.gd")
+const PLACEHOLDER_NAME := "Player"
 const TOP_BAR_HEIGHT: float = 60.0
 const MUSIC_DB_NORMAL: float = -6.0
 const MUSIC_DB_DIMMED: float = -16.0
@@ -15,6 +15,7 @@ const DIM_MAX: float = 0.35
 const FOCUS_SMOOTH: float = 9.0
 const LOGO_POP_SEC: float = 0.5
 const STRIP_HOVER_SEC: float = 0.12
+const PLAY_HOVER_SCALE: float = 1.02
 
 var _enter_tween: Tween
 var _music_fade_tween: Tween
@@ -22,16 +23,22 @@ var _focus_amount: float = 0.0
 var _music_fade: float = 0.0
 var _leaving: bool = false
 var _last_clock_second: int = -1
+var _last_record_id: String = ""
 var _hover_tweens: Dictionary = {}
 var _sfx_gate: Dictionary = {}
+var _settings_return: Control = null
 
 @onready var _blur_layer: ColorRect = $BlurLayer
 @onready var _logo_button: TextureButton = $Center/Column/Logo
-@onready var _play_button: Button = $Center/Column/Buttons/Play
-@onready var _settings_button: Button = $Center/Column/Buttons/Settings
-@onready var _quit_button: Button = $Center/Column/Buttons/Quit
+@onready var _play_button: Button = $Center/Column/Play
+@onready var _solo_link: Button = $Center/Column/Branches/SoloLink
+@onready var _multi_link: Button = $Center/Column/Branches/MultiLink
+@onready var _last_button: Button = $Center/Column/LastActivity
+@onready var _quit_button: Button = $Quit
 @onready var _top_bar: PanelContainer = $TopBar
+@onready var _brand_button: Button = $TopBar/Row/BrandButton
 @onready var _home_button: Button = $TopBar/Row/HomeButton
+@onready var _top_play_button: Button = $TopBar/Row/PlayButton
 @onready var _top_settings_button: Button = $TopBar/Row/SettingsButton
 @onready var _clock_label: Label = $TopBar/Row/TimeBox/Clock
 @onready var _music: AudioStreamPlayer = $Music
@@ -44,8 +51,6 @@ var _sfx_gate: Dictionary = {}
 @onready var _leaderboard_overlay: RecordLeaderboardOverlay = $RecordLeaderboardOverlay
 @onready var _profile_button: Button = $TopBar/Row/Profile
 @onready var _profile_name: Label = $TopBar/Row/Profile/Layout/Name
-@onready var _solo_button: Button = $TopBar/Row/SoloButton
-@onready var _multi_button: Button = $TopBar/Row/MultiButton
 @onready var _lan_overlay: LanOverlay = $LanOverlay
 @onready var _mode_choice: ModeChoiceOverlay = $ModeChoiceOverlay
 
@@ -61,24 +66,26 @@ func _ready() -> void:
 	_start_music()
 	_logo_button.pressed.connect(_on_play_pressed)
 	_play_button.pressed.connect(_on_play_pressed)
-	_settings_button.pressed.connect(_on_settings_pressed)
+	_top_play_button.pressed.connect(_on_play_pressed)
 	_top_settings_button.pressed.connect(_on_settings_pressed)
 	_home_button.pressed.connect(_on_home_pressed)
+	_brand_button.pressed.connect(_on_home_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_profile_button.pressed.connect(_on_profile_pressed)
-	_solo_button.pressed.connect(_enter_solo_flow)
-	_multi_button.pressed.connect(_enter_multi_flow)
+	_solo_link.pressed.connect(_enter_solo_flow)
+	_multi_link.pressed.connect(_enter_multi_flow)
+	_last_button.pressed.connect(_on_last_pressed)
 	_mode_choice.solo_pressed.connect(_enter_solo_flow)
 	_mode_choice.multi_pressed.connect(_enter_multi_flow)
 	_lan_overlay.start_lan.connect(_enter_lan)
 	_record_selector.selected_record.connect(_enter_record)
 	_profile_overlay.view_ranking_pressed.connect(_enter_leaderboard)
-	_wire_strip_hover(_settings_button)
 	_wire_strip_hover(_play_button)
-	_wire_strip_hover(_quit_button)
 	_wire_button_sounds()
 	_refresh_clock(true)
 	_refresh_profile_name()
+	_refresh_last_activity()
+	_wire_home_focus()
 	_play_enter_animation()
 	_top_bar.move_to_front()
 	_play_button.grab_focus()
@@ -105,30 +112,44 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _any_overlay_open():
 			return
 		get_viewport().set_input_as_handled()
-		_mode_choice.open()
+		_open_mode_choice()
+
+func restore_after_settings() -> void:
+	if _has_content_page() and _can_focus(_settings_return):
+		_settings_return.grab_focus()
+		return
+	_play_button.grab_focus()
+
+func focus_play() -> void:
+	_play_button.grab_focus()
 
 func _any_overlay_open() -> bool:
 	return _overlay.is_open() or _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open()
+
+func _has_content_page() -> bool:
+	return _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open()
 
 func _should_blur_menu() -> bool:
 	return _mode_choice.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open() or _overlay.is_credits_open()
 
 func _on_play_pressed() -> void:
+	if _record_selector.is_open() or _lan_overlay.is_open():
+		return
+	_open_mode_choice()
+
+func _open_mode_choice() -> void:
 	if _overlay.is_open():
 		_overlay.close()
-	if _record_selector.is_open():
-		_record_selector.close()
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
 	if _leaderboard_overlay.is_open():
 		_leaderboard_overlay.close()
-	if _lan_overlay.is_open():
-		_lan_overlay.close()
+	if _mode_choice.is_open():
+		return
 	_mode_choice.open()
+	_link_page_focus_up()
 
 func _enter_solo_flow() -> void:
-	if _overlay.is_open():
-		_overlay.close()
 	if _mode_choice.is_open():
 		_mode_choice.close()
 	if _profile_overlay.is_open():
@@ -138,10 +159,9 @@ func _enter_solo_flow() -> void:
 	if _lan_overlay.is_open():
 		_lan_overlay.close()
 	_record_selector.open()
+	_link_page_focus_up()
 
 func _enter_multi_flow() -> void:
-	if _overlay.is_open():
-		_overlay.close()
 	if _mode_choice.is_open():
 		_mode_choice.close()
 	if _record_selector.is_open():
@@ -151,6 +171,7 @@ func _enter_multi_flow() -> void:
 	if _leaderboard_overlay.is_open():
 		_leaderboard_overlay.close()
 	_lan_overlay.open()
+	_link_page_focus_up()
 
 func _enter_record(id: String) -> void:
 	if _leaving:
@@ -180,8 +201,6 @@ func _finish_leave_to_sandbox() -> void:
 	LOADING_SCREEN_SCRIPT.switch_current(get_tree())
 
 func _enter_leaderboard() -> void:
-	if _overlay.is_open():
-		_overlay.close()
 	if _mode_choice.is_open():
 		_mode_choice.close()
 	if _record_selector.is_open():
@@ -191,25 +210,17 @@ func _enter_leaderboard() -> void:
 	if _profile_overlay.is_open():
 		_profile_overlay.close()
 	_leaderboard_overlay.open()
+	_link_page_focus_up()
 
 func _on_settings_pressed() -> void:
 	if _mode_choice.is_open():
 		_mode_choice.close()
-	if _record_selector.is_open():
-		_record_selector.close()
-	if _profile_overlay.is_open():
-		_profile_overlay.close()
-	if _leaderboard_overlay.is_open():
-		_leaderboard_overlay.close()
-	if _lan_overlay.is_open():
-		_lan_overlay.close()
+	_settings_return = get_viewport().gui_get_focus_owner() as Control
 	_overlay.open()
 	_overlay.move_to_front()
 	_top_bar.move_to_front()
 
 func _on_profile_pressed() -> void:
-	if _overlay.is_open():
-		_overlay.close()
 	if _mode_choice.is_open():
 		_mode_choice.close()
 	if _record_selector.is_open():
@@ -219,6 +230,7 @@ func _on_profile_pressed() -> void:
 	if _lan_overlay.is_open():
 		_lan_overlay.close()
 	_profile_overlay.open()
+	_link_page_focus_up()
 
 func _on_home_pressed() -> void:
 	if _overlay.is_open():
@@ -235,8 +247,43 @@ func _on_home_pressed() -> void:
 		_lan_overlay.close()
 	_play_button.grab_focus()
 
+func _on_last_pressed() -> void:
+	if _last_record_id.is_empty():
+		return
+	_enter_record(_last_record_id)
+
 func _refresh_profile_name() -> void:
-	_profile_name.text = "best  %d" % GameProgress.get_best_loop()
+	_profile_name.text = PLACEHOLDER_NAME
+
+func _refresh_last_activity() -> void:
+	var record: GameRecord = _find_last_record()
+	if record == null:
+		_last_record_id = ""
+		_last_button.visible = false
+		_wire_home_focus()
+		return
+	_last_record_id = record.id
+	_last_button.visible = true
+	_last_button.text = "last  %s  ·  %s  ·  %s" % [record.name, RecordCard.format_arena_name(record.arena_id), RecordCard.format_loop_badge(record.loop_goal)]
+	_wire_home_focus()
+
+func _find_last_record() -> GameRecord:
+	var newest: GameRecord = null
+	var newest_stamp: int = -1
+	for record: GameRecord in GameRecords.list_records():
+		var stamp: int = _record_stamp(record)
+		if newest == null or stamp >= newest_stamp:
+			newest = record
+			newest_stamp = stamp
+	return newest
+
+func _record_stamp(record: GameRecord) -> int:
+	var stamp: int = record.created_at
+	for entry: Dictionary in record.history:
+		var played_at: int = int(entry.get("timestamp", 0))
+		if played_at > stamp:
+			stamp = played_at
+	return stamp
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
@@ -264,7 +311,7 @@ func _wire_button_sounds() -> void:
 			continue
 		button.mouse_entered.connect(_play_hover)
 		button.focus_entered.connect(_play_hover)
-		if button == _home_button or button == _quit_button:
+		if button == _home_button or button == _brand_button or button == _quit_button:
 			button.pressed.connect(_play_back)
 		else:
 			button.pressed.connect(_play_click)
@@ -285,14 +332,36 @@ func _set_strip_hover(button: Button, mat: ShaderMaterial, hovered: bool) -> voi
 	_hover_tweens[key] = tween
 	var from_hover: float = float(mat.get_shader_parameter("hover"))
 	var to_hover: float = 1.0 if hovered else 0.0
-	var to_scale: Vector2 = Vector2(1.04, 1.04) if hovered else Vector2.ONE
-	tween.tween_method(
-		func(value: float) -> void: mat.set_shader_parameter("hover", value),
-		from_hover,
-		to_hover,
-		STRIP_HOVER_SEC
-	)
+	var to_scale: Vector2 = Vector2(PLAY_HOVER_SCALE, PLAY_HOVER_SCALE) if hovered else Vector2.ONE
+	tween.tween_method(func(value: float) -> void: mat.set_shader_parameter("hover", value), from_hover, to_hover, STRIP_HOVER_SEC)
 	tween.tween_property(button, "scale", to_scale, STRIP_HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+
+func _wire_home_focus() -> void:
+	var after_multi: Control = _last_button if _last_button.visible else _quit_button
+	_set_vertical_neighbors(_play_button, _home_button, _solo_link)
+	_set_vertical_neighbors(_solo_link, _play_button, _multi_link)
+	_set_vertical_neighbors(_multi_link, _solo_link, after_multi)
+	if _last_button.visible:
+		_set_vertical_neighbors(_last_button, _multi_link, _quit_button)
+	_set_vertical_neighbors(_quit_button, after_multi if after_multi != _quit_button else _multi_link, _quit_button)
+	_set_horizontal_neighbors(_home_button, _home_button, _top_play_button)
+	_set_horizontal_neighbors(_top_play_button, _home_button, _profile_button)
+	_set_horizontal_neighbors(_profile_button, _top_play_button, _top_settings_button)
+	_set_horizontal_neighbors(_top_settings_button, _profile_button, _top_settings_button)
+	_home_button.focus_neighbor_bottom = _play_button.get_path()
+	_top_play_button.focus_neighbor_bottom = _play_button.get_path()
+	_profile_button.focus_neighbor_bottom = _play_button.get_path()
+	_top_settings_button.focus_neighbor_bottom = _play_button.get_path()
+
+func _set_vertical_neighbors(control: Control, above: Control, below: Control) -> void:
+	control.focus_neighbor_top = above.get_path()
+	control.focus_neighbor_bottom = below.get_path()
+	control.focus_next = below.get_path()
+	control.focus_previous = above.get_path()
+
+func _set_horizontal_neighbors(control: Control, left: Control, right: Control) -> void:
+	control.focus_neighbor_left = left.get_path()
+	control.focus_neighbor_right = right.get_path()
 
 func _is_overlay_owned(node: Node) -> bool:
 	var current: Node = node
@@ -301,6 +370,15 @@ func _is_overlay_owned(node: Node) -> bool:
 			return true
 		current = current.get_parent()
 	return false
+
+func _link_page_focus_up() -> void:
+	var owner: Control = get_viewport().gui_get_focus_owner() as Control
+	if owner == null:
+		return
+	owner.focus_neighbor_top = _home_button.get_path()
+
+func _can_focus(control: Control) -> bool:
+	return control != null and is_instance_valid(control) and control.is_visible_in_tree() and control.focus_mode != Control.FOCUS_NONE
 
 func _play_hover() -> void:
 	_play_stream(_hover_sfx, &"hover")
@@ -326,20 +404,16 @@ func _play_enter_animation() -> void:
 	_top_bar.offset_bottom = 0.0
 	_logo_button.scale = Vector2(0.7, 0.7)
 	_logo_button.modulate.a = 0.0
+	_play_button.modulate.a = 0.0
+	_play_button.scale = Vector2(UiAnim.CARD_START_SCALE, UiAnim.CARD_START_SCALE)
+	_play_button.pivot_offset = _play_button.custom_minimum_size * 0.5
 	_enter_tween = create_tween().set_parallel(true)
 	_enter_tween.tween_property(_top_bar, "offset_top", 0.0, UiAnim.PANEL_MOVE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	_enter_tween.tween_property(_top_bar, "offset_bottom", TOP_BAR_HEIGHT, UiAnim.PANEL_MOVE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	_enter_tween.tween_property(_logo_button, "scale", Vector2.ONE, LOGO_POP_SEC).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_enter_tween.tween_property(_logo_button, "modulate:a", 1.0, UiAnim.CONTENT_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	var order: int = 0
-	for entry: Variant in [_settings_button, _play_button, _quit_button]:
-		var button: Button = entry as Button
-		var delay: float = UiAnim.CARD_STAGGER_SEC * float(order)
-		button.modulate.a = 0.0
-		button.scale = Vector2(UiAnim.CARD_START_SCALE, UiAnim.CARD_START_SCALE)
-		_enter_tween.tween_property(button, "modulate:a", 1.0, UiAnim.CARD_FADE_SEC).set_delay(delay).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-		_enter_tween.tween_property(button, "scale", Vector2.ONE, UiAnim.CARD_SCALE_SEC).set_delay(delay).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		order += 1
+	_enter_tween.tween_property(_play_button, "modulate:a", 1.0, UiAnim.CARD_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	_enter_tween.tween_property(_play_button, "scale", Vector2.ONE, UiAnim.CARD_SCALE_SEC).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _refresh_clock(force: bool) -> void:
 	var now: Dictionary = Time.get_time_dict_from_system()

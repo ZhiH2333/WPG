@@ -47,7 +47,7 @@ func open() -> void:
 	_fit_panel()
 	move_to_front()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_back_button], true)
+	_anim_tween = UiAnim.enter_modal(self, _dimmer, _panel, true)
 	_back_button.grab_focus()
 
 func close() -> void:
@@ -57,7 +57,7 @@ func close() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process_input(false)
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_overlay(self, self, true)
+	_anim_tween = UiAnim.exit_modal(self, _dimmer, _panel, true)
 	_anim_tween.finished.connect(_finish_close)
 
 func close_from_user() -> void:

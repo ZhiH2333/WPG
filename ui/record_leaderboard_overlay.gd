@@ -36,7 +36,7 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_back_button])
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
 	_back_button.grab_focus()
 
 func close() -> void:
@@ -45,14 +45,15 @@ func close() -> void:
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_overlay(self, self)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
 	_anim_tween.finished.connect(_finish_close)
-	_refocus_menu()
 
-func _refocus_menu() -> void:
-	var play: Button = get_parent().get_node_or_null("Center/Column/Buttons/Play") as Button
-	if play != null:
-		play.grab_focus()
+func return_to_profile() -> void:
+	var profile: ProfileOverlay = get_parent().get_node_or_null("ProfileOverlay") as ProfileOverlay
+	if profile == null:
+		return
+	profile.open()
+	profile.focus_rank()
 
 func _finish_close() -> void:
 	if _open:
@@ -72,6 +73,7 @@ func _on_back_pressed() -> void:
 		return
 	_play_back()
 	close()
+	return_to_profile()
 
 func _rebuild_rows() -> void:
 	_clear_rows()

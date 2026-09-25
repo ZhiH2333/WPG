@@ -5,10 +5,6 @@ class_name SettingsOverlay
 const IN_USE_FLASH_SEC: float = 0.6
 const SIDEBAR_RATIO: float = 1.0 / 7.0
 const PANEL_OF_REMAINDER: float = 0.4
-const TRANSITION_SEC: float = 0.6
-const FADE_SEC: float = 0.3
-const CONTENT_FADE_SEC: float = 0.5
-const NAV_STAGGER_SEC: float = 0.04
 # osu.Framework ScrollContainer: 80px per scroll unit.
 const SCROLL_DISTANCE: float = 80.0
 # DistanceDecayScroll = 0.01 / ms  ->  10 / s
@@ -192,57 +188,17 @@ func close() -> void:
 	_refocus_menu()
 
 func _refocus_menu() -> void:
-	if _another_overlay_open():
-		return
-	var play: Button = get_parent().get_node_or_null("Center/Column/Buttons/Play") as Button
-	if play != null:
-		play.grab_focus()
-
-func _another_overlay_open() -> bool:
-	var parent: Node = get_parent()
-	if parent == null:
-		return false
-	var mode: ModeChoiceOverlay = parent.get_node_or_null("ModeChoiceOverlay") as ModeChoiceOverlay
-	if mode != null and mode.is_open():
-		return true
-	var records: RecordSelector = parent.get_node_or_null("RecordSelector") as RecordSelector
-	if records != null and records.is_open():
-		return true
-	var profile: ProfileOverlay = parent.get_node_or_null("ProfileOverlay") as ProfileOverlay
-	if profile != null and profile.is_open():
-		return true
-	var leaderboard: RecordLeaderboardOverlay = parent.get_node_or_null("RecordLeaderboardOverlay") as RecordLeaderboardOverlay
-	if leaderboard != null and leaderboard.is_open():
-		return true
-	var lan: LanOverlay = parent.get_node_or_null("LanOverlay") as LanOverlay
-	return lan != null and lan.is_open()
+	var menu: MainMenu = get_parent() as MainMenu
+	if menu != null:
+		menu.restore_after_settings()
 
 func _play_open_animation() -> void:
 	UiAnim.kill_tween(_anim_tween)
-	var drawer_w: float = _drawer_w()
-	_drawer.offset_left = -drawer_w
-	_drawer.offset_right = 0.0
-	_dimmer.modulate.a = 0.0
-	_content.modulate.a = 0.0
-	_anim_tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
-	_anim_tween.tween_property(_drawer, "offset_left", 0.0, TRANSITION_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	_anim_tween.tween_property(_drawer, "offset_right", drawer_w, TRANSITION_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	_anim_tween.tween_property(_dimmer, "modulate:a", 1.0, FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	_anim_tween.tween_property(_content, "modulate:a", 1.0, CONTENT_FADE_SEC).set_delay(TRANSITION_SEC / 3.0).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	var delay: float = 0.0
-	for nav: SettingsNavButton in _navs:
-		nav.modulate.a = 0.0
-		_anim_tween.tween_property(nav, "modulate:a", 1.0, CONTENT_FADE_SEC).set_delay(delay).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-		delay += NAV_STAGGER_SEC
+	_anim_tween = UiAnim.enter_drawer(self, _drawer, _dimmer, _content, _navs, _drawer_w())
 
 func _play_close_animation() -> void:
 	UiAnim.kill_tween(_anim_tween)
-	var drawer_w: float = _drawer_w()
-	_anim_tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
-	_anim_tween.tween_property(_drawer, "offset_left", -drawer_w, TRANSITION_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	_anim_tween.tween_property(_drawer, "offset_right", 0.0, TRANSITION_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	_anim_tween.tween_property(_dimmer, "modulate:a", 0.0, FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
-	_anim_tween.tween_property(_drawer, "modulate:a", 0.0, FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	_anim_tween = UiAnim.exit_drawer(self, _drawer, _dimmer, _drawer_w())
 	_anim_tween.finished.connect(_finish_close, CONNECT_ONE_SHOT)
 
 func _finish_close() -> void:

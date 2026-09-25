@@ -35,6 +35,9 @@ func _ready() -> void:
 	_wire_hover(_back_button)
 	UiFit.connect_refit(self, _on_host_resized)
 
+func focus_rank() -> void:
+	_rank_button.grab_focus()
+
 func is_open() -> bool:
 	return _open
 
@@ -47,7 +50,7 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_back_button])
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
 	_back_button.grab_focus()
 
 func close() -> void:
@@ -56,12 +59,12 @@ func close() -> void:
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_overlay(self, self)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
 	_anim_tween.finished.connect(_finish_close)
 	_refocus_menu()
 
 func _refocus_menu() -> void:
-	var play: Button = get_parent().get_node_or_null("Center/Column/Buttons/Play") as Button
+	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
 	if play != null:
 		play.grab_focus()
 
