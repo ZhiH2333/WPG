@@ -4,7 +4,6 @@ class_name MainMenu
 ## 主菜单：舞台、一行玩家状态、Action Rail。顶栏负责导航。没有中央 PLAY。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
 const LOADING_SCREEN_SCRIPT := preload("res://ui/loading_screen.gd")
-const PLACEHOLDER_NAME := "Player"
 const TOP_BAR_HEIGHT: float = 60.0
 const MUSIC_DB_NORMAL: float = -6.0
 const MUSIC_DB_DIMMED: float = -16.0
@@ -50,6 +49,7 @@ var _sfx_gate: Dictionary = {}
 @onready var _top_settings_button: Button = $TopBar/Row/SettingsButton
 @onready var _identity_button: Button = $TopBar/Row/Identity
 @onready var _profile_name: Label = $TopBar/Row/Identity/Name
+@onready var _profile_avatar: TextureRect = $TopBar/Row/Identity/Avatar
 @onready var _clock_label: Label = $TopBar/Row/TimeBox/Clock
 @onready var _music: AudioStreamPlayer = $Music
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
@@ -67,6 +67,7 @@ func _ready() -> void:
 	GameSettings.apply()
 	GameProgress.load_from_disk()
 	GameRecords.load_from_disk()
+	PlayerProfile.load_from_disk()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
@@ -146,6 +147,9 @@ func on_record_selector_closed() -> void:
 		_open_play_page()
 		return
 	_focus_control(_solo_button)
+
+func refresh_identity() -> void:
+	_refresh_profile_name()
 
 func on_profile_closed() -> void:
 	if _suppress_return:
@@ -279,9 +283,11 @@ func _finish_leave_to_sandbox() -> void:
 	LOADING_SCREEN_SCRIPT.switch_current(get_tree())
 
 func _refresh_profile_name() -> void:
-	_profile_name.text = PLACEHOLDER_NAME
-	_player_name.text = PLACEHOLDER_NAME
+	var display_name: String = PlayerProfile.get_display_name()
+	_profile_name.text = display_name
+	_player_name.text = display_name
 	_player_status.text = "Ready to play"
+	_profile_avatar.texture = RecordCard.resolve_body_texture(PlayerProfile.get_avatar_id())
 
 func _refresh_home_facts() -> void:
 	var record: GameRecord = _find_last_record()

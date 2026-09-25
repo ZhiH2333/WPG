@@ -281,7 +281,7 @@ size_flags_horizontal = 3
 mouse_filter = 2
 
 [node name="Profile" type="Button" parent="TopBarLayer/TopBar/Row"]
-custom_minimum_size = Vector2(188, 60)
+custom_minimum_size = Vector2(400, 60)
 layout_mode = 2
 size_flags_vertical = 3
 disabled = true
@@ -308,7 +308,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"ProfileName"
-text = "best  0"
+text = "Player"
 vertical_alignment = 1
 
 [node name="Avatar" type="TextureRect" parent="TopBarLayer/TopBar/Row/Profile/Layout"]

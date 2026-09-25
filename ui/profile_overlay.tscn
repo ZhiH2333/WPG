@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://ui/profile_overlay.gd" id="1_profile"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
-[ext_resource type="Texture2D" path="res://ui/icons/avatar.png" id="3_avatar"]
 
 [node name="ProfileOverlay" type="Control"]
 visible = false
@@ -72,12 +71,20 @@ theme_type_variation = &"EmptyButton"
 theme_override_font_sizes/font_size = 18
 text = "RANKING"
 
-[node name="Avatar" type="TextureRect" parent="Sheet/Column"]
+[node name="Avatar" type="Button" parent="Sheet/Column"]
 custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"EmptyButton"
+
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Avatar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("3_avatar")
 expand_mode = 1
 stretch_mode = 5
 
@@ -89,6 +96,17 @@ theme_type_variation = &"EmptyButton"
 theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_font_sizes/font_size = 40
 text = "Player"
+alignment = 0
+
+[node name="NameEdit" type="LineEdit" parent="Sheet/Column"]
+visible = false
+custom_minimum_size = Vector2(360, 48)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_override_font_sizes/font_size = 40
+max_length = 16
+caret_blink = true
 alignment = 0
 
 [node name="Caption" type="Label" parent="Sheet/Column"]
@@ -117,12 +135,14 @@ theme_override_constants/separation = 24
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
+toggle_mode = true
 text = "Boar"
 
 [node name="Chicken" type="Button" parent="Sheet/Column/Characters"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
+toggle_mode = true
 text = "Chicken"
 
 [node name="Stats" type="HBoxContainer" parent="Sheet/Column"]

@@ -32,6 +32,7 @@ var _owns_tree_pause: bool = false
 @onready var _playtime_label: Label = $TopBarLayer/TopBar/Row/PlaytimeBox/Playtime
 @onready var _profile_button: Button = $TopBarLayer/TopBar/Row/Profile
 @onready var _profile_name: Label = $TopBarLayer/TopBar/Row/Profile/Layout/Name
+@onready var _profile_avatar: TextureRect = $TopBarLayer/TopBar/Row/Profile/Layout/Avatar
 @onready var _clock_label: Label = $TopBarLayer/TopBar/Row/TimeBox/Clock
 @onready var _overlay: SettingsOverlay = $SettingsOverlay
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
@@ -235,8 +236,9 @@ func _refresh_run_status() -> void:
 	_playtime_label.text = "playtime  %s" % GameAudio.format_playtime(elapsed)
 
 func _refresh_profile_name() -> void:
-	GameProgress.load_from_disk()
-	_profile_name.text = "best  %d" % GameProgress.get_best_loop()
+	PlayerProfile.load_from_disk()
+	_profile_name.text = PlayerProfile.get_display_name()
+	_profile_avatar.texture = RecordCard.resolve_body_texture(PlayerProfile.get_avatar_id())
 
 func _refresh_clock(force: bool) -> void:
 	var now: Dictionary = Time.get_time_dict_from_system()
