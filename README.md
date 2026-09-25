@@ -1562,6 +1562,16 @@ Battle Start 占用 2～5（与 Co-op 同一范围）。房间卡 Battle 满员�
 
 **当时不做：** Day 85 的 5 人 Co-op / 5 人 FFA 打完一场、主动技能 / 技能栏 / 冷却 UI、虚拟摇杆、P2P、断线重连、Host 迁移、房间浏览器再改、改协议 5、改 `SNAPSHOT_VERSION`、改 `rpc_begin` 签名、改 `SEAT_SPAWNS`、改战斗数字、把 2 人 HUD 改成 Roster、把 Battle 做成积分制、给 2 人 Co-op 开友军伤害、预防性把 2 人特判胜负写回去、Autoload、新 PNG、新 wav、新物理层、新 InputMap action。
 
+## Day 85（已完成）：5 人 Co-op 与 5 人 FFA 打完一场
+
+硬闸。五进程真跑 Pit Co-op loop 1 到 Winner，以及 Yard Battle 最后一人 KO。两条**没有一次过**：关 seat 4 时其余 Guest 把任意 `peer_lost` 当成 Host 关房，弹出 `Host closed the room. Returning to the menu.`（人一点 OK 就会回菜单，剩余 4 人继续打不成立）。只修了 gated 清单第 5 项：`CombatSandbox._on_peer_lost` 里 Guest 只在 `peer_id == 1`（Host / `server_disconnected`）时 `_present_host_closed()`。修完后再跑两条都过。gated 1～4、6～9 没动。Autoload 仍为 0。`NET_PROTOCOL` 仍 5。`SNAPSHOT_VERSION` 仍 3。`rpc_begin` 签名、`SEAT_SPAWNS`、战斗数字、HUD 尺寸都没改。LAN 仍不写档（这两局前后 `user://records.json` history 仍 12 条、2017 字节）。2 人路径未作为本 Day 开门条件再打。
+
+- **Pit Co-op 占用 5、loop 1**：Host Custom Pit + Co-op，loop_goal=1。进场十字出生 `(0,0)/(80,0)/(-80,0)/(0,80)/(0,-80)`，不叠 Pit 柱。Overlay：`play: coop`，`seats: 1,2,3,4,5 local=1..5`，`seat_hp` 五个数字，`arena: pit`，`record: -`。HUD 左下本地条 + 右上 4 条 Roster，RivalRow hidden。进场 Phrase `L0  0/9`，P8 `L0/1  phrases_done`。打完 P0–P7。P8 目录连买：Host Pack S 只加 seat 1 血（满血 140/140，其余 110～122），五端 gold 同一数字 46（约 -20 Pack、-70 Gunner）；seat 5 买 Gunner 选手枪，Host 侧 `puppet=0` 跑 AI，各 Guest 侧 `puppet=1`。玩家弹打不中队友。关掉 seat 4 窗口：Host 无 toast、不转单机；Overlay `seats: 1,2,3,5`，`seat_hp` 第四位 `-`；Roster 4→3；其余 Guest 不再弹 Host closed。Continue 后四端 Winner `CLEARED/LAN` + ClearedTitle，Phrase `L1/1  phrases_done`。Guest Retry 灰。Host Retry 仍是 Pit Co-op、占用 4（不把 seat 4 加回来），不 take Launch。
+- **Yard Battle 占用 5**：Host Custom Yard + Battle。场上无怪无店无跟班（gold 0、shop 0、companion 0）。Overlay：`play: battle`，`seats: 1,2,3,4,5`，`arena: yard`，`record: -`。HUD Roster 4 条、RivalRow hidden、Phrase `BATTLE`。互打；先倒旁观，镜头钉本地尸体。还活着 2 人时不弹 Winner。只剩 1 人：`KO/BATTLE`，赢方 ClearedTitle（本场 seat 4），其余 RunSummaryTitle。Guest Retry 灰。Host Retry 仍 Yard Battle、占用 5，不 take Launch。
+- **掉线合同**：5 人局里关一个 Guest，Host 不 toast；Guest 只在 Host（peer 1）掉线时弹英文框 `Host closed the room. Returning to the menu.`。禁止重连、禁止 Host 迁移。`TEXT_GUEST_LEFT` / `TEXT_HOST_CLOSED` 未改。
+
+**当时不做：** 主动技能 / 技能栏 / 冷却 UI、虚拟摇杆、P2P、断线重连（102）、Host 迁移、房间浏览器再改、改协议 5、改 `SNAPSHOT_VERSION`、改 `rpc_begin` 签名、改 `SEAT_SPAWNS`、改战斗数字、把 5 人 HUD 改成分屏、把 FFA 做成积分制、给 Co-op 开友军伤害、把掉线改成重连、改 Multirun 默认窗口数、新 PNG、新 wav、新物理层、新 InputMap action、Autoload。gated 1～4、6～9 明确没修。
+
 ## 剩余表
 
 
@@ -1639,9 +1649,11 @@ Battle Start 占用 2～5（与 Co-op 同一范围）。房间卡 Battle 满员�
 
 **Day 84 = 2 人回归日（已完成）**：Pit Co-op 跟班+药 与 Yard Battle KO/DRAW 一次过。未改代码。LAN 仍不写档。协议仍 5。
 
-**下一步 Day 85 = 5 人 Co-op 与 5 人 FFA 各打完一场**：掉线仍 Guest left / Host closed，重连是 102。
+**Day 85 = 5 人 Co-op 与 5 人 FFA 各打完一场（已完成）**：Pit loop 1 CLEARED（店+跟班、中途掉 seat 4）与 Yard 最后一人 KO。未一次过，只修 gated 5。LAN 仍不写档。协议仍 5。
 
-**完整手柄适配后置（已拍板）**：虚拟摇杆布局编辑与触屏整包仍后置，不插进 Day 85。Day 76 已做 Settings 手柄按钮落盘；Day 77 已做冲突旁白、Restore Defaults、商店选枪跟绑定。Day 57 的右摇杆 `map_aim_stick` 保留。
+**下一步 Day 86 = 主动技能框架**：不是被动卡，默认 F 可重绑，冷却只活在玩家身上，先单机。
+
+**完整手柄适配后置（已拍板）**：虚拟摇杆布局编辑与触屏整包仍后置，不插进 Day 86。Day 76 已做 Settings 手柄按钮落盘；Day 77 已做冲突旁白、Restore Defaults、商店选枪跟绑定。Day 57 的右摇杆 `map_aim_stick` 保留。
 
 > **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Day 58 已完成第三刀：Settings 抽屉。TopBar、LogoButton 仍用旧皮。
 
@@ -1651,8 +1663,8 @@ Battle Start 占用 2～5（与 Co-op 同一范围）。房间卡 Battle 满员�
 
 1. **Day 54–60　渲染与视觉统一**：Day 54 已把 `SubViewport` 接到渲染分辨率滑杆；Day 55 已落地 FlatBold 令牌并换掉 `OfferButton`；Day 56 已把大面板和胶囊 CTA 换成圆角 6、无阴影、不透明 + `font_bar_bold`；Day 57 已落地右摇杆即时瞄准（回中 keep last，出 0.12 当帧对准，`map_aim_stick` 合同）；Day 58 已把 Settings 抽屉换成 FlatBold；Day 59 已按可见区收缩大面板和动态行，视觉统一到此收束。Day 60 不开工。**完整手柄适配（Joypad 重绑 / 手柄 Settings / 虚拟摇杆）后置**，不插在 54–60。
 2. **Day 61–66　商店深化 + 跟班系统**：Day 61 已让跟班在单机沙盒上场。Day 62 已把跟班收成厚血远程 Gunner：P8 买时选枪、AI 绕圈+LOS、删近战 Guard；LAN 仍不出跟班。Day 63 已把 P8 改成目录商店（状态栏 + 货架 + Pack S/L/Stim，离线连买，LAN 协议不变）。Day 64 已把目录商店做成菜单手感（错峰 / 复用 / 金币滚动 / 四态音效）。Day 65 已给句读三选一补同一套 hover/click/back。Day 66 已把 UpgradeOffer 收成 FloatingPanel 小面板（标题 PICK ONE、三张卡仍居中），61–66 收束。仍是**局内临时**；**主动技能先跳过**，不做技能栏/冷却 UI、不做跟班 HUD。LAN 同步药和跟班已在 Day 73 落地。
-3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。Day 75 已做 Master / Music / SFX 分轨。Day 76 已做键盘 Smg 重绑 + 手柄按钮落盘。Day 77 已做 Controls 打磨（冲突旁白、Restore Defaults、商店选枪跟绑定、Start 仍系统键）。Day 78 已做座位 1～5（协议 5、快照 v3、第三人不踢、商店/输入按 seat）。Day 79 已做出生点 1～5 十字 + Co-op 3 人能打（相机仍只跟本地）。Day 80 已做 3～5 人 HUD 短血（左下玩家条不改，2 人 HUD 与 Day 79 相同）。Day 81 已做同网房间列表（搜索 + 卡片 + 17778 信标，人数徽标不是货币，手打 IP 仍为主）。Day 82 已让 Co-op 4～5 打完一场（金共享、`COMPANION_CAP=10`、出生仍十字）。Day 83 已做 Battle FFA 3～5（先倒旁观，最后一人 KO，同帧全灭 DRAW）。Day 84 已做 2 人回归（Pit Co-op 跟班+药、Yard Battle KO/DRAW，一次过、未改代码）。下一步 Day 85 = 5 人 Co-op 与 5 人 FFA 各打完一场。导出 Win/macOS/Linux 与 profiling 仍后置。后续波次/Boss 词表扩充。
-4. **Day 81–92　房间浏览器与 UI 精修（osu 参考）**：Day 81 已做同网房间列表（搜索 + 卡片 + 17778 信标，人数徽标不是货币，手打 IP 仍为主）。Day 82 已让 Co-op 4～5 打完一场（金共享、`COMPANION_CAP=10`、出生仍十字）。Day 83 已做 Battle FFA 3～5（先倒旁观，最后一人 KO，同帧全灭 DRAW，仍不写档、无句读）。Day 84 已做 2 人回归（Pit Co-op 跟班+药、Yard Battle KO/DRAW，一次过、未改代码）。下一步 Day 85 = 5 人 Co-op 与 5 人 FFA 各打完一场（掉线仍 Guest left / Host closed，重连是 102）。其后菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。
+3. **Day 67–80　内容与地图广度**：Day 67 已让同一沙盒换 Yard/Pit 两套碰撞（四柱 `(±280, ±180)` 96²、地板两色、F7、`GameLaunch.arena_id`）。Day 68 已把选图接进 New Record / LAN Host（Record 增 `arena_id`，协议 2，点已有档按档进图）。Day 69 已加第三套碰撞 Keep（北墙缺口 + 碉堡、绿灰砖、第三枚钮、sanitize 改目录判定）。Day 70 已让 loop 0 走 DENSE，并补齐鸡 4 张专属卡（按在场角色过滤，Applier 只给鸡生效）。Day 71 已做 Winner 分数滚动 + 换场 BGM 淡。Day 72 已做剩余叠层四态音效、Credits、版本 1.0.0。进档/退战斗已盖 LOADING。Day 73 已做 LAN 同步跟班和药（协议 3、快照 v2、LAN 目录连买）。Day 74 已做 Battle 2 人（协议 4、关句读/商店、友军伤害、先倒即结算）。Day 75 已做 Master / Music / SFX 分轨。Day 76 已做键盘 Smg 重绑 + 手柄按钮落盘。Day 77 已做 Controls 打磨（冲突旁白、Restore Defaults、商店选枪跟绑定、Start 仍系统键）。Day 78 已做座位 1～5（协议 5、快照 v3、第三人不踢、商店/输入按 seat）。Day 79 已做出生点 1～5 十字 + Co-op 3 人能打（相机仍只跟本地）。Day 80 已做 3～5 人 HUD 短血（左下玩家条不改，2 人 HUD 与 Day 79 相同）。Day 81 已做同网房间列表（搜索 + 卡片 + 17778 信标，人数徽标不是货币，手打 IP 仍为主）。Day 82 已让 Co-op 4～5 打完一场（金共享、`COMPANION_CAP=10`、出生仍十字）。Day 83 已做 Battle FFA 3～5（先倒旁观，最后一人 KO，同帧全灭 DRAW）。Day 84 已做 2 人回归（Pit Co-op 跟班+药、Yard Battle KO/DRAW，一次过、未改代码）。Day 85 已做 5 人 Co-op 与 5 人 FFA 各打完一场（Pit loop 1 CLEARED + Yard 最后一人 KO，未一次过，只修 gated 5）。下一步 Day 86 = 主动技能框架。导出 Win/macOS/Linux 与 profiling 仍后置。后续波次/Boss 词表扩充。
+4. **Day 81–92　房间浏览器与 UI 精修（osu 参考）**：Day 81 已做同网房间列表（搜索 + 卡片 + 17778 信标，人数徽标不是货币，手打 IP 仍为主）。Day 82 已让 Co-op 4～5 打完一场（金共享、`COMPANION_CAP=10`、出生仍十字）。Day 83 已做 Battle FFA 3～5（先倒旁观，最后一人 KO，同帧全灭 DRAW，仍不写档、无句读）。Day 84 已做 2 人回归（Pit Co-op 跟班+药、Yard Battle KO/DRAW，一次过、未改代码）。Day 85 已做 5 人 Co-op 与 5 人 FFA 各打完一场（掉线仍 Guest left / Host closed，重连是 102）。下一步 Day 86 = 主动技能框架。其后菜单/叠层交互音效分层（hover/click/back/error 四态，参考 osu! 的 sample set）；数字滚动、combo/连击类反馈的非线性缓动；Day 71 已做 WinnerPage 分数拆解逐行滚出和换场 BGM 淡，后续是随强度过渡的分层淡。
 5. **Day 93–100　联机加固与发布收尾**：局域网之外补一条「自建中转」的 P2P 直连路径（见下方 E2E 打洞方案，不接第三方云服务）；断线重连与掉线容错；导出流程（Windows/macOS/Linux 桌面为主）与首次运行引导；发布前性能/内存过一轮 profiling；`ROADMAP.md`/`README.md` 最终校对，锁定 1.0 范围。
 
 **验收口径（每一天通用）**：本 Day README 里列出的「当时不做」清单之外的行为不应出现改动；新增/变更的脚本、场景、theme 项都要在 README 对应 Day 小节里落字，agent 交付前必须自查 README 是否已同步——这正是本次修的问题（Day 52/53 曾漏更新）。

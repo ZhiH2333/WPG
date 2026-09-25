@@ -1584,7 +1584,8 @@ func _on_peer_lost(peer_id: int) -> void:
 	if _leaving:
 		return
 	if _is_guest():
-		_present_host_closed()
+		if peer_id == 1: ## 只认 Host；其他 Guest 离席继续打
+			_present_host_closed()
 		return
 	if not _is_host():
 		return
