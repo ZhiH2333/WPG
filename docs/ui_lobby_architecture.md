@@ -6,7 +6,7 @@
 
 布局、CTA 层级、wireframe、Back 栈以 `ui_screen_spec.md` 为准。本文件管领域模型、职责、网络与换场。冲突时 `roadmap.md` 最高。
 
-这不是换皮文档。目标是：保留 osu!lazer 式的高效信息架构（顶栏 + 中央主操作 + Overlay 页面），把 WPG 从「功能面板集合」收成「以 Player Profile 为核心的游戏大厅」，并让现有 ENet / 5 座 / 17777+17778 网络自然接入。
+这不是换皮文档。目标是：保留 osu!lazer 的导航效率（顶栏、大面积舞台、Overlay 页面、键鼠手柄），做成 WPG 自己的大厅。主页是 Visual Stage 加 Action Rail，不是一颗巨大 PLAY，也不是把 Profile 放在屏幕中央。现有 ENet / 5 座 / 17777+17778 网络以后自然接入，本阶段网络零改。
 
 ---
 
@@ -69,70 +69,80 @@ MainMenu._refresh_profile_name()
 保留：
 
 - 顶部菜单栏
-- 中央主操作
-- 大面积内容空间
-- Overlay / Panel 式页面
+- 大面积 Visual Stage（氛围与当前状态，不拿文字填满）
+- Action Rail（当前最重要的少数操作）
+- Overlay / Page 式页面
 - 鼠标、键盘、手柄都能操作
-- 简洁、快速、非传统商业软件式导航
+- 留白、明确锚点、有限信息、强层级
 
-不要继续机械模仿 osu!lazer 的紫黑渐变、软阴影、发光胶囊。视觉语言已经在 Day 54–59 收到 FlatBold（实心色底、圆角 6、无阴影、`font_bar_bold`）。后续新页面用这一套，而不是再引入第三套皮肤。
+不要继续机械模仿 osu!lazer 的紫黑渐变、软阴影、发光胶囊，也不要把它的「中央一颗最大按钮」搬过来。
+
+美术方向与字体以 `ui_screen_spec.md` 的 Typography & Art Direction 为准：Editorial / Graphic / Tactile，品牌字是 Playpen Sans。FlatBold 是排版、剪切、少量表面、留白、轻材质和稀缺强调色。禁止把它做成卡片墙，也禁止回到纯黑底加粉紫发光。本阶段不改 `game_theme.tres`。
 
 ### 1.1 核心信息流
 
 ```text
-Player Profile
-  → Main Menu
-    → Play
+Player Profile（自己的 Page，不霸占主页）
+  → Main Menu（Visual Stage + 轻量身份 + Action Rail）
+    → Play 页 / Rail
+      → Continue（最近一档，新开一局，不是中途续打）
       → Solo（RecordSelector，已有）
       → Multiplayer
-        → Create Room / Join Room / Available Rooms
+        → Create Room / Join（邀请）/ LAN Beacon 房间
           → Lobby
             → Combat
 ```
 
-Profile 是身份层。Lobby 是房间与玩家集合层。Network 是连接层。Combat Session 是局内层。四层禁止互相吞并。
+Profile 是身份层，住在顶栏和 Profile 页。Lobby 是房间与玩家集合层。Network 是连接层。Combat Session 是局内层。四层禁止互相吞并。
 
 ### 1.2 主菜单层级（改这里，不是再加按钮）
 
-当前问题：中央 Settings / Play / Quit 与顶栏 Settings / Home / Solo / Multi / Profile / Time **重复且竞争主 CTA**。Solo / Multi 同时出现在中央 ModeChoice 和顶栏，视觉权重几乎一样。
+当前问题：中央 Settings / Play / Quit 与顶栏重复，Solo / Multi 又在 ModeChoice 和顶栏各出现一次，页面被按钮填满。
 
 目标：
 
-> 中央负责主操作。顶栏负责全局导航。像素级排版见 `ui_screen_spec.md`。
+> 顶栏负责全局导航。舞台负责氛围。Rail 负责当前操作。像素级排版见 `ui_screen_spec.md`。
 
 ```text
-顶栏（快速导航，不是主 CTA）
-  WPG 字标
-  Home
-  Play
-  Profile（显示 display_name，不是 best 0）
-  Settings
-  Time
-  不放 Solo / Multi
+顶栏
+  WPG / HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS / 时钟
+  右端 [avatar] display_name
+  不放 Solo
 
-中央（主操作）
-  PLAYER DISPLAY NAME
-  [ PLAY ]                      ← 唯一 Primary CTA
-  Solo · Multiplayer            ← Secondary 文字链，跳过 ModeChoice
-  last  {record} · {arena} · …  ← 有档才出现的 caption 链，不是 Continue 主钮
+舞台（页面最大的空区）
+  背景 / 场景 / 角色 / 氛围
+  不堆统计，不堆卡片
+
+玩家状态（一行）
+  DISPLAY NAME
+  Ready to play
+
+Action Rail（三条同级，没有一颗更大的 PLAY）
+  Continue      Solo           Multiplayer
+  最近一档       档位            开房 / 加入
+
+次级信息（一行 caption，可省略）
+  BEST LOOP …                         LAST RUN …
 ```
 
 规则：
 
-- 不要让 Solo / Multi 在中央成为与 PLAY 平级的两颗主按钮，又在顶栏用同样大小再放一次。**TopBar 删除 Solo / Multi。** 跳过 ModeChoice 只走 Home 上 `Solo · Multiplayer` 文字链。
-- 中央等大 Settings / Play / Quit 三 shear **去掉。** Settings 只在 TopBar。Quit 降为 Home 右下 tertiary（`PillRed` 160×44）。
-- 没有中途续打。Last activity 不是 Primary。无档则整块不占位。
-- ModeChoiceOverlay 是 PLAY 打开的 **Modal**（两张 360×220 卡），不是大面板 Page，也不是 Home 常驻第三套主按钮。
+- PLAY = 主意图，不是最大物体。顶栏 PLAY 打开 Play 页。Home 的 Rail 是快捷，三条同高，禁止再叠一颗中央 PLAY。
+- **顶栏不放 Solo。** Solo 只在 Rail 和 Play 页。MULTIPLAYER 是顶栏里的页面入口，不是第二颗中央巨钮。
+- 中央等大 Settings / Play / Quit 三 shear **去掉。** Settings 只在 TopBar。Quit 降为 Home 角落 tertiary（`PillRed` 160×44）。
+- 没有中途续打。Continue 只在有档时出现，含义是用该档新开一局。无档则该格不占位。
+- 不再使用两张大卡的 ModeChoice Modal。Play 是 Page。
+- Profile 不做成主页中央大卡。完整身份、成绩、档位只在 Profile 页。
 
 ### 1.3 Overlay 层级
 
 | 种类 | 例子 | 动效意图 |
 |---|---|---|
-| Page | RecordSelector、Profile、Multiplayer 簇、Lobby | `enter_page` / `exit_page`：24px 位移 + 淡入，退出反向 |
+| Page | Play、RecordSelector、Profile、Multiplayer 簇、Lobby、Connecting / Failed / Mismatch | `enter_page` / `exit_page`：24px 位移 + 淡入，退出反向 |
 | Drawer | Settings | 侧向滑入滑出，打开 **不关闭** 底下 Page |
-| Modal | ModeChoice、Credits、离开确认、Host closed | `enter_modal`：缩放 0.96→1 + 淡入，**不上浮** |
-| Card | RecordCard、房间卡、座位行 | 错峰；加入/离开用短 punch，不是整页重放 |
-| Toast / Inline | bind failed、connecting、Version mismatch、copied | 状态色 + 文案，不新开 Overlay |
+| Modal | Credits、离开确认、Host closed | `enter_modal`：缩放 0.96→1 + 淡入，**不上浮** |
+| Row | Action Rail、Create/Join/LAN 行、座位行、Beacon 房间行 | 短 punch；进出不是整页重放。不是每人一块带边框的卡片 |
+| Status | bind failed、copied | 一行状态色 + 文案。Connecting / Failed / Mismatch 用稀疏状态页，不新开 1680 设置面板 |
 
 `exit_overlay()` 今天只整体 fade。Page 退出必须有空间连续性；Modal 只 fade；Drawer 反向滑。禁止所有页面共用一种进场。位移、时长、wireframe 以 `ui_screen_spec.md` 为准。
 
@@ -144,7 +154,7 @@ Profile 是身份层。Lobby 是房间与玩家集合层。Network 是连接层�
 
 - `UiFit`：按 `visible_rect` 收缩，禁止 `size * ui_scale`
 - `UiAnim`：Tween 工具，逻辑 open/close 仍瞬时
-- `game_theme.tres`：FlatBold StyleBox + `font_bar_bold`
+- `game_theme.tres`：今天仍是旧 FlatBold StyleBox + `font_bar_bold`。目标字体栈和色哲学见 screen spec，实现前不改文件
 - Overlay 架构：Dimmer + Center + Panel + 自管 Hover/Click/Back/Error
 - `menu_blur.gdshader` / `menu_shear.gdshader`
 - 键盘 / 手柄 Focus（Settings 已能重绑；完整手柄后置）
@@ -155,10 +165,10 @@ Profile 是身份层。Lobby 是房间与玩家集合层。Network 是连接层�
 
 | 状态 | 表现 |
 |---|---|
-| Default | 不透明纯色，圆角 6，无阴影 |
-| Hover | 提亮 + 可选 1.02 scale，时长 0.12s |
-| Focus | 现有 focus StyleBox，键鼠手柄同一套 |
-| Pressed / Selected | 实心选中条或加粗，不是粉胶囊发光 |
+| Default | Home Rail 是分隔线之间的文字。实心表面只给座位组和 Start。无阴影 |
+| Hover | 字色收到骨白。不铺发光底板，时长 0.12s |
+| Focus | 骨白下划线或 shear 标记。键鼠手柄同一套。不用强调色，不描粉边 |
+| Pressed / Selected | 字重或一条结构线。不是粉胶囊发光 |
 | Disabled | 降 alpha + 不可点；满员房间卡点下去走 Error，不连 |
 | Warning | 旁白（Controls 已有 IN USE 句式） |
 | Error | ErrorSfx + 短闪，不弹 AcceptDialog |
@@ -166,9 +176,9 @@ Profile 是身份层。Lobby 是房间与玩家集合层。Network 是连接层�
 
 按钮层级：
 
-1. **Primary** — PLAY、Host Start、Ready 后的 Start
-2. **Secondary** — Create Room、Join、Confirm
-3. **Tertiary** — 顶栏快捷、Back
+1. **Primary intent** — 进入可玩上下文（顶栏 PLAY、Home Rail、Host Start）。权重靠位置和对比，不靠把一颗按钮放到最大
+2. **Secondary** — Create / Join / Confirm、Rail 上与主意图并列的另外两条
+3. **Tertiary** — 顶栏其余项、Back、一行 caption
 4. **Destructive** — Quit、长按删档
 
 ### 2.2 Motion Design System
@@ -178,7 +188,7 @@ Profile 是身份层。Lobby 是房间与玩家集合层。Network 是连接层�
 | 意图 | 函数（建议名） | 用法 |
 |---|---|---|
 | Page enter/exit | `enter_page` / `exit_page` | RecordSelector、Lobby |
-| Modal enter/exit | `enter_modal` / `exit_modal` | ModeChoice、确认 |
+| Modal enter/exit | `enter_modal` / `exit_modal` | Credits、离开确认、Host closed |
 | Drawer enter/exit | 已有 Settings 侧滑，抽成函数 | Settings |
 | Card stagger | 现有 `_append_card_entries` | 卡列表 |
 | Focus move | 现有 shear hover | 顶栏 / 中央条 |

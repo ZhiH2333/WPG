@@ -9,16 +9,17 @@ var _anim_tween: Tween
 var _sfx_gate: Dictionary = {}
 
 @onready var _dimmer: ColorRect = $Dimmer
-@onready var _panel: PanelContainer = $Center/Panel
-@onready var _best_loop_label: Label = $Center/Panel/Column/Content/Center/Columns/Stats/BestLoop
-@onready var _last_loop_label: Label = $Center/Panel/Column/Content/Center/Columns/Stats/LastLoop
-@onready var _last_kills_label: Label = $Center/Panel/Column/Content/Center/Columns/Stats/LastKills
-@onready var _last_gold_label: Label = $Center/Panel/Column/Content/Center/Columns/Stats/LastGold
-@onready var _runs_label: Label = $Center/Panel/Column/Content/Center/Columns/Stats/Runs
-@onready var _owned_label: Label = $Center/Panel/Column/Content/Center/Columns/Stats/OwnedHint
-@onready var _records_rows: VBoxContainer = $Center/Panel/Column/Content/Center/Columns/RecordsColumn/Rows
-@onready var _rank_button: Button = $Center/Panel/Column/Header/RankButton
-@onready var _back_button: Button = $Center/Panel/Column/Back
+@onready var _panel: Control = $Sheet
+@onready var _name_button: Button = $Sheet/Column/Name
+@onready var _best_loop_label: Label = $Sheet/Column/Stats/BestLoop
+@onready var _last_loop_label: Label = $Sheet/Column/Stats/LastLoop
+@onready var _last_kills_label: Label = $Sheet/Column/Facts/LastKills
+@onready var _last_gold_label: Label = $Sheet/Column/Facts/LastGold
+@onready var _runs_label: Label = $Sheet/Column/Stats/Runs
+@onready var _owned_label: Label = $Sheet/Column/Facts/OwnedHint
+@onready var _records_rows: VBoxContainer = $Sheet/Column/Rows
+@onready var _rank_button: Button = $Sheet/Column/Header/RankButton
+@onready var _back_button: Button = $Sheet/Column/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
@@ -31,9 +32,11 @@ func _ready() -> void:
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_rank_button.pressed.connect(_emit_view_ranking)
 	_back_button.pressed.connect(_on_back_pressed)
+	_wire_hover(_name_button)
 	_wire_hover(_rank_button)
 	_wire_hover(_back_button)
-	UiFit.connect_refit(self, _on_host_resized)
+	_wire_hover($Sheet/Column/Characters/Boar)
+	_wire_hover($Sheet/Column/Characters/Chicken)
 
 func focus_rank() -> void:
 	_rank_button.grab_focus()
@@ -44,14 +47,13 @@ func is_open() -> bool:
 func open() -> void:
 	_open = true
 	visible = true
-	_fit_panel()
 	_refresh_stats()
 	_refresh_records()
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
-	_back_button.grab_focus()
+	_name_button.grab_focus()
 
 func close() -> void:
 	if not _open:
@@ -61,12 +63,9 @@ func close() -> void:
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
 	_anim_tween.finished.connect(_finish_close)
-	_refocus_menu()
-
-func _refocus_menu() -> void:
-	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
-	if play != null:
-		play.grab_focus()
+	var menu: MainMenu = get_parent() as MainMenu
+	if menu != null:
+		menu.on_profile_closed()
 
 func _finish_close() -> void:
 	if _open:
@@ -92,11 +91,11 @@ func _emit_view_ranking() -> void:
 	view_ranking_pressed.emit()
 
 func _refresh_stats() -> void:
-	_best_loop_label.text = "best loop  %d" % GameProgress.get_best_loop()
-	_last_loop_label.text = "last loop  %d" % GameProgress.get_last_loop()
-	_last_kills_label.text = "last kills  %d" % GameProgress.get_last_kills()
-	_last_gold_label.text = "last gold  %d" % GameProgress.get_last_gold()
-	_runs_label.text = "runs  %d" % GameProgress.get_runs_played()
+	_best_loop_label.text = "BEST LOOP  %d" % GameProgress.get_best_loop()
+	_last_loop_label.text = "LAST LOOP  %d" % GameProgress.get_last_loop()
+	_last_kills_label.text = "Last kills  %d" % GameProgress.get_last_kills()
+	_last_gold_label.text = "Last gold  %d" % GameProgress.get_last_gold()
+	_runs_label.text = "RUNS  %d" % GameProgress.get_runs_played()
 	var owned: String = GameProgress.get_last_owned()
 	if owned.is_empty():
 		owned = "-"
@@ -130,14 +129,6 @@ func _make_empty_hint() -> Label:
 
 func _is_best_score_higher(left: GameRecord, right: GameRecord) -> bool:
 	return left.best_score > right.best_score
-
-func _on_host_resized() -> void:
-	if not _open:
-		return
-	_fit_panel()
-
-func _fit_panel() -> void:
-	UiFit.apply_floating_panel(self, _panel)
 
 func _wire_hover(button: BaseButton) -> void:
 	if button.mouse_entered.is_connected(_play_hover):

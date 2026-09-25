@@ -1,10 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://ui/profile_overlay.gd" id="1_profile"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" path="res://ui/icons/avatar.png" id="3_avatar"]
-[ext_resource type="Texture2D" uid="uid://cvptsqumhumaa" path="res://images/player.png" id="4_boar"]
-[ext_resource type="Texture2D" uid="uid://dqo6ddvnmnobq" path="res://images/chik.png" id="5_chicken"]
 
 [node name="ProfileOverlay" type="Control"]
 visible = false
@@ -12,6 +10,7 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -26,9 +25,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0, 0, 0, 0.55)
+color = Color(0.07, 0.06, 0.05, 0.42)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Sheet" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -37,199 +36,175 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(1680, 920)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"FloatingPanel"
-
-[node name="Column" type="VBoxContainer" parent="Center/Panel"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+[node name="Column" type="VBoxContainer" parent="Sheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = 36.0
+offset_right = -672.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 16
 
-[node name="Header" type="HBoxContainer" parent="Center/Panel/Column"]
+[node name="Header" type="HBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 12
 
-[node name="Icon" type="TextureRect" parent="Center/Panel/Column/Header"]
-custom_minimum_size = Vector2(40, 40)
+[node name="Title" type="Label" parent="Sheet/Column/Header"]
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_horizontal = 3
 mouse_filter = 2
-texture = ExtResource("3_avatar")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Title" type="Label" parent="Center/Panel/Column/Header"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
+theme_type_variation = &"MenuTitle"
+theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 32
 text = "PROFILE"
-vertical_alignment = 1
 
-[node name="RankButton" type="Button" parent="Center/Panel/Column/Header"]
-custom_minimum_size = Vector2(120, 44)
+[node name="RankButton" type="Button" parent="Sheet/Column/Header"]
+custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 4
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "RANK"
+theme_type_variation = &"EmptyButton"
+theme_override_font_sizes/font_size = 18
+text = "RANKING"
 
-[node name="Content" type="MarginContainer" parent="Center/Panel/Column"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-mouse_filter = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
-
-[node name="Center" type="CenterContainer" parent="Center/Panel/Column/Content"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-mouse_filter = 2
-
-[node name="Columns" type="HBoxContainer" parent="Center/Panel/Column/Content/Center"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 32
-
-[node name="Identity" type="VBoxContainer" parent="Center/Panel/Column/Content/Center/Columns"]
-custom_minimum_size = Vector2(280, 0)
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 16
-
-[node name="Avatar" type="TextureRect" parent="Center/Panel/Column/Content/Center/Columns/Identity"]
+[node name="Avatar" type="TextureRect" parent="Sheet/Column"]
 custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 0
 mouse_filter = 2
 texture = ExtResource("3_avatar")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Name" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Identity"]
+[node name="Name" type="Button" parent="Sheet/Column"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferTitle"
+size_flags_horizontal = 0
+theme_type_variation = &"EmptyButton"
+theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_override_font_sizes/font_size = 40
 text = "Player"
-horizontal_alignment = 1
+alignment = 0
 
-[node name="Caption" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Identity"]
+[node name="Caption" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "local profile  ·  not an account"
-horizontal_alignment = 1
-autowrap_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 15
+text = "local profile"
 
-[node name="Characters" type="HBoxContainer" parent="Center/Panel/Column/Content/Center/Columns/Identity"]
-layout_mode = 2
-size_flags_horizontal = 4
-mouse_filter = 2
-theme_override_constants/separation = 16
-
-[node name="Boar" type="TextureRect" parent="Center/Panel/Column/Content/Center/Columns/Identity/Characters"]
-custom_minimum_size = Vector2(96, 96)
+[node name="CharacterTitle" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("4_boar")
-expand_mode = 1
-stretch_mode = 5
+theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 14
+text = "CHARACTER"
 
-[node name="Chicken" type="TextureRect" parent="Center/Panel/Column/Content/Center/Columns/Identity/Characters"]
-custom_minimum_size = Vector2(96, 96)
+[node name="Characters" type="HBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("5_chicken")
-expand_mode = 1
-stretch_mode = 5
+theme_override_constants/separation = 24
 
-[node name="Stats" type="GridContainer" parent="Center/Panel/Column/Content/Center/Columns"]
-custom_minimum_size = Vector2(520, 0)
+[node name="Boar" type="Button" parent="Sheet/Column/Characters"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+theme_type_variation = &"EmptyButton"
+text = "Boar"
+
+[node name="Chicken" type="Button" parent="Sheet/Column/Characters"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+theme_type_variation = &"EmptyButton"
+text = "Chicken"
+
+[node name="Stats" type="HBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/h_separation = 80
-theme_override_constants/v_separation = 36
-columns = 2
+theme_override_constants/separation = 36
 
-[node name="BestLoop" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
+[node name="BestLoop" type="Label" parent="Sheet/Column/Stats"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-theme_override_font_sizes/font_size = 22
-text = "best loop  0"
+theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 20
+text = "BEST LOOP  0"
 
-[node name="LastLoop" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
+[node name="LastLoop" type="Label" parent="Sheet/Column/Stats"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-theme_override_font_sizes/font_size = 22
-text = "last loop  0"
+theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 20
+text = "LAST LOOP  0"
 
-[node name="LastKills" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
+[node name="Runs" type="Label" parent="Sheet/Column/Stats"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-theme_override_font_sizes/font_size = 22
-text = "last kills  0"
+theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 20
+text = "RUNS  0"
 
-[node name="LastGold" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
+[node name="Facts" type="VBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-theme_override_font_sizes/font_size = 22
-text = "last gold  0"
+theme_override_constants/separation = 4
 
-[node name="Runs" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-theme_override_font_sizes/font_size = 22
-text = "runs  0"
-
-[node name="OwnedHint" type="Label" parent="Center/Panel/Column/Content/Center/Columns/Stats"]
+[node name="LastKills" type="Label" parent="Sheet/Column/Facts"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-theme_override_font_sizes/font_size = 20
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 15
+text = "Last kills  0"
+
+[node name="LastGold" type="Label" parent="Sheet/Column/Facts"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 15
+text = "Last gold  0"
+
+[node name="OwnedHint" type="Label" parent="Sheet/Column/Facts"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 15
 text = "last owned  -"
 
-[node name="RecordsColumn" type="VBoxContainer" parent="Center/Panel/Column/Content/Center/Columns"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-theme_override_constants/separation = 12
-
-[node name="Title" type="Label" parent="Center/Panel/Column/Content/Center/Columns/RecordsColumn"]
+[node name="RecordsTitle" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 14
 text = "RECORDS"
 
-[node name="Rows" type="VBoxContainer" parent="Center/Panel/Column/Content/Center/Columns/RecordsColumn"]
+[node name="Rows" type="VBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="Back" type="Button" parent="Center/Panel/Column"]
+[node name="Back" type="Button" parent="Sheet/Column"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 0
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"EmptyButton"
+theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
+theme_override_font_sizes/font_size = 18
 text = "Back"
-
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 bus = &"SFX"

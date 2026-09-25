@@ -137,9 +137,9 @@ func close() -> void:
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
 	_anim_tween.finished.connect(_finish_close)
-	var play: Button = get_parent().get_node_or_null("Center/Column/Play") as Button
-	if play != null:
-		play.grab_focus()
+	var menu: MainMenu = get_parent() as MainMenu
+	if menu != null:
+		menu.on_lan_closed()
 
 func _finish_close() -> void:
 	if _open:

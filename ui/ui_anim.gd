@@ -11,9 +11,9 @@ const PAGE_MOVE_SEC: float = 0.32
 const PAGE_EXIT_SEC: float = 0.2
 const PAGE_RISE_PX: float = 24.0
 const MODAL_ENTER_SCALE: float = 0.96
-const MODAL_EXIT_SCALE: float = 0.98
 const MODAL_EXIT_SEC: float = 0.15
 const HOVER_SEC: float = 0.12
+const HOVER_SCALE: float = 1.02
 const PUNCH_PEAK: float = 1.06
 const PUNCH_SEC: float = 0.12
 const CONNECTION_PULSE_SEC: float = 0.6
@@ -33,8 +33,8 @@ const READY_FLASH_SEC: float = 0.06
 
 static func enter_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_pause: bool = false) -> Tween:
 	var tween: Tween = _make_parallel(host, ignore_pause)
-	_fade_dimmer_in(tween, dimmer)
-	_rise_panel_in(tween, panel)
+	_fade_dimmer(tween, dimmer, PAGE_MOVE_SEC, Tween.EASE_OUT)
+	_rise_page_in(tween, panel)
 	return tween
 
 static func exit_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_pause: bool = false) -> Tween:
@@ -63,9 +63,7 @@ static func enter_modal(host: Node, dimmer: CanvasItem, content: CanvasItem, ign
 static func exit_modal(host: Node, dimmer: CanvasItem, content: CanvasItem, ignore_pause: bool = false) -> Tween:
 	var tween: Tween = _make_parallel(host, ignore_pause)
 	if content != null:
-		_set_center_pivot(content)
 		tween.tween_property(content, "modulate:a", 0.0, MODAL_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
-		tween.tween_property(content, "scale", Vector2(MODAL_EXIT_SCALE, MODAL_EXIT_SCALE), MODAL_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 	if dimmer != null:
 		tween.tween_property(dimmer, "modulate:a", 0.0, MODAL_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 	tween.chain().tween_callback(_reset_modal.bind(dimmer, content))
@@ -102,7 +100,9 @@ static func enter_cards(host: Node, cards: Array, ignore_pause: bool = false) ->
 	return tween
 
 static func enter_overlay(host: Node, dimmer: CanvasItem, content: CanvasItem, cards: Array, ignore_pause: bool = false) -> Tween:
-	var tween: Tween = enter_page(host, dimmer, content, ignore_pause)
+	var tween: Tween = _make_parallel(host, ignore_pause)
+	_fade_dimmer_in(tween, dimmer)
+	_rise_panel_in(tween, content)
 	_append_card_entries(tween, cards)
 	return tween
 
@@ -191,10 +191,25 @@ static func _make_parallel(host: Node, ignore_pause: bool) -> Tween:
 	return tween
 
 static func _fade_dimmer_in(tween: Tween, dimmer: CanvasItem) -> void:
+	_fade_dimmer(tween, dimmer, DIMMER_FADE_SEC, Tween.EASE_OUT)
+
+static func _fade_dimmer(tween: Tween, dimmer: CanvasItem, sec: float, ease: Tween.EaseType) -> void:
 	if dimmer == null:
 		return
 	dimmer.modulate.a = 0.0
-	tween.tween_property(dimmer, "modulate:a", 1.0, DIMMER_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(dimmer, "modulate:a", 1.0, sec).set_trans(Tween.TRANS_QUINT).set_ease(ease)
+
+static func _rise_page_in(tween: Tween, panel: CanvasItem) -> void:
+	if panel == null:
+		return
+	var parent_container: Container = panel.get_parent() as Container
+	if parent_container != null:
+		parent_container.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	panel.modulate.a = 0.0
+	var base_y: float = panel.position.y
+	panel.position.y = base_y + PAGE_RISE_PX
+	tween.tween_property(panel, "modulate:a", 1.0, PAGE_MOVE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(panel, "position:y", base_y, PAGE_MOVE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
 static func _rise_panel_in(tween: Tween, panel: CanvasItem) -> void:
 	if panel == null:

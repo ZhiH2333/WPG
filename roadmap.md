@@ -19,7 +19,9 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 - **Network** 只负责把人连上。UI 不直接操作 ENet。
 - **Combat** 仍是现有 `CombatSandbox` + `RunSession` + `NetSession`。大厅对象随主菜单场景销毁，冻结成 `GameLaunch` 信封进沙盒。
 
-信息架构参考 osu!lazer：顶栏全局导航、中央主操作、Overlay 页面、键鼠手柄都能走。视觉语言不模仿 osu：继续 Day 54–59 的 FlatBold（实心色块、粗体、圆角 6、无软阴影）。
+信息架构参考 osu!lazer 的导航方式：顶栏全局导航、大面积内容空间、主体是视觉舞台、Overlay / Page、键鼠手柄都能走。不机械模仿 osu 的页面构图，也不把 PLAY 做成屏幕中央最大的一颗按钮。
+
+美术方向是 Editorial / Graphic / Tactile：世界负责画面，UI 负责克制的导航。品牌字体是 TypeTogether Playpen Sans。FlatBold 是排版、剪切几何、少量表面、留白、轻材质和稀缺强调色，不是圆角卡片墙，也不是黑底发光 HUD。细则在 [`docs/ui_screen_spec.md`](docs/ui_screen_spec.md) 的 Typography & Art Direction。
 
 旧作 Wild-Pig-Gun 只允许对照设计。禁止移植其 Autoload、UI 缩放器、云存档、账号、图鉴。
 
@@ -53,6 +55,7 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 - 邀请 URI / QR / token / UPnP / IPv6 fallback
 - 顶栏真实昵称
 - 按意图区分的 Motion System（`exit_overlay` 仍是整页 fade）
+- Playpen Sans 尚未进 `game_theme.tres`
 
 README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指针。** 主动技能仍是战斗内容，排在大厅离线 mock 能跑之后，不插进 Phase 1–3。
 
@@ -60,27 +63,33 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 
 ## Phase 1 — UI / UX Architecture
 
-目标：把主菜单收成「中央主操作 + 顶栏全局导航」，并开始按意图用动效，而不是再堆一套皮肤。布局以 [`docs/ui_screen_spec.md`](docs/ui_screen_spec.md) 为准。
+目标：把主菜单收成「顶栏全局导航 + Visual Stage + 轻量玩家状态 + Action Rail」，并开始按意图用动效，而不是再堆一套皮肤。布局以 [`docs/ui_screen_spec.md`](docs/ui_screen_spec.md) 为准。
+
+PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视觉权重靠位置、对比、留白、字号和动效一起建立。
 
 包含：
 
-- Main Menu IA：PLAY 为唯一主 CTA；中央去掉等大 Settings/Quit shear；TopBar **删除 Solo/Multi**；`Solo · Multiplayer` 只作为 PLAY 下文字链
-- Overlay 分层：Page / Drawer / Modal / Card / Status
-- Design System：Typography、Spacing、Panel / Button 层级（令牌已写进 screen spec）
+- Main Menu IA：大面积 Visual Stage；玩家状态只有名字和一行状态；Action Rail 是 Continue / Solo / Multiplayer 三条同级操作。禁止中央巨大 PLAY，禁止把头像、成绩、档位和 Play 堆在中心
+- TopBar：HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS，右端头像 + 显示名。Solo 不进顶栏。顶栏项是导航，不与 Rail 做成第二套等大按钮
+- PLAY 打开 Play 页（Page），不是两张大 Modal 卡
+- Profile 是自己的 Page。主页不放完整 Profile 卡
+- Overlay 分层：Page / Drawer / Modal / Row / Status
+- Design System：Playpen Sans 字级、炭黑/骨白/单一强调色、FlatBold 语法（令牌已写进 screen spec；本阶段开工前不改 `.tres`）
 - 状态：Default / Hover / Focus / Selected / Disabled / Warning / Error / Success
 - Motion：`UiAnim` 增加 page / modal / drawer / ready / connection 意图；Page 退出反向 24px；Modal 不升 56px
 - Settings 打开时不关闭底下 Page
 - 顶栏名字槽改占位 `Player`，禁止继续写 `best %d`
-- 继续 FlatBold，禁止新的 osu 紫黑渐变
-- 实现顺序见 screen spec §19
+- FlatBold 按新语法执行。禁止 osu 紫黑渐变、霓虹、发光描边、纯黑 HUD、卡片墙
+- 实现顺序见 screen spec 末节
 
 **不做：** 改 ENet、改协议、拆 `LanOverlay` 的 RPC（那是 Phase 4）、重排 LAN 内部 JOIN/HOST、`PlayerProfile` 磁盘（Phase 2）、主动技能、虚拟摇杆。
 
 ### Definition of Done
 
-- 打开主菜单，中央能一眼看到身份块占位和 **一颗** PLAY；右下才是小 Quit
-- Solo / Multi 不再与 PLAY 同等大小出现在中央或顶栏；顶栏没有 Solo/Multi 项
-- ModeChoice 是 PLAY 的 Modal 分岔，动效走 modal 而不是大面板 page
+- 打开主菜单，最大的区域是空的 Visual Stage；其下是一行玩家状态和一条 Action Rail。没有中央巨大 PLAY，没有居中的 Profile 大卡
+- Continue 只表示「用最近一档新开一局」。没有中途续打。无档时该格不占位
+- TopBar 有 PLAY 与 MULTIPLAYER 导航，没有 Solo 项，也没有与 Rail 等大的第二套 SOLO / MULTI 巨钮
+- PLAY 打开的是 Play 页，动效走 page，不是两张大卡 Modal
 - 新/改过的 Overlay 调用了分意图的 `UiAnim`，不再复制升 56px 的 `enter_overlay` + 整页 fade 退出
 - Settings 叠在当前 Page 上，关掉后仍在原 Page
 - F5 进 Solo 档位、进现有 LAN，行为与 Day 85 无法分辨
@@ -184,7 +193,7 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 
 ### Definition of Done
 
-- MULTI 首页是 Create / Join / Available Rooms，不再是 HOST 面板堆满 IP
+- MULTI 首页是三条紧凑导航（Create / Join / LAN Rooms）加本地最近房间。LAN Rooms 只是 Beacon 发现。没有三张大卡，没有公网房间目录
 - Lobby 能读出：谁是 Host、谁 Connecting、谁 Ready、哪个座位空
 - 复制邀请后另一台（或同机第二进程）能进同一房
 - 手打 IPv4 仍为主路径之一
@@ -203,7 +212,7 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 - 焦点环完整：Lobby 座位、Create 步骤、Invite 面板
 - 控制器导航（完整手柄仍后置；本 Phase 只保证现有 Focus 合同不回退）
 - `UiFit` 覆盖新页面；禁止 `size * ui_scale`
-- 视觉一致性：所有新控件 FlatBold
+- 视觉一致性：新页面使用同一套 Playpen Sans 字级和 FlatBold 语法
 
 其后另开的内容轨道（不阻塞 1.0 大厅）：
 
@@ -232,6 +241,7 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 - 为 IPv4 / IPv6 建立两个 `multiplayer_peer`
 - 把 `GameProgress` / `GameRecords` / `GameSettings` 与 Profile 混成一个文件
 - 机械模仿 osu!lazer 视觉
+- Cyber / Neon / Glow / HUD，以及用粉紫描边制造层级
 - 本阶段主动技能、虚拟摇杆、完整手柄适配
 - 断线重连、Host 迁移
 - 改战斗数字、四把枪身份、Motor 420、`look_ahead=100`、`COMPANION_CAP=10`

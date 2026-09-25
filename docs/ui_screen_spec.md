@@ -1,778 +1,1046 @@
 # WPG UI Screen Specification
 
-**版本:** 1.0-ui-screen-spec
-**状态:** 最终布局已锁定，尚未按本文件大规模改代码
+**版本:** 1.1-ui-screen-spec
+**状态:** 信息层级已锁定，尚未按本文件改代码
 **上位约束:** [`roadmap.md`](../roadmap.md)（最高）→ [`ui_lobby_architecture.md`](ui_lobby_architecture.md)（领域 / 网络 / 职责）→ **本文件**（页面布局 / 动效 / 令牌 / 导航栈）
 
-本文件回答「每个页面长什么样、焦点怎么走、Back 回哪」。它不改核心架构，也不授权实现者自行发明第三套皮肤或公网房间目录。
+本文件回答「每个页面长什么样、焦点怎么走、Back 回哪」。它不改核心架构，也不授权公网房间目录。
 
-实现者（含另一个 AI）应能不看源码、只凭本文件 + 两份上位文档，做出基本一致的布局。
+实现者应能只凭本文件和两份上位文档，做出同一套层级。本轮只锁文档，不开始 Phase 1。
 
 ---
 
-## 0. 文档关系与冲突审查
+## 0. 冲突审查
 
-| 文件 | 管什么 | 不管什么 |
-|---|---|---|
-| `roadmap.md` | 阶段、DoD、硬禁令、实现顺序 | 像素级排版 |
-| `docs/ui_lobby_architecture.md` | Profile / Room / LobbyManager / LobbyNet、换场信封、状态机 | 每个按钮放哪 |
-| `docs/ui_screen_spec.md`（本文件） | 页面目的、wireframe、CTA 层级、焦点、Back、动效、令牌 | 战斗数值、ENet RPC 表 |
+审查对象是本轮改完后的三份文档。硬约束以 `roadmap.md` 为准，没有被页面稿改掉。
 
-审查时发现的张力，全部按 **roadmap 硬约束** 收口，不另起架构：
+### 0.1 已改写的旧 UI 锁（上一版方案作废）
 
-| 张力 | 出处 | 裁定 |
-|---|---|---|
-| 中央 Settings / Play / Quit 三颗等大 shear vs 「唯一主 CTA = PLAY」 | 架构 §1.2「中央 Settings/Quit 可以保留」是许可不是要求；roadmap Phase 1 DoD「一眼看到一颗 PLAY」 | **去掉中央等大三钮。** Settings 只在 TopBar。Quit 降为 Home 右下 tertiary。PLAY 是中央唯一大钮 |
-| 顶栏 Solo / Multi 快捷 vs 「不要三套抢注意力」 | 架构 §1.2「若保留则降为 IconBarButton」；roadmap「Solo/Multi 不再与 PLAY 同等大小同时出现在中央和顶栏」 | **TopBar 不再放 Solo / Multi 文案或图标。** 跳过 ModeChoice 的快捷只留 Home 中央 PLAY 下方的 `Solo · Multiplayer` 文字链 |
-| CONTINUE 大钮 vs 「每局永远新开，不续打」 | 架构 §1.2 的 Continue；产品合同不中途续打 | **没有 Continue 主 CTA。** Home 只在有档时显示一条 Last activity 文字链，点了进该档 Solo（新开一局） |
-| Guest 连上后停在 JOIN 等待文案 vs Lobby 是多人核心页 | 现状 `LanOverlay` JOIN 等待；架构 §8 / roadmap Phase 5 | **Guest 握手成功后进入 Lobby 页。** JOIN 只负责发现 / 粘贴邀请 / 手打 IP |
-| Host closed 用大 Overlay vs 优先 Status/Toast/Compact Modal | 架构把 Host closed 列为 Modal；现有 `RoomNotice` | **保持 Compact Modal**（阻断、必须点 OK 回菜单）。不是 FloatingPanel 大页 |
-| Phase 1 顶栏仍是 `best %d` vs 「顶栏必须是 display_name」 | roadmap Phase 1 允许占位名；Phase 2 才有 `profile.json` | **最终 UI 顶栏是 display_name。** Phase 1 先把该槽改成占位 `"Player"`，禁止继续写 `best %d`。Phase 2 接磁盘 |
+上一版把「PLAY = 唯一主 CTA」写成「屏幕中央最大的一颗按钮」。该句同时写在 roadmap Phase 1、架构 §1.2 和本文件旧稿里。产品方向已废弃它。三份文档的 **信息架构段落** 已改成下面这句，避免 Phase 1 按旧稿实现：
 
-未发现与下列硬约束冲突：无 Autoload、无账号、无公网目录、无 matchmaking、一个 `multiplayer_peer`、最多 5 座、`NetSession` 只做战斗、`LobbyNet` 才是大厅网、CombatSandbox / RunSession / 快照 v3 本阶段零改。
+```text
+PLAY = primary user intent
+视觉权重 = 位置 + 对比 + 留白 + 字号 + 动效
+视觉权重 ≠ 最大按钮
+```
+
+| 旧锁 | 现在 |
+|---|---|
+| 中央一颗 320×80 PLAY，身份块堆在它上面 | Home = Visual Stage → 一行玩家状态 → Action Rail → 一行次级信息 |
+| `Solo · Multiplayer` 文字链挂在 PLAY 下 | Rail 三条同级：Continue / Solo / Multiplayer。没有第四颗更大的 PLAY |
+| ModeChoice = 两张大 Modal 卡 | Play 是 Page。两张大卡 Modal 删除 |
+| 顶栏不放任何多人入口 | 顶栏有 PLAY 与 MULTIPLAYER，都是导航。Solo 不进顶栏 |
+| 没有 Continue | Continue 只在有档时出现，含义是 **用该档新开一局**。仍然没有中途续打 |
+| Profile 用 96px 头像占主页中央 | 主页只有名字和一行状态。完整 Profile 在自己的 Page。顶栏右端是头像 + 名字 |
+| MP Home 两颗大 CTA + 房间卡墙 | 三条紧凑导航行 + 本地最近房间。LAN 列表只来自 Beacon |
+| FlatBold = 每个区块一张圆角卡片，或黑底粉紫发光 | FlatBold = 排版、剪切、少量表面、留白、轻材质、稀缺强调色。品牌字是 Playpen Sans |
+
+### 0.2 仍然有效、页面稿必须服从的硬约束
+
+- 无 Autoload，无账号，无 matchmaking，无公网房间目录
+- Internet 加入只有 Invite URI、QR、短码、手打地址
+- `AVAILABLE / LAN ROOMS` 只等于 LanBeacon 在 17778 上发现的同网房间
+- 一个 `multiplayer_peer`，最多 5 座，座位号不前挪
+- `NetSession` 只做战斗。`LobbyNet` 才是大厅网。Phase 1 网络零改
+- CombatSandbox / RunSession / 快照 v3 本阶段零改
+- 每局新开。Continue 不是读档续打
+- Settings 是 Drawer，打开不关闭底下 Page
+- 不把 `GameProgress` / `GameRecords` / `GameSettings` 写进 Profile 文件
+
+未发现与上表冲突的页面。若以后的稿子把 LAN 行写成「在线房间」或把 PLAY 再画成中央巨钮，以 roadmap 为准，退回本节。
 
 ---
 
 ## 1. 锁定的信息层级
 
 ```text
-TopBar     = 全局导航（persistent）
-Center     = 主操作
-PLAY       = 唯一 Primary CTA
-Solo / Multiplayer = PLAY 的玩法分支（Secondary）
-Profile    = 玩家身份
-Settings   = 全局设置（Drawer，不进导航栈）
+TopBar              = 全局导航（persistent）
+Visual Stage        = 主视觉空间。氛围、场景、当前状态。不拿文字填满
+Player Context      = 一行身份。不是 Profile 卡
+Action Rail         = 当前最重要的操作
+Secondary           = 一行次级事实。没有就整行不出现
 ```
-
-禁止再出现：
 
 ```text
-中央 PLAY
-+ 中央 SOLO / MULTI 两颗大卡（作为 Home 常驻）
-+ 顶栏再标一套 Solo / Multi
+PLAY = primary user intent
 ```
 
-ModeChoice 仍然存在，但是 **PLAY 打开的 Modal**，不是 Home 的第三套主按钮。
+Home 上这个意图由 **Action Rail** 承担，不由一颗中央 PLAY 承担。顶栏的 PLAY 是去 Play 页的导航。
+
+禁止：
+
+```text
+屏幕中央巨大 PLAY
+Avatar + Stats + Play 堆在中心
+页面被卡片铺满
+顶栏一套 SOLO/MULTI 巨钮，舞台上再一套等大巨钮
+把 LAN Beacon 画成公网房间目录
+```
+
+### 1.1 视觉密度
+
+每一页必须同时有：
+
+```text
+大块留白
+一个明确锚点
+有限的信息
+强层级
+```
+
+宁可少显示一行，也不要再叠一块面板。锚点用位置和字重建立。实心色块只给 Rail、当前导航、Host 的 Start。其余是字，不是盒子。
+
+视觉语法见下一章。FlatBold 是排版、几何、少量表面、留白、材质和稀缺强调色。它不是圆角卡片，也不是发光描边。
 
 ---
 
-## 2. 导航图与返回栈
+## Typography & Art Direction
+
+这一章锁 WPG 的美术方向。组件、动效和 `game_theme.tres` 的字体变体都从这里长出来。本轮只写规格，不导入字体，不改主题文件。
+
+方向：
 
 ```text
-HOME                         (Main Menu, 基底，不销毁)
- ├── PLAY  ──Modal──► MODE CHOICE
- │                      ├── SOLO ──────► RECORD SELECTOR (Page)
- │                      │                  ├── LIST
- │                      │                  └── EDITOR (New Record)
- │                      │                         Back → LIST
- │                      └── MULTIPLAYER ► MP HOME (Page)
- │                                           ├── CREATE ROOM
- │                                           │     Step 1 → Step 2 → LOBBY
- │                                           ├── JOIN ROOM
- │                                           │     成功 → LOBBY
- │                                           └── AVAILABLE LAN ROOM CARD
- │                                                 未满 → JOIN 流程 → LOBBY
- │                                                 满员 → Error，停在 MP HOME
- ├── PROFILE  (Page)
- │     └── RANKING  (Page)     Back → PROFILE
- └── SETTINGS (Drawer, 叠在当前 Page 上，不 pop)
-       └── CREDITS (Modal)     Back → SETTINGS
+Editorial
+Graphic
+Tactile
+Atmospheric
+Handcrafted
+Restrained
 ```
 
-### 2.1 Back 合同（禁止各 Overlay 私自决定）
+人话：专业游戏的信息架构，手工字体的人味，平面图形，大量留白，少量材质。不是儿童软件，也不是科技 HUD。
 
-| 当前 | Esc / Back / 点 Dimmer | 之后焦点 |
+世界承担大约七成视觉重量：角色、场景、动态背景。UI 只负责导航和少量事实。高级感来自构图和约束，不来自发光。
+
+禁止：
+
+```text
+Cyber
+Neon
+Glow
+HUD
+纯黑底加纯白字
+粉紫发光
+紫黑渐变
+到处软阴影
+高亮描边当层级
+每个状态都用强调色
+```
+
+### 1. Font family
+
+品牌字体 / Display UI 字体是 TypeTogether 的 **Playpen Sans**。
+
+来源：[TypeTogether/Playpen-Sans](https://github.com/TypeTogether/Playpen-Sans)。OFL 1.1。可变字重从 Thin 到 ExtraBold。每个字符有七个自动交替，并有打散器，避免相邻字形重复。官方说明把它定义为有机、自发、可信的手写感。这是它进入 WPG 的原因。
+
+它也来自拉丁文 handwriting 教学研究，并带一套给儿童的奖励 emoji。那些 emoji **不进入 WPG**。手写感只提供人味，不把界面做成卡通或儿童产品。
+
+实现时放进 `game_theme.tres` 的默认字体栈，用一份可变字体加 `FontVariation`，不要拆成八个互不相干的家族。菜单铬（导航、按钮、房间名、数字）关闭逐帧交替，字形必须稳定。交替只允许用在不参与焦点的品牌瞬间，例如舞台上的字标。
+
+现有 `font_bar_bold` 是旧的粗体槽。Phase 1 实现时把它收成下面的字重角色，不保留第二套科技无衬线当品牌字。
+
+### 2. Weight system
+
+可变轴 `wght` 100–800。界面只用其中四档。其余字重不进主题。
+
+| 角色 | 字重 | 轴 |
 |---|---|---|
-| HOME | 无（不退出游戏）。Quit 是显式 tertiary | PLAY |
-| MODE CHOICE | → HOME | PLAY |
-| RECORD SELECTOR LIST | → HOME | PLAY |
-| RECORD SELECTOR EDITOR | → LIST | New Record 或第一张档卡 |
-| PROFILE | → HOME | PROFILE 顶栏钮 |
-| RANKING | → PROFILE | Rank 钮 |
-| SETTINGS | → 打开它之前的 Page（Home / Profile / Solo / MP） | 打开 Settings 的那个控件 |
-| CREDITS | → SETTINGS | Settings 里 Credits 入口 |
-| MP HOME | → HOME | PLAY |
-| CREATE STEP 1 | → MP HOME | CREATE ROOM |
-| CREATE STEP 2 | → STEP 1 | NEXT |
-| JOIN ROOM | → MP HOME | JOIN ROOM |
-| LOBBY（本地还没 Start） | → 离开房间确认（Compact Modal）→ MP HOME | CREATE ROOM |
-| LOBBY Guest Connecting | Esc = 取消连接 → MP HOME | JOIN ROOM |
-| Compact Modal（Host closed / 删档确认） | 先关 Modal，按该 Modal 自己的确认合同 | 见各状态节 |
-| 战斗 Pause / Winner | **本文件不管。** 保持 Day 85 | — |
+| Display | Bold | 700 |
+| Navigation | Medium | 500 |
+| Section title | SemiBold | 600 |
+| Button / Rail | SemiBold | 600 |
+| Body | Regular | 400 |
+| Caption | Regular | 400 |
+| Numeric / Stats | Medium | 500 |
+| Technical | Regular | 400 |
 
-`ui_cancel` 与面板 Back 钮同一条栈。禁止「这个 Overlay close 回 Play，那个 Overlay close 回 Home」。
+禁止把 Body、Caption、Technical 升到 Bold。禁止整页都用 ExtraBold。Thin 和 Light 不用于 18px 以下的正文，避免发虚。
 
-### 2.2 Settings 与页面
+### 3. Size scale
 
-Settings 是 **Drawer**，从 TopBar 任何菜单页都能开。
+画布 1920×1080。行高是像素。字号不随 `ui_scale` 再乘一遍，收缩仍走 `UiFit`。
 
-- 打开 Settings **不关闭** 底下的 Page（Phase 1 起改掉今天「开 Settings 就关 LAN/Profile」的互斥）。
-- 关 Settings 仍停在原 Page。
-- Lobby 内也可开 Settings；不中断房间。
-- 战斗里的暂停 Settings 仍走 PauseOverlay，本文件不改战斗。
+| 角色 | 字号 | 行高 | 字距 | 一行最长 |
+|---|---|---|---|---|
+| Display | 56 | 64 | +2% | 16 字 |
+| 舞台上的玩家名 | 40 | 48 | 0 | 16 字 |
+| Page 标题 | 32 | 40 | +1% | 24 字 |
+| Navigation | 18 | 24 | +4% | 14 字 |
+| Section title | 14 | 20 | +8% | 24 字 |
+| Button / Rail | 22 | 28 | +2% | 18 字 |
+| Body | 18 | 28 | 0 | 62 字 |
+| Caption | 15 | 22 | +1% | 42 字 |
+| Numeric / Stats | 20 | 24 | 0 | 8 字 |
+| Technical | 14 | 20 | 0 | 72 字 |
 
-### 2.3 互斥规则
+玩家名沿用 Profile 的 1–16 可见字符，不把 Display 56 用在名字上。
 
-同一时间最多：
+### 4. Spacing
 
-- 1 个 Page（Solo / Profile / Ranking / MP 簇）
-- 1 个 Drawer（Settings）
-- 1 个 Modal（ModeChoice / Credits / Compact 确认 / Host closed）
+字距见上表。手写字靠得太紧会粘成一团，所以导航和栏目标签略松，正文不加点距。
 
-MP 簇（Home / Create1 / Create2 / Join / Lobby）是 **同一个 Page Overlay 的内部视图**，不是五个叠加的 Overlay。内部用本文件的返回栈切视图。
+垂直节奏仍只用 4 / 8 / 12 / 16 / 24 / 36 / 48。Rail 与上下分隔线的距离是 24。栏目标题与正文的距离是 12。不要用负字距。
 
----
+### 5. Casing
 
-## 3. Design Tokens（全页共用，禁止页面私自改数）
-
-全部落在现有 `game_theme.tres` FlatBold 上。禁止新的 osu 紫黑渐变、大面积 soft shadow、发光胶囊、第二套圆角体系。
-
-### 3.1 空间
-
-| 令牌 | 值 | 来源 |
-|---|---|---|
-| Design canvas | 1920 × 1080 | `UiFit.DESIGN` |
-| TopBar 高度 | **60** | `MainMenu.TOP_BAR_HEIGHT` |
-| Overlay 顶偏移 | 60（TopBar 始终露出来） | 现有 `offset_top=60` |
-| Page 面板首选 | **1680 × 920** | `UiFit.PREFERRED_PANEL` |
-| Page 边距 | **48** | `UiFit.PANEL_MARGIN` |
-| 内容最大宽度 | 1680；Home 中央列 **720**（与现 Logo 宽对齐） | Logo `720×162` |
-| 面板最小 | 640 × 480 | `UiFit` |
-| 商店/句读面板 | 不在本文件范围 | 已有 `SHOP_PANEL_MAX` / `OFFER_PANEL_MAX` |
-
-**Spacing scale（只许用这些）：** 4 / 8 / 12 / 16 / 24 / 36 / 48
-
-| 用途 | 值 |
+| 角色 | 大小写 |
 |---|---|
-| 控件内边距 | 8 / 12 / 16 |
-| 行内分离 | 12 / 16 |
-| 区块分离 | 24 / 36 |
-| Home 中央列分离 | 36 |
-| 卡片网格水平缝 | 16（`CARD_H_SEP`） |
+| Display、玩家名 | 玩家输入的原样。不强制大写 |
+| Navigation、Rail、Section title | 大写，作为短标签 |
+| Body、Caption、状态句 | 句首大写 |
+| Technical | 句首大写。地址和协议号保持原样 |
+| Numeric | 不改写。`Inf` 保持现有拼法 |
 
-禁止 `size * ui_scale`。收缩一律 `UiFit`。
+大写只给短标签。句子不大写。不要用小型大写去模仿另一套字体。
 
-### 3.2 字体（theme_type_variation，不要每个 Label 手写 size）
+### 6. Numeric treatment
 
-| 角色 | Variation | px | 字重 |
-|---|---|---|---|
-| Home 玩家名 | `MenuTitle` | 48 | bar bold |
-| Page 标题 | `FloatingHeader` | 28 | bar bold |
-| 区块标题 | `OfferTitle` / `SettingsHeader` | 22 | bar bold |
-| 主按钮字 | `MainMenuButton` / `Pill*` | 22 | bar bold |
-| Body | `RunSummaryBody` / default | 18 | regular |
-| TopBar | `IconBarButton` / `ProfileName` / `ClockLabel` | 18 | bar bold |
-| Caption | `OfferDesc` / `RunSummaryHint` | 16 | regular |
+Playpen Sans 不保证等宽数字。统计不换一套等宽科技字。
 
-颜色：主字 `Color(0.97, 0.94, 0.96)`；caption `Color(0.8, 0.75, 0.81)`；不要新开第三套粉紫字色，除非 Destructive / Success 已有 ClearedTitle 绿、PillRed、ProfileHeader 粉。
+数字用 Medium，和左侧标签分成两列对齐。时间、人数、loop 用同一字号。不把分数做成发光计数器。`2/5` 这种比例中间留一个普通斜线，不加图标底。
 
-### 3.3 控件尺寸
+### 7. CJK fallback
 
-| 控件 | 尺寸 | 样式 |
+Playpen Sans 覆盖一百五十多种拉丁文，不覆盖中日韩。
+
+主题字体栈：
+
+```text
+1. Playpen Sans      拉丁、数字、标点
+2. 一款指定的伙伴黑体  只补 CJK
+3. 不再向下落到系统 UI 字体
+```
+
+伙伴黑体这一轮不选定、不导入。选定之前，菜单文案保持拉丁文。禁止用 Inter、Segoe UI、PingFang、微软雅黑或思源黑体临时顶上，以免一句中文把气质切成系统界面。
+
+伙伴黑体以后要满足：字重能映射到 Regular / Medium / SemiBold / Bold，笔画有人味，不带霓虹，不带圆体可爱。拉丁字形仍由 Playpen Sans 画，伙伴字体只在缺字时出现。
+
+### 8. Typography examples
+
+Home：
+
+```text
+NIGHTFOX                         Display 名，40 / Bold，原样
+Ready to play                    Caption，15 / Regular，句首大写
+
+CONTINUE          SOLO           Navigation 标签，22 / SemiBold，大写
+Loop 21           New run        Caption
+
+BEST 24                          Section 14 / SemiBold + Numeric 20 / Medium
+```
+
+Join 的技术行：
+
+```text
+192.168.1.20                     Technical，14 / Regular
+Beacon. Not an internet directory.
+```
+
+Lobby 座位：
+
+```text
+NIGHTFOX     HOST     BOAR     READY
+名字 Bold 不升到 ExtraBold。状态是 Caption，不是第二套显示字。
+```
+
+### 9. What not to do
+
+- 不要把所有字都设成 Bold 或 ExtraBold
+- 不要打开奖励 emoji，不要用交替打散器刷新按钮文字
+- 不要为了中文换回 Inter 或系统 UI 字体
+- 不要用字距和全大写把句子排成海报口号
+- 不要用粉紫描边、外发光或软阴影补偿字重
+- 不要为数字单开一套未来感等宽字
+
+### Color
+
+底不是 `#000000`。结构色保持低饱和。
+
+| 角色 | 方向 |
+|---|---|
+| Ground | 深炭黑或深灰绿 |
+| Ink | 骨白、暖白 |
+| Secondary | 灰米、低饱和暖灰 |
+| Structure | 比 Ground 略亮的一条线或一块面 |
+| Accent | 一个品牌色 |
+
+强调色一屏最多出现一次，并且必须有含义：例如 Host 的 Start，或品牌字标。它不用于 Hover，不用于 Focus，不用于描边，不用于每一颗按钮。
+
+现有粉紫 `PillPink` / focus 描边是旧 HUD 语言。新页面不再扩散它。精确色值在实现 Phase 1 时写进 `game_theme.tres`，本轮只锁稀缺规则。
+
+Focus 用骨白下划线或一条 shear 标记，键鼠手柄同一套。不发光。
+
+### Geometry 与 Surface
+
+shear 是几何语言，不是按钮特效。它出现在分隔、当前导航和少量块面上。
+
+实心表面只给：Lobby 的座位组、Host 的 Start、Compact Modal。Home 的 Action Rail 是两条横线之间的三列文字，不是三张卡片。
+
+导航行默认只有字。悬停改变字色到 Ink，不铺一块发光底板。
+
+圆角若出现，仍是 6，并且少见。大多数边缘是剪切或直角。没有胶囊。
+
+### Texture 与 Imagery
+
+允许一层很轻的颗粒或纸感，盖在 Ground 上，不盖住字。禁止用粒子、光晕和扫描线制造质感。
+
+舞台是角色、场景或一张完整的环境画面。UI 不负责把黑底填满。没有新插画时，舞台留空，也不用卡片代替画面。
+
+### Motion
+
+运动说明状态改变：页面进出、座位进出、Ready。不负责制造高级感。禁止发光脉冲、按钮呼吸灯、焦点霓虹。时长仍以第 4 节为准。
+
+---
+
+## 2. 导航与返回栈
+
+```text
+HOME                              基底场景，不销毁
+ ├── PLAY                         Page
+ │     ├── CONTINUE → 沙盒（最近一档，新开）
+ │     ├── SOLO → RECORD SELECTOR Page
+ │     │            LIST ↔ EDITOR
+ │     └── MULTIPLAYER → MP HOME
+ ├── Rail 与顶栏走同一目的地，不另开 Modal
+ ├── MP HOME                      Page（MP 簇的根视图）
+ │     ├── CREATE STEP 1 → STEP 2 → LOBBY
+ │     ├── JOIN
+ │     │     ├── CONNECTING
+ │     │     ├── 成功 → LOBBY
+ │     │     ├── CONNECTION FAILED
+ │     │     └── VERSION MISMATCH
+ │     └── LAN ROOMS               簇内视图，只列 Beacon
+ │           未满 → 带地址进入 JOIN 的 Connecting
+ │           满员 → Error，留在 LAN ROOMS
+ ├── PROFILE Page
+ │     └── RANKING Page
+ └── SETTINGS Drawer               不进返回栈
+       └── CREDITS Modal
+```
+
+MP 簇（Home / Create 1 / Create 2 / Join / LAN Rooms / Connecting / Failed / Mismatch / Lobby）是 **同一个 Page Overlay 的内部视图**。簇内切换只换内容，不叠第二个 Overlay。
+
+### 2.1 Back
+
+| 当前 | Esc / Back / 点空白 | 之后焦点 |
 |---|---|---|
-| Primary CTA（PLAY / CREATE ROOM / START） | **320 × 80**，字体 22 | 中央 PLAY 可继续用现有紫 shear 单颗（`fill_color (0.62, 0.3, 0.74)`），大厅内 Primary 用 `PillPink` 实心，圆角 6，无阴影 |
-| Secondary（JOIN / NEXT / CONFIRM / CONNECT） | **高度 56**，最小宽 240 | `PillNeutral` 或 `OfferButton` |
-| Tertiary（Back、Quit、文字链） | 高度 44；Quit **160 × 44** | Back = `OfferButton`/`PillNeutral`；Quit = `PillRed` |
-| TopBar 项 | 高度 60 内垂直居中；图标最大 32 | `IconBarButton` |
-| 房间卡 / 座位行 | 高度 **72**，全宽 | `OfferButton` |
-| 档位主卡 | `UiFit.card_size`，高钳 96–160 | 已有 RecordCard |
-| 头像 | Home **96**；TopBar / 座位行 **40**；Profile 编辑 **96** | 复用 boar/chicken 肖像 |
-| LineEdit | 高 44 | 已有 `sb_line_edit` |
+| HOME | 不退出。Quit 是角落 tertiary | Rail 第一格 |
+| PLAY | → HOME | 顶栏 PLAY |
+| RECORD LIST | → 打开它的地方（HOME Rail 或 PLAY） | Solo |
+| RECORD EDITOR | → LIST | New Record 或第一档 |
+| PROFILE | → HOME | 顶栏 PROFILE |
+| RANKING | → PROFILE | Ranking |
+| SETTINGS | → 打开前的 Page | 打开它的控件 |
+| CREDITS | → SETTINGS | Credits 入口 |
+| MP HOME | → HOME | 顶栏 MULTIPLAYER |
+| CREATE 1 | → MP HOME | Create 行 |
+| CREATE 2 | → CREATE 1 | Next |
+| JOIN | → MP HOME | Join 行 |
+| LAN ROOMS | → MP HOME | LAN 行 |
+| CONNECTING | 取消连接 → MP HOME | Join 行 |
+| CONNECTION FAILED | → MP HOME | Join 行 |
+| VERSION MISMATCH | → MP HOME | Join 行 |
+| LOBBY，尚未 Start | 离开确认 Modal → MP HOME | Create 行 |
+| Host closed Modal | OK → HOME | Rail 第一格 |
+| 战斗 Pause / Winner | 本文件不管，保持 Day 85 | — |
 
-圆角：**6** 全站。Focus 描边：现有 2px `Color(1, 0.55, 0.76, 0.8)`。不要发光环。
+`ui_cancel` 与 Back 同一条栈。Lobby 里已建连时，顶栏 HOME 也先走离开确认。
 
-### 3.4 叠层与运动时长
+### 2.2 Settings
+
+Drawer。从任何菜单页都能开。打开不关闭底下 Page，关掉仍停在原页。Lobby 里可开，不拆房间。Mode 不再有 Modal，因此不再出现「先关 ModeChoice 再开 Settings」。Compact Modal 打开时不能同时开 Settings。战斗暂停不在本文件范围。
+
+### 2.3 同时存在的层
+
+- 1 个 Page（Play / Solo / Profile / Ranking / MP 簇）
+- 1 个 Drawer（Settings）
+- 1 个 Modal（Credits / 离开确认 / Host closed）
+
+---
+
+## 3. 令牌
+
+空间和动效落在现有 `game_theme.tres`。字体角色以上一章为准，实现时写成主题变体。本轮不改 `.tres`。
 
 | 令牌 | 值 |
 |---|---|
-| Overlay dimmer | `Color(0.03, 0.02, 0.05, 0.55)` 实色；Home 背景另用现有 blur |
-| Home 被 Page 压住时 | 现有 `BLUR_MAX 2.6` + `DIM_MAX 0.35`（MainMenu shader） |
-| Page enter 位移 | **24px** 上浮（不再用 56px） |
-| Modal enter | 无位移，scale **0.96 → 1.0** |
-| Drawer | 现有 Settings 侧滑 0.6s，方向不变 |
-| Hover | 1.02 scale / 提亮，**0.12s** |
-| Punch / Ready | 1.06，**0.12s** |
-| Dimmer fade | 0.20s |
-| Content fade | 0.25s |
-| Page move | 0.32s OutQuint（短于今天 0.45s，避免所有页都像弹抽屉） |
-| Page exit | 反向 24px + fade 0.20s InQuint |
-| Modal exit | fade 0.15s，可略缩到 0.98 |
-| Overlay 整页 fade（旧 `exit_overlay`） | **禁止再当 Page 退场** |
+| 画布 | 1920 × 1080 |
+| TopBar | 高 60，z 100，Page 打开时仍在 |
+| 页边 | 48 |
+| 内容最大宽 | 1200。舞台本身可全宽，字和 Rail 不超过 1200 |
+| Spacing | 只许 4 / 8 / 12 / 16 / 24 / 36 / 48 |
 
-缓动：进 OutQuint / OutBack（卡）；出 InQuint。逻辑 open/close 仍瞬时。
+字号、字重、字距和大小写见 Typography & Art Direction。这里不另定一套。
 
----
-
-## 4. Motion System（按意图，不准一套动画走天下）
-
-`UiAnim` 只许按意图调用。旧 `enter_overlay`（fade + 升 56px + 卡 0.9→1）降为 **deprecated Page 别名**，新调用点必须写新名。
-
-| 意图 | 函数 | 做什么 | 用在 |
-|---|---|---|---|
-| Page enter | `enter_page(host, dimmer, panel)` | dimmer fade；panel 从 +24y 到位 + fade | RecordSelector、Profile、Ranking、MP 簇 |
-| Page exit | `exit_page(host, dimmer, panel)` | panel +24y 下沉 + fade；dimmer fade out | 同上 |
-| Modal enter | `enter_modal(host, dimmer, content)` | dimmer fade；content scale 0.96→1 + fade，**不位移** | ModeChoice、Credits、Compact 确认、Host closed |
-| Modal exit | `exit_modal(host, dimmer, content)` | fade（可 0.98 scale） | 同上 |
-| Drawer enter/exit | `enter_drawer` / `exit_drawer` | 现 Settings 侧滑抽出来 | Settings |
-| Card stagger | 现 `_append_card_entries` | 只卡列表，0.06s 错峰，scale 0.9→1 | 档卡、房间卡 |
-| Card insert/remove | 短 punch + modulate | 座位进出、新房间卡 | Lobby / Available |
-| Focus | 现 shear hover / StyleBox focus | 顶栏与中央 | 全站 |
-| Selection | `punch_scale` 1.06 / 0.12s | 角色、模式、地图 | Create / Profile |
-| Ready | 座位行 caption 变 READY + 1 帧提亮，不是整页 | Lobby |
-| Connection | 状态色 + 文案；Connecting 用 caption 闪（alpha 1.0↔0.55，0.6s 循环），禁止转圈 GIF | Join / Lobby 行 |
-| Success | punch + ClickSfx | 复制邀请、改名保存 |
-| Error | 短闪 + ErrorSfx，不弹 AcceptDialog | 满员、mismatch、bind failed |
-
-硬禁：新 Overlay 复制 `enter_overlay(self, dimmer, panel, [back])`；Page 用 Modal 缩放；Ready 用 Page 进场；连接失败再开一张大面板。
-
----
-
-## 5. 交互状态（控件 + 房间）
-
-可交互控件必须能画出：
-
-| 状态 | 表现 | 音效 |
+| 控件 | 尺寸 | 样式 |
 |---|---|---|
-| Default | 不透明纯色，圆角 6，无阴影 | — |
-| Hover | 提亮 + 可选 1.02，0.12s | HoverSfx，同帧去重 |
-| Focus | 2px 粉描边，键鼠手柄同一套 | 进入时 HoverSfx |
-| Pressed | 略更亮的 pressed StyleBox | ClickSfx（破坏性走 BackSfx） |
-| Selected | 实心选中条 / 加粗，不是发光胶囊 | punch |
-| Disabled | alpha 0.45，不可点 | 满员卡点下去仍收 ErrorSfx，不连 |
-| Warning | 旁白句，Controls 已有 IN USE 句式 | ErrorSfx |
-| Error | 控件或 status 行短闪 | ErrorSfx |
-| Success | 短 punch | ClickSfx |
+| Rail | 三列同排，列间距 48，上下各一条结构线 | 文字，不是三张卡片。禁止 320×80 中央巨钮 |
+| 导航行 | 高 **64**，内容宽 | 默认只有字。悬停改为 Ink。右侧一行 caption |
+| 座位行 | 高 **72** | Lobby 一组共用一块表面，不是五张卡片 |
+| TopBar 头像 | 32 | 右端，名字在头像右侧 |
+| Quit | 文字，高 44 | Home 右下。不用发光红胶囊 |
+| Back | 高 44 | 文字，不抢锚点 |
 
-房间 / 玩家状态（主要画在座位行和 Join status，**不是新 Overlay**）：
+Focus 为骨白下划线或 shear 标记。不使用粉色描边。
 
-| 状态 | 画在哪 | 文案（英文，与现 LAN 一致） |
-|---|---|---|
-| Connecting | Join 主按钮区 **或** 自己的座位行 | `connecting` |
-| Authenticating | 座位行 | `connecting`（玩家不看 auth 词） |
-| Connected | 座位行 | `connected`（若 Ready 默认 true 则直接 `ready`） |
-| Ready | 座位行右侧 | `ready` |
-| Error | Join status 行 / Compact Modal | `refused` / `bind failed` / `Version mismatch` |
-| Success | 复制邀请后 status 短暂 | `copied` |
-| Host Closed | Compact Modal | `Host closed the room. Returning to the menu.`（现句，禁止改） |
-| Version Mismatch | Join **inline** | `Version mismatch` |
-| Full Room | 房间卡 disabled + 点卡 Error | 不连 |
+| 运动 | 值 |
+|---|---|
+| Page | 位移 24px，进 0.32s OutQuint，出反向 + 0.20s InQuint |
+| Modal | 无位移，scale 0.96→1，出 fade 0.15s |
+| Drawer | 现有 Settings 侧滑 |
+| 簇内换视图 | 内容 fade 0.15s，不再整页升降 |
+| Hover | 1.02 / 0.12s，只给 Rail、行、座位 |
+| 逻辑 open/close | 瞬时 |
 
-Connecting / Error / Mismatch **禁止**新开 1680×920 Page。
+旧 `enter_overlay`（升 56px）不再给新调用点使用。
 
 ---
 
-## 6. Persistent chrome：TopBar
+## 4. 动效意图
 
-所有菜单 Page 打开时 TopBar **仍在、可点**。z_index 100，高 60。
-
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│  WPG    HOME    PLAY              [avatar] NAME     SETTINGS   12:48 │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-| 项 | 层级 | 行为 |
+| 意图 | 函数 | 用在 |
 |---|---|---|
-| WPG 字标 | Tertiary / brand | 等于 HOME |
-| HOME | Global nav | 关 ModeChoice / Page / Drawer 下的 Credits；回到 Home 中央。若在 Lobby 且已建连：先走离开房间确认 |
-| PLAY | Global nav | 等于中央 PLAY：打开 ModeChoice Modal（已在 Solo/MP 内则不再叠一个 ModeChoice，而是保持当前 Page） |
-| PROFILE | Global nav | 打开 Profile Page。文案 = `display_name`，左侧 40px 头像。**禁止 `best %d`** |
-| SETTINGS | Global nav | 开 Drawer，不关当前 Page |
-| CLOCK | 只读 | `HH:MM:SS`，现逻辑 |
+| Page | `enter_page` / `exit_page` | Play、Profile、Ranking、RecordSelector、MP 簇进出 |
+| Modal | `enter_modal` / `exit_modal` | Credits、离开确认、Host closed |
+| Drawer | `enter_drawer` / `exit_drawer` | Settings |
+| 簇内 | fade 0.15s | Create、Join、LAN、Connecting、Failed、Mismatch、Lobby |
+| 行 | punch 0.12s | 座位进出、Beacon 行增删 |
+| Ready / Connecting | 行内字色，不播页面动画 | Lobby、Connecting |
 
-**TopBar 不放 Solo / Multi。**
-
-Persistent：TopBar、全屏背景图、BGM、BlurLayer。
-Context-specific：中央列、各 Page / Modal / Drawer。
-
-Focus 进 TopBar：从当前 Page 用 `ui_up` 可到 TopBar；TopBar 内左→右 HOME, PLAY, PROFILE, SETTINGS。Clock 不可焦。
+Connecting、失败、版本不符是簇内状态页：留白加一句结论。禁止再套一张 1680×920 设置面板。
 
 ---
 
-## 7. Screen 01 — Main Menu (HOME)
+## 5. Screen — Main Menu
 
-**目的：** 告诉玩家「我是谁」并让他按一颗 PLAY。不是功能面板墙。
+**类型：** 基底场景。不是 Overlay。
 
-**层级：** Base scene。不是 Overlay。
+**目的：** 这是我的游戏空间。先看见舞台，再看见能做什么。
 
-**Header / TopBar：** §6。HOME 为当前。
+**信息层级：**
 
-**Primary CTA：** PLAY（320×80 或现 shear 单颗 320×124，紫，居中）
+1. Visual Stage（最大面积）
+2. 玩家名 + `Ready to play`
+3. Action Rail
+4. 一行 BEST / LAST
+5. 角落 Quit
 
-**Secondary：** 文字链 `Solo · Multiplayer`（18px caption，PLAY 下方 16px）。Solo 直达 RecordSelector；Multiplayer 直达 MP HOME。跳过 ModeChoice。
+**主操作：** Rail 第一格。有档时是 Continue；无档时 Solo 成为第一格，Continue 不占位。
 
-**Tertiary：** 右下 `quit` 160×44 PillRed。Logo 点击 = PLAY。
+**次操作：** Rail 其余格。
 
-**内容区（上到下，中央列宽 720，spacing 36）：**
+**密度：** 舞台区不放卡片、不放统计、不放按钮。名字不是 Profile 卡。Rail 是分隔线之间的三列文字。次级信息只有一行，无数据则整行不出现。
 
-1. Logo 720×162（品牌，不是第三颗 CTA）
-2. 头像 96 + `display_name`（MenuTitle 48）。Phase 1 占位 `Player` / boar
-3. PLAY
-4. `Solo · Multiplayer`
-5. Last activity：仅当 `GameRecords` 非空。一行 caption：`last  {record.name}  ·  {arena}  ·  {loop badge}`。整行可点，进该档 Solo。无档则 **整块不占位**
+**键盘焦点：** Continue（若有）→ Solo → Multiplayer → BEST/LAST 行（若有，整行一项）→ Quit。默认第一格。`ui_up` 进顶栏，顺序 HOME → PLAY → MULTIPLAYER → PROFILE → SETTINGS。时钟和头像不可焦。
 
-**信息优先级：** 1 身份 → 2 PLAY → 3 玩法分支 → 4 最近活动 → 5 Quit。
-
-**Keyboard / Controller focus：** PLAY → Solo 链 → Multi 链 → Last activity（若有）→ Quit。默认焦 PLAY。`ui_accept` 无 overlay 时 = PLAY（打开 ModeChoice）。`ui_cancel` 无操作。
-
-**Enter / Confirm：** 焦 PLAY 或无焦时打开 ModeChoice。
+**手柄焦点：** 与键盘同一顺序。十字键左右在 Rail 内移动，上下去顶栏或 Quit。A 确认，B 在 Home 无操作。
 
 **Back：** 无。
 
-**动画：** 现有进场：TopBar 落下、Logo pop、**只 PLAY** 错峰。不要再给 Settings/Quit 做大卡错峰。退场：换场仍 0.45s BGM 淡 + Loading。
+**确认：** 激活焦点项。无焦点时确认 = Rail 第一格，不打开旧 ModeChoice。
 
-**Persistent：** 背景、TopBar、BGM。
-**Context：** 身份块、PLAY、Last activity。
+**进场：** 现有菜单进场只动顶栏和舞台。Rail 三项短错峰。不要再给中间巨钮做 pop。
 
-### Wireframe
+**退场：** 换场仍是 0.45s 音乐淡出后 Loading。
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ WPG     HOME     PLAY              [◆] Player     SETTINGS    12:48 │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│                         [  WPG LOGO  ]                               │
-│                                                                      │
-│                            [◆ 96]                                    │
-│                            Player                                    │
-│                                                                      │
-│                         ┌──────────┐                                 │
-│                         │   PLAY   │                                 │
-│                         └──────────┘                                 │
-│                                                                      │
-│                         Solo · Multiplayer                           │
-│                                                                      │
-│                    last  NightFox  ·  Yard  ·  20                    │
-│                                                                      │
-│                                                              [quit]  │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ WPG   HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS      [av] Player  │
+│                                                                  12:48  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│                                                                         │
+│                         VISUAL STAGE                                    │
+│                    背景 / 场景 / 角色 / 氛围                              │
+│                                                                         │
+│                                                                         │
+│   PLAYER                                                                │
+│   Ready to play                                                         │
+│                                                                         │
+│   ───────────────────────────────────────────────────────────────────   │
+│                                                                         │
+│   CONTINUE                  SOLO                    MULTIPLAYER         │
+│   Loop 21                   New run                 Play with friends   │
+│                                                                         │
+│   ───────────────────────────────────────────────────────────────────   │
+│                                                                         │
+│   BEST 24                                          LAST RUN  18:42      │
+│                                                                         │
+│                                                              [ quit ]   │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-无档时删掉 `last ...` 那一行，Quit 仍在右下。
+Continue：`GameRecords` 最近一档，新开一局，读该档 `arena_id`。Caption 用该档 loop 目标。不是战斗中途恢复。
+
+Solo：Record Selector。Multiplayer：MP Home。
+
+BEST 来自 `GameProgress`。LAST RUN 是最近一档的时间，只读。点 BEST 去 Profile。点 LAST 与 Continue 相同。
+
+Phase 1 名字占位 `Player`，头像用 boar。禁止 `best %d`。
 
 ---
 
-## 8. Screen 02 — Mode Choice (PLAY 分岔)
+## 6. Screen — Play
 
-**目的：** 点 PLAY 之后问一次 Solo 还是 Multi。不记上次选择。
+**类型：** Page。
 
-**层级：** Modal。不是大面板 Page。
+**目的：** 顶栏 PLAY 的落点。把「怎么玩」说清楚。Home Rail 是它的快捷方式，两条路目的地相同。
 
-**TopBar：** 仍在。HOME 关掉本 Modal。
+**信息层级：** 标题 → 一句说明 → 与 Home 相同的三条 Rail。
 
-**Primary：** 无单颗。两张卡是并列 Secondary，视觉低于 Home PLAY。
+**主操作：** Continue（无档则 Solo）。
 
-**Tertiary：** Back。
+**次操作：** 另外两条。
 
-**内容：** 居中两张卡，宽各 360、高 220，间距 36。左 SOLO caption `local records`；右 MULTI caption `lan lobby`。不要第三张 Internet。
+**密度：** 没有舞台插画墙，也没有两张大卡。标题之下留白，Rail 靠下中。不重复 BEST 行。
 
-**Focus：** Solo → Multi → Back。打开时焦 Solo。
+**键盘焦点：** Continue → Solo → Multiplayer → Back。打开时焦第一格。`ui_up` 到顶栏，PLAY 为当前项。
 
-**Back / Dimmer / Esc：** → HOME，焦 PLAY。
+**手柄焦点：** 同键盘。A 确认，B = Back。
 
-**Confirm：** 焦的那张卡。
+**Back：** → HOME。
 
-**动画：** `enter_modal` / `exit_modal`。禁止升 56px。
+**确认：** Continue 进沙盒；Solo 进档位；Multiplayer 进 MP Home。
 
-**Persistent：** TopBar、背景模糊。
-**Context：** 两张卡。
+**进场 / 退场：** `enter_page` / `exit_page`。
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ WPG     HOME     PLAY              [◆] Player     SETTINGS    12:48 │
-├──────────────────────────────────────────────────────────────────────┤
-│                          dim 0.55                                    │
-│          ┌────────────┐           ┌────────────┐                     │
-│          │    SOLO    │           │    MULTI   │                     │
-│          │ local rec. │           │ lan lobby  │                     │
-│          └────────────┘           └────────────┘                     │
-│                              [ back ]                                │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ WPG   HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS      [av] Player  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  PLAY                                                                   │
+│  Choose a run                                                           │
+│                                                                         │
+│  ───────────────────────────────────────────────────────────────────    │
+│                                                                         │
+│  CONTINUE                  SOLO                    MULTIPLAYER          │
+│  Loop 21                   Records                 Rooms                │
+│                                                                         │
+│  ───────────────────────────────────────────────────────────────────    │
+│                                                                         │
+│  [ back ]                                                               │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+不记上次选择。不出现 Internet 卡。
 
 ---
 
-## 9. Screen 03 — Profile
+## 7. Screen — Profile
 
-**目的：** 先回答「我是谁」，再展示成绩与档位。不是排行榜首页。
+**类型：** Page。
 
-**层级：** Page Overlay。
+**目的：** 我是谁，以及只读的成绩和档位。不是主页，也不是排行榜首页。
 
-**TopBar：** PROFILE 为当前。
+**信息层级：**
 
-**Primary：** 无进战斗 CTA。身份保存是就地（改完即时写盘，无大 Save 钮）。
+1. 名字（可编辑，Phase 2）
+2. 头像与常用角色
+3. 只读统计
+4. 档位列表
+5. Ranking
 
-**Secondary：** `RANKING`（现 Rank 钮）打开排行 Page。
+**主操作：** 无进战斗按钮。改名就地生效，没有大 Save。
 
-**Tertiary：** Back → HOME。
+**次操作：** Ranking。
 
-**内容：左右两列，左窄右宽。**
+**密度：** 一列身份，一列事实。不做三张统计卡。空档一行 `NO RECORDS YET`。
 
-左 IDENTITY（先画）：
+**键盘焦点：** Name → 头像 → Boar → Chicken → Ranking → 第一档 → Back。打开时焦 Name。编辑中 Esc 先结束编辑，再按才关页。
 
-- 头像 96，可点循环 `boar` / `chicken`（不新开美术）
-- `display_name` LineEdit，1–16 可见字符
-- Preferred character：两枚 96 肖像钮，选中实心条，默认与头像可不同（头像是形象，常用角色是进房默认选角）
-- caption：`local profile  ·  not an account`
+**手柄焦点：** 同键盘。虚拟键盘不在本阶段。A 确认，B = Back（编辑中先结束编辑）。
 
-右 STATS + RECORDS（后画）：
+**Back：** → HOME。
 
-- Stats 只读 `GameProgress`：best loop / last loop / last kills / last gold / runs / owned hint
-- Records 只读 `GameRecords` 概览行（现 Profile 行）。空则 `NO RECORDS YET`
-- 禁止把 best loop 写进左列当名字
+**确认：** 焦点在档位行时无进战斗。档位只展示。开局仍走 Solo。
 
-**优先级：** 1 名字与头像 → 2 常用角色 → 3 统计 → 4 档位历史。
+**进场 / 退场：** `enter_page` / `exit_page`。
 
-**Focus：** Name 输入 → 头像 → Boar → Chicken → Ranking → 第一档行 → Back。打开时焦 Name。
-
-**Back：** → HOME。Esc 同。编辑 Name 时 Esc 先失焦，第二次才关 Page。
-
-**动画：** `enter_page` / `exit_page`。
-
-**Persistent：** TopBar。
-**Context：** 身份表单、统计、档位列。
-
-Phase 1：左列可先放占位名 + 不可编辑头像，右列保持今天只读。Phase 2 接通写盘。
+Phase 1 左列只显示占位名和不可编辑头像。Phase 2 才写 `profile.json`。
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ WPG     HOME     PLAY              [◆] Player     SETTINGS    12:48 │
-├──────────────────────────────────────────────────────────────────────┤
-│ ┌ PROFILE ────────────────────────────────────────────── [RANKING]─┐ │
-│ │  IDENTITY              │  STATS                                  │ │
-│ │  [◆ 96]                │  best loop   4                          │ │
-│ │  Name [ Player       ] │  last loop   2                          │ │
-│ │  character             │  last kills  31                         │ │
-│ │  [boar] [chicken]      │  runs        12                         │ │
-│ │  local profile         │  RECORDS                                │ │
-│ │                        │  NightFox   Yard  20          1840      │ │
-│ │                        │  PitRun     Pit   Inf          900      │ │
-│ │                                                [ back ]          │ │
-│ └──────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ WPG   HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS      [av] Player  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  PROFILE                                                    [ RANKING ] │
+│                                                                         │
+│  [av 96]                                                                │
+│  Player                                                                 │
+│  local profile                                                          │
+│                                                                         │
+│  CHARACTER                                                              │
+│  Boar     Chicken                                                       │
+│                                                                         │
+│  BEST LOOP 24     LAST LOOP 18     RUNS 12                              │
+│                                                                         │
+│  RECORDS                                                                │
+│  NightFox        Yard     20                                           │
+│  PitRun          Pit      Inf                                          │
+│                                                                         │
+│  [ back ]                                                               │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+统计只读 `GameProgress`。档位只读 `GameRecords`。禁止把 best loop 当成名字。
 
 ---
 
-## 10. Screen 04 — Solo / Record Selector
+## 8. Screen — Solo / Record Selector
 
-保持现有 LIST / EDITOR 合同（点已有档进沙盒；新建选角色 / 图 / loop；长按删档）。本文件只锁它是 **Page**，动效走 `enter_page`，Back：EDITOR→LIST→HOME。不要在 LIST 上再叠一套 Play CTA。
+**类型：** Page。合同保持今天的 LIST / EDITOR：点已有档进沙盒；新建选角色、图、loop；长按删档。
 
----
+**主操作：** 打开的那一档，或 EDITOR 的确认。
 
-## 11. Screen 05 — Multiplayer Home
+**次操作：** New Record。
 
-**目的：** 开房、加入、看同网房间。玩家看见 **房间**，不是 IP 浏览器。
+**密度：** 保持现有档位列表，不在 LIST 上再叠一套 Play。
 
-**层级：** Page。MP 簇的根视图。
+**键盘 / 手柄：** 现有档位焦点。B：EDITOR → LIST → 来源页。
 
-**TopBar：** PLAY 可视为当前。HOME 离开簇。
-
-**Primary：** CREATE ROOM（320×80 PillPink）
-
-**Secondary：** JOIN ROOM（高 56 PillNeutral）→ Join 视图
-
-**Tertiary：** Back → HOME
-
-**内容：**
-
-```text
-CREATE ROOM     = 本地当 Host，进 Step 1
-JOIN ROOM       = 邀请 / URI / 短码 / 手打地址（不是公网列表）
-AVAILABLE ROOMS = 仅 LAN Beacon 发现
-INTERNET ROOM   = 不存在。无公网目录、无 matchmaking、无云 Lobby
-```
-
-上区两个 CTA 横排（左 Primary 右 Secondary），下区 Available Rooms：
-
-- Search LineEdit（现搜索语义：address / 地图 / coop / battle / `3/5`）
-- 空：caption `no rooms`；discover bind failed：`discover bind failed`，手打仍走 JOIN ROOM
-- 房间卡高 72：
-  - 主标题：**host_display_name 的房间**；协议未带名字的过渡期用 `Room` + 短 address caption，**不要把 IP 当主标题永久方案**
-  - 次行：`{Arena}  ·  Co-op|Battle  ·  {loop|battle}`
-  - 右徽标：`n/5` 字符串，不是货币
-  - 满员 disabled，点 ErrorSfx 不连
-
-点未满卡：把地址交给 Join 流程并立即 connecting（可跳过空 Join 表单，等价今天点卡填 IP 再 Connect）。
-
-**优先级：** 1 CREATE → 2 JOIN → 3 房间卡名字与人数 → 4 地图/模式 → 5 IP（caption / 折叠）
-
-**Focus：** CREATE → JOIN → Search → 第一张未满卡 → Back。打开焦 CREATE。
-
-**Back：** → HOME。若 Guest 探针已开，关页时 `LanBeacon.stop()`（现合同）。
-
-**动画：** 进 MP 簇用一次 `enter_page`。簇内切视图：内容 fade 0.15s，不再整页升降。房间卡 stagger 仅首次进入 Home。
-
-**Persistent：** TopBar、面板壳、Back。
-**Context：** CTA、搜索、房间卡。
-
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ WPG     HOME     PLAY              [◆] Player     SETTINGS    12:48 │
-├──────────────────────────────────────────────────────────────────────┤
-│ ┌ MULTIPLAYER ──────────────────────────────────────────── [ back ]─┐ │
-│ │                                                                    │ │
-│ │   ┌─────────────────┐     ┌─────────────────┐                     │ │
-│ │   │  CREATE ROOM    │     │   JOIN ROOM     │                     │ │
-│ │   └─────────────────┘     └─────────────────┘                     │ │
-│ │                                                                    │ │
-│ │   AVAILABLE ROOMS                              [ search        ]  │ │
-│ │   ┌────────────────────────────────────────────────────────────┐  │ │
-│ │   │ NightFox's Room          Yard · Co-op · 20           2/5   │  │ │
-│ │   │ 192.168.1.20                                               │  │ │
-│ │   ├────────────────────────────────────────────────────────────┤  │ │
-│ │   │ Pit Fight                Pit · Battle · battle       5/5   │  │ │
-│ │   │ full                                                       │  │ │
-│ │   └────────────────────────────────────────────────────────────┘  │ │
-│ │   no rooms / discover bind failed 时出现一行 caption               │ │
-│ └────────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-满员卡主标题仍是名字，人数徽标 `5/5`，整卡灰。IP 永远第二行、caption 色。
+**进场 / 退场：** `enter_page` / `exit_page`。删档确认保持现有条，不新开大页。
 
 ---
 
-## 12. Screen 06 — Create Room Step 1
+## 9. Screen — Multiplayer Home
 
-**目的：** 先定「我是谁、这局什么玩法」，再谈地图。默认来自 Profile。
+**类型：** Page。MP 簇根视图。
 
-**层级：** MP 簇内部视图（仍是同一个 Page Overlay）。
+**目的：** 选择怎么一起玩。不是房间浏览器，更不是公网目录。
 
-**Primary：** NEXT（高 56，右下）
+**信息层级：**
 
-**Secondary：** 无。
+1. 标题 `MULTIPLAYER` 与一句 `Play together`
+2. 三条导航：Create Room、Join Room、LAN Rooms
+3. Recent Rooms（本机最近）
 
-**Tertiary：** Back → MP HOME（若已 bind 17777 的草稿房，Back 拆掉草稿，Beacon 停）
+**主操作：** Create Room。
 
-**内容：**
+**次操作：** Join Room。LAN Rooms 是同级导航，不是主 CTA。
 
-- 标题 `CREATE ROOM`
-- 步骤点 `1 Identity    2 Room`，当前 1
-- 只读身份条：头像 40 + display_name + caption `from profile`
-- Character：Boar / Chicken 两枚，默认 `preferred_character_id`
-- Mode：Co-op / Battle 两枚。Battle caption：`no shop · no phrases · pvp`
+**密度：** 三条是行，不是三张大卡。行与行之间用一条分隔，不每行套边框。Recent 最多 3 行，没有则整段不出现。
 
-**Focus：** Boar → Chicken → Co-op → Battle → NEXT → Back。默认焦 NEXT（身份已有默认）。
+**键盘焦点：** Create → Join → LAN → 第一条 Recent → Back。打开时焦 Create。
 
-**Confirm：** NEXT → Step 2。
+**手柄焦点：** 同键盘，上下移动。A 进入该行，B = Back。
 
-**动画：** 簇内 fade。选角色 punch。
+**Back：** → HOME。Guest 探针若已开，离开簇时 `LanBeacon.stop()`。
 
-**Persistent：** 面板壳、步骤点、Back。
-**Context：** 角色、模式。
+**确认：** 进入对应簇内视图。
+
+**进场：** 进入簇时一次 `enter_page`。
+
+**退场：** 离开簇时 `exit_page`。簇内换页只 fade。
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ ┌ CREATE ROOM          1 Identity    2 Room               [ back ]─┐ │
-│ │  [◆] Player                                                      │ │
-│ │  from profile                                                    │ │
-│ │                                                                  │ │
-│ │  CHARACTER                                                       │ │
-│ │  ┌────────┐  ┌────────┐                                          │ │
-│ │  │  BOAR  │  │ CHICKEN│                                          │ │
-│ │  └────────┘  └────────┘                                          │ │
-│ │                                                                  │ │
-│ │  MODE                                                            │ │
-│ │  ┌────────┐  ┌────────┐                                          │ │
-│ │  │ CO-OP  │  │ BATTLE │                                          │ │
-│ │  └────────┘  └────────┘                                          │ │
-│ │                                                    [  NEXT  ]    │ │
-│ └──────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ WPG   HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS      [av] Player  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  MULTIPLAYER                                                            │
+│  Play together                                                          │
+│                                                                         │
+│  CREATE ROOM                                          HOST A GAME    →  │
+│  ─────────────────────────────────────────────────────────────────────  │
+│  JOIN ROOM                                            USE INVITE     →  │
+│  ─────────────────────────────────────────────────────────────────────  │
+│  LAN ROOMS                                            3 ON THIS LAN  →  │
+│                                                                         │
+│                                                                         │
+│  RECENT                                                                 │
+│  NightFox's Room      3/5     Co-op     Yard                         →  │
+│  Pixel's Room         2/5     Battle    Pit                          →  │
+│                                                                         │
+│  [ back ]                                                               │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+语义锁死：
+
+| 行 | 是什么 | 不是什么 |
+|---|---|---|
+| CREATE ROOM | 本机当 Host | 公开到公网目录 |
+| JOIN ROOM | URI / QR / 短码 / 手打地址 | 公网房间列表 |
+| LAN ROOMS | Beacon 发现的同网房间 | 互联网目录、matchmaking |
+| RECENT | 本机记得的最近房间 | 服务器下发的热门房间 |
+
+Recent 的人数和地图来自上次离开时的本地记录。点它若本地还有邀请或地址，进入 Join 并填好；没有则停在 Join 让玩家粘贴。不向任何目录查询。
+
+LAN 行上的数字只统计当前 Beacon 结果。发现口绑定失败时，该行 caption 改为 `discover bind failed`，Join 仍可用。
 
 ---
 
-## 13. Screen 07 — Create Room Step 2
+## 10. Screen — LAN Rooms
 
-**目的：** 房间设置。写进 Room，不写进 Profile。
+**类型：** MP 簇内部视图。不是新的 Overlay。
 
-**层级：** MP 簇内部视图。
+**目的：** 只显示 LanBeacon 发现的房间。
 
-**Primary：** CREATE（高 80 PillPink）→ 真正 `create_room` / bind → LOBBY
+**信息层级：** 标题 `ON THIS LAN` → caption `Beacon. Not an internet directory.` → 房间行。
 
-**Secondary：** `Seed from record` 打开现有 PICK 列表（借档：锁角色 / loop / 地图，联机仍不写盘）。借档后本页对应控件 disabled + caption `locked to record`。
+**主操作：** 第一间未满的房间。
 
-**Tertiary：** Back → Step 1（不拆房，因房还未 CREATE；若已 seed 则清 borrowed id）
+**次操作：** Back。
 
-**内容：**
+**密度：** 行列表。空则一行 `No rooms on this LAN`。无搜索框墙。满员行变灰。
 
-- Arena：Yard / Pit / Keep 三枚（已有三图，不要第四）
-- Loop 滑杆 0=Inf，默认 20；Battle 时滑杆 disabled，标签 `battle`
-- Privacy：`LAN visible` / `Invite only`。LAN visible 才 Beacon。Invite only 仍能手打 IP / 日后 URI
-- 人数只读 caption `max 5`
+**键盘 / 手柄：** 未满房间从上到下 → Back。满员行可聚焦，确认只播 Error，不连接。A 连接，B → MP Home。
 
-**Focus：** Yard → Pit → Keep → Loop → LAN visible → Invite only → Seed → CREATE → Back。默认焦 CREATE。
+**确认：** 把 Beacon 给出的地址送进 Connecting。不经过空的 Join 表单。
 
-**Confirm：** CREATE。bind 失败：本页 status 行 `bind failed` + ErrorSfx，停在 Step 2，不要关簇。
-
-**动画：** 簇内 fade。
+**进场 / 退场：** 簇内 fade。
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ ┌ CREATE ROOM          1 Identity    2 Room               [ back ]─┐ │
-│ │  ARENA                                                           │ │
-│ │  [ Yard ]  [ Pit ]  [ Keep ]                                     │ │
-│ │                                                                  │ │
-│ │  LOOP                                                            │ │
-│ │  0 --------●-------------- 40     20                             │ │
-│ │                                                                  │ │
-│ │  PRIVACY                                                         │ │
-│ │  [ LAN visible ]  [ Invite only ]                                │ │
-│ │  max 5                                                           │ │
-│ │                                                                  │ │
-│ │  [ Seed from record ]                            [  CREATE  ]    │ │
-│ └──────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
+│  ON THIS LAN                                                            │
+│  Beacon. Not an internet directory.                                     │
+│                                                                         │
+│  NightFox's Room     Yard · Co-op · 20                         2/5   →  │
+│  Pit Fight           Pit · Battle                              5/5      │
+│                                                                         │
+│  [ back ]                                                               │
 ```
+
+主标题是房主显示名。协议还没带名字时，标题用 `Room`，地址只放 caption。IP 不做永久主标题。
 
 ---
 
-## 14. Screen 08 — Join Room
+## 11. Screen — Create Room Step 1
 
-**目的：** 用邀请或手打地址进房。**不是** 公网浏览器。
+**类型：** MP 簇内部视图。
 
-**层级：** MP 簇内部视图。
+**目的：** 我是谁、这局什么模式。默认来自 Profile。
 
-**Primary：** CONNECT（高 56）
+**信息层级：** 步骤 `1 · 2` → 只读身份一行 → Character → Mode。
 
-**Secondary：** 无。Paste 邀请时 LineEdit 即解析。
+**主操作：** Next。
 
-**Tertiary：** Back → MP HOME（取消 connecting）
+**次操作：** 无。
 
-**内容：**
+**密度：** 两个选择组，不是设置表单墙。身份只读，不在这里改 Profile。
 
-- 标题 `JOIN ROOM`
-- 一个 LineEdit，placeholder：`invite / 127.0.0.1`
-- 解析成功后只读摘要：`NightFox's Room` / map / mode（没有则省略，不显示 token）
-- Character：Boar / Chicken，默认 Profile
-- Status 行：空 / `connecting` / `refused` / `Version mismatch`
-- caption：`LAN list is on the previous page. There is no internet directory.`
+**键盘焦点：** Boar → Chicken → Co-op → Battle → Next → Back。默认焦 Next。
 
-**Connecting：** CONNECT 变 disabled，文案改 `connecting`。不要换页。失败：按钮恢复，status 错误。成功：切 Lobby。
+**手柄焦点：** 左右改组内选项，下到 Next。A = Next，B → MP Home。
 
-**Focus：** LineEdit → Boar → Chicken → CONNECT → Back。默认焦 LineEdit。
+**Back：** → MP Home。若已有草稿 bind，拆掉并停 Beacon。
 
-**Back：** 取消 peer / 探针保持 MP HOME 的 Guest 发现。
+**确认：** Next → Step 2。
+
+**进场 / 退场：** 簇内 fade。选中 punch。
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ ┌ JOIN ROOM                                               [ back ]─┐ │
-│ │  [ invite / 127.0.0.1                                      ]     │ │
-│ │  NightFox's Room · Yard · Co-op                                  │ │
-│ │                                                                  │ │
-│ │  CHARACTER                                                       │ │
-│ │  [boar] [chicken]                                                │ │
-│ │                                                                  │ │
-│ │  connecting / refused / Version mismatch                         │ │
-│ │                                                  [ CONNECT ]     │ │
-│ │  LAN list is on the previous page.                               │ │
-│ └──────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-### Connecting 专用（同一视图，不是新 Overlay）
-
-```text
-│  [ invite / 192.168.1.20                                 ]         │
-│  connecting                                                        │
-│                                                  [ CONNECT ]       │  ← disabled
-```
-
-### Connection Failed / Version Mismatch（同一视图）
-
-```text
-│  Version mismatch                                                  │  ← Error 色
-│                                                  [ CONNECT ]       │  ← 可再点
+│  CREATE ROOM                         1  IDENTITY          2  ROOM       │
+│                                                                         │
+│  [av] Player                                                            │
+│  from profile                                                           │
+│                                                                         │
+│  CHARACTER                                                              │
+│  Boar          Chicken                                                  │
+│                                                                         │
+│  MODE                                                                   │
+│  Co-op         Battle                                                   │
+│  Battle: no shop, no phrases, pvp                                       │
+│                                                                         │
+│  [ back ]                                              [ NEXT ]         │
 ```
 
 ---
 
-## 15. Screen 09 — Lobby
+## 12. Screen — Create Room Step 2
 
-**目的：** 多人体验的核心页。看见 **人、座位、Ready、房间状态**。
+**类型：** MP 簇内部视图。
 
-**层级：** MP 簇内部视图。进战斗前最后一屏。
+**目的：** 房间规则写进 Room，不写进 Profile。
 
-**TopBar：** HOME 触发离开房间确认。Settings 可开。PLAY 不另开 ModeChoice。
+**信息层级：** Arena → Loop → Privacy → 人数 caption。
 
-**Primary：** START（仅 Host，占用 2–5 且无 pending 且 Guest ready 才可点）。Guest 看不到 START。
+**主操作：** Create。成功后进 Lobby。
 
-**Secondary：** READY（切换自己的 ready）。Phase 3 第一刀默认 ready=true，此钮可先隐藏或锁在 ready；Phase 5 再露。
+**次操作：** Seed from record。借档锁角色、loop、地图，联机仍不写盘。锁定后对应控件 disabled，caption `locked to record`。
 
-**Tertiary：** Leave / Back → Compact Modal 确认离开 → MP HOME（Host 离开 = 关房，Guest 收到 Host closed）。
+**密度：** 三组选择加一个滑杆。不拆成多张卡片。
 
-**内容优先级（必须按此视觉顺序，上到下或左主右次）：**
+**键盘焦点：** Yard → Pit → Keep → Loop → LAN visible → Invite only → Seed → Create → Back。默认焦 Create。
 
-1. **Players** 座位 1–5
-2. **Room info** 模式 / 地图 / loop
-3. **Ready / connection** 画在座位行上
-4. **Invite** Copy（QR Phase 5 可同日或次日）
-5. **Technical details** 默认折叠：IP / port / protocol。一键展开
+**手柄焦点：** 左右改 Arena / Privacy，Loop 用左右调步进。A = Create，B → Step 1。
 
-座位行高 72，从左到右：
+**Back：** → Step 1。房还没 Create，不拆连接。已 seed 则清 borrowed id。
+
+**确认：** Create。`bind failed` 写在本页一行 status，停在 Step 2。
+
+**进场 / 退场：** 簇内 fade。
 
 ```text
-[avatar 40]  DISPLAY_NAME     role     character     state
+│  CREATE ROOM                         1  IDENTITY          2  ROOM       │
+│                                                                         │
+│  ARENA                                                                  │
+│  Yard          Pit          Keep                                        │
+│                                                                         │
+│  LOOP                                                                   │
+│  0 ────────●──────────── 40          20                                 │
+│                                                                         │
+│  PRIVACY                                                                │
+│  LAN visible        Invite only                                         │
+│  max 5                                                                  │
+│                                                                         │
+│  [ Seed from record ]                                                   │
+│                                                                         │
+│  [ back ]                                            [ CREATE ]         │
 ```
 
-- role：`HOST` / `PLAYER` / 空位 `EMPTY SEAT`
-- state：`ready` / `connecting` / 空位无 state
-- 空位不可点（1.0 不换座）
-- 禁止主行出现 peer id、IP、token、protocol
+`LAN visible` 才发 Beacon。`Invite only` 不出现在 LAN 列表，仍可用邀请和手打地址。没有「发布到公网」选项。人数只读，上限 5。Battle 时滑杆 disabled，标签 `battle`。地图只有 Yard / Pit / Keep。
 
-Host 改地图 / 模式 / loop：Lobby 右栏可编辑（借档则锁）。Guest 只读。
+---
 
-Invite：`Copy invite`。成功 status `copied`。1.0 第一刀可 Copy 本机 IPv4；URI 随 Phase 4/5。QR 不挡 Lobby 验收。
+## 13. Screen — Join Room
 
-**Focus Host：** Ready（若有）→ START → Copy invite → 地图钮 → Leave。默认焦 START（可点时）否则 Copy。
-**Focus Guest：** Ready → Copy → Leave。默认焦 Ready。
+**类型：** MP 簇内部视图。
 
-**Confirm：** Host 焦 START 且可点 = 开战。不可点时 ErrorSfx，START 保持灰。
+**目的：** 用邀请或地址进房。
 
-**离开确认 Compact Modal：** `Leave this room?`  [Cancel] [Leave]。Host 文案 `Leave and close the room?`
+**信息层级：** 一个输入 → 解析出的房间名（有才显示）→ 角色 → 连接。
+
+**主操作：** Connect。
+
+**次操作：** 展示 QR（本机去扫对方，或展示自己的码）。QR 是邀请的另一种输入，不打开房间目录。
+
+**密度：** 一个输入框。四种输入说明写在 caption 一行，不做成四张卡。
+
+**键盘焦点：** 输入 → Boar → Chicken → Connect → Back。打开时焦输入。
+
+**手柄焦点：** 同键盘。A = Connect，B → MP Home。
+
+**Back：** → MP Home，取消尚未完成的连接。
+
+**确认：** Connect。解析失败：输入下 caption `could not read invite`，不连。
+
+**进场 / 退场：** 簇内 fade。开始连接后换到 Connecting 视图，不在按钮上原地打转。
+
+允许的输入只有：
+
+```text
+Invite URI
+QR
+Short Code
+Manual Address
+```
+
+```text
+│  JOIN                                                                   │
+│  Invite, code, or address                                               │
+│                                                                         │
+│  [ wpg://join  /  code  /  127.0.0.1                              ]     │
+│  NightFox's Room · Yard · Co-op                                         │
+│                                                                         │
+│  CHARACTER                                                              │
+│  Boar          Chicken                                                  │
+│                                                                         │
+│  URI · QR · short code · address. No public room list.                  │
+│                                                                         │
+│  [ back ]   [ QR ]                                 [ CONNECT ]          │
+```
+
+角色默认 `preferred_character_id`。不显示 token。
+
+---
+
+## 14. Screen — Connecting
+
+**类型：** MP 簇内部状态页。
+
+**目的：** 告诉玩家正在进哪一间，并允许取消。
+
+**信息层级：** `CONNECTING` → 房间名或地址 caption → 路径一句（`Direct` / `LAN`）。
+
+**主操作：** 无。连接成功自动进 Lobby。
+
+**次操作：** Cancel。
+
+**密度：** 三行字。没有日志，没有设置，没有转圈装饰层。
+
+**键盘 / 手柄：** 只有 Cancel。A 或 B 都取消。
+
+**Back：** 取消 peer → MP Home。
+
+**确认：** 不重复发起连接。
+
+**进场 / 退场：** 簇内 fade。标题 alpha 在 1.0 与 0.55 之间循环，0.6s。
+
+```text
+│                                                                         │
+│                         CONNECTING                                      │
+│                         NightFox's Room                                 │
+│                         Direct                                          │
+│                                                                         │
+│                         [ CANCEL ]                                      │
+│                                                                         │
+```
+
+---
+
+## 15. Screen — Connection Failed
+
+**类型：** MP 簇内部状态页。
+
+**目的：** 没连上。留在菜单里，不进 Lobby。
+
+**信息层级：** `CONNECTION FAILED` → 一句原因 → Retry / Back。
+
+**主操作：** Retry。用刚才的邀请或地址再进 Connecting。
+
+**次操作：** Back。
+
+**密度：** 与 Connecting 同一舞台，只换结论。不展开错误码表。
+
+**键盘焦点：** Retry → Back。打开时焦 Retry。
+
+**手柄焦点：** 左右。A 确认，B = Back。
+
+**Back：** → MP Home。
+
+**确认：** Retry → Connecting。
+
+**进场 / 退场：** 簇内 fade。标题用现有 Error 色，播一次 ErrorSfx。
+
+原因句只用现有词：`refused`、`bind failed`、超时则 `could not reach the room`。不新造对话框。
+
+```text
+│                                                                         │
+│                         CONNECTION FAILED                               │
+│                         Could not reach the room.                       │
+│                                                                         │
+│                    [ BACK ]          [ RETRY ]                          │
+│                                                                         │
+```
+
+---
+
+## 16. Screen — Version Mismatch
+
+**类型：** MP 簇内部状态页。
+
+**目的：** 协议不一致。Retry 没有意义。
+
+**信息层级：** `VERSION MISMATCH` → 一句说明 → Back。
+
+**主操作：** Back。
+
+**次操作：** 无。
+
+**密度：** 与失败页同一舞台。不显示双方协议号大表；需要时 caption 一行 `local 5 · room 6`。
+
+**键盘 / 手柄：** 只有 Back。A 或 B 都回 MP Home。
+
+**确认：** Back。
+
+**进场 / 退场：** 簇内 fade。ErrorSfx。
+
+```text
+│                                                                         │
+│                         VERSION MISMATCH                                │
+│                         This room uses a different protocol.            │
+│                                                                         │
+│                            [ BACK ]                                     │
+│                                                                         │
+```
+
+文案保持现有 `Version mismatch` 可识别。不升协议，不提供强制加入。
+
+---
+
+## 17. Screen — Lobby
+
+**类型：** MP 簇内部视图。进战斗前的最后一屏。
+
+**目的：** 这间房里有谁。结构化可以比 Home 更强，但仍然不是设置面板。
+
+**信息层级：**
+
+1. 玩家行（1–5）
+2. 房间事实：模式、地图、目标
+3. 连接一句 + 邀请
+4. Ready / Start
+
+**主操作：** Host 的 Start。占用 2–5、无 pending、Guest 都 ready 才可点。Guest 不渲染 Start，不放一颗灰钮占位。
+
+**次操作：** Ready。Phase 3 第一刀默认真，按钮可先锁住。Phase 5 再允许切换。
+
+**密度：** 玩家是一组行，组有一块底。房间事实是一行字，不是三张信息卡。IP、端口、协议默认不出现。
+
+**键盘焦点（Host）：** 自己的 Ready → Start → Copy → QR → Leave。可点时默认焦 Start，否则焦 Copy。
+
+**键盘焦点（Guest）：** Ready → Copy → QR → Leave。默认焦 Ready。
+
+**手柄焦点：** 与键盘相同，左右在底栏，上下不进空座位。A 确认，B 打开离开确认。
+
+**Back：** Compact Modal。Host 文案 `Leave and close the room?`，Guest 文案 `Leave this room?`。Leave → MP Home。Cancel 留在 Lobby。
+
+**确认：** Host 在 Start 上确认 = 开战。不可点时 ErrorSfx，留在 Lobby。
+
+**进场 / 退场：** 簇内 fade。座位插入或离开只 punch 该行。Ready 只改该行的字。
 
 **开战：** `handoff_to_combat` → Loading → Combat。大厅对象销毁。本文件到此结束。
 
-**动画：** 进 Lobby 不整页重放 stagger。座位 insert/remove 短 punch。Ready 行内闪。Connecting 行内闪。
-
-**Persistent：** 面板壳、座位墙骨架 5 行、Back。
-**Context：** 人名、状态、地图模式、邀请。
-
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ ┌ NIGHTFOX'S ROOM                                         [ leave ]─┐ │
-│ │                                                                    │ │
-│ │  PLAYERS                      ROOM                                 │ │
-│ │  ┌─────────────────────────┐  Co-op · Yard · 20                    │ │
-│ │  │ [◆] NightFox  HOST  boar    ready                               │ │
-│ │  │ [◆] Pixel     PLAYER chicken ready                              │ │
-│ │  │ [◆] Ash       PLAYER boar    connecting                         │ │
-│ │  │     EMPTY SEAT                                                  │ │
-│ │  │     EMPTY SEAT                                                  │ │
-│ │  └─────────────────────────┘                                       │ │
-│ │                           INVITE                                   │ │
-│ │                           [ Copy invite ]  copied                  │ │
-│ │                           ▸ Connection details                     │ │
-│ │                             192.168.1.20:17777 · v5                │ │
-│ │                                                                    │ │
-│ │                           [ READY ]     [  START  ]                │ │
-│ └────────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ WPG              NIGHTFOX'S ROOM                              CO-OP     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  PLAYERS                                                                │
+│                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │ [av]  NIGHTFOX          HOST         BOAR            READY        │ │
+│  │ [av]  PLAYER_02         PLAYER       CHICKEN         READY        │ │
+│  │ [av]  PLAYER_03         PLAYER       BOAR            CONNECTING   │ │
+│  │       EMPTY SEAT                                                  │ │
+│  │       EMPTY SEAT                                                  │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ROOM                                                                   │
+│  Co-op          Yard          Goal 20                                   │
+│                                                                         │
+│  CONNECTION                        INVITE                               │
+│  ● Direct                          [ COPY ]    [ QR ]                   │
+│                                                                         │
+│                              [ READY ]              [ START ]           │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-Connection details 默认收起。展开才见 IP / 端口 / 协议。Token 永不做主标题。
+座位从左到右：头像 40、名字、`HOST` 或 `PLAYER`、角色、状态。空位写 `EMPTY SEAT`，不可点，1.0 不换座。状态只用 `READY` / `CONNECTING`。禁止主行出现 peer id、IP、token、协议。
 
-Guest 的 START 位空着，不放灰钮占 Primacy。
+Host 可在 ROOM 行改地图、模式、目标；借档则锁定。Guest 只读。
+
+Copy 成功，旁边 caption `copied` 1.2s。第一刀可以只复制本机 IPv4。URI 随 Phase 4/5。QR 不挡住 Lobby 验收。
+
+连接句：`Direct` 或 `LAN`。技术细节不占这一屏。
 
 ---
 
-## 16. Screen 10–12 — 阻断状态（Compact Modal / Toast / Inline）
+## 18. Screen — Host Closed
 
-### 16.1 Compact Modal 壳
+**类型：** Compact Modal。不是 Page。
 
-尺寸：`UiFit` 720×260 首选，最小 480×180（现 `RoomNotice.MODAL_*`）。动效 `enter_modal`。Dimmer 从 TopBar 下沿开始，TopBar 可点 HOME。
+**目的：** Guest 必须知道房主关了房，然后回 Home。
+
+**信息层级：** 现有两句 → OK。
+
+**主操作：** OK。
+
+**次操作：** 无。
+
+**密度：** 约 720×260，最小 480×180。不解释网络。
+
+**键盘 / 手柄：** 只有 OK。A、B、Esc 都等于 OK。
+
+**Back：** OK → HOME，清 peer。
+
+**确认：** OK。
+
+**进场 / 退场：** `enter_modal` / `exit_modal`。
+
+文案保持现有 `Host closed the room. Returning to the menu.` 禁止改字。
 
 ```text
 ┌──────────────────────────────────────────┐
@@ -783,109 +1051,82 @@ Guest 的 START 位空着，不放灰钮占 Primacy。
 └──────────────────────────────────────────┘
 ```
 
-| 事件 | 形式 | 文案 | 之后 |
+战斗内 Host closed 仍走 `RoomNotice`，本文件不改 Combat。
+
+离开房间确认用同一 Modal 壳：`[ Cancel ] [ Leave ]`。Cancel 默认焦点。
+
+---
+
+## 19. 顶栏
+
+所有菜单页打开时顶栏仍在、可点。
+
+| 项 | 行为 |
+|---|---|
+| WPG | 等于 HOME。Lobby 已建连时先离开确认 |
+| HOME | 关掉 Page 与 Credits，回舞台。Lobby 已建连时先离开确认 |
+| PLAY | 打开 Play 页。已在 Play、Solo 时保持该页并把 PLAY 标为当前。在 MP 簇或 Lobby 时不另叠一页 |
+| MULTIPLAYER | 打开 MP Home。已在簇内则回到簇根视图。Lobby 已建连时先离开确认 |
+| PROFILE | 打开 Profile。文案是 `display_name`，不是 `best %d` |
+| SETTINGS | 开 Drawer，不关当前 Page |
+| 头像 + 名字 | 等于 PROFILE。不可单独聚焦，跟在 PROFILE 项上 |
+| 时钟 | 只读 `HH:MM:SS` |
+
+当前项用字重或一条 2px 实心，不用发光胶囊。
+
+---
+
+## 20. 文件映射与 Phase 1 顺序
+
+Phase 1 仍是网络零改。F5 进 Solo、进现有 LAN，行为与 Day 85 无法分辨。本文件写完不等于开工。
+
+| 屏幕 | 现在 | Phase 1 | 以后 |
 |---|---|---|---|
-| Host closed（Guest） | Compact Modal | 现 `TEXT_HOST_CLOSED` | OK → HOME |
-| Guest left，Host 转单机（战斗） | Toast 2.8s | 现 `TEXT_GUEST_LEFT` | 战斗继续；菜单阶段用不到 |
-| Leave room 确认 | Compact Modal | `Leave this room?` | Leave → MP HOME |
-| 长按删档 | 现 RecordSelector 确认条 | 不动 | 留在 LIST |
-| bind failed | **Inline** 在 Step 2 | `bind failed` | 留在 Step 2 |
-| Version mismatch | **Inline** 在 Join | `Version mismatch` | 留在 Join |
-| refused / connecting | **Inline** 在 Join | 现词 | 留在 Join |
-| Full room | 卡 disabled + ErrorSfx | 无 Modal | 留在 MP HOME |
-| copied | Invite 旁 caption 1.2s | `copied` | 留在 Lobby |
+| Home 三颗 shear | Settings / Play / Quit | 改成舞台 + 一行状态 + Rail + 角落 Quit | — |
+| 顶栏 | 无 Solo/Multi；Profile 是 `best %d` | 加上 MULTIPLAYER 导航；名字槽改 `Player` | Phase 2 接真名 |
+| ModeChoice 两张卡 | `mode_choice_overlay` | 退出主路径。顶栏 PLAY 与 Rail 直接去 Play 页 / Solo / MP | — |
+| Play 页 | 不存在 | 新 Page，三条 Rail | — |
+| Profile | 只读大面板 | 改成疏页壳，数据仍只读 | Phase 2 可写 |
+| Solo / Ranking | 已有 | 只改 page 动效 | — |
+| MP 簇布局 | `lan_overlay` JOIN/HOST | **不重排** | Phase 5 按本文件 |
+| Settings | 开时关掉别的叠层 | 改为不关底下 Page | — |
+| ENet / RPC | Overlay 持有 | 不碰 | Phase 4 |
 
-**禁止** 为 mismatch / refused / connecting / full 再开 1680 大页。
+Phase 1 顺序：
 
-### 16.2 Host Closed wireframe
+1. 只加 `UiAnim` 的 page / modal / drawer 函数。不改圆角，不新开皮肤。
+2. Home 改成舞台、一行状态、Rail。删除中央巨钮和两张 ModeChoice 卡。
+3. Play 页用 page 动效。RecordSelector、Profile、Ranking、现有 LanOverlay 的开合改 page 动效。Lan 内部视图不动。
+4. Settings 打开时不关 Profile / Solo / LAN。
+5. 顶栏名字槽改为 `Player`。MULTIPLAYER 在 Phase 1 可以先打开 **现有** LAN 叠层，不提前做 Create/Join/Lobby 新布局。
 
-见上。焦 OK。Esc = OK。ClickSfx 不走。关闭后清 peer。
-
-### 16.3 战斗内 Host closed
-
-保持 `RoomNotice`，本文件不改 Combat。
-
----
-
-## 17. Settings 与这些页面
-
-| 从哪开 | 开 Settings 时底下 | 关 Settings |
-|---|---|---|
-| HOME | Home 中央 | Home |
-| PROFILE / SOLO / MP 任意视图 / LOBBY | 该 Page 仍 open | 该 Page |
-| MODE CHOICE | 先关 Modal 再开 Drawer（避免双浮层抢焦） | HOME |
-| Compact Modal | 不允许同时开 Settings | — |
-| 战斗 Pause | 现 Pause 合同 | 不在范围 |
-
-Credits 仍是 Settings 的 Modal 子层。
-
-Settings 本身视觉已是 Day 58 FlatBold 抽屉。本文件不重画 Audio/Display/Controls/Data。动效抽成 `enter_drawer`。
+Phase 1 不做：`profile.json`、`LobbyManager`、抽 `@rpc`、本文件第 9–17 节的新布局、UPnP、主动技能、虚拟摇杆、改战斗。
 
 ---
 
-## 18. 现有文件 → 新 UI 映射
+## 21. 明确不做
 
-| 屏幕 | 现在 | 去向 | 动作 |
-|---|---|---|---|
-| Home 中央三 shear | `main_menu.tscn` Settings/Play/Quit 280×124 | 单颗 PLAY + 身份块 + 文字链 + 右下 Quit | Phase 1 改布局 |
-| TopBar Solo/Multi | `SoloButton` / `MultiButton` | **移除** | Phase 1 |
-| TopBar Profile 文案 | `"best  %d"` | `display_name`（Phase 1 占位 `Player`） | Phase 1 槽，Phase 2 数据 |
-| ModeChoice | `mode_choice_overlay` 现走 `enter_overlay` | 改 `enter_modal`；卡尺寸降到 360×220 | Phase 1 |
-| Profile | `profile_overlay` 只读成绩 | 左身份右统计；Phase 2 可写 | Phase 1 壳 / Phase 2 数据 |
-| Solo | `record_selector` | 保留；动效改 page | Phase 1 动效 |
-| Ranking | `record_leaderboard_overlay` | 保留；Back 仍回 Profile | Phase 1 动效 |
-| MP 簇 | `lan_overlay.gd` 1074 行 JOIN/PICK/HOST | 同一场景内部视图：Home/Create1/Create2/Join/Lobby | Phase 3 视图，Phase 4 抽 RPC |
-| 房间卡 IP 主标题 | `_make_room_title_label(address)` | 名字主标题，IP caption | Phase 5（协议 6 带名字）；过渡期 `Room` + IP caption |
-| 座位权威 / @rpc / ENet | Overlay | `Room` + `LobbyNet` | Phase 4 |
-| Beacon | Overlay `_ensure_beacon` | LobbyManager | Phase 4 |
-| Settings | `settings_overlay` | 抽 drawer 动效；**不再关闭底下 Page** | Phase 1 路由 |
-| Host closed | `room_notice.gd` | 保持 Compact Modal | 不改文案 |
-| 换场信封 | `GameLaunch` | 保留；可加公开 Profile 数组 | Phase 4/5 |
-| 战斗 | `combat_sandbox` / `run_session` / `net_session` | **零改职责** | 禁 |
-
-不要新建第二套 `main_menu.tscn`。不要 `class_name NetworkSession`。不要 Autoload。
-
----
-
-## 19. Phase 1 具体实现顺序
-
-遵守 roadmap：网络零改。F5 Solo 与现有 2 人 LAN 行为与 Day 85 无法分辨。
-
-1. **令牌落文档即可，theme 不新开皮肤。** 需要的话只加缺的 `UiAnim` 函数，不改 StyleBox 圆角。
-2. **`UiAnim`：** 增加 `enter_page` / `exit_page` / `enter_modal` / `exit_modal` / `enter_drawer` / `exit_drawer`。`enter_overlay` 变成 `enter_page` 的 deprecated 别名（位移改为 24px）。禁止继续对 Modal 升 56px。
-3. **ModeChoice** 改走 modal 动效。
-4. **MainMenu IA：** 去掉中央 Settings shear 与等大 Quit shear；单颗 PLAY；身份块占位；`Solo · Multiplayer` 文字链；右下 Quit；TopBar 去掉 Solo/Multi；Profile 槽改显示 `Player`。Logo 仍 = PLAY。
-5. **Settings 路由：** 打开时不关 Profile / Solo / LAN。Credits 仍挡。
-6. **已有 Page**（RecordSelector / Profile / Ranking / LanOverlay）的 open/close 改 `enter_page` / `exit_page`。Lan 内部 JOIN/HOST **本阶段不重排**。
-7. **README / 本文件指针：** Phase 1 做完后按日记录；不要提前宣称 Lobby 重做完成。
-
-Phase 1 **不做：** `PlayerProfile` 磁盘（那是 Phase 2）、`LobbyManager`、抽 `@rpc`、Create/Join/Lobby 新布局、UPnP、主动技能、虚拟摇杆、改战斗。
-
----
-
-## 20. 明确不做
-
-- 账号、后端、公网房间目录、matchmaking、云 Lobby、Internet 房间列表
-- Autoload、第二 `multiplayer_peer`、`CombatSession`、`NetworkSession`
-- 改 CombatSandbox / RunSession / NetSession 战斗职责、快照 v3、战斗 RPC、枪与移速数字、出生点、physics
-- osu 紫黑渐变、soft shadow、发光胶囊、新圆角体系
-- 把 Progress / Records 写进 Profile 文件
+- 账号、后端、公网房间目录、matchmaking、云 Lobby
+- 把 Beacon 列表或 Recent 做成互联网房间
+- Autoload、第二个 `multiplayer_peer`、`CombatSession`、`NetworkSession`
+- 改战斗职责、快照 v3、战斗 RPC、枪与移速、出生点、physics
+- 中央巨大 PLAY、主页 Profile 大卡、卡片墙、osu 紫黑渐变、soft shadow、发光胶囊、纯黑 HUD、粉紫描边
+- 中途续打
 - 完整手柄重绑、虚拟摇杆
-- 为显示名单独 bump 协议（门票握手时一次 5→6）
+- 为显示名单独 bump 协议
 
 ---
 
-## 21. 验收口径（布局锁）
+## 22. 验收
 
-另一名实现者交付后，应无需对原作者口播就能核对：
-
-- Home 一眼是身份 + 一颗 PLAY；没有三颗等大 shear；顶栏没有 Solo/Multi 文案
-- 顶栏名字位不是 `best 0`
-- PLAY 开的是 Modal 两张卡，不是大面板
-- MULTI 首页是 CREATE / JOIN / AVAILABLE LAN ROOMS，没有 Internet 列表
-- Lobby 主列是人名和 Ready，IP 在折叠的 Connection details
-- Connecting / mismatch / refused 都在 Join 的 status 行
-- Host closed 是 Compact Modal
-- 所有新动效能说出是 page / modal / drawer / card / ready / connection 哪一种
-- Settings 打开后底下 Page 还在
-- Autoload = 0；LAN 仍 17777/17778、5 座、不写档
+- Home 最大的区域是空舞台。其下是一行名字和三条同高 Rail。没有中央巨大 PLAY
+- 顶栏是 HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS，右端是头像和名字。名字不是 `best 0`。没有 Solo 项
+- Profile 是独立页。主页没有成绩卡
+- Play 是 Page，不是两张大卡 Modal
+- MP Home 是三条导航行。LAN Rooms 的标题或 caption 写明 Beacon，且没有公网列表
+- Join 只有 URI、QR、短码、手打地址
+- Lobby 主列是人名和 Ready。IP 不在主列
+- Connecting、失败、版本不符是留白状态页。Host closed 仍是 Compact Modal
+- Continue 只在有档时出现，并且是新开一局
+- Settings 打开后底下的 Page 还在
+- Autoload = 0。Phase 1 之后 LAN 仍是 17777 / 17778、5 座、不写档
