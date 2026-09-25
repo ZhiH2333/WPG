@@ -91,7 +91,7 @@ def paint(kind: str, text: str) -> str:
 
 
 def emit(kind: str, message: str) -> None:
-    print("%s %s" % (paint(kind, "[%s]" % kind), message))
+    print("%s %s" % (paint(kind, "[%s]" % kind), message), flush=True)
 
 
 def emit_outcome(outcome: Outcome) -> None:

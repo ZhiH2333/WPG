@@ -81,6 +81,32 @@ def install_editor(root: Path) -> Path:
     return binary
 
 
+def extract_templates(archive: Path, destination: Path) -> None:
+    """官方 .tpz 的文件在 templates/ 下面，Godot 要的是版本目录里直接放 version.txt。"""
+    with zipfile.ZipFile(archive) as zipped:
+        names = [name for name in zipped.namelist() if not name.endswith("/")]
+        if "templates/version.txt" in names:
+            prefix = "templates/"
+        elif "version.txt" in names:
+            prefix = ""
+        else:
+            sample = "\n".join(names[:40])
+            raise SystemExit(
+                "[FAIL] 导出模板压缩包里没有 version.txt。包内前若干项：\n%s" % sample
+            )
+        for info in zipped.infolist():
+            name = info.filename
+            if name.endswith("/") or not name.startswith(prefix):
+                continue
+            relative = name[len(prefix):]
+            if not relative:
+                continue
+            target = destination / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with zipped.open(info) as source, target.open("wb") as output:
+                shutil.copyfileobj(source, output)
+
+
 def install_templates() -> None:
     root = install_root()
     archive = root / "templates.tpz"
@@ -89,8 +115,7 @@ def install_templates() -> None:
     if destination.exists():
         shutil.rmtree(destination)
     destination.mkdir(parents=True)
-    with zipfile.ZipFile(archive) as zipped:
-        zipped.extractall(destination)
+    extract_templates(archive, destination)
     version_file = destination / "version.txt"
     if not version_file.is_file():
         raise SystemExit("[FAIL] 导出模板解压后没有 version.txt：%s" % destination)
