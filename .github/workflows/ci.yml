@@ -1,0 +1,62 @@
+name: WPG CI
+
+run-name: >-
+  ${{
+    github.event_name == 'pull_request'
+    && format('WPG CI — PR #{0} — {1}', github.event.pull_request.number, github.event.pull_request.head.ref)
+    || format('WPG CI — {0} — {1}', github.ref_name, github.sha)
+  }}
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+      - "dev/*"
+
+concurrency:
+  group: wpg-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Godot validation
+        run: python tools/ci/validate.py
+
+  architecture:
+    name: architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Architecture Guard
+        run: python tools/ci/architecture.py
+
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Smoke Test
+        run: python tools/ci/smoke.py

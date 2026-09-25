@@ -1,0 +1,181 @@
+name: WPG Build
+
+run-name: >-
+  ${{
+    github.event_name == 'workflow_dispatch'
+    && format('WPG Build — {0} — {1}', github.ref_name, github.sha)
+    || format('WPG Build — {0} — {1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha)
+  }}
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - WPG CI
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  decide:
+    name: decide
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.gate.outputs.should_build }}
+      sha: ${{ steps.gate.outputs.sha }}
+    steps:
+      - id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "[INFO] 手动 Run WPG Build"
+            exit 0
+          fi
+          conclusion="${{ github.event.workflow_run.conclusion }}"
+          event_name="${{ github.event.workflow_run.event }}"
+          branch="${{ github.event.workflow_run.head_branch }}"
+          sha="${{ github.event.workflow_run.head_sha }}"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          if [ "${event_name}" = "push" ] && [ "${branch}" = "main" ] && [ "${conclusion}" != "success" ]; then
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            echo "[FAIL] main 的 WPG CI 未通过（${conclusion}），不构建"
+            exit 1
+          fi
+          if [ "${conclusion}" = "success" ] && [ "${event_name}" = "push" ] && [ "${branch}" = "main" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "[PASS] main 的 WPG CI 已通过，开始 Build"
+            exit 0
+          fi
+          echo "should_build=false" >> "$GITHUB_OUTPUT"
+          echo "[INFO] 不构建。conclusion=${conclusion} event=${event_name} branch=${branch}"
+
+  build-windows:
+    name: build-windows
+    needs: decide
+    if: needs.decide.outputs.should_build == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.decide.outputs.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build Windows
+        run: python tools/build/export_platform.py windows
+      - id: meta
+        shell: pwsh
+        run: python tools/build/print_meta.py windows >> $env:GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: artifacts/${{ steps.meta.outputs.file_name }}
+          if-no-files-found: error
+
+  build-macos:
+    name: build-macos
+    needs: decide
+    if: needs.decide.outputs.should_build == 'true'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.decide.outputs.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build macOS
+        run: python tools/build/export_platform.py macos
+      - id: meta
+        run: python tools/build/print_meta.py macos >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: artifacts/${{ steps.meta.outputs.file_name }}
+          if-no-files-found: error
+
+  build-linux:
+    name: build-linux
+    needs: decide
+    if: needs.decide.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.decide.outputs.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build Linux
+        run: python tools/build/export_platform.py linux
+      - id: meta
+        run: python tools/build/print_meta.py linux >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: artifacts/${{ steps.meta.outputs.file_name }}
+          if-no-files-found: error
+
+  build-android:
+    name: build-android
+    needs: decide
+    if: needs.decide.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.decide.outputs.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build Android APK
+        run: python tools/build/export_platform.py android
+      - id: meta
+        run: python tools/build/print_meta.py android >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: artifacts/${{ steps.meta.outputs.file_name }}
+          if-no-files-found: error
+
+  build-web:
+    name: build-web
+    needs: decide
+    if: needs.decide.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.decide.outputs.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build Web
+        run: python tools/build/export_platform.py web
+      - id: meta
+        run: python tools/build/print_meta.py web >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: artifacts/${{ steps.meta.outputs.file_name }}
+          if-no-files-found: error

@@ -1,0 +1,166 @@
+name: WPG Release
+
+run-name: WPG Release — ${{ github.ref_name }}
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-guard:
+    name: release-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Release Guard
+        run: python tools/release/guard.py
+
+  build-windows:
+    name: build-windows
+    needs: release-guard
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build Windows
+        run: python tools/build/export_platform.py windows --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: artifacts/WPG-v*-windows.zip
+          if-no-files-found: error
+
+  build-macos:
+    name: build-macos
+    needs: release-guard
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build macOS
+        run: python tools/build/export_platform.py macos --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: artifacts/WPG-v*-macos.zip
+          if-no-files-found: error
+
+  build-linux:
+    name: build-linux
+    needs: release-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build Linux
+        run: python tools/build/export_platform.py linux --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: artifacts/WPG-v*-linux.zip
+          if-no-files-found: error
+
+  build-android:
+    name: build-android
+    needs: release-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build Android APK
+        run: python tools/build/export_platform.py android --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: artifacts/WPG-v*-android.apk
+          if-no-files-found: error
+
+  build-web:
+    name: build-web
+    needs: release-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build Web
+        run: python tools/build/export_platform.py web --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-web
+          path: artifacts/WPG-v*-web.zip
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    needs:
+      - release-guard
+      - build-windows
+      - build-macos
+      - build-linux
+      - build-android
+      - build-web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: artifacts
+      - name: SHA256
+        run: python tools/release/checksums.py
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/release/publish.py

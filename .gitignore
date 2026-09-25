@@ -25,6 +25,10 @@ mono_crash.*.json
 # 导出产物（自行放到这些目录，或落在项目根）
 /export/
 /builds/
+/build/
+/artifacts/
+/logs/
+/.tools/
 *.apk
 *.aab
 *.ipa
