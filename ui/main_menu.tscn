@@ -14,11 +14,15 @@
 [ext_resource type="PackedScene" path="res://ui/record_leaderboard_overlay.tscn" id="19_leaderboard"]
 [ext_resource type="PackedScene" path="res://ui/play_page.tscn" id="20_play"]
 [ext_resource type="Script" path="res://ui/lobby_manager.gd" id="21_lobby"]
+[ext_resource type="Shader" path="res://ui/menu_wash.gdshader" id="22_wash"]
 
 [sub_resource type="ShaderMaterial" id="mat_blur"]
 shader = ExtResource("5_blur")
 shader_parameter/blur_amount = 0.0
 shader_parameter/dim_amount = 0.0
+
+[sub_resource type="ShaderMaterial" id="mat_wash"]
+shader = ExtResource("22_wash")
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -51,7 +55,18 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.05, 0.05, 0.04, 0.18)
+color = Color(0.05, 0.05, 0.04, 0)
+
+[node name="Wash" type="ColorRect" parent="."]
+material = SubResource("mat_wash")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
 
 [node name="Home" type="MarginContainer" parent="."]
 layout_mode = 1

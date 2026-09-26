@@ -4,6 +4,7 @@ class_name MainMenu
 ## 主菜单：舞台、一行玩家状态、Action Rail。顶栏负责导航。没有中央 PLAY。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
 const LOADING_SCREEN_SCRIPT := preload("res://ui/loading_screen.gd")
+const MENU_TYPE := preload("res://ui/menu_type.gd")
 const TOP_BAR_HEIGHT: float = 60.0
 const MUSIC_DB_NORMAL: float = -6.0
 const MUSIC_DB_DIMMED: float = -16.0
@@ -100,6 +101,9 @@ func _ready() -> void:
 	_refresh_clock(true)
 	_refresh_profile_name()
 	_refresh_home_facts()
+	_apply_menu_type()
+	_clear_top_bar_surface()
+	_ensure_rail_marks()
 	_play_enter_animation()
 	_top_bar.move_to_front()
 	_focus_home_default()
@@ -373,10 +377,60 @@ func _wire_rail_hover(button: Button) -> void:
 	button.focus_exited.connect(_set_rail_hover.bind(button, false))
 
 func _set_rail_hover(button: Button, hovered: bool) -> void:
-	button.pivot_offset = button.size * 0.5
-	var target: Vector2 = Vector2(UiAnim.HOVER_SCALE, UiAnim.HOVER_SCALE) if hovered else Vector2.ONE
-	var tween: Tween = create_tween()
-	tween.tween_property(button, "scale", target, UiAnim.HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	_paint_rail(button, hovered)
+
+func _paint_rail(button: Button, hovered: bool = false) -> void:
+	var title: Label = button.get_node_or_null("Title") as Label
+	var mark: ColorRect = button.get_node_or_null("FocusMark") as ColorRect
+	if title == null or mark == null:
+		return
+	var hot: bool = hovered or button.is_hovered() or button.has_focus()
+	title.add_theme_color_override("font_color", MENU_TYPE.INK if hot else MENU_TYPE.INK_SOFT)
+	var text_width: float = title.get_theme_font("font").get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.get_theme_font_size("font_size")).x
+	mark.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	mark.offset_left = 0.0
+	mark.offset_top = 34.0
+	mark.offset_right = maxf(text_width, 24.0)
+	mark.offset_bottom = 37.0
+	mark.visible = hot
+	mark.color = MENU_TYPE.ACCENT if button.has_focus() else MENU_TYPE.STRUCTURE
+
+func _apply_menu_type() -> void:
+	MENU_TYPE.apply_label(_player_name, &"display")
+	MENU_TYPE.apply_label(_player_status, &"caption")
+	MENU_TYPE.apply_label(_profile_name, &"navigation")
+	MENU_TYPE.apply_label(_clock_label, &"technical")
+	for button: Button in [_brand_button, _home_button, _top_play_button, _top_multi_button, _top_profile_button, _top_settings_button]:
+		MENU_TYPE.apply_button(button, &"navigation")
+	MENU_TYPE.apply_button(_quit_button, &"caption")
+	for button: Button in [_continue_button, _solo_button, _multi_button]:
+		var title: Label = button.get_node("Title") as Label
+		var caption: Label = button.get_node("Caption") as Label
+		MENU_TYPE.apply_label(title, &"button")
+		MENU_TYPE.apply_label(caption, &"caption")
+	MENU_TYPE.apply_label(_best_button.get_node("Title") as Label, &"section")
+	MENU_TYPE.apply_label(_best_value, &"numeric")
+	MENU_TYPE.apply_label(_last_button.get_node("Title") as Label, &"section")
+	MENU_TYPE.apply_label(_last_value, &"numeric")
+
+func _clear_top_bar_surface() -> void:
+	var empty: StyleBoxEmpty = StyleBoxEmpty.new()
+	_top_bar.add_theme_stylebox_override("panel", empty)
+
+func _ensure_rail_marks() -> void:
+	for button: Button in [_continue_button, _solo_button, _multi_button]:
+		if button.get_node_or_null("FocusMark") != null:
+			_paint_rail(button)
+			continue
+		var mark: ColorRect = ColorRect.new()
+		mark.name = "FocusMark"
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mark.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		mark.offset_top = -2.0
+		mark.offset_bottom = 0.0
+		mark.visible = false
+		button.add_child(mark)
+		_paint_rail(button)
 
 func _first_rail() -> Button:
 	if _continue_button.visible:
@@ -445,9 +499,11 @@ func _refresh_nav_marks() -> void:
 		current = _top_profile_button
 	for nav: Button in [_home_button, _top_play_button, _top_multi_button, _top_profile_button, _top_settings_button]:
 		var mark: ColorRect = nav.get_node_or_null("Mark") as ColorRect
+		var hot: bool = nav.is_hovered() or nav.has_focus()
 		if mark != null:
 			mark.visible = nav == current
-		nav.add_theme_color_override("font_color", UiType.INK if nav == current else UiType.MUTED)
+			mark.color = MENU_TYPE.INK
+		nav.add_theme_color_override("font_color", MENU_TYPE.INK if hot or nav == current else MENU_TYPE.MUTED)
 
 func _is_overlay_owned(node: Node) -> bool:
 	var current: Node = node

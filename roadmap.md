@@ -40,7 +40,7 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 | 离线 mock | `tools/ci/lobby_probe.gd` 调用 `add_mock_guest` / `remove_mock_guest` / `make_launch` / `commit_launch` |
 | 现有局域网 | `LanOverlay` 仍持有 ENet 和大厅 RPC，命令发给 `LobbyManager`。`NetSession` 职责未改 |
 | 协议 5、快照 v3、口 17777 / 17778、5 座、LAN 不写档 | Day 78–85 仍在 |
-| 视觉规格 | `docs/ui_art_direction.md`、`docs/ui_screen_spec.md`。字体还没进 `game_theme.tres` |
+| 视觉规格 | `docs/ui_art_direction.md`、`docs/ui_screen_spec.md`。Phase 1A 把 Playpen Sans 用在主菜单。`game_theme.tres` 尚未整体替换 |
 
 明确**还没有**，也不要写成已完成：
 
@@ -87,6 +87,10 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 - Settings 叠在当前 Page 上，关掉后仍在原 Page
 - F5 进 Solo 档位、进现有 LAN，行为与 Day 85 无法分辨
 - `project.godot` 仍无 Autoload
+
+### Phase 1A — Main Menu Visual Prototype
+
+只改主菜单的视觉。Playpen Sans 用在这一页。顶栏不再铺实心底。操作带是字和下划线，不是卡片。Play 页、Profile、局域网、网络都还没按这套重做。Phase 2–6 的定义不变。
 
 ---
 

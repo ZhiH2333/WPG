@@ -1,7 +1,7 @@
 # WPG Art Direction
 
 **版本:** 1.0-art-direction
-**状态:** 视觉模型已锁定。本文件不授权改主题、不导入字体、不改场景。
+**状态:** 视觉模型已锁定。Phase 1A 只把本文件用在主菜单（Playpen Sans、顶栏无底板、操作带下划线）。不改 `game_theme.tres`，不推广到其他页面。
 **上位:** [`roadmap.md`](../roadmap.md) 管阶段和硬约束。本文件管「看起来为什么是这样」。页面线框、焦点和 Back 栈在 [`ui_screen_spec.md`](ui_screen_spec.md)。领域和网络在 [`ui_lobby_architecture.md`](ui_lobby_architecture.md)。
 
 视觉冲突时以本文件为准。线框冲突时以 screen spec 为准。阶段是否开工以 roadmap 为准。
