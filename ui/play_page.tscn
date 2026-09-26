@@ -52,19 +52,13 @@ theme_override_constants/separation = 24
 [node name="Title" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"MenuTitle"
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"PageTitle"
 text = "PLAY"
 
 [node name="Subtitle" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"PageSubtitle"
 text = "Choose a run"
 
 [node name="Gap" type="Control" parent="Sheet/Column"]
@@ -84,103 +78,132 @@ mouse_filter = 2
 theme_override_constants/separation = 48
 
 [node name="Continue" type="Button" parent="Sheet/Column/Rail"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 22
 
-[node name="Title" type="Label" parent="Sheet/Column/Rail/Continue"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 32.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
-text = "CONTINUE"
-
-[node name="Caption" type="Label" parent="Sheet/Column/Rail/Continue"]
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Rail/Continue"]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -28.0
+offset_top = -2.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Rail/Continue"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Sheet/Column/Rail/Continue/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "CONTINUE"
+
+[node name="Caption" type="Label" parent="Sheet/Column/Rail/Continue/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
 text = "Loop 0"
 
 [node name="Solo" type="Button" parent="Sheet/Column/Rail"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
 
-[node name="Title" type="Label" parent="Sheet/Column/Rail/Solo"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 32.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
-text = "SOLO"
-
-[node name="Caption" type="Label" parent="Sheet/Column/Rail/Solo"]
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Rail/Solo"]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -28.0
+offset_top = -2.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Rail/Solo"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Sheet/Column/Rail/Solo/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "SOLO"
+
+[node name="Caption" type="Label" parent="Sheet/Column/Rail/Solo/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
 text = "Records"
 
 [node name="Multi" type="Button" parent="Sheet/Column/Rail"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
 
-[node name="Title" type="Label" parent="Sheet/Column/Rail/Multi"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 32.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
-text = "MULTIPLAYER"
-
-[node name="Caption" type="Label" parent="Sheet/Column/Rail/Multi"]
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Rail/Multi"]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -28.0
+offset_top = -2.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Rail/Multi"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Sheet/Column/Rail/Multi/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "MULTIPLAYER"
+
+[node name="Caption" type="Label" parent="Sheet/Column/Rail/Multi/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
 text = "Rooms"
 
 [node name="BottomLine" type="ColorRect" parent="Sheet/Column"]

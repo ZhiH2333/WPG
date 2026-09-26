@@ -34,12 +34,12 @@ var _sfx_gate: Dictionary = {}
 @onready var _continue_button: Button = $Home/Body/Rail/Continue
 @onready var _solo_button: Button = $Home/Body/Rail/Solo
 @onready var _multi_button: Button = $Home/Body/Rail/Multi
-@onready var _continue_caption: Label = $Home/Body/Rail/Continue/Caption
+@onready var _continue_caption: Label = $Home/Body/Rail/Continue/Text/Caption
 @onready var _secondary: HBoxContainer = $Home/Body/Secondary
 @onready var _best_button: Button = $Home/Body/Secondary/Best
-@onready var _best_value: Label = $Home/Body/Secondary/Best/Value
+@onready var _best_value: Label = $Home/Body/Secondary/Best/Text/Value
 @onready var _last_button: Button = $Home/Body/Secondary/Last
-@onready var _last_value: Label = $Home/Body/Secondary/Last/Value
+@onready var _last_value: Label = $Home/Body/Secondary/Last/Text/Value
 @onready var _quit_button: Button = $Quit
 @onready var _top_bar: PanelContainer = $TopBar
 @onready var _brand_button: Button = $TopBar/Row/BrandButton
@@ -48,8 +48,6 @@ var _sfx_gate: Dictionary = {}
 @onready var _top_multi_button: Button = $TopBar/Row/MultiButton
 @onready var _top_profile_button: Button = $TopBar/Row/ProfileButton
 @onready var _top_settings_button: Button = $TopBar/Row/SettingsButton
-@onready var _identity_button: Button = $TopBar/Row/Identity
-@onready var _profile_name: Label = $TopBar/Row/Identity/Name
 @onready var _clock_label: Label = $TopBar/Row/TimeBox/Clock
 @onready var _music: AudioStreamPlayer = $Music
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
@@ -78,7 +76,6 @@ func _ready() -> void:
 	_top_multi_button.pressed.connect(_enter_multi_flow)
 	_top_profile_button.pressed.connect(_on_profile_pressed)
 	_top_settings_button.pressed.connect(_on_settings_pressed)
-	_identity_button.pressed.connect(_on_profile_pressed)
 	_continue_button.pressed.connect(_on_continue_pressed)
 	_solo_button.pressed.connect(_on_home_solo_pressed)
 	_multi_button.pressed.connect(_enter_multi_flow)
@@ -93,11 +90,10 @@ func _ready() -> void:
 	_record_selector.selected_record.connect(_enter_record)
 	_profile_overlay.view_ranking_pressed.connect(_enter_leaderboard)
 	_wire_button_sounds()
-	_wire_rail_hover(_continue_button)
-	_wire_rail_hover(_solo_button)
-	_wire_rail_hover(_multi_button)
+	for row: Button in [_continue_button, _solo_button, _multi_button, _best_button, _last_button]:
+		UiAnim.wire_row_feedback(self, row, UiType.INK)
 	_refresh_clock(true)
-	_refresh_profile_name()
+	_refresh_player_labels()
 	_refresh_home_facts()
 	_play_enter_animation()
 	_top_bar.move_to_front()
@@ -278,8 +274,7 @@ func _leave_to_sandbox() -> void:
 func _finish_leave_to_sandbox() -> void:
 	LOADING_SCREEN_SCRIPT.switch_current(get_tree())
 
-func _refresh_profile_name() -> void:
-	_profile_name.text = PLACEHOLDER_NAME
+func _refresh_player_labels() -> void:
 	_player_name.text = PLACEHOLDER_NAME
 	_player_status.text = "Ready to play"
 
@@ -359,18 +354,6 @@ func _wire_button_sounds() -> void:
 			button.pressed.connect(_play_back)
 		else:
 			button.pressed.connect(_play_click)
-
-func _wire_rail_hover(button: Button) -> void:
-	button.mouse_entered.connect(_set_rail_hover.bind(button, true))
-	button.mouse_exited.connect(_set_rail_hover.bind(button, false))
-	button.focus_entered.connect(_set_rail_hover.bind(button, true))
-	button.focus_exited.connect(_set_rail_hover.bind(button, false))
-
-func _set_rail_hover(button: Button, hovered: bool) -> void:
-	button.pivot_offset = button.size * 0.5
-	var target: Vector2 = Vector2(UiAnim.HOVER_SCALE, UiAnim.HOVER_SCALE) if hovered else Vector2.ONE
-	var tween: Tween = create_tween()
-	tween.tween_property(button, "scale", target, UiAnim.HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
 func _first_rail() -> Button:
 	if _continue_button.visible:

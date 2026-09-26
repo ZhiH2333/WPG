@@ -8,16 +8,32 @@
 [ext_resource type="Texture2D" uid="uid://bgq6sex7atw7d" path="res://images/mainmenu.png" id="6_bg"]
 [ext_resource type="AudioStream" uid="uid://c78ia73bu3lhq" path="res://audio/main.mp3" id="7_music"]
 [ext_resource type="Texture2D" uid="uid://b611thnj3ted4" path="res://ui/icons/clock.png" id="14_clock"]
-[ext_resource type="Texture2D" uid="uid://dwkme0ou66p4d" path="res://ui/icons/avatar.png" id="15_avatar"]
 [ext_resource type="PackedScene" path="res://ui/profile_overlay.tscn" id="16_profile"]
 [ext_resource type="PackedScene" path="res://ui/lan_overlay.tscn" id="17_lan"]
 [ext_resource type="PackedScene" path="res://ui/record_leaderboard_overlay.tscn" id="19_leaderboard"]
 [ext_resource type="PackedScene" path="res://ui/play_page.tscn" id="20_play"]
+[ext_resource type="Texture2D" uid="uid://bfox2xxvx2lmq" path="res://ui/icons/wpg.png" id="21_brand_logo"]
+[ext_resource type="Texture2D" uid="uid://qnb6c4ffbepe" path="res://ui/icons/home.png" id="22_home_icon"]
+[ext_resource type="Texture2D" uid="uid://dh1m57uqaxt81" path="res://ui/icons/play.png" id="23_play_icon"]
+[ext_resource type="Texture2D" uid="uid://cmlt4rnav006f" path="res://ui/icons/multi.png" id="24_multi_icon"]
+[ext_resource type="Texture2D" uid="uid://dss7kt840b8h8" path="res://ui/icons/gear.png" id="25_gear_icon"]
+[ext_resource type="Texture2D" uid="uid://byffsvxbi8khl" path="res://ui/icons/profile.png" id="26_profile_icon"]
 
 [sub_resource type="ShaderMaterial" id="mat_blur"]
 shader = ExtResource("5_blur")
 shader_parameter/blur_amount = 0.0
 shader_parameter/dim_amount = 0.0
+
+[sub_resource type="Gradient" id="grad_scrim"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(0.04, 0.04, 0.05, 0.85, 0.04, 0.04, 0.05, 0.6, 0.04, 0.04, 0.05, 0)
+
+[sub_resource type="GradientTexture2D" id="tex_scrim"]
+gradient = SubResource("grad_scrim")
+width = 8
+height = 256
+fill_from = Vector2(0.5, 1)
+fill_to = Vector2(0.5, 0.12)
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -52,6 +68,18 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.05, 0.05, 0.04, 0.18)
 
+[node name="Scrim" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("tex_scrim")
+expand_mode = 1
+stretch_mode = 0
+
 [node name="Home" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -79,17 +107,13 @@ mouse_filter = 2
 [node name="Name" type="Label" parent="Home/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"ShowcaseName"
 text = "Player"
 
 [node name="Status" type="Label" parent="Home/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
+theme_type_variation = &"Caption"
 text = "Ready to play"
 
 [node name="TopLine" type="ColorRect" parent="Home/Body"]
@@ -105,102 +129,132 @@ theme_override_constants/separation = 48
 
 [node name="Continue" type="Button" parent="Home/Body/Rail"]
 visible = false
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
 
-[node name="Title" type="Label" parent="Home/Body/Rail/Continue"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 32.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
-text = "CONTINUE"
-
-[node name="Caption" type="Label" parent="Home/Body/Rail/Continue"]
+[node name="Mark" type="ColorRect" parent="Home/Body/Rail/Continue"]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -28.0
+offset_top = -2.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Text" type="VBoxContainer" parent="Home/Body/Rail/Continue"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Home/Body/Rail/Continue/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "CONTINUE"
+
+[node name="Caption" type="Label" parent="Home/Body/Rail/Continue/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
 text = "Loop 0"
 
 [node name="Solo" type="Button" parent="Home/Body/Rail"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
 
-[node name="Title" type="Label" parent="Home/Body/Rail/Solo"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 32.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
-text = "SOLO"
-
-[node name="Caption" type="Label" parent="Home/Body/Rail/Solo"]
+[node name="Mark" type="ColorRect" parent="Home/Body/Rail/Solo"]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -28.0
+offset_top = -2.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Text" type="VBoxContainer" parent="Home/Body/Rail/Solo"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Home/Body/Rail/Solo/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "SOLO"
+
+[node name="Caption" type="Label" parent="Home/Body/Rail/Solo/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
 text = "New run"
 
 [node name="Multi" type="Button" parent="Home/Body/Rail"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
 
-[node name="Title" type="Label" parent="Home/Body/Rail/Multi"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 32.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
-text = "MULTIPLAYER"
-
-[node name="Caption" type="Label" parent="Home/Body/Rail/Multi"]
+[node name="Mark" type="ColorRect" parent="Home/Body/Rail/Multi"]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -28.0
+offset_top = -2.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Text" type="VBoxContainer" parent="Home/Body/Rail/Multi"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Home/Body/Rail/Multi/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "MULTIPLAYER"
+
+[node name="Caption" type="Label" parent="Home/Body/Rail/Multi/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
 text = "Play with friends"
 
 [node name="BottomLine" type="ColorRect" parent="Home/Body"]
@@ -216,32 +270,46 @@ mouse_filter = 2
 theme_override_constants/separation = 24
 
 [node name="Best" type="Button" parent="Home/Body/Secondary"]
-custom_minimum_size = Vector2(180, 44)
+custom_minimum_size = Vector2(208, 54)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
 
-[node name="Title" type="Label" parent="Home/Body/Secondary/Best"]
+[node name="Mark" type="ColorRect" parent="Home/Body/Secondary/Best"]
+visible = false
 layout_mode = 1
-offset_top = 4.0
-offset_right = 70.0
-offset_bottom = 24.0
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 14
-text = "BEST"
+color = Color(0.96, 0.93, 0.88, 1)
 
-[node name="Value" type="Label" parent="Home/Body/Secondary/Best"]
+[node name="Text" type="HBoxContainer" parent="Home/Body/Secondary/Best"]
 layout_mode = 1
-offset_left = 64.0
-offset_top = 2.0
-offset_right = 160.0
-offset_bottom = 28.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Home/Body/Secondary/Best/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "BEST LOOP"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Home/Body/Secondary/Best/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatValue"
 text = "0"
+vertical_alignment = 1
 
 [node name="Spacer" type="Control" parent="Home/Body/Secondary"]
 layout_mode = 2
@@ -249,50 +317,64 @@ size_flags_horizontal = 3
 mouse_filter = 2
 
 [node name="Last" type="Button" parent="Home/Body/Secondary"]
-custom_minimum_size = Vector2(220, 44)
+custom_minimum_size = Vector2(252, 54)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
 
-[node name="Title" type="Label" parent="Home/Body/Secondary/Last"]
+[node name="Mark" type="ColorRect" parent="Home/Body/Secondary/Last"]
+visible = false
 layout_mode = 1
-offset_top = 4.0
-offset_right = 110.0
-offset_bottom = 24.0
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 14
-text = "LAST RUN"
+color = Color(0.96, 0.93, 0.88, 1)
 
-[node name="Value" type="Label" parent="Home/Body/Secondary/Last"]
+[node name="Text" type="HBoxContainer" parent="Home/Body/Secondary/Last"]
 layout_mode = 1
-offset_left = 108.0
-offset_top = 2.0
-offset_right = 200.0
-offset_bottom = 28.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Home/Body/Secondary/Last/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "LAST RUN"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Home/Body/Secondary/Last/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatValue"
 text = "00:00"
+vertical_alignment = 1
 
 [node name="Quit" type="Button" parent="."]
-custom_minimum_size = Vector2(120, 44)
+custom_minimum_size = Vector2(140, 54)
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -168.0
-offset_top = -80.0
+offset_left = -188.0
+offset_top = -90.0
 offset_right = -48.0
 offset_bottom = -36.0
 grow_horizontal = 0
 grow_vertical = 0
 theme_type_variation = &"EmptyButton"
 theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 22
 text = "Quit"
 
 [node name="BlurLayer" type="ColorRect" parent="."]
@@ -358,18 +440,18 @@ mouse_filter = 2
 theme_override_constants/separation = 4
 
 [node name="BrandButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(88, 60)
-layout_mode = 2
-focus_mode = 0
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
-text = "WPG"
-
-[node name="HomeButton" type="Button" parent="TopBar/Row"]
 custom_minimum_size = Vector2(96, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+focus_mode = 0
+theme_type_variation = &"IconBarButton"
+theme_override_constants/icon_max_width = 40
+icon = ExtResource("21_brand_logo")
+
+[node name="HomeButton" type="Button" parent="TopBar/Row"]
+custom_minimum_size = Vector2(132, 60)
+layout_mode = 2
+theme_type_variation = &"IconBarButton"
+icon = ExtResource("22_home_icon")
 text = "HOME"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/HomeButton"]
@@ -386,10 +468,10 @@ mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 1)
 
 [node name="PlayButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(88, 60)
+custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"IconBarButton"
+icon = ExtResource("23_play_icon")
 text = "PLAY"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/PlayButton"]
@@ -406,10 +488,10 @@ mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 1)
 
 [node name="MultiButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(180, 60)
+custom_minimum_size = Vector2(208, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"IconBarButton"
+icon = ExtResource("24_multi_icon")
 text = "MULTIPLAYER"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/MultiButton"]
@@ -426,10 +508,10 @@ mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 1)
 
 [node name="ProfileButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(120, 60)
+custom_minimum_size = Vector2(160, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"IconBarButton"
+icon = ExtResource("26_profile_icon")
 text = "PROFILE"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/ProfileButton"]
@@ -446,10 +528,10 @@ mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 1)
 
 [node name="SettingsButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(130, 60)
+custom_minimum_size = Vector2(172, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"IconBarButton"
+icon = ExtResource("25_gear_icon")
 text = "SETTINGS"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/SettingsButton"]
@@ -469,44 +551,6 @@ color = Color(0.96, 0.93, 0.88, 1)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-
-[node name="Identity" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(160, 60)
-layout_mode = 2
-focus_mode = 0
-theme_type_variation = &"EmptyButton"
-
-[node name="Avatar" type="TextureRect" parent="TopBar/Row/Identity"]
-custom_minimum_size = Vector2(32, 32)
-layout_mode = 1
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 8.0
-offset_top = -16.0
-offset_right = 40.0
-offset_bottom = 16.0
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("15_avatar")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Name" type="Label" parent="TopBar/Row/Identity"]
-layout_mode = 1
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 48.0
-offset_top = -14.0
-offset_right = 150.0
-offset_bottom = 14.0
-grow_vertical = 2
-mouse_filter = 2
-theme_type_variation = &"ProfileName"
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 18
-text = "Player"
 
 [node name="TimeBox" type="HBoxContainer" parent="TopBar/Row"]
 custom_minimum_size = Vector2(0, 60)

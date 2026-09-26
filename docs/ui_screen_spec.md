@@ -31,7 +31,7 @@ PLAY = primary user intent
 | ModeChoice = 两张大 Modal 卡 | Play 是 Page。两张大卡 Modal 删除 |
 | 顶栏不放任何多人入口 | 顶栏有 PLAY 与 MULTIPLAYER，都是导航。Solo 不进顶栏 |
 | 没有 Continue | Continue 只在有档时出现，含义是 **用该档新开一局**。仍然没有中途续打 |
-| Profile 用 96px 头像占主页中央 | 主页只有名字和一行状态。完整 Profile 在自己的 Page。顶栏右端是头像 + 名字 |
+| Profile 用 96px 头像占主页中央 | 主页只有名字和一行状态。完整 Profile 在自己的 Page。顶栏右端只有时钟（重复的「头像 + 名字」槽 2026-09-26 移除） |
 | MP Home 两颗大 CTA + 房间卡墙 | 三条紧凑导航行 + 本地最近房间。LAN 列表只来自 Beacon |
 | FlatBold = 每个区块一张圆角卡片，或黑底粉紫发光 | FlatBold = 排版、剪切、少量表面、留白、轻材质、稀缺强调色。品牌字是 Playpen Sans |
 
@@ -175,6 +175,8 @@ HUD
 | Technical | 14 | 20 | 0 | 72 字 |
 
 玩家名沿用 Profile 的 1–16 可见字符，不把 Display 56 用在名字上。
+
+**Home 例外（2026-09-26 起）：** Home 的舞台块（玩家名 / 状态行 / 三条 Rail / `BEST LOOP`·`LAST RUN`）整体比上表大一档：玩家名 **48**、Rail **28**、状态行与 Rail caption **18**、Section label **16**、Numeric **24**；Rail 行高 84、Secondary 行高 54。其余页面仍按上表，`PageTitle` / `PageSubtitle` 不变。
 
 ### 4. Spacing
 
@@ -446,7 +448,7 @@ Connecting、失败、版本不符是簇内状态页：留白加一句结论。�
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ WPG   HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS      [av] Player  │
+│ [wpg] HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS           12:48    │
 │                                                                  12:48  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
@@ -507,7 +509,7 @@ Phase 1 名字占位 `Player`，头像用 boar。禁止 `best %d`。
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ WPG   HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS      [av] Player  │
+│ [wpg] HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS           12:48    │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  PLAY                                                                   │
@@ -562,7 +564,7 @@ Phase 1 左列只显示占位名和不可编辑头像。Phase 2 才写 `profile.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ WPG   HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS      [av] Player  │
+│ [wpg] HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS           12:48    │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  PROFILE                                                    [ RANKING ] │
@@ -636,7 +638,7 @@ Phase 1 左列只显示占位名和不可编辑头像。Phase 2 才写 `profile.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ WPG   HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS      [av] Player  │
+│ [wpg] HOME   PLAY   MULTIPLAYER   PROFILE   SETTINGS           12:48    │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  MULTIPLAYER                                                            │
@@ -1069,10 +1071,11 @@ Copy 成功，旁边 caption `copied` 1.2s。第一刀可以只复制本机 IPv4
 | MULTIPLAYER | 打开 MP Home。已在簇内则回到簇根视图。Lobby 已建连时先离开确认 |
 | PROFILE | 打开 Profile。文案是 `display_name`，不是 `best %d` |
 | SETTINGS | 开 Drawer，不关当前 Page |
-| 头像 + 名字 | 等于 PROFILE。不可单独聚焦，跟在 PROFILE 项上 |
 | 时钟 | 只读 `HH:MM:SS` |
 
 当前项用字重或一条 2px 实心，不用发光胶囊。
+
+顶栏每一项都带图标：HOME `home.png`、PLAY `play.png`、MULTIPLAYER `multi.png`、SETTINGS `gear.png`、PROFILE `profile.png`（「人像 + 外圈」profile 字形，`ui/icons/profile.svg` 是源），五项用 `IconBarButton`、`icon_max_width = 32`。最左的 WPG 槽不是文字，是 `ui/icons/wpg.png` 方形 App 图标（`icon_max_width = 40`，不可聚焦）。右端只剩时钟：重复的「头像 + 名字」槽已于 2026-09-26 移除，Phase 2 的 `display_name` 落在 PROFILE 项文案上。
 
 ---
 
@@ -1083,7 +1086,7 @@ Phase 1 仍是网络零改。F5 进 Solo、进现有 LAN，行为与 Day 85 无�
 | 屏幕 | 现在 | Phase 1 | 以后 |
 |---|---|---|---|
 | Home 三颗 shear | Settings / Play / Quit | 改成舞台 + 一行状态 + Rail + 角落 Quit | — |
-| 顶栏 | 无 Solo/Multi；Profile 是 `best %d` | 加上 MULTIPLAYER 导航；名字槽改 `Player` | Phase 2 接真名 |
+| 顶栏 | 无 Solo/Multi；Profile 是 `best %d` | 加上 MULTIPLAYER 导航；每项带图标；名字槽先占位、后于 2026-09-26 整槽移除 | Phase 2 在 PROFILE 项接 `display_name` |
 | ModeChoice 两张卡 | `mode_choice_overlay` | 退出主路径。顶栏 PLAY 与 Rail 直接去 Play 页 / Solo / MP | — |
 | Play 页 | 不存在 | 新 Page，三条 Rail | — |
 | Profile | 只读大面板 | 改成疏页壳，数据仍只读 | Phase 2 可写 |
@@ -1098,7 +1101,7 @@ Phase 1 顺序：
 2. Home 改成舞台、一行状态、Rail。删除中央巨钮和两张 ModeChoice 卡。
 3. Play 页用 page 动效。RecordSelector、Profile、Ranking、现有 LanOverlay 的开合改 page 动效。Lan 内部视图不动。
 4. Settings 打开时不关 Profile / Solo / LAN。
-5. 顶栏名字槽改为 `Player`。MULTIPLAYER 在 Phase 1 可以先打开 **现有** LAN 叠层，不提前做 Create/Join/Lobby 新布局。
+5. 顶栏名字槽改为 `Player`（2026-09-26 该槽已整槽移除，右端只留时钟）。MULTIPLAYER 在 Phase 1 可以先打开 **现有** LAN 叠层，不提前做 Create/Join/Lobby 新布局。
 
 Phase 1 不做：`profile.json`、`LobbyManager`、抽 `@rpc`、本文件第 9–17 节的新布局、UPnP、主动技能、虚拟摇杆、改战斗。
 
@@ -1120,7 +1123,7 @@ Phase 1 不做：`profile.json`、`LobbyManager`、抽 `@rpc`、本文件第 9�
 ## 22. 验收
 
 - Home 最大的区域是空舞台。其下是一行名字和三条同高 Rail。没有中央巨大 PLAY
-- 顶栏是 HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS，右端是头像和名字。名字不是 `best 0`。没有 Solo 项
+- 顶栏是 HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS（每项带图标，最左是 App 图标不是文字），右端只有时钟。没有 Solo 项，也没有 `best 0`
 - Profile 是独立页。主页没有成绩卡
 - Play 是 Page，不是两张大卡 Modal
 - MP Home 是三条导航行。LAN Rooms 的标题或 caption 写明 Beacon，且没有公网列表

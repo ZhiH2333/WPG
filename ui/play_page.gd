@@ -17,7 +17,7 @@ var _anim_tween: Tween
 @onready var _continue_button: Button = $Sheet/Column/Rail/Continue
 @onready var _solo_button: Button = $Sheet/Column/Rail/Solo
 @onready var _multi_button: Button = $Sheet/Column/Rail/Multi
-@onready var _continue_caption: Label = $Sheet/Column/Rail/Continue/Caption
+@onready var _continue_caption: Label = $Sheet/Column/Rail/Continue/Text/Caption
 @onready var _back_button: Button = $Sheet/Column/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
@@ -35,7 +35,7 @@ func _ready() -> void:
 	_back_button.pressed.connect(_on_back_pressed)
 	for button: Button in [_continue_button, _solo_button, _multi_button, _back_button]:
 		_wire_hover(button)
-		_wire_rail_motion(button)
+		UiAnim.wire_row_feedback(self, button, UiType.INK)
 
 func is_open() -> bool:
 	return _open
@@ -132,18 +132,6 @@ func _on_back_pressed() -> void:
 func _wire_hover(button: BaseButton) -> void:
 	button.mouse_entered.connect(_play_hover)
 	button.focus_entered.connect(_play_hover)
-
-func _wire_rail_motion(button: Button) -> void:
-	button.mouse_entered.connect(_set_rail_hover.bind(button, true))
-	button.mouse_exited.connect(_set_rail_hover.bind(button, false))
-	button.focus_entered.connect(_set_rail_hover.bind(button, true))
-	button.focus_exited.connect(_set_rail_hover.bind(button, false))
-
-func _set_rail_hover(button: Button, hovered: bool) -> void:
-	button.pivot_offset = button.size * 0.5
-	var target: Vector2 = Vector2(UiAnim.HOVER_SCALE, UiAnim.HOVER_SCALE) if hovered else Vector2.ONE
-	var tween: Tween = create_tween()
-	tween.tween_property(button, "scale", target, UiAnim.HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
 func _play_hover() -> void:
 	if not _open:

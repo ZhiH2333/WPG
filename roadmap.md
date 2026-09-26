@@ -78,7 +78,7 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 - 状态：Default / Hover / Focus / Selected / Disabled / Warning / Error / Success
 - Motion：`UiAnim` 增加 page / modal / drawer / ready / connection 意图；Page 退出反向 24px；Modal 不升 56px
 - Settings 打开时不关闭底下 Page
-- 顶栏名字槽改占位 `Player`，禁止继续写 `best %d`
+- 顶栏名字槽改占位 `Player`，禁止继续写 `best %d`（2026-09-26 该槽整槽移除：右端只留时钟，显示名改由 PROFILE 项承担）
 - FlatBold 按新语法执行。禁止 osu 紫黑渐变、霓虹、发光描边、纯黑 HUD、卡片墙
 - 实现顺序见 screen spec 末节
 
@@ -108,13 +108,13 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 - 首次运行自动生成 UUID-like `profile_id`，显示名默认 `"Player"`，头像与常用角色默认 `boar`
 - Profile Overlay：可改昵称（1–16）、头像、常用角色
 - 统计列继续只读 `GameProgress`；档位列继续只读 `GameRecords`
-- 主菜单顶栏显示 `display_name`
+- 主菜单顶栏显示 `display_name`（落在 PROFILE 项文案上，右端名字槽已删）
 
 **不做：** 把 records / progress / settings 打进 Profile；登录；用 `profile_id` 当入房 token。
 
 ### Definition of Done
 
-- 删掉 `user://profile.json` 再开游戏，会生成一份且顶栏不再是 `"best  0"`
+- 删掉 `user://profile.json` 再开游戏，会生成一份，且顶栏 PROFILE 项显示 `display_name` 而不是 `"best  0"`
 - 改昵称后顶栏与 Profile 页立即一致，重开游戏仍在
 - `progress.cfg` 与 `records.json` 字节结构不变
 - best / last / runs 仍在 Profile 页统计列

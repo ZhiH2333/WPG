@@ -129,6 +129,38 @@ static func kill_tween(tween: Tween) -> void:
 	if tween != null and tween.is_valid():
 		tween.kill()
 
+## 行级反馈：1.02 缩放 + 骨白下划线 + caption 提到 Ink。只改装饰，逻辑开关仍瞬时。
+static func wire_row_feedback(host: Node, button: BaseButton, ink: Color) -> void:
+	if host == null or button == null:
+		return
+	button.mouse_entered.connect(set_row_feedback.bind(host, button, true, ink))
+	button.mouse_exited.connect(set_row_feedback.bind(host, button, false, ink))
+	button.focus_entered.connect(set_row_feedback.bind(host, button, true, ink))
+	button.focus_exited.connect(set_row_feedback.bind(host, button, false, ink))
+
+static func set_row_feedback(host: Node, button: Control, active: bool, ink: Color) -> void:
+	if host == null or button == null:
+		return
+	if button.has_meta(&"row_feedback_tween"):
+		var previous: Tween = button.get_meta(&"row_feedback_tween")
+		if previous.is_valid():
+			previous.kill()
+	button.pivot_offset = button.size * 0.5
+	var target: Vector2 = Vector2(HOVER_SCALE, HOVER_SCALE) if active else Vector2.ONE
+	var tween: Tween = host.create_tween()
+	tween.tween_property(button, "scale", target, HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	button.set_meta(&"row_feedback_tween", tween)
+	var mark: CanvasItem = button.get_node_or_null("Mark") as CanvasItem
+	if mark != null:
+		mark.visible = active
+	var caption: Label = button.get_node_or_null("Text/Caption") as Label
+	if caption == null:
+		return
+	if active:
+		caption.add_theme_color_override("font_color", ink)
+	else:
+		caption.remove_theme_color_override("font_color")
+
 static func punch_scale(host: Node, control: Control, peak: float, sec: float, ignore_pause: bool) -> Tween:
 	if host == null or control == null:
 		return null

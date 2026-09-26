@@ -1572,6 +1572,27 @@ Battle Start 占用 2～5（与 Co-op 同一范围）。房间卡 Battle 满员�
 
 **当时不做：** 主动技能 / 技能栏 / 冷却 UI、虚拟摇杆、P2P、断线重连（102）、Host 迁移、房间浏览器再改、改协议 5、改 `SNAPSHOT_VERSION`、改 `rpc_begin` 签名、改 `SEAT_SPAWNS`、改战斗数字、把 5 人 HUD 改成分屏、把 FFA 做成积分制、给 Co-op 开友军伤害、把掉线改成重连、改 Multirun 默认窗口数、新 PNG、新 wav、新物理层、新 InputMap action、Autoload。gated 1～4、6～9 明确没修。
 
+## Phase 1 收口（已完成）：背景压暗 + 粗体 + 细灰描边
+
+Phase 1 的 IA / 动效 / Play 页已落地，但 Home 与 Play 的 Label **把主题描边清零**（`main_menu.tscn` 13 处、`play_page.tscn` 7 处 `outline_size = 0`），14～15px 的次级文字直接压在 `images/mainmenu.png` 上。全屏实拍（1920×1080 窗口、`ui_scale=1.3`、无叠层、`BlurLayer` 未生效）逐元素实测：11 个元素里 6 个低于 WCAG AA，最差 `Play with friends` **1.05:1**、`Loop 20` 1.26:1、`BEST` 2.12:1、`19:11` 1.78:1。同一页同一令牌的 CR 从 1.05 到 16.9 —— 对比度完全由底图决定，不是设计决定。
+
+修法是**压暗背景 + 粗体 + 很细的深灰描边**，不靠厚晕圈：只改排版令牌与两页结构，不动布局系统、不动战斗、不动网络。
+
+- **Scrim（唯一的新节点）**：`main_menu.tscn` 在 `Vignette` 之后、`Home` 之前加 `Scrim`（`TextureRect` + `GradientTexture2D`，`expand_mode = 1` / `stretch_mode = 0`），自下而上 `0.85 → 0.6（45% 处）→ 0（12% 高度以上完全透明）`，颜色 `(0.04, 0.04, 0.05)`。整屏从上到下平均亮度实测：顶部 10% 仍 0.21（舞台没被压），文字块所在的 50～100% 掉到 0.02～0.04。它画在 `BlurLayer` 之下，所以开叠层时跟着一起糊、一起暗；顶栏（z 100）不受影响。要调节只看 `grad_scrim` 的三个 alpha，别动 `Vignette`。
+- **Theme 新增 7 个 Label 变体**（`ui/game_theme.tres`，`base_type = &"Label"`，颜色用现有 `UiType.INK` / `MUTED` 值）：`ShowcaseName` 40、`PageTitle` 32、`RailTitle` 22、`PageSubtitle` 18、`Caption` 15、`SectionLabel` 14、`StatValue` 20。场景里删掉对应的 `theme_override_colors/font_color` / `theme_override_font_sizes/font_size` / `outline_size = 0`，字号与颜色只有主题一份。
+- **粗体**：这 7 个变体 + `EmptyButton` 都挂 `font_bar_bold`（仓库既有的粗体槽，`Inter → Segoe UI → Noto Sans → Arial` 字重 700）。Home 页现在是**一套字面全粗**（玩家名 / 状态行 / Rail 三格 / `BEST LOOP` / `LAST RUN`），顶栏、Quit、Back、Profile 的名字与角色钮跟着一起粗。Playpen Sans 仍未进主题，字面取本机可用档（本机无 Inter → Arial Bold）。
+- **细灰描边**：这 7 个变体 + `EmptyButton` 统一 `font_outline_color = Color(0.18, 0.17, 0.17, 1)`、`outline_size = 6`。**描边数值 ≠ 可见宽度**（实测合同，禁止照其他变体的 2/4 “改小”）：Godot 4.6 这条字体路径下可见宽度 ≈ `outline_size / 4`（探针 4→≈0px、6→≈1px、8→≈2px、12→≈3px、16→≈4px），所以 6 就是「很细」的 1px。灰要取深灰：浅灰描边会吃掉对比（`Color(0.45)` 时 MUTED 文字对描边只有 1.4:1）。
+- **Rail 结构**：`Mark`（2px 骨白下划线，默认 hidden）+ `Text`（VBox，`Title` RailTitle + `Caption`，间距 **12**，规范值），按钮高 88 → **68**，`alignment = center`。`Secondary` 的 `Best` / `Last` 同样 `Mark` + `Text`（HBox，间距 12），值不再用写死的 `offset_left` 对齐。
+- **语义**：Home 的 `BEST` 改为 `BEST LOOP`（它读的是 `GameProgress.get_best_loop()`），与 Profile 页的 `BEST LOOP` 同名。
+- **状态**：新增 `UiAnim.wire_row_feedback(host, button, ink)` / `set_row_feedback(...)`——hover 与 focus 同一套：1.02 缩放 + 骨白下划线 + `Text/Caption` 提到 Ink，重复触发先 kill 旧 tween（meta `row_feedback_tween`）；非激活时 `remove_theme_color_override` 还原主题色，不写第二份灰。Home 的 Rail 三格与 `BEST LOOP` / `LAST RUN` 都接上；`main_menu.gd` / `play_page.gd` 里各自的 `_wire_rail_hover` / `_set_rail_hover` / `_wire_rail_motion` 已删除。
+- **Profile 页标题**改用 `PageTitle`（原 `MenuTitle` + 32 override + 描边 0）。
+- **Home 控件放大**：`ShowcaseName` 40 → **48**、`RailTitle` 22 → **28**、`Caption` 15 → **18**、`SectionLabel` 14 → **16**、`StatValue` 20 → **24**；Rail 行高 68 → **84**，Secondary 两格 180×44 / 220×44 → **208×54 / 252×54**，`Quit` 120×44 → **140×54**（字号 22）。宽预算实测：Rail 列宽 224，`MULTIPLAYER` @28 = 200px、`Play with friends` @18 = 143px，不溢出。Play 页三条 Rail 共用 `RailTitle` / `Caption`，跟着一起放大；`PageTitle` / `PageSubtitle` 不变。对比度复测不变（全部 ≥ 4.7:1）。
+- **顶栏每项带图标**：HOME `home.png`、PLAY `play.png`、MULTIPLAYER `multi.png`、SETTINGS `gear.png`、PROFILE `profile.png`（新做的「人像 + 外圈」profile 字形，`ui/icons/profile.svg` → `profile.png`，取代原来的 `avatar.png` 个人头像）；五项挂 `IconBarButton`（`icon_max_width = 32`、`h_separation = 10`，hover/focus 走白色 18% 底 + 既有 `Mark` 下划线）。最左 WPG 槽不再是文字：`ui/icons/wpg.png`（40px 方形 App 图标，`icon_max_width = 40`，`focus_mode = 0`）。顶栏行宽 1476 = 可见宽，无溢出。
+- **右端重复的 Profile 槽已删除**：`TopBar/Row/Identity`（头像 + `Player`，点击也进 Profile，与 PROFILE 项重复）整节点移除，`ui/icons/avatar.png` 在该场景不再引用；`main_menu.gd` 的 `_identity_button` / `_profile_name` onready、`pressed` 连接一并删掉，`_refresh_profile_name()` 更名为 `_refresh_player_labels()`（现在只管 Home 舞台的名字与状态行）。右端只剩时钟。Phase 2 的 `display_name` 落在 PROFILE 项文案上（screen spec §19 原本就这么写）。
+- **修后复测（同机同窗口、同底图）**：`Status` 1.22 → **5.80**、`Play with friends` 1.05 → **4.79**（最亮 5% 底纹仍 4.60、字缘 4.71）、`BEST LOOP` 2.12 → 13.7、`19` 2.70 → 13.6、`19:11` 1.78 → 13.8；全部 ≥ AA 4.5。Rail 的 Title→Caption 间距 28 → 13。`_ready` 无新增脚本错误。
+
+**当时不做：** 把 `wpg.icon` bundle 当资源直接引用（Godot 读不了 macOS Icon Composer 格式，只取 `Assets/trans.PNG` 落成 `ui/icons/wpg.png`；bundle 本身仍未入库）、Playpen Sans（字面仍是本机回落档）、按角色区分字重（全粗是这一刀的决定）、Home / Play 的 `UiFit`（`canvas_items + expand` 下逻辑画布不会小于 1920×1080，Home 不会被压扁；原判断作废）、TopBar / 其它叠层换皮、`MenuTitle` 旧变体清理、LanOverlay 的 `rpc_guest_character` 自调用报错（`ui/lan_overlay.gd:516`，每天开菜单都会打印，属网络侧，另开一刀）、战斗 HUD 描边。
+
 ## 剩余表
 
 
