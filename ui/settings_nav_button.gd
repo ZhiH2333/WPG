@@ -7,9 +7,9 @@ const INDICATOR_ACTIVE: float = 22.0
 const INDICATOR_INACTIVE: float = 4.0
 const HOVER_ALPHA: float = 0.08
 const MENU_TYPE := preload("res://ui/menu_type.gd")
-const COLOR_SELECTED := Color(0.96, 0.93, 0.88, 1)
-const COLOR_HOVER := Color(0.96, 0.93, 0.88, 1)
-const COLOR_IDLE := Color(0.72, 0.66, 0.58, 1)
+const COLOR_SELECTED := Color(0.18, 0.14, 0.11, 1)
+const COLOR_HOVER := Color(0.18, 0.14, 0.11, 1)
+const COLOR_IDLE := Color(0.42, 0.37, 0.32, 1)
 
 @export var tab_icon: Texture2D
 @export var caption: String = "Audio"
@@ -35,7 +35,8 @@ func _ready() -> void:
 	if tab_icon != null:
 		_icon.texture = tab_icon
 	_caption.text = caption.to_upper()
-	MENU_TYPE.apply_label(_caption, &"navigation")
+	MENU_TYPE.apply_label(_caption, &"navigation", true)
+	_caption.add_theme_color_override("font_color", Color.WHITE)
 	var bone: StyleBoxFlat = StyleBoxFlat.new()
 	bone.bg_color = MENU_TYPE.INK
 	bone.set_corner_radius_all(0)

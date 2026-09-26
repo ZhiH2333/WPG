@@ -103,6 +103,7 @@ func _ready() -> void:
 	_refresh_home_facts()
 	_apply_menu_type()
 	_clear_top_bar_surface()
+	_blur_layer.visible = false
 	_ensure_rail_marks()
 	_play_enter_animation()
 	_top_bar.move_to_front()
@@ -111,9 +112,6 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var target: float = 1.0 if _should_blur_menu() else 0.0
 	_focus_amount = lerpf(_focus_amount, target, 1.0 - exp(-FOCUS_SMOOTH * delta))
-	var mat: ShaderMaterial = _blur_layer.material as ShaderMaterial
-	mat.set_shader_parameter("blur_amount", BLUR_MAX * _focus_amount)
-	mat.set_shader_parameter("dim_amount", DIM_MAX * _focus_amount)
 	var overlay_db: float = lerpf(MUSIC_DB_NORMAL, MUSIC_DB_DIMMED, _focus_amount)
 	_music.volume_db = lerpf(SILENCE_DB, overlay_db, _music_fade)
 	_refresh_clock(false)
@@ -490,8 +488,8 @@ func _refresh_nav_marks() -> void:
 		var hot: bool = nav.is_hovered() or nav.has_focus()
 		if mark != null:
 			mark.visible = nav == current
-			mark.color = MENU_TYPE.INK
-		nav.add_theme_color_override("font_color", MENU_TYPE.INK if hot or nav == current else MENU_TYPE.MUTED)
+			mark.color = MENU_TYPE.PAPER
+		nav.add_theme_color_override("font_color", MENU_TYPE.PAPER if hot or nav == current else MENU_TYPE.MUTED_PAPER)
 
 func _is_overlay_owned(node: Node) -> bool:
 	var current: Node = node
