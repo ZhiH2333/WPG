@@ -11,14 +11,14 @@ var _sfx_gate: Dictionary = {}
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: Control = $Sheet
 @onready var _name_button: Button = $Sheet/Column/Name
-@onready var _best_loop_label: Label = $Sheet/Column/Stats/BestLoop
-@onready var _last_loop_label: Label = $Sheet/Column/Stats/LastLoop
+@onready var _best_loop_value: Label = $Sheet/Column/Stats/BestLoopValue
+@onready var _last_loop_value: Label = $Sheet/Column/Stats/LastLoopValue
 @onready var _last_kills_label: Label = $Sheet/Column/Facts/LastKills
 @onready var _last_gold_label: Label = $Sheet/Column/Facts/LastGold
-@onready var _runs_label: Label = $Sheet/Column/Stats/Runs
+@onready var _runs_value: Label = $Sheet/Column/Stats/RunsValue
 @onready var _owned_label: Label = $Sheet/Column/Facts/OwnedHint
 @onready var _records_rows: VBoxContainer = $Sheet/Column/Rows
-@onready var _rank_button: Button = $Sheet/Column/Header/RankButton
+@onready var _ranking_button: Button = $Sheet/Column/Header/Ranking
 @onready var _back_button: Button = $Sheet/Column/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
@@ -30,16 +30,14 @@ func _ready() -> void:
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
-	_rank_button.pressed.connect(_emit_view_ranking)
+	_ranking_button.pressed.connect(_emit_view_ranking)
 	_back_button.pressed.connect(_on_back_pressed)
-	_wire_hover(_name_button)
-	_wire_hover(_rank_button)
-	_wire_hover(_back_button)
-	_wire_hover($Sheet/Column/Characters/Boar)
-	_wire_hover($Sheet/Column/Characters/Chicken)
+	for row: Button in [_name_button, _ranking_button, $Sheet/Column/Characters/Boar, $Sheet/Column/Characters/Chicken, _back_button]:
+		_wire_hover(row)
+		UiAnim.wire_row_feedback(self, row, UiType.INK)
 
 func focus_rank() -> void:
-	_rank_button.grab_focus()
+	_ranking_button.grab_focus()
 
 func is_open() -> bool:
 	return _open
@@ -91,11 +89,11 @@ func _emit_view_ranking() -> void:
 	view_ranking_pressed.emit()
 
 func _refresh_stats() -> void:
-	_best_loop_label.text = "BEST LOOP  %d" % GameProgress.get_best_loop()
-	_last_loop_label.text = "LAST LOOP  %d" % GameProgress.get_last_loop()
+	_best_loop_value.text = "%d" % GameProgress.get_best_loop()
+	_last_loop_value.text = "%d" % GameProgress.get_last_loop()
 	_last_kills_label.text = "Last kills  %d" % GameProgress.get_last_kills()
 	_last_gold_label.text = "Last gold  %d" % GameProgress.get_last_gold()
-	_runs_label.text = "RUNS  %d" % GameProgress.get_runs_played()
+	_runs_value.text = "%d" % GameProgress.get_runs_played()
 	var owned: String = GameProgress.get_last_owned()
 	if owned.is_empty():
 		owned = "-"

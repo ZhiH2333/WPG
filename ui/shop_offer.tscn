@@ -38,7 +38,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(1480, 820)
+custom_minimum_size = Vector2(1120, 660)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"FloatingPanel"
@@ -48,7 +48,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 16
 
 [node name="Header" type="HBoxContainer" parent="Root/Center/Panel/Column"]
 layout_mode = 2
@@ -60,7 +60,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
+theme_type_variation = &"PageTitle"
 text = "SHOP"
 vertical_alignment = 1
 
@@ -68,9 +68,15 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"HudHp"
+theme_type_variation = &"StatValue"
 text = "gold  0"
 vertical_alignment = 1
+
+[node name="TopLine" type="ColorRect" parent="Root/Center/Panel/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
 
 [node name="Content" type="MarginContainer" parent="Root/Center/Panel/Column"]
 layout_mode = 2
@@ -78,24 +84,24 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 12
+theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_bottom = 16
 
 [node name="Body" type="HBoxContainer" parent="Root/Center/Panel/Column/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 24
 
 [node name="Status" type="VBoxContainer" parent="Root/Center/Panel/Column/Content/Body"]
-custom_minimum_size = Vector2(320, 0)
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="HpRow" type="HBoxContainer" parent="Root/Center/Panel/Column/Content/Body/Status"]
 layout_mode = 2
@@ -103,7 +109,7 @@ mouse_filter = 2
 theme_override_constants/separation = 12
 
 [node name="HpBar" type="ProgressBar" parent="Root/Center/Panel/Column/Content/Body/Status/HpRow"]
-custom_minimum_size = Vector2(220, 16)
+custom_minimum_size = Vector2(150, 14)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -114,15 +120,10 @@ show_percentage = false
 
 [node name="HpLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status/HpRow"]
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"HudHp"
+theme_type_variation = &"StatValue"
 text = "100/100"
-
-[node name="WeaponLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"HudWeapon"
-text = "Pistol"
 
 [node name="XpRow" type="HBoxContainer" parent="Root/Center/Panel/Column/Content/Body/Status"]
 layout_mode = 2
@@ -130,7 +131,7 @@ mouse_filter = 2
 theme_override_constants/separation = 12
 
 [node name="XpBar" type="ProgressBar" parent="Root/Center/Panel/Column/Content/Body/Status/XpRow"]
-custom_minimum_size = Vector2(220, 10)
+custom_minimum_size = Vector2(150, 10)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -142,14 +143,21 @@ show_percentage = false
 
 [node name="XpLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status/XpRow"]
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"HudWeapon"
+theme_type_variation = &"StatValue"
 text = "Lv.1  0/30"
+
+[node name="WeaponLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "Pistol"
 
 [node name="CompanionLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"HudWeapon"
+theme_type_variation = &"Caption"
 text = "none"
 
 [node name="OwnedLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
@@ -186,7 +194,7 @@ theme_override_constants/separation = 16
 alignment = 1
 
 [node name="Gun0" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
-custom_minimum_size = Vector2(200, 120)
+custom_minimum_size = Vector2(180, 104)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
@@ -194,7 +202,7 @@ theme_type_variation = &"OfferButton"
 text = "Pistol"
 
 [node name="Gun1" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
-custom_minimum_size = Vector2(200, 120)
+custom_minimum_size = Vector2(180, 104)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
@@ -202,7 +210,7 @@ theme_type_variation = &"OfferButton"
 text = "Shotgun"
 
 [node name="Gun2" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
-custom_minimum_size = Vector2(200, 120)
+custom_minimum_size = Vector2(180, 104)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
@@ -210,19 +218,25 @@ theme_type_variation = &"OfferButton"
 text = "Rifle"
 
 [node name="Gun3" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
-custom_minimum_size = Vector2(200, 120)
+custom_minimum_size = Vector2(180, 104)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Smg"
 
+[node name="BottomLine" type="ColorRect" parent="Root/Center/Panel/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
 [node name="Continue" type="Button" parent="Root/Center/Panel/Column"]
 custom_minimum_size = Vector2(160, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"PillPink"
 text = "Continue"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]

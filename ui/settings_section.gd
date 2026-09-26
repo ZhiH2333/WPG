@@ -20,7 +20,7 @@ var _dim_tween: Tween
 @onready var dim: ColorRect = $Dim
 
 func _ready() -> void:
-	header.text = header_text
+	header.text = header_text.to_upper()
 	if search_name.is_empty():
 		search_name = header_text
 	dim.mouse_entered.connect(_on_dim_hover.bind(true))

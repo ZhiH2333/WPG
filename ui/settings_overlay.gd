@@ -629,7 +629,7 @@ func _build_bind_rows() -> void:
 	body.add_child(hint)
 	var bind_status: Label = Label.new()
 	bind_status.name = "BindStatus"
-	bind_status.theme_type_variation = &"RunSummaryHint"
+	bind_status.theme_type_variation = &"Caption"
 	bind_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bind_status.text = ""
 	body.add_child(bind_status)
@@ -647,7 +647,7 @@ func _build_bind_rows() -> void:
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var button: Button = Button.new()
-		button.theme_type_variation = &"OfferButton"
+		button.theme_type_variation = &"OfferButtonSmall"
 		button.custom_minimum_size = Vector2(160, 44)
 		button.mouse_filter = Control.MOUSE_FILTER_STOP
 		button.text = GameSettings.key_label_for_action(action)
@@ -657,7 +657,7 @@ func _build_bind_rows() -> void:
 		row.add_child(button)
 		if GameSettings.REBINDABLE_JOY_ACTIONS.has(action):
 			var pad: Button = Button.new()
-			pad.theme_type_variation = &"OfferButton"
+			pad.theme_type_variation = &"OfferButtonSmall"
 			pad.custom_minimum_size = Vector2(160, 44)
 			pad.mouse_filter = Control.MOUSE_FILTER_STOP
 			pad.text = GameSettings.joy_label_for_action(action)
@@ -668,8 +668,8 @@ func _build_bind_rows() -> void:
 		body.add_child(row)
 	var restore: Button = Button.new()
 	restore.name = "RestoreButton"
-	restore.theme_type_variation = &"OfferButton"
-	restore.custom_minimum_size = Vector2(0, 56)
+	restore.theme_type_variation = &"PillNeutral"
+	restore.custom_minimum_size = Vector2(0, 48)
 	restore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	restore.mouse_filter = Control.MOUSE_FILTER_STOP
 	restore.text = "RESTORE DEFAULTS"

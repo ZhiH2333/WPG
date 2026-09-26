@@ -53,7 +53,6 @@ theme_override_constants/separation = 16
 [node name="Header" type="HBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Sheet/Column/Header"]
 layout_mode = 2
@@ -62,15 +61,27 @@ mouse_filter = 2
 theme_type_variation = &"PageTitle"
 text = "PROFILE"
 
-[node name="RankButton" type="Button" parent="Sheet/Column/Header"]
-custom_minimum_size = Vector2(140, 44)
+[node name="Ranking" type="Button" parent="Sheet/Column/Header"]
+custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"EmptyButtonMuted"
 text = "RANKING"
 
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Header/Ranking"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
+
 [node name="Avatar" type="TextureRect" parent="Sheet/Column"]
-custom_minimum_size = Vector2(96, 96)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_horizontal = 0
 mouse_filter = 2
@@ -79,30 +90,50 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="Name" type="Button" parent="Sheet/Column"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(240, 48)
 layout_mode = 2
 size_flags_horizontal = 0
 theme_type_variation = &"EmptyButton"
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_font_sizes/font_size = 40
-text = "Player"
-alignment = 0
 
-[node name="Caption" type="Label" parent="Sheet/Column"]
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Name"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Text" type="HBoxContainer" parent="Sheet/Column/Name"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Sheet/Column/Name/Text"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
+theme_type_variation = &"ShowcaseName"
+text = "Player"
+vertical_alignment = 1
+
+[node name="Accent" type="Label" parent="Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ProfileHeader"
 text = "local profile"
 
-[node name="CharacterTitle" type="Label" parent="Sheet/Column"]
+[node name="CharacterSection" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"SectionLabel"
 text = "CHARACTER"
 
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column"]
@@ -116,76 +147,121 @@ layout_mode = 2
 theme_type_variation = &"EmptyButton"
 text = "Boar"
 
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Characters/Boar"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
+
 [node name="Chicken" type="Button" parent="Sheet/Column/Characters"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
 text = "Chicken"
 
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Characters/Chicken"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
+
 [node name="Stats" type="HBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 36
+theme_override_constants/separation = 12
 
-[node name="BestLoop" type="Label" parent="Sheet/Column/Stats"]
+[node name="BestLoopCaption" type="Label" parent="Sheet/Column/Stats"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
-text = "BEST LOOP  0"
+theme_type_variation = &"Caption"
+text = "BEST LOOP"
+vertical_alignment = 1
 
-[node name="LastLoop" type="Label" parent="Sheet/Column/Stats"]
+[node name="BestLoopValue" type="Label" parent="Sheet/Column/Stats"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
-text = "LAST LOOP  0"
+theme_type_variation = &"StatValue"
+text = "0"
+vertical_alignment = 1
 
-[node name="Runs" type="Label" parent="Sheet/Column/Stats"]
+[node name="SpacerA" type="Control" parent="Sheet/Column/Stats"]
+custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
-text = "RUNS  0"
+
+[node name="LastLoopCaption" type="Label" parent="Sheet/Column/Stats"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "LAST LOOP"
+vertical_alignment = 1
+
+[node name="LastLoopValue" type="Label" parent="Sheet/Column/Stats"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatValue"
+text = "0"
+vertical_alignment = 1
+
+[node name="SpacerB" type="Control" parent="Sheet/Column/Stats"]
+custom_minimum_size = Vector2(36, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RunsCaption" type="Label" parent="Sheet/Column/Stats"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "RUNS"
+vertical_alignment = 1
+
+[node name="RunsValue" type="Label" parent="Sheet/Column/Stats"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatValue"
+text = "0"
+vertical_alignment = 1
 
 [node name="Facts" type="VBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 4
 
 [node name="LastKills" type="Label" parent="Sheet/Column/Facts"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Last kills  0"
 
 [node name="LastGold" type="Label" parent="Sheet/Column/Facts"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Last gold  0"
 
 [node name="OwnedHint" type="Label" parent="Sheet/Column/Facts"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "last owned  -"
 
-[node name="RecordsTitle" type="Label" parent="Sheet/Column"]
+[node name="RecordsSection" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"SectionLabel"
 text = "RECORDS"
 
 [node name="Rows" type="VBoxContainer" parent="Sheet/Column"]
@@ -198,10 +274,21 @@ theme_override_constants/separation = 8
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_type_variation = &"EmptyButton"
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"EmptyButtonMuted"
 text = "Back"
+
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Back"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 bus = &"SFX"

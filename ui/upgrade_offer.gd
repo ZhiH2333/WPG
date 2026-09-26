@@ -5,8 +5,6 @@ class_name UpgradeOffer
 signal picked(upgrade_id: StringName)
 signal cancelled
 
-const HOVER_SCALE: float = 1.02
-const HOVER_SEC: float = 0.12
 const CARD_PUNCH_SCALE: float = 1.06
 const CARD_PUNCH_SEC: float = 0.12
 
@@ -17,7 +15,6 @@ var _titles: Array[Label] = []
 var _descs: Array[Label] = []
 var _player_input: PlayerInput
 var _anim_tween: Tween
-var _hover_tweens: Dictionary = {}
 var _punch_tweens: Dictionary = {}
 var _sfx_gate: Dictionary = {}
 
@@ -56,7 +53,7 @@ func _ready() -> void:
 		var card: Button = _cards[i]
 		card.pressed.connect(_on_card_pressed.bind(i))
 		card.pivot_offset = card.custom_minimum_size * 0.5
-		_wire_hover(card, _on_card_hover_entered.bind(card), _on_card_hover_exited.bind(card))
+		_wire_row(card)
 	UiFit.connect_refit(_root, _on_viewport_size_changed)
 
 func bind_session(_session: RunSession) -> void:
@@ -196,41 +193,16 @@ func _reset_card_motion() -> void:
 		card.pivot_offset = card.custom_minimum_size * 0.5
 		card.scale = Vector2.ONE
 
-func _wire_hover(control: Control, entered: Callable, exited: Callable) -> void:
-	control.mouse_entered.connect(entered)
-	control.mouse_exited.connect(exited)
-	control.focus_entered.connect(entered)
-	control.focus_exited.connect(exited)
+## hover/focus 统一走 UiAnim（flat card 四态 + 1.02 缩放），本文件只额外接 hover 音效。
+func _wire_row(card: BaseButton) -> void:
+	UiAnim.wire_row_feedback(self, card, UiType.INK)
+	card.mouse_entered.connect(_on_card_hover_entered)
+	card.focus_entered.connect(_on_card_hover_entered)
 
-func _on_card_hover_entered(card: Button) -> void:
+func _on_card_hover_entered() -> void:
 	if not _open:
 		return
-	if not is_instance_valid(card):
-		return
-	if _is_punching(card):
-		return
 	_play_hover()
-	_tween_hover(card, true)
-
-func _on_card_hover_exited(card: Button) -> void:
-	if not is_instance_valid(card):
-		return
-	if _is_punching(card):
-		return
-	_tween_hover(card, false)
-
-func _tween_hover(control: Control, hovered: bool) -> void:
-	if not is_instance_valid(control):
-		return
-	if _is_punching(control):
-		return
-	_kill_hover(control)
-	var tween: Tween = create_tween()
-	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	_hover_tweens[control.get_instance_id()] = tween
-	control.pivot_offset = control.custom_minimum_size * 0.5
-	var target: Vector2 = Vector2(HOVER_SCALE, HOVER_SCALE) if hovered else Vector2.ONE
-	tween.tween_property(control, "scale", target, HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
 func _punch_card(card: Button) -> void:
 	if not is_instance_valid(card):
@@ -245,14 +217,13 @@ func _punch_card(card: Button) -> void:
 func _on_punch_finished(key: int) -> void:
 	_punch_tweens.erase(key)
 
-func _is_punching(control: Control) -> bool:
-	var tween: Tween = _punch_tweens.get(control.get_instance_id()) as Tween
-	return tween != null and tween.is_valid()
-
 func _kill_hover(control: Control) -> void:
-	var key: int = control.get_instance_id()
-	UiAnim.kill_tween(_hover_tweens.get(key) as Tween)
-	_hover_tweens.erase(key)
+	if not is_instance_valid(control):
+		return
+	if control.has_meta(&"row_feedback_tween"):
+		UiAnim.kill_tween(control.get_meta(&"row_feedback_tween") as Tween)
+		control.remove_meta(&"row_feedback_tween")
+	control.scale = Vector2.ONE
 
 func _kill_punch(control: Control) -> void:
 	var key: int = control.get_instance_id()

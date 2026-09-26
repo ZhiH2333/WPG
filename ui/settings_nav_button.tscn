@@ -10,9 +10,9 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [node name="SettingsNavButton" type="Button"]
-custom_minimum_size = Vector2(0, 62)
+custom_minimum_size = Vector2(0, 64)
 offset_right = 240.0
-offset_bottom = 62.0
+offset_bottom = 64.0
 focus_mode = 0
 mouse_filter = 0
 theme_type_variation = &"EmptyButton"
@@ -64,6 +64,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"SettingsNavCaption"
+theme_type_variation = &"OfferTitle"
 text = "Audio"
 vertical_alignment = 1

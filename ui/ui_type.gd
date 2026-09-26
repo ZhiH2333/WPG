@@ -1,14 +1,11 @@
 extends Object
 class_name UiType
 
-## 字级角色。Playpen Sans 尚未进入 game_theme.tres，本阶段不加载第二套字体。
-const PLAYER_NAME_SIZE: int = 40
-const PAGE_TITLE_SIZE: int = 32
-const NAV_SIZE: int = 18
-const RAIL_SIZE: int = 22
-const CAPTION_SIZE: int = 15
-const SECTION_SIZE: int = 14
-const NUMERIC_SIZE: int = 20
+## 颜色令牌。字级（字号/字重/描边）只存在于 `ui/game_theme.tres` 的 Theme Variation 里，
+## 这里不再放字号，避免第二份阶梯（2026-09-26 统一）。
+## 角色 → Variation：页面标题 PageTitle / 页面说明 PageSubtitle / 舞台玩家名 ShowcaseName /
+## Rail 行 RailTitle + Caption / 小节 SectionLabel / 卡片标题 OfferTitle / 卡片说明 OfferDesc /
+## 正文 RunSummaryBody / 提示 RunSummaryHint / 数字 StatValue / 大数字 ModeTitle。
 const INK := Color(0.96, 0.93, 0.88, 1)
 const MUTED := Color(0.62, 0.58, 0.52, 1)
 const STRUCTURE := Color(0.96, 0.93, 0.88, 0.35)

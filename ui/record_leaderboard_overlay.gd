@@ -7,9 +7,9 @@ var _anim_tween: Tween
 var _sfx_gate: Dictionary = {}
 
 @onready var _dimmer: ColorRect = $Dimmer
-@onready var _panel: PanelContainer = $Center/Panel
-@onready var _rows: VBoxContainer = $Center/Panel/Column/Content/Scroll/Rows
-@onready var _back_button: Button = $Center/Panel/Column/Header/Back
+@onready var _sheet: Control = $Sheet
+@onready var _rows: VBoxContainer = $Sheet/Column/Content/Rows
+@onready var _back_button: Button = $Sheet/Column/Header/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
@@ -22,6 +22,7 @@ func _ready() -> void:
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_back_button.pressed.connect(_on_back_pressed)
 	_wire_hover(_back_button)
+	UiAnim.wire_row_feedback(self, _back_button, UiType.INK)
 	UiFit.connect_refit(self, _on_host_resized)
 
 func is_open() -> bool:
@@ -30,13 +31,12 @@ func is_open() -> bool:
 func open() -> void:
 	_open = true
 	visible = true
-	_fit_panel()
 	GameRecords.load_from_disk()
 	_rebuild_rows()
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet)
 	_back_button.grab_focus()
 
 func close() -> void:
@@ -45,7 +45,7 @@ func close() -> void:
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet)
 	_anim_tween.finished.connect(_finish_close)
 
 func return_to_profile() -> void:
@@ -111,10 +111,7 @@ func _is_best_score_higher(left: GameRecord, right: GameRecord) -> bool:
 func _on_host_resized() -> void:
 	if not _open:
 		return
-	_fit_panel()
-
-func _fit_panel() -> void:
-	UiFit.apply_floating_panel(self, _panel)
+	_rows.notification(Container.NOTIFICATION_SORT_CHILDREN)
 
 func _wire_hover(button: BaseButton) -> void:
 	if button.mouse_entered.is_connected(_play_hover):

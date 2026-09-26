@@ -2,36 +2,33 @@ extends CanvasLayer
 class_name PauseOverlay
 
 ## 战斗暂停叠层：单机 Continue / Retry / Quit；Esc 走 Continue。选卡时 CombatSandbox 也会冻场景树。
-## 顶栏保留 Settings / 资料 / 时钟，Home / Solo / Multi 换成 Phase 与 playtime。
+## 顶栏保留 Settings / 时钟，Home / Solo / Multi 换成 Phase 与 playtime。
 signal resumed
 signal retried
 signal quit_pressed
-
-const STRIP_HOVER_SEC: float = 0.12
 
 var _open: bool = false
 var _session: RunSession
 var _encounter: EncounterPhrases
 var _anim_tween: Tween
-var _hover_tweens: Dictionary = {}
 var _sfx_gate: Dictionary = {}
 var _last_clock_second: int = -1
 var _owns_tree_pause: bool = false
+var _settings_active: bool = false
 
 @onready var _root: Control = $Root
 @onready var _dimmer: ColorRect = $Root/Dimmer
-@onready var _column: VBoxContainer = $Root/Center/Column
-@onready var _continue_button: Button = $Root/Center/Column/Continue
-@onready var _retry_button: Button = $Root/Center/Column/Retry
-@onready var _quit_button: Button = $Root/Center/Column/Quit
-@onready var _stats_label: Label = $Root/Center/Column/Stats
+@onready var _panel: PanelContainer = $Root/Center/Panel
+@onready var _continue_button: Button = $Root/Center/Panel/Column/Continue
+@onready var _retry_button: Button = $Root/Center/Panel/Column/Retry
+@onready var _quit_button: Button = $Root/Center/Panel/Column/Quit
+@onready var _stats_label: Label = $Root/Center/Panel/Column/Stats
 @onready var _top_bar_layer: CanvasLayer = $TopBarLayer
 @onready var _top_bar: PanelContainer = $TopBarLayer/TopBar
 @onready var _settings_button: Button = $TopBarLayer/TopBar/Row/SettingsButton
+@onready var _settings_mark: ColorRect = $TopBarLayer/TopBar/Row/SettingsButton/Mark
 @onready var _phase_label: Label = $TopBarLayer/TopBar/Row/PhaseBox/Phase
 @onready var _playtime_label: Label = $TopBarLayer/TopBar/Row/PlaytimeBox/Playtime
-@onready var _profile_button: Button = $TopBarLayer/TopBar/Row/Profile
-@onready var _profile_name: Label = $TopBarLayer/TopBar/Row/Profile/Layout/Name
 @onready var _clock_label: Label = $TopBarLayer/TopBar/Row/TimeBox/Clock
 @onready var _overlay: SettingsOverlay = $SettingsOverlay
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
@@ -50,9 +47,8 @@ func _ready() -> void:
 	_retry_button.pressed.connect(_on_retry_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_settings_button.pressed.connect(_on_settings_pressed)
-	_wire_strip_hover(_continue_button)
-	_wire_strip_hover(_retry_button)
-	_wire_strip_hover(_quit_button)
+	for row: Button in [_continue_button, _retry_button, _quit_button]:
+		UiAnim.wire_row_feedback(self, row, UiType.INK)
 	_continue_button.mouse_entered.connect(_play_hover)
 	_retry_button.mouse_entered.connect(_play_hover)
 	_quit_button.mouse_entered.connect(_play_hover)
@@ -62,6 +58,7 @@ func _ready() -> void:
 	_quit_button.focus_entered.connect(_play_hover)
 	_settings_button.focus_entered.connect(_play_hover)
 	_set_interactive(false)
+	_refresh_settings_state(true)
 
 func bind_run_session(session: RunSession) -> void:
 	_session = session
@@ -81,7 +78,6 @@ func show_top_bar() -> void:
 		_root.visible = false
 	_refresh_clock(true)
 	_refresh_run_status()
-	_refresh_profile_name()
 
 func hide_top_bar() -> void:
 	_root.visible = true
@@ -111,7 +107,6 @@ func open(freeze_tree: bool = true) -> void:
 	_set_interactive(true)
 	_refresh_stats()
 	_refresh_run_status()
-	_refresh_profile_name()
 	_refresh_clock(true)
 	_owns_tree_pause = freeze_tree
 	if freeze_tree:
@@ -120,7 +115,7 @@ func open(freeze_tree: bool = true) -> void:
 			tree.paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _column, [_continue_button, _retry_button, _quit_button], true)
+	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_continue_button, _retry_button, _quit_button], true)
 	_continue_button.grab_focus()
 
 func close(emit_resumed: bool = true) -> void:
@@ -155,6 +150,7 @@ func _process(_delta: float) -> void:
 	_refresh_clock(false)
 	if _open:
 		_refresh_run_status()
+		_refresh_settings_state()
 
 func _input(event: InputEvent) -> void:
 	if not visible:
@@ -234,10 +230,6 @@ func _refresh_run_status() -> void:
 		elapsed = _session.get_elapsed_sec()
 	_playtime_label.text = "playtime  %s" % GameAudio.format_playtime(elapsed)
 
-func _refresh_profile_name() -> void:
-	GameProgress.load_from_disk()
-	_profile_name.text = "best  %d" % GameProgress.get_best_loop()
-
 func _refresh_clock(force: bool) -> void:
 	var now: Dictionary = Time.get_time_dict_from_system()
 	var sec: int = int(now["second"])
@@ -258,31 +250,13 @@ func _set_interactive(enabled: bool) -> void:
 	_quit_button.disabled = not enabled
 	_settings_button.disabled = not enabled
 
-func _wire_strip_hover(button: Button) -> void:
-	var bg: ColorRect = button.get_node("Bg") as ColorRect
-	var mat: ShaderMaterial = bg.material as ShaderMaterial
-	button.mouse_entered.connect(func() -> void: _set_strip_hover(button, mat, true))
-	button.mouse_exited.connect(func() -> void: _set_strip_hover(button, mat, false))
-	button.focus_entered.connect(func() -> void: _set_strip_hover(button, mat, true))
-	button.focus_exited.connect(func() -> void: _set_strip_hover(button, mat, false))
-
-func _set_strip_hover(button: Button, mat: ShaderMaterial, hovered: bool) -> void:
-	var key: String = str(button.get_path())
-	var old: Tween = _hover_tweens.get(key) as Tween
-	UiAnim.kill_tween(old)
-	var tween: Tween = create_tween().set_parallel(true)
-	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	_hover_tweens[key] = tween
-	var from_hover: float = float(mat.get_shader_parameter("hover"))
-	var to_hover: float = 1.0 if hovered else 0.0
-	var to_scale: Vector2 = Vector2(1.02, 1.02) if hovered else Vector2.ONE
-	tween.tween_method(
-		func(value: float) -> void: mat.set_shader_parameter("hover", value),
-		from_hover,
-		to_hover,
-		STRIP_HOVER_SEC
-	)
-	tween.tween_property(button, "scale", to_scale, STRIP_HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+func _refresh_settings_state(force: bool = false) -> void:
+	var active: bool = _overlay.is_open()
+	if not force and active == _settings_active:
+		return
+	_settings_active = active
+	_settings_mark.visible = active
+	_settings_button.add_theme_color_override("font_color", UiType.INK if active else UiType.MUTED)
 
 func _play_hover() -> void:
 	if not _open:

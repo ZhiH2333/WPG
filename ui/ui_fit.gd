@@ -4,22 +4,23 @@ class_name UiFit
 ## 按可见逻辑尺寸收缩大面板和两列卡片。content_scale_factor 已经放大整棵树，禁止再乘 ui_scale。
 ## 商店 CanvasLayer：Root/Center 刚显示时可能是 (0, 0)，按视口逻辑尺寸钉住再居中。
 ## 主菜单叠层：FULL_RECT + offset_top=60。打开时 host.size 往往还是整屏，CenterContainer 会按整屏居中，进场动画再把这个偏下的 y 锁住；改窗口才会重新 sort。只钉 Center 到「视口减去顶栏」的剩余矩形，不改叠层自己的 FULL_RECT。
-## 宽高各自钳，不锁死设计稿宽高比。句读三选一走 offer_panel_size，禁止走 _fit_in（MIN_PANEL_HEIGHT=480 会把 380 高的小面板撑成商店高）。
+## 宽高各自钳，不锁死设计稿宽高比。句读三选一走 offer_panel_size，禁止走 _fit_in（MIN_PANEL_HEIGHT 会把小面板撑成商店高）。
+## 尺寸阶梯（2026-09-26 统一）：页面不再用大面板（走 48 margin 的 Page 布局），本文件只剩 Modal：商店 1120x660、三选一 880x360、通用 Modal 960x640。
 const DESIGN := Vector2(1920, 1080)
-const PREFERRED_PANEL := Vector2(1680, 920)
-const PREFERRED_CARD := Vector2(780, 140)
+const PREFERRED_PANEL := Vector2(960, 640)
+const PREFERRED_CARD := Vector2(560, 120)
 const PREFERRED_PORTRAIT: float = 96.0
-const SHOP_PANEL_MAX := Vector2(1480, 820)
-const OFFER_PANEL_MAX := Vector2(1040, 380)
-const OFFER_PANEL_MIN := Vector2(920, 300)
+const SHOP_PANEL_MAX := Vector2(1120, 660)
+const OFFER_PANEL_MAX := Vector2(880, 360)
+const OFFER_PANEL_MIN := Vector2(720, 280)
 const PANEL_MARGIN: float = 48.0
 const CARD_H_SEP: float = 16.0
 const CARD_INSET: float = 104.0
 const MIN_CARD_WIDTH: float = 360.0
 const MIN_CARD_HEIGHT: float = 96.0
-const MAX_CARD_HEIGHT: float = 160.0
+const MAX_CARD_HEIGHT: float = 144.0
 const MIN_PANEL_WIDTH: float = 640.0
-const MIN_PANEL_HEIGHT: float = 480.0
+const MIN_PANEL_HEIGHT: float = 320.0
 const MIN_PORTRAIT: float = 64.0
 
 static func visible_size(from: CanvasItem) -> Vector2:

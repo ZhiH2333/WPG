@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐。顶栏是全局导航（WPG / Home / Play / Player / Settings / 时钟），没有 Solo / Multi。中央是身份占位 `Player` 和唯一一颗 PLAY 平行四边形；下方 `Solo · Multiplayer` 文字链跳过 Mode Choice。点 Logo 或 PLAY 弹出 SOLO / MULTI 两张 Modal 卡（不记上次选择）。SOLO 进档位大面板；MULTI 进局域网大面板。右下是小 Quit。有档时 PLAY 下多一行 last activity，点了按该档新开一局。Settings 抽屉叠在当前页上，关掉后仍停在原页。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 5，最多 5 座。MULTI 直接进同网房间列表，Create a room 开房；发现端口 17778 是 Guest 探针 / Host 应答。手打 IPv4 仍能进。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。点顶栏头像弹出 PROFILE（best / last / runs）。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 有 Master / Music / SFX 三轨音量和显示项。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火；Dash 默认 A、切枪默认十字键，可在 Settings Controls 的 Pad 列改按钮，摇杆和扳机不重绑。冲突会旁白并播 Error；RESTORE DEFAULTS 只清键位，Start 仍暂停/关店/取消三选一。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐。顶栏是全局导航：最左是 WPG App 图标，然后 HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS（每项带图标），右端只有时钟。舞台下是一行身份（`Player` / `Ready to play`）和三条 Rail：`CONTINUE`（用最近一档新开一局，无档时整格不出现）、`SOLO`（Records 页）、`MULTIPLAYER`（联机页），右下是 `Quit`。PLAY 打开 Play 页（同样三条 Rail + Back），PROFILE 打开 Profile 页，SETTINGS 是叠在当前页上的抽屉；这些屏幕只分 Page / Drawer / Modal 三种形态，打开时背景模糊压暗、音乐衰减，Esc / Back 逐层退出。有档时 CONTINUE 下多一行 loop 目标，点了按该档新开一局。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 5，最多 5 座。MULTI 直接进同网房间列表，Create a room 开房；发现端口 17778 是 Guest 探针 / Host 应答。手打 IPv4 仍能进。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。PROFILE 页只读 `progress.cfg` 与 `records.json`（best / last / runs + 档位概览），右上 RANKING 打开排行页。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 有 Master / Music / SFX 三轨音量和显示项。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火；Dash 默认 A、切枪默认十字键，可在 Settings Controls 的 Pad 列改按钮，摇杆和扳机不重绑。冲突会旁白并播 Error；RESTORE DEFAULTS 只清键位，Start 仍暂停/关店/取消三选一。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -1592,6 +1592,49 @@ Phase 1 的 IA / 动效 / Play 页已落地，但 Home 与 Play 的 Label **把�
 - **修后复测（同机同窗口、同底图）**：`Status` 1.22 → **5.80**、`Play with friends` 1.05 → **4.79**（最亮 5% 底纹仍 4.60、字缘 4.71）、`BEST LOOP` 2.12 → 13.7、`19` 2.70 → 13.6、`19:11` 1.78 → 13.8；全部 ≥ AA 4.5。Rail 的 Title→Caption 间距 28 → 13。`_ready` 无新增脚本错误。
 
 **当时不做：** 把 `wpg.icon` bundle 当资源直接引用（Godot 读不了 macOS Icon Composer 格式，只取 `Assets/trans.PNG` 落成 `ui/icons/wpg.png`；bundle 本身仍未入库）、Playpen Sans（字面仍是本机回落档）、按角色区分字重（全粗是这一刀的决定）、Home / Play 的 `UiFit`（`canvas_items + expand` 下逻辑画布不会小于 1920×1080，Home 不会被压扁；原判断作废）、TopBar / 其它叠层换皮、`MenuTitle` 旧变体清理、LanOverlay 的 `rpc_guest_character` 自调用报错（`ui/lan_overlay.gd:516`，每天开菜单都会打印，属网络侧，另开一刀）、战斗 HUD 描边。
+
+## UI 统一重构（已完成）：MainMenu 是唯一母版
+
+目标：整个 `ui/` 统一成 MainMenu 的 FlatBold 语言（深色 flat surface / 骨白文字 / 粉色 accent / 圆角 6 / 无阴影无发光 / Rail 形态）。**只改视觉与结构，业务零改**：玩法、网络协议、LAN、存档、战斗数值、输入映射、页面流程、对外 API（`is_open/open/close`、信号、`present`）全部未动。
+
+### 主题（`ui/game_theme.tres`，唯一 token 源）
+
+- 44 → 39 个 StyleBox：**所有圆角 = 6**（`sb_bar_panel` 是整条 bar，保持直角）；**阴影全删**；装饰性描边全删；新增 `sb_focus_underline`（2px 骨白底部下划线），`EmptyButton` / `EmptyButtonMuted` / `IconBarButton` 的 focus 走它 —— 与 Rail 的 `Mark` 同位，这样键盘/手柄焦点在任何页面都可见。
+- 文字色收敛成两种：骨白 `(0.96,0.93,0.88)`、灰褐 `(0.62,0.58,0.52)`；基础 `Label` 的 1px 投影关闭（可读性手段是 scrim + 描边）。基础 `Button` 从半径 10 的旧皮重指到 flat card 系列。
+- 新增 `EmptyButtonMuted`（三级文字按钮：Quit / Back / Ranking）。`ui/ui_type.gd` 只留颜色（字号阶梯只在主题里）；`ui/ui_fit.gd` 阶梯改为：通用 Modal 960×640、商店 1120×660、三选一 880×360、卡片基准 560×120、`MIN_PANEL_HEIGHT` 320。
+- 删除 13 个无人引用的 variation（`MenuTitle` / `PauseTitle` / `StripCaption` / `FloatingHeader` / `RunSummaryPanel` / `LogoButton` / `MainMenuButton` / `SettingsNavCaption` / `ProfileName` / `WinnerHist` / `WinnerHistHi` / `WinnerNewBest` / `WinnerScore`）与 8 个随之失效的 StyleBox（`sb_logo*`、`sb_btn_*`、`sb_focus_btn/logo`），并删掉 `ui/menu_shear.gdshader`（暂停三条 shader 大条的唯一消费者）。变体/类型条目 51 → 42（新增 `EmptyButtonMuted`、`OfferButtonSmall`，以及 Settings 抽屉里原先回落引擎默认皮的 `CheckBox` / `OptionButton` / `PopupMenu` 的 FlatBold 皮）。`PillRed` 保留为语义危险色，当前未引用。
+
+### 页面形态（三选一，不再有第四种）
+
+| 形态 | 结构 | 用在哪 |
+|---|---|---|
+| Page | `Dimmer(UiType.PAGE_VEIL) → Sheet → Column(48/24/672/36, sep 24)` + 1px `UiType.STRUCTURE` hairline，**不套 PanelContainer** | Play / Records / Ranking / Profile / Multiplayer(LAN) / Winner |
+| Modal | `Dimmer(0.55) → Center → Panel(FloatingPanel) → Column(sep 20)`，尺寸贴内容 | Shop / Upgrade(PICK ONE) / Pause / Credits / RoomNotice / 删档确认 |
+| Drawer | 现有 Settings 侧滑（宽度数学不动） | Settings |
+
+行级交互只剩一条实现：`UiAnim.wire_row_feedback()`（1.02 + `Mark` + `Text/Caption` 提到 Ink，鼠标与 focus 一致）；各页原先自写的 hover tween 全部删除（shop / upgrade / pause 的 shader hover 一并消失）。
+
+### 每屏变化
+
+- **pause**：三条 760×80 shader 大条 + `PauseTitle`/`StripCaption` → 620×420 flat Modal + 三条中性 Rail 行（Continue / Retry / Quit，`OfferTitle` + `Mark`）；删掉暂停顶栏里重复的 Profile 头像块，phase/playtime 改 `Caption`。
+- **winner**：1080×560 居中面板 → Page 结构（`PageTitle` / 拆解行 `Caption`+`StatValue` / `THIS RECORD` 历史 / Retry `PillPink` / Menu `PillNeutral`），行淡入走 `UiAnim.enter_stagger_fade`。
+- **records / ranking / LAN**：1680×920 `FloatingPanel` + `CenterContainer` → Page；档位卡基准 780×140 → 560×120，删除钮 64→40 并修掉与卡片重叠 60px 的老问题；删档确认改成真 Modal（`enter_modal/exit_modal`）；LAN 的房间行改 Rail 形态。
+- **shop / upgrade**：1480×820 → 1120×660、1040×380 → 880×360；卡片 240×148 → 220×132、280×180 → 240×160；状态列的 `HudHp` / `HudWeapon` 泄漏全部换成 `StatValue` / `Caption`；Continue 改 `PillPink`。
+- **profile / credits**：profile override 35 → 4，名字走 `ShowcaseName`，粉色 accent 用 `ProfileHeader`；credits 960×720 → 720×560 Modal，`HSeparator` → 1px hairline。
+- **settings**：标题 `SettingsHeader`、小节 `SectionLabel`、CTA 56 → 48，搜索/状态行 `Caption`，`HSeparator` → hairline；抽屉数学、滚动惯性、搜索、键位重绑未动。
+- **room_notice**：720×260 → 560×220、toast 496×96 → 420×72，删掉两个内嵌带 3px 白描边的 StyleBoxFlat。
+- 静态 `theme_override_*` 只剩布局类（margin / separation / icon_max_width）；`theme_override_font_sizes` / `font_color` / `outline_size` 在 `ui/` 已清零（运行时状态色除外）。
+
+### 例外与保留
+
+- **loading 页**：按要求保留旧的 `loading_blur.gdshader` 背景模糊与手写 `BarTrack/BarFill` 进度条（只把标题/版本/状态文案换成 token）。
+- **战斗 HUD** 只读：它有自己的 Combat 特例，只吃到主题的圆角 6 / 骨白，不参与菜单语言、不重构。
+- Settings 抽屉的 nav 仍是 `focus_mode = 0` + 自管 indicator（改成可聚焦会动焦点顺序与 Esc 路由）；`sb_indicator` 内嵌样式保留（粉 / 圆角 6 / 无阴影，已合规）。RoomNotice 的 toast 三段式 tween 保留（`UiAnim` 无等价函数），modal dimmer 仍 0.45。
+
+### 验收证据
+
+- 15 张实拍（1920×1080）：Play / Records LIST / Records EDITOR / Profile / Ranking / Multiplayer / Settings / Credits / Combat HUD / Pause / Upgrade / Shop / RoomNotice / Winner / Loading，全部零 `SCRIPT ERROR`、零 `Node not found`（只剩既存的 LanOverlay `rpc_guest_character` 自调用报错）。
+- 结构审计（脚本遍历 `ui/*.tscn` 实例）：**无 Mark 且无焦点样式的可聚焦按钮 = 0**、非法 Label variation = 0、超阶梯或含 1680/1480/920/820/1040/760 尺寸的容器 = 0。
 
 ## 剩余表
 

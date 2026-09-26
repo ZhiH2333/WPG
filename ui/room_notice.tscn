@@ -1,39 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://ui/room_notice.gd" id="1_notice"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
-
-[sub_resource type="StyleBoxFlat" id="sb_notice_panel"]
-content_margin_left = 32.0
-content_margin_top = 28.0
-content_margin_right = 32.0
-content_margin_bottom = 28.0
-bg_color = Color(0.13, 0.11, 0.155, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 1, 1, 0.9)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_toast_panel"]
-content_margin_left = 24.0
-content_margin_top = 18.0
-content_margin_right = 24.0
-content_margin_bottom = 18.0
-bg_color = Color(0.13, 0.11, 0.155, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 1, 1, 0.9)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
 
 [node name="RoomNotice" type="CanvasLayer"]
 layer = 40
@@ -71,18 +39,18 @@ grow_vertical = 2
 mouse_filter = 0
 
 [node name="Panel" type="PanelContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(720, 260)
+custom_minimum_size = Vector2(560, 220)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 mouse_filter = 0
-theme_override_styles/panel = SubResource("sb_notice_panel")
+theme_type_variation = &"FloatingPanel"
 
 [node name="Column" type="VBoxContainer" parent="Root/Center/Panel"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 28
+theme_override_constants/separation = 20
 alignment = 1
 
 [node name="Message" type="Label" parent="Root/Center/Panel/Column"]
@@ -96,10 +64,10 @@ vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="Ok" type="Button" parent="Root/Center/Panel/Column"]
-custom_minimum_size = Vector2(220, 56)
+custom_minimum_size = Vector2(220, 48)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"PillPink"
 text = "OK"
 
 [node name="Toast" type="PanelContainer" parent="Root"]
@@ -108,17 +76,17 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -520.0
+offset_left = -444.0
 offset_top = 24.0
 offset_right = -24.0
-offset_bottom = 120.0
+offset_bottom = 96.0
 grow_horizontal = 0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("sb_toast_panel")
+theme_type_variation = &"FloatingPanel"
 
 [node name="Message" type="Label" parent="Root/Toast"]
 layout_mode = 2
-theme_type_variation = &"HudWeapon"
+theme_type_variation = &"OfferTitle"
 text = "Guest left the room. Switched to solo."
 horizontal_alignment = 1
 vertical_alignment = 1

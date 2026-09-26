@@ -1,30 +1,10 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://ui/pause_overlay.gd" id="1_pause"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
-[ext_resource type="Shader" path="res://ui/menu_shear.gdshader" id="3_shear"]
 [ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="4_settings"]
 [ext_resource type="Texture2D" path="res://ui/icons/gear.png" id="5_gear"]
 [ext_resource type="Texture2D" path="res://ui/icons/clock.png" id="6_clock"]
-[ext_resource type="Texture2D" path="res://ui/icons/avatar.png" id="7_avatar"]
-
-[sub_resource type="ShaderMaterial" id="mat_continue"]
-shader = ExtResource("3_shear")
-shader_parameter/fill_color = Color(0.55, 0.78, 0.22, 0.95)
-shader_parameter/shear = 0.16
-shader_parameter/hover = 0.0
-
-[sub_resource type="ShaderMaterial" id="mat_retry"]
-shader = ExtResource("3_shear")
-shader_parameter/fill_color = Color(0.92, 0.68, 0.16, 0.95)
-shader_parameter/shear = 0.16
-shader_parameter/hover = 0.0
-
-[sub_resource type="ShaderMaterial" id="mat_quit"]
-shader = ExtResource("3_shear")
-shader_parameter/fill_color = Color(0.67, 0.11, 0.15, 0.95)
-shader_parameter/shear = 0.16
-shader_parameter/hover = 0.0
 
 [node name="PauseOverlay" type="CanvasLayer"]
 process_mode = 3
@@ -50,7 +30,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0, 0, 0, 0.75)
+color = Color(0, 0, 0, 0.55)
 
 [node name="Center" type="CenterContainer" parent="Root"]
 layout_mode = 1
@@ -61,23 +41,34 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Column" type="VBoxContainer" parent="Root/Center"]
+[node name="Panel" type="PanelContainer" parent="Root/Center"]
+custom_minimum_size = Vector2(620, 420)
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
-alignment = 1
+mouse_filter = 0
+theme_type_variation = &"FloatingPanel"
 
-[node name="Title" type="Label" parent="Root/Center/Column"]
+[node name="Column" type="VBoxContainer" parent="Root/Center/Panel"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"PauseTitle"
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageTitle"
 text = "PAUSED"
 horizontal_alignment = 1
 
-[node name="Continue" type="Button" parent="Root/Center/Column"]
-custom_minimum_size = Vector2(760, 80)
+[node name="TopLine" type="ColorRect" parent="Root/Center/Panel/Column"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-pivot_offset = Vector2(380, 40)
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Continue" type="Button" parent="Root/Center/Panel/Column"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"EmptyButton"
 focus_neighbor_top = NodePath("../Quit")
@@ -87,34 +78,42 @@ focus_neighbor_right = NodePath(".")
 focus_next = NodePath("../Retry")
 focus_previous = NodePath("../Quit")
 
-[node name="Bg" type="ColorRect" parent="Root/Center/Column/Continue"]
-material = SubResource("mat_continue")
+[node name="Mark" type="ColorRect" parent="Root/Center/Panel/Column/Continue"]
+visible = false
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -2.0
 grow_horizontal = 2
-grow_vertical = 2
+grow_vertical = 0
 mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
 
-[node name="Caption" type="Label" parent="Root/Center/Column/Continue"]
+[node name="Text" type="HBoxContainer" parent="Root/Center/Panel/Column/Continue"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_type_variation = &"StripCaption"
-theme_override_font_sizes/font_size = 32
-text = "Continue"
-horizontal_alignment = 1
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Continue/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferTitle"
+text = "CONTINUE"
 vertical_alignment = 1
 
-[node name="Retry" type="Button" parent="Root/Center/Column"]
-custom_minimum_size = Vector2(760, 80)
+[node name="Retry" type="Button" parent="Root/Center/Panel/Column"]
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-pivot_offset = Vector2(380, 40)
+size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"EmptyButton"
 focus_neighbor_top = NodePath("../Continue")
@@ -124,34 +123,42 @@ focus_neighbor_right = NodePath(".")
 focus_next = NodePath("../Quit")
 focus_previous = NodePath("../Continue")
 
-[node name="Bg" type="ColorRect" parent="Root/Center/Column/Retry"]
-material = SubResource("mat_retry")
+[node name="Mark" type="ColorRect" parent="Root/Center/Panel/Column/Retry"]
+visible = false
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -2.0
 grow_horizontal = 2
-grow_vertical = 2
+grow_vertical = 0
 mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
 
-[node name="Caption" type="Label" parent="Root/Center/Column/Retry"]
+[node name="Text" type="HBoxContainer" parent="Root/Center/Panel/Column/Retry"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_type_variation = &"StripCaption"
-theme_override_font_sizes/font_size = 32
-text = "Retry"
-horizontal_alignment = 1
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Retry/Text"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferTitle"
+text = "RETRY"
 vertical_alignment = 1
 
-[node name="Quit" type="Button" parent="Root/Center/Column"]
-custom_minimum_size = Vector2(760, 80)
+[node name="Quit" type="Button" parent="Root/Center/Panel/Column"]
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-pivot_offset = Vector2(380, 40)
+size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"EmptyButton"
 focus_neighbor_top = NodePath("../Retry")
@@ -161,34 +168,48 @@ focus_neighbor_right = NodePath(".")
 focus_next = NodePath("../Continue")
 focus_previous = NodePath("../Retry")
 
-[node name="Bg" type="ColorRect" parent="Root/Center/Column/Quit"]
-material = SubResource("mat_quit")
+[node name="Mark" type="ColorRect" parent="Root/Center/Panel/Column/Quit"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Text" type="HBoxContainer" parent="Root/Center/Panel/Column/Quit"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
 
-[node name="Caption" type="Label" parent="Root/Center/Column/Quit"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_type_variation = &"StripCaption"
-theme_override_font_sizes/font_size = 32
-text = "Quit"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Stats" type="Label" parent="Root/Center/Column"]
+[node name="Title" type="Label" parent="Root/Center/Panel/Column/Quit/Text"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"OfferTitle"
+text = "QUIT"
+vertical_alignment = 1
+
+[node name="BottomLine" type="ColorRect" parent="Root/Center/Panel/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Stats" type="Label" parent="Root/Center/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
 text = "loop  0    gold  0    kills  0"
 horizontal_alignment = 1
 
@@ -209,19 +230,30 @@ theme_type_variation = &"BarPanel"
 [node name="Row" type="HBoxContainer" parent="TopBarLayer/TopBar"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 0
-alignment = 0
+theme_override_constants/separation = 4
 
 [node name="SettingsButton" type="Button" parent="TopBarLayer/TopBar/Row"]
-custom_minimum_size = Vector2(168, 60)
+custom_minimum_size = Vector2(172, 60)
 layout_mode = 2
-size_flags_vertical = 3
 focus_mode = 0
 mouse_filter = 0
 theme_type_variation = &"IconBarButton"
 tooltip_text = "Settings"
-text = "Settings"
+text = "SETTINGS"
 icon = ExtResource("5_gear")
+
+[node name="Mark" type="ColorRect" parent="TopBarLayer/TopBar/Row/SettingsButton"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
 
 [node name="PhaseBox" type="HBoxContainer" parent="TopBarLayer/TopBar/Row"]
 custom_minimum_size = Vector2(0, 60)
@@ -240,7 +272,7 @@ mouse_filter = 2
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"ClockLabel"
+theme_type_variation = &"Caption"
 text = "Phase  -"
 vertical_alignment = 1
 
@@ -266,7 +298,7 @@ mouse_filter = 2
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"ClockLabel"
+theme_type_variation = &"Caption"
 text = "playtime  00:00"
 vertical_alignment = 1
 
@@ -279,46 +311,6 @@ mouse_filter = 2
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-
-[node name="Profile" type="Button" parent="TopBarLayer/TopBar/Row"]
-custom_minimum_size = Vector2(188, 60)
-layout_mode = 2
-size_flags_vertical = 3
-disabled = true
-focus_mode = 0
-mouse_filter = 2
-theme_type_variation = &"IconBarButton"
-tooltip_text = "Profile"
-
-[node name="Layout" type="HBoxContainer" parent="TopBarLayer/TopBar/Row/Profile"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 14.0
-offset_right = -14.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 10
-alignment = 1
-
-[node name="Name" type="Label" parent="TopBarLayer/TopBar/Row/Profile/Layout"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-theme_type_variation = &"ProfileName"
-text = "best  0"
-vertical_alignment = 1
-
-[node name="Avatar" type="TextureRect" parent="TopBarLayer/TopBar/Row/Profile/Layout"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("7_avatar")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="TimeBox" type="HBoxContainer" parent="TopBarLayer/TopBar/Row"]
 custom_minimum_size = Vector2(0, 60)

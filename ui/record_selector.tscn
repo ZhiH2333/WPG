@@ -1,8 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://ui/record_selector.gd" id="1_selector"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
-[ext_resource type="Texture2D" path="res://ui/icons/play.png" id="3_play"]
 
 [sub_resource type="ButtonGroup" id="group_character"]
 
@@ -28,9 +27,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0, 0, 0, 0.35)
+color = Color(0.07, 0.06, 0.05, 0.42)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Sheet" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -39,58 +38,87 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(1680, 920)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"FloatingPanel"
-
-[node name="Column" type="VBoxContainer" parent="Center/Panel"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+[node name="Column" type="VBoxContainer" parent="Sheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = 24.0
+offset_right = -672.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 24
 
-[node name="Header" type="HBoxContainer" parent="Center/Panel/Column"]
+[node name="Header" type="HBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 12
 
-[node name="Icon" type="TextureRect" parent="Center/Panel/Column/Header"]
-custom_minimum_size = Vector2(40, 40)
+[node name="Title" type="Label" parent="Sheet/Column/Header"]
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-texture = ExtResource("3_play")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Title" type="Label" parent="Center/Panel/Column/Header"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
+theme_type_variation = &"PageTitle"
 text = "RECORDS"
-vertical_alignment = 1
 
-[node name="Content" type="MarginContainer" parent="Center/Panel/Column"]
+[node name="Spacer" type="Control" parent="Sheet/Column/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Back" type="Button" parent="Sheet/Column/Header"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"EmptyButtonMuted"
+text = "Back"
+
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Header/Back"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="Subtitle" type="Label" parent="Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageSubtitle"
+text = "Pick a save, or brand a new one"
+
+[node name="TopLine" type="ColorRect" parent="Sheet/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Content" type="Control" parent="Sheet/Column"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
 
-[node name="ListRoot" type="Control" parent="Center/Panel/Column/Content"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+[node name="ListRoot" type="Control" parent="Sheet/Column/Content"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="Scroll" type="ScrollContainer" parent="Center/Panel/Column/Content/ListRoot"]
+[node name="Scroll" type="ScrollContainer" parent="Sheet/Column/Content/ListRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -101,7 +129,7 @@ mouse_filter = 0
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 1
 
-[node name="Cards" type="GridContainer" parent="Center/Panel/Column/Content/ListRoot/Scroll"]
+[node name="Cards" type="GridContainer" parent="Sheet/Column/Content/ListRoot/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -110,13 +138,26 @@ theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 16
 columns = 2
 
-[node name="NewRecord" type="Button" parent="Center/Panel/Column/Content/ListRoot/Scroll/Cards"]
-custom_minimum_size = Vector2(780, 140)
+[node name="NewRecord" type="Button" parent="Sheet/Column/Content/ListRoot/Scroll/Cards"]
+custom_minimum_size = Vector2(540, 116)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/ListRoot/Scroll/Cards/NewRecord"]
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
+
+[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -131,28 +172,22 @@ mouse_filter = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Title" type="Label" parent="Center/Panel/Column/Content/ListRoot/Scroll/Cards/NewRecord/VBox"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"OfferTitle"
 text = "+ New Record"
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Center/Panel/Column/Content/ListRoot/Scroll/Cards/NewRecord/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Brand a save"
 autowrap_mode = 2
 
-[node name="EditorRoot" type="Control" parent="Center/Panel/Column/Content"]
+[node name="EditorRoot" type="Control" parent="Sheet/Column/Content"]
 visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-mouse_filter = 2
-
-[node name="Center" type="CenterContainer" parent="Center/Panel/Column/Content/EditorRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -161,20 +196,29 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Column" type="VBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center"]
+[node name="Center" type="CenterContainer" parent="Sheet/Column/Content/EditorRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center"]
 custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="Characters" type="HBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column"]
+[node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Boar" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters"]
+[node name="Boar" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters"]
 custom_minimum_size = Vector2(240, 200)
 layout_mode = 2
 toggle_mode = true
@@ -184,7 +228,7 @@ button_group = SubResource("group_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar"]
+[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -199,22 +243,22 @@ mouse_filter = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"OfferTitle"
 text = "Boar"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
@@ -222,7 +266,7 @@ text = "Tanky."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Chicken" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters"]
+[node name="Chicken" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters"]
 custom_minimum_size = Vector2(240, 200)
 layout_mode = 2
 toggle_mode = true
@@ -231,7 +275,7 @@ button_group = SubResource("group_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken"]
+[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -246,22 +290,22 @@ mouse_filter = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"OfferTitle"
 text = "Chicken"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
@@ -269,14 +313,14 @@ text = "Hard to hit."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Arenas" type="HBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column"]
+[node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Yard" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 56)
+[node name="Yard" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Arenas"]
+custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 toggle_mode = true
 button_pressed = true
@@ -286,8 +330,8 @@ mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Yard"
 
-[node name="Pit" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 56)
+[node name="Pit" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Arenas"]
+custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 toggle_mode = true
 action_mode = 0
@@ -296,8 +340,8 @@ mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Pit"
 
-[node name="Keep" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 56)
+[node name="Keep" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Arenas"]
+custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 toggle_mode = true
 action_mode = 0
@@ -306,13 +350,13 @@ mouse_filter = 0
 theme_type_variation = &"OfferButton"
 text = "Keep"
 
-[node name="LoopRow" type="HBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column"]
+[node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="Slider" type="HSlider" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow"]
+[node name="Slider" type="HSlider" parent="Sheet/Column/Content/EditorRoot/Center/Column/LoopRow"]
 custom_minimum_size = Vector2(280, 28)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -323,7 +367,7 @@ step = 5.0
 value = 20.0
 rounded = true
 
-[node name="LoopLabel" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow"]
+[node name="LoopLabel" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/LoopRow"]
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 mouse_filter = 2
@@ -331,14 +375,14 @@ theme_type_variation = &"OfferDesc"
 text = "20 loops"
 horizontal_alignment = 2
 
-[node name="NameEdit" type="LineEdit" parent="Center/Panel/Column/Content/EditorRoot/Center/Column"]
+[node name="NameEdit" type="LineEdit" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
 custom_minimum_size = Vector2(520, 44)
 layout_mode = 2
 mouse_filter = 0
 placeholder_text = "Name (optional)"
 caret_blink = true
 
-[node name="Confirm" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column"]
+[node name="Confirm" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -346,14 +390,25 @@ mouse_filter = 0
 theme_type_variation = &"PillPink"
 text = "Confirm"
 
-[node name="DeleteRoot" type="Control" parent="Center/Panel/Column/Content"]
-visible = false
+[node name="BottomLine" type="ColorRect" parent="Sheet/Column"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
 mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
 
-[node name="Center" type="CenterContainer" parent="Center/Panel/Column/Content/DeleteRoot"]
+[node name="DeleteDimmer" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.55)
+
+[node name="DeleteCenter" type="CenterContainer" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -362,52 +417,48 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="Center/Panel/Column/Content/DeleteRoot/Center"]
-custom_minimum_size = Vector2(420, 180)
+[node name="DeletePanel" type="PanelContainer" parent="DeleteCenter"]
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"RunSummaryPanel"
+theme_type_variation = &"FloatingPanel"
 
-[node name="Column" type="VBoxContainer" parent="Center/Panel/Column/Content/DeleteRoot/Center/Panel"]
+[node name="Column" type="VBoxContainer" parent="DeleteCenter/DeletePanel"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 16
-alignment = 1
+theme_override_constants/separation = 20
 
-[node name="Title" type="Label" parent="Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column"]
+[node name="Title" type="Label" parent="DeleteCenter/DeletePanel/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"PageTitle"
 text = "Delete this record?"
 horizontal_alignment = 1
 
-[node name="Buttons" type="HBoxContainer" parent="Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column"]
+[node name="Line" type="ColorRect" parent="DeleteCenter/DeletePanel/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Buttons" type="HBoxContainer" parent="DeleteCenter/DeletePanel/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="Yes" type="Button" parent="Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons"]
-custom_minimum_size = Vector2(120, 44)
+[node name="Yes" type="Button" parent="DeleteCenter/DeletePanel/Column/Buttons"]
+custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"PillPink"
 text = "Yes"
 
-[node name="No" type="Button" parent="Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons"]
-custom_minimum_size = Vector2(120, 44)
+[node name="No" type="Button" parent="DeleteCenter/DeletePanel/Column/Buttons"]
+custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"PillNeutral"
 text = "No"
-
-[node name="Back" type="Button" parent="Center/Panel/Column"]
-custom_minimum_size = Vector2(120, 44)
-layout_mode = 2
-size_flags_horizontal = 0
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "Back"
 
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]

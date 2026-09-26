@@ -26,9 +26,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0, 0, 0, 0.45)
+color = Color(0, 0, 0, 0.5)
 
-[node name="Center" type="CenterContainer" parent="Root"]
+[node name="Sheet" type="Control" parent="Root"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -37,137 +37,215 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(1080, 560)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"RunSummaryPanel"
+[node name="Column" type="VBoxContainer" parent="Root/Sheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = 48.0
+offset_right = -672.0
+offset_bottom = -48.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
 
-[node name="Column" type="VBoxContainer" parent="Root/Center/Panel"]
+[node name="Title" type="Label" parent="Root/Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 16
+theme_type_variation = &"PageTitle"
+text = "RESULT"
 
-[node name="Body" type="HBoxContainer" parent="Root/Center/Panel/Column"]
+[node name="RecordName" type="Label" parent="Root/Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageSubtitle"
+text = "-"
+
+[node name="TopLine" type="ColorRect" parent="Root/Sheet/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Body" type="HBoxContainer" parent="Root/Sheet/Column"]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 32
+theme_override_constants/separation = 48
 
-[node name="Left" type="VBoxContainer" parent="Root/Center/Panel/Column/Body"]
+[node name="Left" type="VBoxContainer" parent="Root/Sheet/Column/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"RunSummaryTitle"
-text = "DEAD"
-
-[node name="RecordName" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+[node name="Score" type="Label" parent="Root/Sheet/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ModeTitle"
-text = "-"
-
-[node name="Score" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"WinnerScore"
 text = "score  0"
 
-[node name="NewBest" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+[node name="NewBest" type="Label" parent="Root/Sheet/Column/Body/Left"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"WinnerNewBest"
+theme_type_variation = &"ClearedTitle"
 text = "NEW BEST"
 
-[node name="LoopBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+[node name="Breakdown" type="VBoxContainer" parent="Root/Sheet/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-text = "loop  0  ×1000  =  0"
+theme_override_constants/separation = 8
 
-[node name="KillsBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+[node name="LoopRow" type="HBoxContainer" parent="Root/Sheet/Column/Body/Left/Breakdown"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-text = "kills  0  ×5  =  0"
 
-[node name="GoldBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+[node name="Label" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/LoopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "loop  ×1000"
+
+[node name="Value" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/LoopRow"]
+custom_minimum_size = Vector2(96, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-text = "gold  0  ×2  =  0"
+theme_type_variation = &"StatValue"
+text = "0"
+horizontal_alignment = 2
 
-[node name="TimeBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+[node name="KillsRow" type="HBoxContainer" parent="Root/Sheet/Column/Body/Left/Breakdown"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
-text = "time  0.0s  →  0"
 
-[node name="ClearedBonus" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+[node name="Label" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/KillsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "kills  ×5"
+
+[node name="Value" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/KillsRow"]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatValue"
+text = "0"
+horizontal_alignment = 2
+
+[node name="GoldRow" type="HBoxContainer" parent="Root/Sheet/Column/Body/Left/Breakdown"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/GoldRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "gold  ×2"
+
+[node name="Value" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/GoldRow"]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatValue"
+text = "0"
+horizontal_alignment = 2
+
+[node name="TimeRow" type="HBoxContainer" parent="Root/Sheet/Column/Body/Left/Breakdown"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/TimeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "time  0.0s"
+
+[node name="Value" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/TimeRow"]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatValue"
+text = "0"
+horizontal_alignment = 2
+
+[node name="ClearedBonus" type="Label" parent="Root/Sheet/Column/Body/Left"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
+theme_type_variation = &"RunSummaryHint"
 text = "cleared  +5000"
 
-[node name="Summary" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
+[node name="Summary" type="Label" parent="Root/Sheet/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 text = "loop  0    kills  0    gold  0    time  0.0s    owned  -"
 autowrap_mode = 2
 
-[node name="Right" type="VBoxContainer" parent="Root/Center/Panel/Column/Body"]
+[node name="Right" type="VBoxContainer" parent="Root/Sheet/Column/Body"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 8
 
-[node name="HistTitle" type="Label" parent="Root/Center/Panel/Column/Body/Right"]
+[node name="HistTitle" type="Label" parent="Root/Sheet/Column/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"SectionLabel"
 text = "THIS RECORD"
 
-[node name="HistList" type="VBoxContainer" parent="Root/Center/Panel/Column/Body/Right"]
+[node name="Scroll" type="ScrollContainer" parent="Root/Sheet/Column/Body/Right"]
 layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="HistList" type="VBoxContainer" parent="Root/Sheet/Column/Body/Right/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="HistEmpty" type="Label" parent="Root/Center/Panel/Column/Body/Right"]
+[node name="HistEmpty" type="Label" parent="Root/Sheet/Column/Body/Right"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"WinnerHist"
+theme_type_variation = &"Caption"
 text = "-"
 
-[node name="Rank" type="Label" parent="Root/Center/Panel/Column/Body/Right"]
+[node name="Rank" type="Label" parent="Root/Sheet/Column/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryBody"
 text = "rank  -"
 
-[node name="Buttons" type="HBoxContainer" parent="Root/Center/Panel/Column"]
+[node name="BottomLine" type="ColorRect" parent="Root/Sheet/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Retry" type="Button" parent="Root/Center/Panel/Column/Buttons"]
+[node name="Retry" type="Button" parent="Root/Sheet/Column/Buttons"]
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillPink"
 text = "Retry"
 
-[node name="Menu" type="Button" parent="Root/Center/Panel/Column/Buttons"]
+[node name="Menu" type="Button" parent="Root/Sheet/Column/Buttons"]
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 mouse_filter = 0

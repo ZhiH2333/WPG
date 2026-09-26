@@ -11,9 +11,9 @@ const TEXT_OK: String = "OK"
 const TOAST_LIFE_SEC: float = 2.8
 const TOAST_FADE_SEC: float = 0.22
 const BAR_HEIGHT: float = 60.0
-const MODAL_PREFERRED := Vector2(720, 260)
-const MODAL_MIN := Vector2(480, 180)
-const TOAST_SIZE := Vector2(496, 96)
+const MODAL_PREFERRED := Vector2(560, 220)
+const MODAL_MIN := Vector2(420, 160)
+const TOAST_SIZE := Vector2(420, 72)
 const TOAST_MARGIN := Vector2(24, 24)
 
 var _modal_open: bool = false
@@ -111,7 +111,8 @@ func _fit_panel() -> void:
 
 func _pin_toast(vis: Vector2) -> void:
 	_toast_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_toast_panel.custom_minimum_size = TOAST_SIZE
+	# 宽固定 420，高由内容（FloatingPanel content margin + 文案换行）撑，72 只是下限。
+	_toast_panel.custom_minimum_size = Vector2(TOAST_SIZE.x, 0.0)
 	_toast_panel.offset_left = vis.x - TOAST_SIZE.x - TOAST_MARGIN.x
 	_toast_panel.offset_top = TOAST_MARGIN.y
 	_toast_panel.offset_right = vis.x - TOAST_MARGIN.x

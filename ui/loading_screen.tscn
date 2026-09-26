@@ -68,9 +68,7 @@ alignment = 1
 [node name="Title" type="Label" parent="Root/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
-theme_override_constants/outline_size = 10
-theme_override_font_sizes/font_size = 96
+theme_type_variation = &"ShowcaseName"
 text = "LOADING"
 horizontal_alignment = 1
 
@@ -100,6 +98,6 @@ color = Color(1, 0.55, 0.76, 1)
 [node name="StatusLabel" type="Label" parent="Root/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"RunSummaryHint"
 text = "loading"
 horizontal_alignment = 1

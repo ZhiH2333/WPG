@@ -7,7 +7,12 @@ signal selected_record(id: String)
 enum View { LIST, EDITOR }
 
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
-const DELETE_SIZE := Vector2(64, 64)
+const DELETE_SIZE := Vector2(40, 40)
+const DELETE_MARGIN: float = 12.0
+const CARD_RIGHT_RESERVE: float = DELETE_SIZE.x + DELETE_MARGIN * 2.0
+const PAGE_MARGIN_X: float = 720.0
+const SUBTITLE_LIST := "Pick a save, or brand a new one"
+const SUBTITLE_EDITOR := "Brand a new save"
 const DEFAULT_LOOP_GOAL: int = 20
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
@@ -15,31 +20,36 @@ const CHAR_CHICKEN := "chicken"
 var _open: bool = false
 var _view: View = View.LIST
 var _anim_tween: Tween
+var _modal_tween: Tween
 var _sfx_gate: Dictionary = {}
 var _pending_delete_id: String = ""
 var _selected_character_id: String = CHAR_BOAR
 var _selected_arena_id: String = "yard"
 
 @onready var _dimmer: ColorRect = $Dimmer
-@onready var _panel: PanelContainer = $Center/Panel
-@onready var _list_root: Control = $Center/Panel/Column/Content/ListRoot
-@onready var _scroll: ScrollContainer = $Center/Panel/Column/Content/ListRoot/Scroll
-@onready var _cards: GridContainer = $Center/Panel/Column/Content/ListRoot/Scroll/Cards
-@onready var _new_button: Button = $Center/Panel/Column/Content/ListRoot/Scroll/Cards/NewRecord
-@onready var _editor_root: Control = $Center/Panel/Column/Content/EditorRoot
-@onready var _boar_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar
-@onready var _chicken_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken
-@onready var _yard_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas/Yard
-@onready var _pit_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas/Pit
-@onready var _keep_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas/Keep
-@onready var _loop_slider: HSlider = $Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow/Slider
-@onready var _loop_label: Label = $Center/Panel/Column/Content/EditorRoot/Center/Column/LoopRow/LoopLabel
-@onready var _name_edit: LineEdit = $Center/Panel/Column/Content/EditorRoot/Center/Column/NameEdit
-@onready var _confirm_button: Button = $Center/Panel/Column/Content/EditorRoot/Center/Column/Confirm
-@onready var _delete_root: Control = $Center/Panel/Column/Content/DeleteRoot
-@onready var _delete_yes: Button = $Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons/Yes
-@onready var _delete_no: Button = $Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons/No
-@onready var _back_button: Button = $Center/Panel/Column/Back
+@onready var _sheet: Control = $Sheet
+@onready var _subtitle: Label = $Sheet/Column/Subtitle
+@onready var _content: Control = $Sheet/Column/Content
+@onready var _list_root: Control = $Sheet/Column/Content/ListRoot
+@onready var _scroll: ScrollContainer = $Sheet/Column/Content/ListRoot/Scroll
+@onready var _cards: GridContainer = $Sheet/Column/Content/ListRoot/Scroll/Cards
+@onready var _new_button: Button = $Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord
+@onready var _editor_root: Control = $Sheet/Column/Content/EditorRoot
+@onready var _boar_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar
+@onready var _chicken_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken
+@onready var _yard_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Arenas/Yard
+@onready var _pit_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Arenas/Pit
+@onready var _keep_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Arenas/Keep
+@onready var _loop_slider: HSlider = $Sheet/Column/Content/EditorRoot/Center/Column/LoopRow/Slider
+@onready var _loop_label: Label = $Sheet/Column/Content/EditorRoot/Center/Column/LoopRow/LoopLabel
+@onready var _name_edit: LineEdit = $Sheet/Column/Content/EditorRoot/Center/Column/NameEdit
+@onready var _confirm_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Confirm
+@onready var _delete_dimmer: ColorRect = $DeleteDimmer
+@onready var _delete_center: CenterContainer = $DeleteCenter
+@onready var _delete_panel: PanelContainer = $DeleteCenter/DeletePanel
+@onready var _delete_yes: Button = $DeleteCenter/DeletePanel/Column/Buttons/Yes
+@onready var _delete_no: Button = $DeleteCenter/DeletePanel/Column/Buttons/No
+@onready var _back_button: Button = $Sheet/Column/Header/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
@@ -67,7 +77,9 @@ func _ready() -> void:
 	_back_button.pressed.connect(_on_back_pressed)
 	for button: Button in [_new_button, _boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _delete_yes, _delete_no, _back_button]:
 		_wire_hover(button)
+		UiAnim.wire_row_feedback(self, button, UiType.INK)
 	UiFit.connect_refit(self, _on_host_resized)
+	_content.resized.connect(_on_content_resized)
 	_show_list_nodes()
 
 func is_open() -> bool:
@@ -79,11 +91,12 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_pending_delete_id = ""
-	_fit_panel()
+	_reset_delete_modal()
 	_show_list_nodes()
+	_fit_cards()
 	_refresh_list()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet)
 	UiAnim.enter_cards(self, _collect_list_cards())
 	_focus_list()
 
@@ -93,8 +106,9 @@ func close() -> void:
 	_open = false
 	_pending_delete_id = ""
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hide_delete_modal()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet)
 	_anim_tween.finished.connect(_finish_close)
 	_refocus_menu()
 
@@ -169,9 +183,7 @@ func _on_delete_pressed(record_id: String) -> void:
 		return
 	_play_click()
 	_pending_delete_id = record_id
-	_list_root.visible = false
-	_editor_root.visible = false
-	_delete_root.visible = true
+	_show_delete_modal()
 	_delete_no.grab_focus()
 
 func _on_delete_yes_pressed() -> void:
@@ -236,8 +248,9 @@ func _enter_editor() -> void:
 	_view = View.EDITOR
 	_pending_delete_id = ""
 	_list_root.visible = false
-	_delete_root.visible = false
 	_editor_root.visible = true
+	_subtitle.text = SUBTITLE_EDITOR
+	_hide_delete_modal()
 	_reset_editor()
 	_play_card_enter([_boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _back_button])
 	_boar_button.grab_focus()
@@ -246,7 +259,35 @@ func _show_list_nodes() -> void:
 	_view = View.LIST
 	_list_root.visible = true
 	_editor_root.visible = false
-	_delete_root.visible = false
+	_subtitle.text = SUBTITLE_LIST
+	_hide_delete_modal()
+
+func _show_delete_modal() -> void:
+	_delete_dimmer.visible = true
+	_delete_center.visible = true
+	UiAnim.kill_tween(_modal_tween)
+	_modal_tween = UiAnim.enter_modal(self, _delete_dimmer, _delete_panel)
+
+func _hide_delete_modal() -> void:
+	if not _delete_center.visible:
+		return
+	UiAnim.kill_tween(_modal_tween)
+	_modal_tween = UiAnim.exit_modal(self, _delete_dimmer, _delete_panel)
+	_modal_tween.finished.connect(_finish_delete_modal_close)
+
+func _finish_delete_modal_close() -> void:
+	if _is_deleting():
+		return
+	_delete_dimmer.visible = false
+	_delete_center.visible = false
+
+func _reset_delete_modal() -> void:
+	UiAnim.kill_tween(_modal_tween)
+	_delete_dimmer.visible = false
+	_delete_center.visible = false
+	_delete_dimmer.modulate.a = 1.0
+	_delete_panel.modulate.a = 1.0
+	_delete_panel.scale = Vector2.ONE
 
 func _is_deleting() -> bool:
 	return not _pending_delete_id.is_empty()
@@ -339,33 +380,43 @@ func _make_record_row(record: GameRecord) -> Button:
 	delete_button.anchor_top = 0.5
 	delete_button.anchor_right = 1.0
 	delete_button.anchor_bottom = 0.5
-	delete_button.offset_left = -DELETE_SIZE.x - 16.0
+	delete_button.offset_left = -DELETE_SIZE.x - DELETE_MARGIN
 	delete_button.offset_top = -DELETE_SIZE.y * 0.5
-	delete_button.offset_right = -16.0
+	delete_button.offset_right = -DELETE_MARGIN
 	delete_button.offset_bottom = DELETE_SIZE.y * 0.5
 	button.add_child(delete_button)
 	return button
 
 func _make_delete_button(record_id: String) -> Button:
 	var button: Button = Button.new()
+	button.name = "Delete"
 	button.custom_minimum_size = DELETE_SIZE
-	button.theme_type_variation = &"OfferButton"
+	button.theme_type_variation = &"EmptyButtonMuted"
 	button.text = "×"
+	button.add_child(RecordCard.make_mark())
 	button.pressed.connect(_on_delete_pressed.bind(record_id))
 	_wire_hover(button)
+	UiAnim.wire_row_feedback(self, button, UiType.INK)
 	return button
 
 func _fit_card_size() -> Vector2:
-	var panel_w: float = _panel.custom_minimum_size.x
-	var columns: int = UiFit.card_columns(panel_w)
+	var content_w: float = _content_width()
+	var columns: int = UiFit.card_columns(content_w)
 	_cards.columns = columns
-	return UiFit.card_size(panel_w, columns)
+	return UiFit.card_size(content_w, columns)
+
+func _content_width() -> float:
+	var width: float = _content.size.x
+	if width > 1.0:
+		return width
+	return maxf(UiFit.visible_size(self).x - PAGE_MARGIN_X, 320.0)
 
 func _make_main_card(record: GameRecord) -> Button:
 	var card: Vector2 = _fit_card_size()
-	var button: Button = RecordCard.make_main_card(record, card, UiFit.portrait_px(card))
+	var button: Button = RecordCard.make_main_card(record, card, UiFit.portrait_px(card), CARD_RIGHT_RESERVE)
 	button.pressed.connect(_on_record_pressed.bind(record.id))
 	_wire_hover(button)
+	UiAnim.wire_row_feedback(self, button, UiType.INK)
 	return button
 
 func _fill_editor_character(button: Button, character_id: String) -> void:
@@ -383,18 +434,28 @@ func _fill_editor_character(button: Button, character_id: String) -> void:
 func _on_host_resized() -> void:
 	if not _open:
 		return
-	_fit_panel()
+	_fit_cards.call_deferred()
 
-func _fit_panel() -> void:
-	UiFit.apply_floating_panel(self, _panel)
+## Content 是 Page 里唯一随窗口变宽的那一段；它的 resized 带新宽度，比 host.resized 早一步可用。
+func _on_content_resized() -> void:
+	if not _open:
+		return
+	_fit_cards()
+
+func _fit_cards() -> void:
 	if _view != View.LIST:
 		return
 	var card: Vector2 = _fit_card_size()
+	var portrait: float = UiFit.portrait_px(card)
 	_new_button.custom_minimum_size = card
 	for child: Node in _cards.get_children():
 		var button: Button = child as Button
-		if button != null:
-			button.custom_minimum_size = card
+		if button == null:
+			continue
+		button.custom_minimum_size = card
+		var portrait_rect: TextureRect = button.get_node_or_null("Content/Portrait") as TextureRect
+		if portrait_rect != null:
+			portrait_rect.custom_minimum_size = Vector2(portrait, portrait)
 
 func _wire_hover(button: BaseButton) -> void:
 	if button.mouse_entered.is_connected(_play_hover):

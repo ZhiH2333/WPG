@@ -2,7 +2,7 @@ extends Control
 class_name CreditsOverlay
 
 ## Settings 子叠层：制作组名单。不是独立场景，不换 BGM，不 change_scene。
-const PANEL_PREFERRED := Vector2(960, 720)
+const PANEL_PREFERRED := Vector2(720, 560)
 const GITHUB_URL := "https://github.com/ZhiH2333"
 
 var _open: bool = false
@@ -29,8 +29,9 @@ func _ready() -> void:
 	_back_button.pressed.connect(close_from_user)
 	_github_button.pressed.connect(_on_github_pressed)
 	_dimmer.gui_input.connect(_on_dimmer_gui_input)
-	_wire_hover(_back_button)
-	_wire_hover(_github_button)
+	for row: Button in [_back_button, _github_button]:
+		_wire_hover(row)
+		UiAnim.wire_row_feedback(self, row, UiType.INK)
 	UiFit.connect_refit(self, _on_host_resized)
 
 func is_open() -> bool:

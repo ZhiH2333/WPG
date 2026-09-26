@@ -38,7 +38,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(1040, 380)
+custom_minimum_size = Vector2(880, 360)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"FloatingPanel"
@@ -48,7 +48,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 20
 alignment = 1
 
 [node name="Header" type="HBoxContainer" parent="Root/Center/Panel/Column"]
@@ -61,9 +61,15 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
+theme_type_variation = &"PageTitle"
 text = "PICK ONE"
 vertical_alignment = 1
+
+[node name="TopLine" type="ColorRect" parent="Root/Center/Panel/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
 
 [node name="Cards" type="HBoxContainer" parent="Root/Center/Panel/Column"]
 layout_mode = 2
@@ -73,7 +79,7 @@ theme_override_constants/separation = 24
 alignment = 1
 
 [node name="Card0" type="Button" parent="Root/Center/Panel/Column/Cards"]
-custom_minimum_size = Vector2(280, 180)
+custom_minimum_size = Vector2(240, 160)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
@@ -100,12 +106,13 @@ autowrap_mode = 2
 
 [node name="Desc" type="Label" parent="Root/Center/Panel/Column/Cards/Card0/VBox"]
 layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 autowrap_mode = 2
 
 [node name="Card1" type="Button" parent="Root/Center/Panel/Column/Cards"]
-custom_minimum_size = Vector2(280, 180)
+custom_minimum_size = Vector2(240, 160)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
@@ -132,12 +139,13 @@ autowrap_mode = 2
 
 [node name="Desc" type="Label" parent="Root/Center/Panel/Column/Cards/Card1/VBox"]
 layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 autowrap_mode = 2
 
 [node name="Card2" type="Button" parent="Root/Center/Panel/Column/Cards"]
-custom_minimum_size = Vector2(280, 180)
+custom_minimum_size = Vector2(240, 160)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
@@ -164,6 +172,7 @@ autowrap_mode = 2
 
 [node name="Desc" type="Label" parent="Root/Center/Panel/Column/Cards/Card2/VBox"]
 layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 autowrap_mode = 2
@@ -172,7 +181,7 @@ autowrap_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"RunSummaryHint"
 text = "1 / 2 / 3"
 horizontal_alignment = 1
 

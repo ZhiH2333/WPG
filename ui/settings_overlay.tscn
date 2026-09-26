@@ -128,7 +128,7 @@ layout_mode = 0
 offset_right = 658.0
 offset_bottom = 200.0
 mouse_filter = 2
-theme_override_constants/separation = 28
+theme_override_constants/separation = 24
 
 [node name="AudioSection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
 unique_name_in_owner = true
@@ -218,6 +218,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
 text = "Fullscreen"
 
 [node name="FullscreenCheck" type="CheckBox" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/FullscreenRow"]
@@ -287,6 +288,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
 text = "VSync"
 
 [node name="VsyncCheck" type="CheckBox" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/VsyncRow"]
@@ -331,27 +333,27 @@ text = "Deletes progress and records. Settings are kept."
 
 [node name="CreditsButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"PillNeutral"
 text = "CREDITS"
 
-[node name="DeleteButton" parent="Drawer/Panel/Clip/Content/DataSection/Body" instance=ExtResource("3_hold")]
+[node name="DeleteButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body" instance=ExtResource("3_hold")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"PillPink"
 text = "HOLD TO DELETE ALL DATA"
 
 [node name="StatusLabel" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 
 [node name="BottomPad" type="Control" parent="Drawer/Panel/Clip/Content"]
 custom_minimum_size = Vector2(0, 240)
@@ -389,14 +391,13 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"SettingsHeader"
 text = "Settings"
 
 [node name="Subtitle" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "Change game settings"
 
 [node name="VersionLabel" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]

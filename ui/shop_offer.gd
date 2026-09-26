@@ -16,7 +16,7 @@ const CONTINUE_TEXT: String = "Continue"
 const BACK_TEXT: String = "Back"
 const GUN_TITLES: PackedStringArray = ["Pistol", "Shotgun", "Rifle", "Smg"]
 const STIM_ID: StringName = &"stim"
-const ITEM_CARD_SIZE := Vector2(240, 148)
+const ITEM_CARD_SIZE := Vector2(220, 132)
 const HP_LOW_THRESHOLD: int = 20
 const ITEM_CARD_SCENE: PackedScene = preload("res://ui/shop_item_card.tscn")
 const SHELF_STAGGER_SEC: float = 0.04
@@ -27,8 +27,6 @@ const CARD_PUNCH_SEC: float = 0.12
 const CARD_OUT_SEC: float = 0.12
 const GOLD_ROLL_SEC: float = 0.28
 const BAR_SMOOTHING: float = 10.0
-const HOVER_SCALE: float = 1.02
-const HOVER_SEC: float = 0.12
 const GUN_ROW_FADE_SEC: float = 0.18
 const CARD_DIM_ALPHA: float = 0.45
 const META_IDENTITY: StringName = &"shop_identity"
@@ -51,7 +49,6 @@ var _anim_tween: Tween
 var _gold_tween: Tween
 var _card_enter_tween: Tween
 var _view_tweens: Array[Tween] = []
-var _hover_tweens: Dictionary = {}
 var _punch_tweens: Dictionary = {}
 var _out_tweens: Dictionary = {}
 var _sfx_gate: Dictionary = {}
@@ -102,10 +99,10 @@ func _ready() -> void:
 		gun.text = GUN_TITLES[i]
 		gun.disabled = false
 		gun.pivot_offset = gun.custom_minimum_size * 0.5
-		_wire_hover(gun, _on_gun_hover_entered.bind(gun), _on_gun_hover_exited.bind(gun))
+		_wire_row(gun, _on_gun_hover_entered.bind(gun))
 	_continue_button.pressed.connect(_on_skip_or_back)
 	_continue_button.pivot_offset = _continue_button.custom_minimum_size * 0.5
-	_wire_hover(_continue_button, _on_continue_hover_entered, _on_continue_hover_exited)
+	_wire_row(_continue_button, _on_continue_hover_entered)
 	var viewport: Viewport = get_viewport()
 	if viewport != null and not viewport.size_changed.is_connected(_on_viewport_size_changed):
 		viewport.size_changed.connect(_on_viewport_size_changed)
@@ -540,7 +537,7 @@ func _spawn_card() -> Button:
 	button.pivot_offset = ITEM_CARD_SIZE * 0.5
 	button.disabled = false
 	button.pressed.connect(_on_shelf_card_pressed.bind(button))
-	_wire_hover(button, _on_shelf_hover_entered.bind(button), _on_shelf_hover_exited.bind(button))
+	_wire_row(button, _on_shelf_hover_entered.bind(button))
 	_grid.add_child(button)
 	return button
 
@@ -824,11 +821,11 @@ func _assign_displayed_gold(value: float) -> void:
 	_displayed_gold = value
 	_gold_label.text = "gold  %d" % roundi(_displayed_gold)
 
-func _wire_hover(control: Control, entered: Callable, exited: Callable) -> void:
+## hover/focus 统一走 UiAnim（主题 flat card 四态 + 1.02 缩放），本文件只额外接四态音效。
+func _wire_row(control: BaseButton, entered: Callable) -> void:
+	UiAnim.wire_row_feedback(self, control, UiType.INK)
 	control.mouse_entered.connect(entered)
-	control.mouse_exited.connect(exited)
 	control.focus_entered.connect(entered)
-	control.focus_exited.connect(exited)
 
 func _on_shelf_hover_entered(button: Button) -> void:
 	if not _open or _view != View.BROWSE:
@@ -836,60 +833,32 @@ func _on_shelf_hover_entered(button: Button) -> void:
 	if not is_instance_valid(button):
 		return
 	if bool(button.get_meta(META_DISABLED, false)) or bool(button.get_meta(META_RETIRING, false)):
-		return
-	if _is_punching(button):
+		# 灰卡 / 退场卡不放大、不出 hover 音。
+		UiAnim.set_row_feedback(self, button, false, UiType.INK)
 		return
 	_play_hover()
-	_tween_hover(button, true)
-
-func _on_shelf_hover_exited(button: Button) -> void:
-	if not is_instance_valid(button):
-		return
-	if _is_punching(button):
-		return
-	_tween_hover(button, false)
 
 func _on_gun_hover_entered(button: Button) -> void:
 	if not _open or _view != View.PICK_GUN:
 		return
 	_play_hover()
-	_tween_hover(button, true)
-
-func _on_gun_hover_exited(button: Button) -> void:
-	if _view != View.PICK_GUN:
-		return
-	_tween_hover(button, false)
 
 func _on_continue_hover_entered() -> void:
 	if not _open:
 		return
 	_play_hover()
-	_tween_hover(_continue_button, true)
-
-func _on_continue_hover_exited() -> void:
-	_tween_hover(_continue_button, false)
-
-func _tween_hover(control: Control, hovered: bool) -> void:
-	if not is_instance_valid(control):
-		return
-	if _is_punching(control):
-		return
-	_kill_hover(control)
-	var tween: Tween = create_tween()
-	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	_hover_tweens[control.get_instance_id()] = tween
-	control.pivot_offset = control.custom_minimum_size * 0.5
-	var target: Vector2 = Vector2(HOVER_SCALE, HOVER_SCALE) if hovered else Vector2.ONE
-	tween.tween_property(control, "scale", target, HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
 func _is_punching(control: Control) -> bool:
 	var tween: Tween = _punch_tweens.get(control.get_instance_id()) as Tween
 	return tween != null and tween.is_valid()
 
 func _kill_hover(control: Control) -> void:
-	var key: int = control.get_instance_id()
-	UiAnim.kill_tween(_hover_tweens.get(key) as Tween)
-	_hover_tweens.erase(key)
+	if not is_instance_valid(control):
+		return
+	if control.has_meta(&"row_feedback_tween"):
+		UiAnim.kill_tween(control.get_meta(&"row_feedback_tween") as Tween)
+		control.remove_meta(&"row_feedback_tween")
+	control.scale = Vector2.ONE
 
 func _kill_control_tweens(control: Control) -> void:
 	_kill_hover(control)

@@ -11,6 +11,7 @@ const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
 const DEFAULT_LOOP_GOAL: int = 20
+const CONTENT_MAX_WIDTH: float = 1200.0
 
 var _open: bool = false
 var _view: View = View.HOME
@@ -28,44 +29,46 @@ var _roster_character_ids: PackedStringArray = PackedStringArray()
 var _beacon: LanBeacon
 
 @onready var _dimmer: ColorRect = $Dimmer
-@onready var _panel: PanelContainer = $Center/Panel
-@onready var _home_root: Control = $Center/Panel/Column/Content/HomeRoot
-@onready var _pick_root: Control = $Center/Panel/Column/Content/PickRoot
-@onready var _host_root: Control = $Center/Panel/Column/Content/HostRoot
-@onready var _join_root: Control = $Center/Panel/Column/Content/JoinRoot
-@onready var _host_button: Button = $Center/Panel/Column/Content/HomeRoot/Center/Column/Host
-@onready var _join_button: Button = $Center/Panel/Column/Content/HomeRoot/Center/Column/Join
-@onready var _pick_scroll: ScrollContainer = $Center/Panel/Column/Content/PickRoot/Scroll
-@onready var _pick_cards: GridContainer = $Center/Panel/Column/Content/PickRoot/Scroll/Cards
-@onready var _custom_button: Button = $Center/Panel/Column/Content/PickRoot/Scroll/Cards/Custom
-@onready var _host_address: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/AddressList
-@onready var _host_status: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/Status
-@onready var _record_hint: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/RecordHint
-@onready var _host_boar: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Characters/Boar
-@onready var _host_chicken: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Characters/Chicken
-@onready var _host_yard: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Yard
-@onready var _host_pit: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Pit
-@onready var _host_keep: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Arenas/Keep
-@onready var _host_coop: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Modes/Coop
-@onready var _host_battle: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Modes/Battle
-@onready var _loop_slider: HSlider = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/Slider
-@onready var _loop_label: Label = $Center/Panel/Column/Content/HostRoot/Center/Column/LoopRow/LoopLabel
-@onready var _start_button: Button = $Center/Panel/Column/Content/HostRoot/Center/Column/Start
-@onready var _join_search: LineEdit = $Center/Panel/Column/Content/JoinRoot/Row/Browse/Search
-@onready var _create_room_button: Button = $Center/Panel/Column/Content/JoinRoot/Row/Browse/CreateRoom
-@onready var _join_empty: Label = $Center/Panel/Column/Content/JoinRoot/Row/Browse/EmptyHint
-@onready var _join_cards: VBoxContainer = $Center/Panel/Column/Content/JoinRoot/Row/Browse/Scroll/Cards
-@onready var _join_edit: LineEdit = $Center/Panel/Column/Content/JoinRoot/Row/Form/Address
-@onready var _connect_button: Button = $Center/Panel/Column/Content/JoinRoot/Row/Form/Connect
-@onready var _join_status: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/Status
-@onready var _join_boar: Button = $Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Boar
-@onready var _join_chicken: Button = $Center/Panel/Column/Content/JoinRoot/Row/Form/Characters/Chicken
-@onready var _join_goal: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/GoalLabel
-@onready var _join_map: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/MapLabel
-@onready var _join_mode: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/ModeLabel
-@onready var _join_seat: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/SeatLabel
-@onready var _join_wait: Label = $Center/Panel/Column/Content/JoinRoot/Row/Form/WaitingLabel
-@onready var _back_button: Button = $Center/Panel/Column/Back
+@onready var _sheet: Control = $Sheet
+@onready var _column: VBoxContainer = $Sheet/Column
+@onready var _content: Control = $Sheet/Column/Content
+@onready var _home_root: Control = $Sheet/Column/Content/HomeRoot
+@onready var _pick_root: Control = $Sheet/Column/Content/PickRoot
+@onready var _host_root: Control = $Sheet/Column/Content/HostRoot
+@onready var _join_root: Control = $Sheet/Column/Content/JoinRoot
+@onready var _host_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/Host
+@onready var _join_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/Join
+@onready var _pick_scroll: ScrollContainer = $Sheet/Column/Content/PickRoot/Scroll
+@onready var _pick_cards: GridContainer = $Sheet/Column/Content/PickRoot/Scroll/Cards
+@onready var _custom_button: Button = $Sheet/Column/Content/PickRoot/Scroll/Cards/Custom
+@onready var _host_address: Label = $Sheet/Column/Content/HostRoot/Center/Column/AddressList
+@onready var _host_status: Label = $Sheet/Column/Content/HostRoot/Center/Column/Status
+@onready var _record_hint: Label = $Sheet/Column/Content/HostRoot/Center/Column/RecordHint
+@onready var _host_boar: Button = $Sheet/Column/Content/HostRoot/Center/Column/Characters/Boar
+@onready var _host_chicken: Button = $Sheet/Column/Content/HostRoot/Center/Column/Characters/Chicken
+@onready var _host_yard: Button = $Sheet/Column/Content/HostRoot/Center/Column/Arenas/Yard
+@onready var _host_pit: Button = $Sheet/Column/Content/HostRoot/Center/Column/Arenas/Pit
+@onready var _host_keep: Button = $Sheet/Column/Content/HostRoot/Center/Column/Arenas/Keep
+@onready var _host_coop: Button = $Sheet/Column/Content/HostRoot/Center/Column/Modes/Coop
+@onready var _host_battle: Button = $Sheet/Column/Content/HostRoot/Center/Column/Modes/Battle
+@onready var _loop_slider: HSlider = $Sheet/Column/Content/HostRoot/Center/Column/LoopRow/Slider
+@onready var _loop_label: Label = $Sheet/Column/Content/HostRoot/Center/Column/LoopRow/LoopLabel
+@onready var _start_button: Button = $Sheet/Column/Content/HostRoot/Center/Column/Start
+@onready var _join_search: LineEdit = $Sheet/Column/Content/JoinRoot/Row/Browse/Search
+@onready var _create_room_button: Button = $Sheet/Column/Content/JoinRoot/Row/Browse/CreateRoom
+@onready var _join_empty: Label = $Sheet/Column/Content/JoinRoot/Row/Browse/EmptyHint
+@onready var _join_cards: VBoxContainer = $Sheet/Column/Content/JoinRoot/Row/Browse/Scroll/Cards
+@onready var _join_edit: LineEdit = $Sheet/Column/Content/JoinRoot/Row/Form/Address
+@onready var _connect_button: Button = $Sheet/Column/Content/JoinRoot/Row/Form/Connect
+@onready var _join_status: Label = $Sheet/Column/Content/JoinRoot/Row/Form/Status
+@onready var _join_boar: Button = $Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar
+@onready var _join_chicken: Button = $Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken
+@onready var _join_goal: Label = $Sheet/Column/Content/JoinRoot/Row/Form/GoalLabel
+@onready var _join_map: Label = $Sheet/Column/Content/JoinRoot/Row/Form/MapLabel
+@onready var _join_mode: Label = $Sheet/Column/Content/JoinRoot/Row/Form/ModeLabel
+@onready var _join_seat: Label = $Sheet/Column/Content/JoinRoot/Row/Form/SeatLabel
+@onready var _join_wait: Label = $Sheet/Column/Content/JoinRoot/Row/Form/WaitingLabel
+@onready var _back_button: Button = $Sheet/Column/Header/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
@@ -121,10 +124,9 @@ func open() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_picked_record_id = ""
 	_reset_play_mode()
-	_fit_panel()
 	_enter_join()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet)
 	_create_room_button.grab_focus()
 
 func close() -> void:
@@ -135,7 +137,7 @@ func close() -> void:
 	_clear_peer()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet)
 	_anim_tween.finished.connect(_finish_close)
 	var menu: MainMenu = get_parent() as MainMenu
 	if menu != null:
@@ -615,11 +617,20 @@ func _clear_pick_rows() -> void:
 		_pick_cards.remove_child(child)
 		child.queue_free()
 
+## 卡片宽度取 Content 的实际布局宽度（Page 已排版）；极早期为 0 时退回 Sheet 宽度推算。
+func _content_width() -> float:
+	var width: float = _content.size.x
+	if width <= 1.0:
+		width = _sheet.size.x + _column.offset_right - _column.offset_left
+	if width <= 1.0:
+		return CONTENT_MAX_WIDTH
+	return clampf(width, UiFit.MIN_CARD_WIDTH + UiFit.CARD_INSET, CONTENT_MAX_WIDTH)
+
 func _fit_card_size() -> Vector2:
-	var panel_w: float = _panel.custom_minimum_size.x
-	var columns: int = UiFit.card_columns(panel_w)
+	var content_w: float = _content_width()
+	var columns: int = UiFit.card_columns(content_w)
 	_pick_cards.columns = columns
-	return UiFit.card_size(panel_w, columns)
+	return UiFit.card_size(content_w, columns)
 
 func _make_pick_card(record: GameRecord) -> Button:
 	var card: Vector2 = _fit_card_size()
@@ -699,10 +710,9 @@ func _clear_peer() -> void:
 func _on_host_resized() -> void:
 	if not _open:
 		return
-	_fit_panel()
+	_fit_cards()
 
-func _fit_panel() -> void:
-	UiFit.apply_floating_panel(self, _panel)
+func _fit_cards() -> void:
 	if _view != View.PICK:
 		return
 	var card: Vector2 = _fit_card_size()
@@ -725,10 +735,14 @@ func _on_arena_pressed(arena_id: String) -> void:
 	_select_arena(arena_id)
 
 func _wire_hover(button: BaseButton) -> void:
-	if button.mouse_entered.is_connected(_play_hover):
+	if not button.mouse_entered.is_connected(_play_hover):
+		button.mouse_entered.connect(_play_hover)
+	if not button.focus_entered.is_connected(_play_hover):
+		button.focus_entered.connect(_play_hover)
+	if button.has_meta(&"lan_row_feedback"):
 		return
-	button.mouse_entered.connect(_play_hover)
-	button.focus_entered.connect(_play_hover)
+	button.set_meta(&"lan_row_feedback", true)
+	UiAnim.wire_row_feedback(self, button, UiType.INK)
 
 func _play_hover() -> void:
 	if not _open:
@@ -981,19 +995,13 @@ func _make_room_card(room: Dictionary) -> Button:
 	var button: Button = Button.new()
 	button.custom_minimum_size = Vector2(0, 72)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.theme_type_variation = &"OfferButton"
+	button.theme_type_variation = &"EmptyButton"
 	var full: bool = _is_room_full(room)
 	button.disabled = full
-	var inner: HBoxContainer = HBoxContainer.new()
-	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
-	inner.offset_left = 16.0
-	inner.offset_right = -16.0
-	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	inner.add_theme_constant_override("separation", 16)
-	inner.add_child(_make_room_title_label(str(room["address"])))
-	inner.add_child(_make_room_meta_label(room))
-	inner.add_child(_make_room_badge_label(room))
-	button.add_child(inner)
+	if full:
+		button.modulate.a = 0.5
+	button.add_child(_make_row_mark())
+	button.add_child(_make_room_row(room))
 	if full:
 		button.gui_input.connect(_on_full_room_gui_input)
 	else:
@@ -1001,9 +1009,34 @@ func _make_room_card(room: Dictionary) -> Button:
 	_wire_hover(button)
 	return button
 
+func _make_row_mark() -> ColorRect:
+	var mark: ColorRect = ColorRect.new()
+	mark.name = "Mark"
+	mark.visible = false
+	mark.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	mark.offset_top = -2.0
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark.color = UiType.INK
+	return mark
+
+func _make_room_row(room: Dictionary) -> HBoxContainer:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.name = "Text"
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 16.0
+	row.offset_right = -16.0
+	row.offset_bottom = -6.0
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 16)
+	row.add_child(_make_room_title_label(str(room["address"])))
+	row.add_child(_make_room_meta_label(room))
+	row.add_child(_make_room_badge_label(room))
+	return row
+
 func _make_room_title_label(address: String) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"RunSummaryBody"
+	label.name = "Title"
+	label.theme_type_variation = &"OfferTitle"
 	label.text = address
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1012,7 +1045,8 @@ func _make_room_title_label(address: String) -> Label:
 
 func _make_room_meta_label(room: Dictionary) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"OfferDesc"
+	label.name = "Caption"
+	label.theme_type_variation = &"Caption"
 	label.text = _format_room_meta(room)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1021,7 +1055,8 @@ func _make_room_meta_label(room: Dictionary) -> Label:
 
 func _make_room_badge_label(room: Dictionary) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"HudHp"
+	label.name = "Badge"
+	label.theme_type_variation = &"StatValue"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.text = "%d/%d" % [int(room["occupied"]), int(room["max_seats"])]

@@ -363,7 +363,16 @@ Drawer。从任何菜单页都能开。打开不关闭底下 Page，关掉仍停
 
 ## 3. 令牌
 
-空间和动效落在现有 `game_theme.tres`。字体角色以上一章为准，实现时写成主题变体。本轮不改 `.tres`。
+空间和动效落在现有 `game_theme.tres`。字体角色以上一章为准，实现时写成主题变体。
+
+**2026-09-26 UI 统一重构（已落地）：** 这份令牌已全部实现，且 MainMenu 是唯一母版。补充事实：
+- **圆角一律 6**（`sb_bar_panel` 是整条 bar，保持直角）；**全部阴影已删**；装饰性描边已删，只有 focus 类保留 2px 骨白描边；`EmptyButton` / `EmptyButtonMuted` / `IconBarButton` 的 focus 是**底部 2px 骨白下划线**（`sb_focus_underline`，与 Rail 的 `Mark` 同位）。
+- **文字色只有两种**：骨白 `Color(0.96,0.93,0.88)`、灰褐 `Color(0.62,0.58,0.52)`；粉色 accent 只有 `PillPink` / `ProfileHeader` / `Mark` / 当前导航。
+- **页面结构**：Page = `Dimmer(UiType.PAGE_VEIL) → Sheet → Column(48/24/672/36, sep 24)` + 1px `STRUCTURE` hairline，**不套 PanelContainer**；Modal = `Dimmer(0.55) → Center → Panel(FloatingPanel) → Column(sep 20)`；只有 Modal / Drawer 有表面。
+- **Modal 尺寸**：通用 ≤ 960×640、商店 ≤ 1120×660、三选一 ≤ 880×360、Credits ≤ 720×560、暂停 620×420、RoomNotice 560×220、toast 420×72。禁止再出现 1680×920 / 1480×820 / 1040×380 / 760×80。
+- **行级交互**只有一条实现：`UiAnim.wire_row_feedback()`（1.02 + `Mark` + `Text/Caption` 提到 Ink，鼠标与焦点一致）；卡片靠主题 hover 底色 + 同一函数，不自写 tween。
+- 旧 token 已删：`MenuTitle` / `PauseTitle` / `StripCaption` / `FloatingHeader` / `RunSummaryPanel` / `LogoButton` / `MainMenuButton` / `SettingsNavCaption` / `ProfileName` / `WinnerHist*` / `WinnerNewBest` / `WinnerScore` 与 `sb_logo*` / `sb_btn_*`，以及 `menu_shear.gdshader`。`PillRed` 保留为语义危险色（当前未被引用）。
+- **例外**：loading 页按产品要求保留旧的 `loading_blur.gdshader` 背景模糊与手写 `BarTrack/BarFill` 进度条；战斗 HUD 只读、不参与菜单语言。
 
 | 令牌 | 值 |
 |---|---|
@@ -410,7 +419,7 @@ Focus 为骨白下划线或 shear 标记。不使用粉色描边。
 | 行 | punch 0.12s | 座位进出、Beacon 行增删 |
 | Ready / Connecting | 行内字色，不播页面动画 | Lobby、Connecting |
 
-Connecting、失败、版本不符是簇内状态页：留白加一句结论。禁止再套一张 1680×920 设置面板。
+Connecting、失败、版本不符是簇内状态页：留白加一句结论。禁止再套一张大设置面板（Modal 上限见 §3：通用 960×640）。
 
 ---
 
