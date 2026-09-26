@@ -11,10 +11,11 @@ const PAGE_MOVE_SEC: float = 0.32
 const PAGE_EXIT_SEC: float = 0.2
 const PAGE_RISE_PX: float = 24.0
 const PAGE_SLIDE_SEC: float = 0.32
-## 翻页是一条刚性纸带：进页与出页共用同一时长与同一曲线，位移严格互补（x_new - x_old == 页宽）。
-## easeInOutQuart 左右对称，所以出页的位移曲线正好是进页的镜像（反向），不需要单独写一条 easing。
-const PAGE_SLIDE_TRANS: Tween.TransitionType = Tween.TRANS_QUART
-const PAGE_SLIDE_EASE: Tween.EaseType = Tween.EASE_IN_OUT
+## 翻页是一条刚性纸带：进页与出页共用同一时长与同一曲线，位移严格互补（|出页.x - 进页.x| == 页宽）。
+## easeOutCubic：起步快、收尾缓。两页吃同一条曲线、只有位移方向相反，
+## 所以出页的位移曲线就是进页的镜像（反向），不需要单独写第二条 easing。
+const PAGE_SLIDE_TRANS: Tween.TransitionType = Tween.TRANS_CUBIC
+const PAGE_SLIDE_EASE: Tween.EaseType = Tween.EASE_OUT
 const MODAL_ENTER_SCALE: float = 0.96
 const MODAL_EXIT_SEC: float = 0.15
 const HOVER_SEC: float = 0.12
