@@ -37,6 +37,9 @@ var _suppress_return: bool = false
 var _record_origin: RecordOrigin = RecordOrigin.HOME
 var _page: StringName = PAGE_HOME
 var _home_slid_out: bool = false
+## 翻页途中再点 tab：排队到这一趟走完再走下一趟，避免出页从半路起步破坏刚性。
+var _pending_page: StringName = &""
+var _switch_left: float = 0.0
 var _settings_return: Control = null
 var _sfx_gate: Dictionary = {}
 
@@ -113,6 +116,12 @@ func _ready() -> void:
 	_focus_home_default()
 
 func _process(delta: float) -> void:
+	if _switch_left > 0.0:
+		_switch_left = maxf(_switch_left - delta, 0.0)
+		if is_zero_approx(_switch_left) and _pending_page != &"":
+			var queued: StringName = _pending_page
+			_pending_page = &""
+			_switch_page(queued)
 	var target: float = 1.0 if _should_blur_menu() else 0.0
 	_focus_amount = lerpf(_focus_amount, target, 1.0 - exp(-FOCUS_SMOOTH * delta))
 	var mat: ShaderMaterial = _blur_layer.material as ShaderMaterial
@@ -175,13 +184,12 @@ func _blocks_home_accept() -> bool:
 func _should_blur_menu() -> bool:
 	return _play_page.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open() or _overlay.is_credits_open()
 
+## 顶栏 tab 一律导航：不管当前在 Records / Multiplayer / Profile，点 PLAY 都翻到 Play 页。
 func _on_play_nav_pressed() -> void:
-	if _record_selector.is_open() or _lan_overlay.is_open():
+	if _page == PAGE_PLAY:
 		_refresh_nav_marks()
 		return
-	if _play_page.is_open():
-		return
-	_open_play_page()
+	_switch_page(PAGE_PLAY)
 
 func _open_play_page() -> void:
 	_switch_page(PAGE_PLAY)
@@ -201,13 +209,14 @@ func _open_records(origin: RecordOrigin) -> void:
 	_switch_page(PAGE_RECORDS)
 
 func _enter_multi_flow() -> void:
-	if _lan_overlay.is_open():
+	if _page == PAGE_MULTIPLAYER:
 		_refresh_nav_marks()
 		return
 	_switch_page(PAGE_MULTIPLAYER)
 
 func _on_profile_pressed() -> void:
-	if _profile_overlay.is_open():
+	if _page == PAGE_PROFILE:
+		_refresh_nav_marks()
 		return
 	_switch_page(PAGE_PROFILE)
 
@@ -231,9 +240,16 @@ func _on_home_pressed() -> void:
 
 ## 唯一的页面切换入口：旧页与新页同帧反向滑动，方向由 PAGE_ORDER 决定。
 func _switch_page(target: StringName) -> void:
+	if target == _page:
+		_refresh_nav_marks()
+		return
+	if _switch_left > 0.0:
+		_pending_page = target
+		return
 	var from_index: int = int(PAGE_ORDER.get(_page, 0))
 	var to_index: int = int(PAGE_ORDER.get(target, 0))
 	var direction: int = 1 if to_index >= from_index else -1
+	_switch_left = UiAnim.PAGE_SLIDE_SEC
 	_suppress_return = true
 	if _page != target:
 		_close_page(_page, direction)
@@ -249,6 +265,7 @@ func _return_home(from: StringName) -> void:
 	if _page == PAGE_HOME:
 		return
 	_page = PAGE_HOME
+	_switch_left = UiAnim.PAGE_SLIDE_SEC
 	_set_home_slid(false, -1)
 
 func _page_node(name: StringName) -> Node:

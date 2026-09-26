@@ -370,7 +370,7 @@ Drawer。从任何菜单页都能开。打开不关闭底下 Page，关掉仍停
 - **文字色只有两种**：骨白 `Color(0.96,0.93,0.88)`、灰褐 `Color(0.62,0.58,0.52)`；粉色 accent 只有 `PillPink` / `ProfileHeader` / `Mark` / 当前导航。
 - **页面结构**：Page = `Dimmer(UiType.PAGE_VEIL) → Sheet → Column(48/24/672/36, sep 24)` + 1px `STRUCTURE` hairline，**不套 PanelContainer**（Multiplayer 例外：右边距 48 左右填满，PICK 卡 3~4 列、HOST/JOIN 左右两列）；Modal = `Dimmer(0.55) → Center → Panel(FloatingPanel) → Column(sep 20)`；只有 Modal / Drawer 有表面。
 - **Modal 尺寸**：通用 ≤ 960×640、商店 ≤ 1120×660、三选一 ≤ 880×360、Credits ≤ 720×560、暂停 620×420、RoomNotice 560×220、toast 420×72。禁止再出现 1680×920 / 1480×820 / 1040×380 / 760×80。
-- **翻页**：顶栏 tab 切换是水平翻页，不是淡入 —— `MainMenu._switch_page()` 按 `PAGE_ORDER` 算 `direction`；进出共用 0.32s 与同一条 `TRANS_QUINT` / `EASE_IN_OUT` 曲线（刚性纸带，`x_new - x_old == 页宽` 恒定），方向翻页不淡入淡出，Home 舞台块一起滑；Settings 是 Drawer 不参与。页面自带 Back/Esc 用 `close(-1)`。
+- **翻页**：顶栏 tab 切换是水平翻页，不是淡入 —— `MainMenu._switch_page()` 按 `PAGE_ORDER` 算 `direction`；进出共用 0.32s 与同一条 easeInOutQuart（`TRANS_QUART` / `EASE_IN_OUT`）曲线（刚性纸带，`|出页.x − 进页.x| == 页宽` 恒定；曲线左右对称，出页即进页的镜像）；翻页途中点 tab 排队到本趟结束，方向翻页不淡入淡出，Home 舞台块一起滑；Settings 是 Drawer 不参与。页面自带 Back/Esc 用 `close(-1)`。
 - **行级交互**只有一条实现：`UiAnim.wire_row_feedback()`（1.02 + `Mark` + `Text/Caption` 提到 Ink，鼠标与焦点一致）；卡片靠主题 hover 底色 + 同一函数，不自写 tween。
 - 旧 token 已删：`MenuTitle` / `PauseTitle` / `StripCaption` / `FloatingHeader` / `RunSummaryPanel` / `LogoButton` / `MainMenuButton` / `SettingsNavCaption` / `ProfileName` / `WinnerHist*` / `WinnerNewBest` / `WinnerScore` 与 `sb_logo*` / `sb_btn_*`，以及 `menu_shear.gdshader`。`PillRed` 保留为语义危险色（当前未被引用）。
 - **例外**：loading 页按产品要求保留旧的 `loading_blur.gdshader` 背景模糊与手写 `BarTrack/BarFill` 进度条；战斗 HUD 只读、不参与菜单语言。
