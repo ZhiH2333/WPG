@@ -130,6 +130,7 @@ func _ready() -> void:
 	_apply_drawer_layout()
 	_fit_sections()
 	_wire_overlay_sounds()
+	MenuType.migrate_settings(self)
 
 func is_open() -> bool:
 	return _open

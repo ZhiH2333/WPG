@@ -381,19 +381,7 @@ func _set_rail_hover(button: Button, hovered: bool) -> void:
 
 func _paint_rail(button: Button, hovered: bool = false) -> void:
 	var title: Label = button.get_node_or_null("Title") as Label
-	var mark: ColorRect = button.get_node_or_null("FocusMark") as ColorRect
-	if title == null or mark == null:
-		return
-	var hot: bool = hovered or button.is_hovered() or button.has_focus()
-	title.add_theme_color_override("font_color", MENU_TYPE.INK if hot else MENU_TYPE.INK_SOFT)
-	var text_width: float = title.get_theme_font("font").get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.get_theme_font_size("font_size")).x
-	mark.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	mark.offset_left = 0.0
-	mark.offset_top = 34.0
-	mark.offset_right = maxf(text_width, 24.0)
-	mark.offset_bottom = 37.0
-	mark.visible = hot
-	mark.color = MENU_TYPE.ACCENT if button.has_focus() else MENU_TYPE.STRUCTURE
+	MENU_TYPE.paint_title_mark(button, title, hovered)
 
 func _apply_menu_type() -> void:
 	MENU_TYPE.apply_label(_player_name, &"display")

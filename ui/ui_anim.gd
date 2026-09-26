@@ -1,7 +1,7 @@
 extends Object
 class_name UiAnim
 
-## 按意图区分的 UI 过渡。只改 modulate / scale / offset，逻辑 open/close 仍然瞬时。
+## 按意图区分的 UI 过渡。Page 位移 24px。Modal 只缩放 0.96 并淡入，不位移。Drawer 从左侧滑入。Focus 不缩放，只改标记颜色。
 const DIMMER_FADE_SEC: float = 0.2
 const CONTENT_FADE_SEC: float = 0.25
 const PANEL_MOVE_SEC: float = 0.45
