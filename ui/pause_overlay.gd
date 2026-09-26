@@ -40,6 +40,11 @@ var _owns_tree_pause: bool = false
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
+	UiStyle.present(_root, false)
+	UiStyle.present(_top_bar, false)
+	_continue_button.theme_type_variation = &"PrimaryAction"
+	_retry_button.theme_type_variation = &"TextAction"
+	_quit_button.theme_type_variation = &"DangerAction"
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 25
 	visible = false
@@ -261,30 +266,11 @@ func _set_interactive(enabled: bool) -> void:
 	_settings_button.disabled = not enabled
 
 func _wire_strip_hover(button: Button) -> void:
-	var bg: ColorRect = button.get_node("Bg") as ColorRect
-	var mat: ShaderMaterial = bg.material as ShaderMaterial
-	button.mouse_entered.connect(func() -> void: _set_strip_hover(button, mat, true))
-	button.mouse_exited.connect(func() -> void: _set_strip_hover(button, mat, false))
-	button.focus_entered.connect(func() -> void: _set_strip_hover(button, mat, true))
-	button.focus_exited.connect(func() -> void: _set_strip_hover(button, mat, false))
-
-func _set_strip_hover(button: Button, mat: ShaderMaterial, hovered: bool) -> void:
-	var key: String = str(button.get_path())
-	var old: Tween = _hover_tweens.get(key) as Tween
-	UiAnim.kill_tween(old)
-	var tween: Tween = create_tween().set_parallel(true)
-	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	_hover_tweens[key] = tween
-	var from_hover: float = float(mat.get_shader_parameter("hover"))
-	var to_hover: float = 1.0 if hovered else 0.0
-	var to_scale: Vector2 = Vector2(1.02, 1.02) if hovered else Vector2.ONE
-	tween.tween_method(
-		func(value: float) -> void: mat.set_shader_parameter("hover", value),
-		from_hover,
-		to_hover,
-		STRIP_HOVER_SEC
-	)
-	tween.tween_property(button, "scale", to_scale, STRIP_HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	var bg: ColorRect = button.get_node_or_null("Bg") as ColorRect
+	if bg != null:
+		bg.material = null
+		bg.visible = false
+	button.scale = Vector2.ONE
 
 func _play_hover() -> void:
 	if not _open:

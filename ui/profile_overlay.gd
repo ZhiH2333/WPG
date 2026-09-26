@@ -37,6 +37,7 @@ var _character_group: ButtonGroup = ButtonGroup.new()
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
+	UiStyle.present(self, false)
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
@@ -233,7 +234,7 @@ func _clear_record_rows() -> void:
 
 func _make_empty_hint() -> Label:
 	var hint: Label = Label.new()
-	hint.theme_type_variation = &"RunSummaryHint"
+	hint.theme_type_variation = &"Caption"
 	hint.text = "NO RECORDS YET"
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return hint

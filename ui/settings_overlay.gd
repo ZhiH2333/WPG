@@ -130,7 +130,7 @@ func _ready() -> void:
 	_apply_drawer_layout()
 	_fit_sections()
 	_wire_overlay_sounds()
-	MenuType.migrate_settings(self)
+	UiStyle.present(self, true)
 
 func is_open() -> bool:
 	return _open
@@ -624,13 +624,13 @@ func _on_delete_all_confirmed() -> void:
 func _build_bind_rows() -> void:
 	var body: VBoxContainer = _controls_section.body
 	var hint: Label = Label.new()
-	hint.theme_type_variation = &"RunSummaryHint"
+	hint.theme_type_variation = &"InkCaption"
 	hint.text = "Sticks stay analog. Pad column rebinds Dash and guns."
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(hint)
 	var bind_status: Label = Label.new()
 	bind_status.name = "BindStatus"
-	bind_status.theme_type_variation = &"RunSummaryHint"
+	bind_status.theme_type_variation = &"InkCaption"
 	bind_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bind_status.text = ""
 	body.add_child(bind_status)
@@ -643,12 +643,12 @@ func _build_bind_rows() -> void:
 		row.mouse_filter = Control.MOUSE_FILTER_STOP
 		row.add_theme_constant_override("separation", 12)
 		var name_label: Label = Label.new()
-		name_label.theme_type_variation = &"SettingsHeader"
+		name_label.theme_type_variation = &"InkSection"
 		name_label.text = GameSettings.action_display_name(action)
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var button: Button = Button.new()
-		button.theme_type_variation = &"OfferButton"
+		button.theme_type_variation = &"OfferRow"
 		button.custom_minimum_size = Vector2(160, 44)
 		button.mouse_filter = Control.MOUSE_FILTER_STOP
 		button.text = GameSettings.key_label_for_action(action)
@@ -658,7 +658,7 @@ func _build_bind_rows() -> void:
 		row.add_child(button)
 		if GameSettings.REBINDABLE_JOY_ACTIONS.has(action):
 			var pad: Button = Button.new()
-			pad.theme_type_variation = &"OfferButton"
+			pad.theme_type_variation = &"OfferRow"
 			pad.custom_minimum_size = Vector2(160, 44)
 			pad.mouse_filter = Control.MOUSE_FILTER_STOP
 			pad.text = GameSettings.joy_label_for_action(action)
@@ -669,7 +669,7 @@ func _build_bind_rows() -> void:
 		body.add_child(row)
 	var restore: Button = Button.new()
 	restore.name = "RestoreButton"
-	restore.theme_type_variation = &"OfferButton"
+	restore.theme_type_variation = &"OfferRow"
 	restore.custom_minimum_size = Vector2(0, 56)
 	restore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	restore.mouse_filter = Control.MOUSE_FILTER_STOP

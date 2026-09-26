@@ -89,7 +89,7 @@ alignment = 1
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_type_variation = &"OfferTitle"
+theme_type_variation = &"Section"
 text = "Host closed the room. Returning to the menu."
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -99,7 +99,7 @@ autowrap_mode = 3
 custom_minimum_size = Vector2(220, 56)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "OK"
 
 [node name="Toast" type="PanelContainer" parent="Root"]
@@ -118,7 +118,7 @@ theme_override_styles/panel = SubResource("sb_toast_panel")
 
 [node name="Message" type="Label" parent="Root/Toast"]
 layout_mode = 2
-theme_type_variation = &"HudWeapon"
+theme_type_variation = &"Caption"
 text = "Guest left the room. Switched to solo."
 horizontal_alignment = 1
 vertical_alignment = 1

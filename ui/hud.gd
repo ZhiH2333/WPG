@@ -32,6 +32,9 @@ var _roster_seats: PackedInt32Array = PackedInt32Array()
 @onready var _rival_label: Label = $Root/TopRight/RivalRow/HpLabel
 @onready var _roster: VBoxContainer = $Root/TopRight/Roster
 
+func _ready() -> void:
+	UiStyle.present($Root, false)
+
 func bind_player(player: Player) -> void:
 	_player = player
 

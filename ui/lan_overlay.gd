@@ -21,6 +21,19 @@ var _host_started: bool = false
 var _picked_record_id: String = ""
 var _selected_arena_id: String = "yard"
 var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
+var _create_step: int = 0
+var _join_fault: String = ""
+var _lan_rooms_button: Button
+var _recent_button: Button
+var _invite_button: Button
+var _paste_button: Button
+var _qr_button: Button
+var _host_next: Button
+var _host_characters: Control
+var _host_modes: Control
+var _host_arenas: Control
+var _host_loop: Control
+var _host_port: Label
 var _seat_peer_ids: PackedInt32Array = PackedInt32Array()
 var _seat_character_ids: PackedStringArray = PackedStringArray()
 var _seat_handshake: PackedByteArray = PackedByteArray()
@@ -74,6 +87,8 @@ var _lobby: LobbyManager
 @onready var _error_sfx: AudioStreamPlayer = $ErrorSfx
 
 func _ready() -> void:
+	_panel.theme_type_variation = &"OpenSheet"
+	UiStyle.present(self, false)
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
@@ -108,7 +123,8 @@ func _ready() -> void:
 	_project_from_room()
 	_ensure_beacon()
 	_join_search.text_changed.connect(_on_join_search_changed)
-	_enter_join()
+	_prepare_multiplayer_copy()
+	_enter_home()
 
 func _exit_tree() -> void:
 	_stop_beacon()
@@ -125,10 +141,10 @@ func open() -> void:
 	_picked_record_id = ""
 	_reset_play_mode()
 	_fit_panel()
-	_enter_join()
+	_enter_home()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
-	_create_room_button.grab_focus()
+	_host_button.grab_focus()
 
 func close() -> void:
 	if not _open:
@@ -182,22 +198,160 @@ func _input(event: InputEvent) -> void:
 
 func _handle_back() -> void:
 	_play_back()
-	if _view == View.HOME or _view == View.JOIN:
+	if _view == View.HOME:
 		close()
 		return
-	if _view == View.PICK:
-		_enter_join()
+	if _view == View.HOST and _create_step > 0 and not _is_host_locked():
+		_create_step -= 1
+		_apply_host_step()
+		return
+	if _view == View.JOIN or _view == View.PICK:
+		_enter_home()
 		return
 	_leave_room_view()
-	if _view == View.HOST and not _picked_record_id.is_empty():
-		_enter_pick()
-		return
-	_enter_join()
+	_enter_home()
 
 func _show_home(_animate: bool) -> void:
 	_picked_record_id = ""
 	_reset_play_mode()
+	_enter_home()
+
+func _enter_home() -> void:
+	_apply_view(View.HOME)
+	_stop_beacon()
+	if _open:
+		_host_button.grab_focus()
+
+func _prepare_multiplayer_copy() -> void:
+	var home_title: Label = _home_root.get_node("Center/Column/Title") as Label
+	home_title.text = "Multiplayer"
+	home_title.theme_type_variation = &"Page"
+	_host_button.text = "Create Room"
+	_join_button.text = "Join Room"
+	_host_button.theme_type_variation = &"PrimaryAction"
+	_join_button.theme_type_variation = &"ActionRow"
+	var column: VBoxContainer = _home_root.get_node("Center/Column") as VBoxContainer
+	_lan_rooms_button = _make_line_button("LAN Rooms")
+	_recent_button = _make_line_button("Recent Rooms")
+	column.add_child(_lan_rooms_button)
+	column.add_child(_recent_button)
+	_lan_rooms_button.pressed.connect(_on_lan_rooms_pressed)
+	_recent_button.pressed.connect(_on_recent_pressed)
+	var beacon_caption: Label = Label.new()
+	beacon_caption.theme_type_variation = &"Caption"
+	beacon_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	beacon_caption.text = "LAN Rooms is a local beacon. Not an internet directory."
+	column.add_child(beacon_caption)
+	(_join_root.get_node("Row/Form/Title") as Label).text = "Join"
+	_invite_button = _make_line_button("Invite")
+	_paste_button = _make_line_button("Paste")
+	_qr_button = _make_line_button("QR")
+	var form: VBoxContainer = _join_root.get_node("Row/Form") as VBoxContainer
+	form.add_child(_invite_button)
+	form.add_child(_paste_button)
+	form.add_child(_qr_button)
+	form.move_child(_invite_button, 1)
+	form.move_child(_paste_button, 2)
+	form.move_child(_qr_button, 3)
+	_invite_button.pressed.connect(_on_invite_pressed)
+	_paste_button.pressed.connect(_on_paste_pressed)
+	_qr_button.pressed.connect(_on_qr_pressed)
+	_join_edit.placeholder_text = "Address"
+	_connect_button.text = "Join"
+	_host_characters = _host_root.get_node("Center/Column/Characters") as Control
+	_host_modes = _host_root.get_node("Center/Column/Modes") as Control
+	_host_arenas = _host_root.get_node("Center/Column/Arenas") as Control
+	_host_loop = _host_root.get_node("Center/Column/LoopRow") as Control
+	_host_port = _host_root.get_node("Center/Column/PortLabel") as Label
+	_host_next = _make_line_button("Next")
+	_host_next.theme_type_variation = &"PrimaryAction"
+	var host_column: VBoxContainer = _host_root.get_node("Center/Column") as VBoxContainer
+	host_column.add_child(_host_next)
+	host_column.move_child(_host_next, _start_button.get_index())
+	_host_next.pressed.connect(_on_host_next_pressed)
+	for button: Button in [_lan_rooms_button, _recent_button, _invite_button, _paste_button, _qr_button, _host_next]:
+		_wire_hover(button)
+	(_panel.get_node("Column/Header/Title") as Label).text = "Multiplayer"
+	_join_empty.text = "No LAN rooms. This list is the local beacon, not an internet directory."
+
+func _make_line_button(label: String) -> Button:
+	var button: Button = Button.new()
+	button.text = label
+	button.theme_type_variation = &"ActionRow"
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.custom_minimum_size = Vector2(280, 44)
+	return button
+
+func _on_lan_rooms_pressed() -> void:
+	_play_click()
 	_enter_join()
+
+func _on_recent_pressed() -> void:
+	_play_click()
+	_enter_join()
+	_set_join_status("No recent rooms.", &"Caption", "")
+
+func _on_invite_pressed() -> void:
+	_play_click()
+	_join_edit.grab_focus()
+	_set_join_status("Paste an invite or type an address.", &"Caption", "")
+
+func _on_paste_pressed() -> void:
+	_play_click()
+	var pasted: String = DisplayServer.clipboard_get().strip_edges()
+	if pasted.is_empty():
+		_set_join_status("Clipboard is empty.", &"StatusWarning", "")
+		return
+	_join_edit.text = pasted
+	_set_join_status("Address pasted.", &"Caption", "")
+
+func _on_qr_pressed() -> void:
+	_play_click()
+	_set_join_status("QR and short code arrive with JoinInvite. Paste an address to join.", &"Caption", "")
+
+func _on_host_next_pressed() -> void:
+	_play_click()
+	_create_step += 1
+	_apply_host_step()
+
+func _apply_host_step() -> void:
+	if _host_characters == null:
+		return
+	var lobby: bool = _create_step >= 3
+	_host_characters.visible = _create_step == 0 or lobby
+	_host_modes.visible = _create_step == 1 or lobby
+	_host_arenas.visible = _create_step == 2 or lobby
+	_host_loop.visible = _create_step == 2 or lobby
+	_host_port.visible = lobby
+	_host_address.visible = lobby
+	_host_status.visible = lobby
+	_record_hint.visible = lobby and not _picked_record_id.is_empty()
+	_start_button.visible = lobby
+	_host_next.visible = not lobby
+	var title: Label = _host_root.get_node("Center/Column/Title") as Label
+	match _create_step:
+		0:
+			title.text = "Character"
+		1:
+			title.text = "Mode"
+		2:
+			title.text = "Room"
+		_:
+			title.text = "Lobby"
+	title.theme_type_variation = &"Page"
+	_host_address.theme_type_variation = &"Technical"
+	_host_port.theme_type_variation = &"Technical"
+	if lobby:
+		_start_button.grab_focus()
+	elif _create_step == 0:
+		_host_boar.grab_focus()
+	else:
+		_host_next.grab_focus()
+
+func _set_join_status(message: String, kind: StringName, fault: String) -> void:
+	_join_fault = fault
+	_join_status.text = message
+	_join_status.theme_type_variation = kind
 
 func _on_home_host_pressed() -> void:
 	if not _open:
@@ -260,7 +414,8 @@ func _begin_host() -> void:
 	_apply_view(View.HOST)
 	_host_address.text = _format_addresses()
 	if not _open_host_room():
-		_host_status.text = "bind failed"
+		_host_status.text = "Could not open the room."
+		_host_status.theme_type_variation = &"StatusError"
 		_play_error()
 		_refresh_host_start()
 		return
@@ -268,12 +423,15 @@ func _begin_host() -> void:
 	_refresh_host_status()
 	_refresh_host_start()
 	if not _create_server():
-		_host_status.text = "bind failed"
+		_host_status.text = "Could not open the room."
+		_host_status.theme_type_variation = &"StatusError"
 		_play_error()
 		_refresh_host_start()
 		return
 	_wire_multiplayer()
 	_start_host_beacon()
+	_create_step = 3 if not _picked_record_id.is_empty() else 0
+	_apply_host_step()
 	if _picked_record_id.is_empty():
 		_host_boar.grab_focus()
 		return
@@ -283,7 +441,7 @@ func _enter_join() -> void:
 	_apply_view(View.JOIN)
 	_reset_character()
 	_join_edit.text = GameLaunch.DEFAULT_JOIN_ADDRESS
-	_join_status.text = ""
+	_set_join_status("", &"Caption", "")
 	_hide_join_session_labels()
 	_connect_button.disabled = false
 	if not _open:
@@ -308,13 +466,13 @@ func _on_connect_pressed() -> void:
 	_play_click()
 	_clear_peer()
 	_start_guest_beacon()
-	_join_status.text = "connecting"
+	_set_join_status("Connecting.", &"StatusWarning", "")
 	_hide_join_session_labels()
 	_connect_button.disabled = true
 	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
 	var err: Error = peer.create_client(_join_edit.text.strip_edges(), GameLaunch.NET_PORT)
 	if err != OK:
-		_join_status.text = "refused"
+		_set_join_status("Could not connect.", &"StatusError", "refused")
 		_connect_button.disabled = false
 		return
 	multiplayer.multiplayer_peer = peer
@@ -373,11 +531,11 @@ func _on_peer_disconnected(id: int) -> void:
 func _on_connected_to_server() -> void:
 	if _view != View.JOIN:
 		return
-	_join_status.text = "connected"
+	_set_join_status("Connected.", &"StatusSuccess", "")
 	rpc_guest_character.rpc_id(1, _selected_character_id)
 
 func _on_connection_failed() -> void:
-	_join_status.text = "refused"
+	_set_join_status("Could not connect.", &"StatusError", "refused")
 	_connect_button.disabled = false
 	_hide_join_session_labels()
 	_clear_peer()
@@ -386,8 +544,8 @@ func _on_connection_failed() -> void:
 func _on_server_disconnected() -> void:
 	if _host_started:
 		return
-	if _join_status.text != "Version mismatch":
-		_join_status.text = "refused"
+	if _join_fault != "version":
+		_set_join_status("Could not connect.", &"StatusError", "refused")
 	_connect_button.disabled = false
 	_hide_join_session_labels()
 	_clear_peer()
@@ -396,15 +554,15 @@ func _on_server_disconnected() -> void:
 @rpc("authority", "call_remote", "reliable")
 func rpc_hello(protocol: int) -> void:
 	if protocol != GameLaunch.NET_PROTOCOL:
-		_join_status.text = "Version mismatch"
+		_set_join_status("Version mismatch.", &"StatusError", "version")
 		_connect_button.disabled = false
 		_clear_peer()
 		_start_guest_beacon()
 		return
 	rpc_hello_ok.rpc_id(1)
-	_join_status.text = "connected"
+	_set_join_status("Connected.", &"StatusSuccess", "")
 	_join_wait.visible = true
-	_join_wait.text = "waiting for host"
+	_join_wait.text = "Waiting for the host."
 	rpc_guest_character.rpc_id(1, _selected_character_id)
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -508,12 +666,21 @@ func _on_loop_changed(_value: float) -> void:
 	_broadcast_goal()
 	_sync_host_beacon()
 
+func _mark_choice(button: Button, selected: bool) -> void:
+	if button == null:
+		return
+	button.theme_type_variation = &"SelectedRow" if selected else &"CharacterChoice"
+
 func _select_character(character_id: String) -> void:
 	_selected_character_id = GameLaunch._sanitize_character_id(character_id)
 	_host_boar.button_pressed = _selected_character_id == CHAR_BOAR
 	_host_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
 	_join_boar.button_pressed = _selected_character_id == CHAR_BOAR
 	_join_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
+	_mark_choice(_host_boar, _selected_character_id == CHAR_BOAR)
+	_mark_choice(_host_chicken, _selected_character_id == CHAR_CHICKEN)
+	_mark_choice(_join_boar, _selected_character_id == CHAR_BOAR)
+	_mark_choice(_join_chicken, _selected_character_id == CHAR_CHICKEN)
 	if _view == View.HOST and _lobby != null:
 		_lobby.set_character(_selected_character_id)
 		_project_from_room()
@@ -526,6 +693,9 @@ func _select_arena(arena_id: String) -> void:
 	_host_yard.button_pressed = _selected_arena_id == "yard"
 	_host_pit.button_pressed = _selected_arena_id == "pit"
 	_host_keep.button_pressed = _selected_arena_id == "keep"
+	_mark_choice(_host_yard, _selected_arena_id == "yard")
+	_mark_choice(_host_pit, _selected_arena_id == "pit")
+	_mark_choice(_host_keep, _selected_arena_id == "keep")
 	if _view == View.HOST and _lobby != null:
 		_lobby.set_arena(_selected_arena_id)
 	_broadcast_arena()
@@ -905,9 +1075,11 @@ func _handshake_guest_peers() -> PackedInt32Array:
 func _refresh_host_status() -> void:
 	var occupied: int = _occupied_count()
 	if occupied <= 1:
-		_host_status.text = "waiting"
+		_host_status.text = "Waiting for players."
+		_host_status.theme_type_variation = &"StatusWarning"
 	else:
-		_host_status.text = "%d/%d connected" % [occupied, GameLaunch.NET_MAX_SEATS]
+		_host_status.text = "%d/%d in the room." % [occupied, GameLaunch.NET_MAX_SEATS]
+		_host_status.theme_type_variation = &"StatusSuccess"
 	_sync_host_beacon()
 
 func _encode_roster() -> PackedByteArray:
@@ -1029,7 +1201,7 @@ func _on_join_search_changed(_text: String) -> void:
 func _rebuild_room_cards() -> void:
 	_clear_room_cards()
 	if _beacon != null and _beacon.has_bind_failed():
-		_join_empty.text = "discover bind failed"
+		_join_empty.text = "Could not listen for LAN rooms."
 		_join_empty.visible = true
 		return
 	_join_empty.text = "no rooms"
@@ -1058,7 +1230,7 @@ func _make_room_card(room: Dictionary) -> Button:
 	var button: Button = Button.new()
 	button.custom_minimum_size = Vector2(0, 72)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.theme_type_variation = &"OfferButton"
+	button.theme_type_variation = &"ActionRow"
 	var full: bool = _is_room_full(room)
 	button.disabled = full
 	var inner: HBoxContainer = HBoxContainer.new()
@@ -1080,7 +1252,7 @@ func _make_room_card(room: Dictionary) -> Button:
 
 func _make_room_title_label(address: String) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"RunSummaryBody"
+	label.theme_type_variation = &"Body"
 	label.text = address
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1089,7 +1261,7 @@ func _make_room_title_label(address: String) -> Label:
 
 func _make_room_meta_label(room: Dictionary) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"OfferDesc"
+	label.theme_type_variation = &"Caption"
 	label.text = _format_room_meta(room)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1098,7 +1270,7 @@ func _make_room_meta_label(room: Dictionary) -> Label:
 
 func _make_room_badge_label(room: Dictionary) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"HudHp"
+	label.theme_type_variation = &"Numeric"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.text = "%d/%d" % [int(room["occupied"]), int(room["max_seats"])]

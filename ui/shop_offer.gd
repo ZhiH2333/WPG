@@ -21,13 +21,13 @@ const HP_LOW_THRESHOLD: int = 20
 const ITEM_CARD_SCENE: PackedScene = preload("res://ui/shop_item_card.tscn")
 const SHELF_STAGGER_SEC: float = 0.04
 const SHELF_STAGGER_MAX: int = 6
-const CARD_START_SCALE: float = 0.9
+const CARD_START_SCALE: float = 1.0
 const CARD_PUNCH_SCALE: float = 1.06
 const CARD_PUNCH_SEC: float = 0.12
 const CARD_OUT_SEC: float = 0.12
 const GOLD_ROLL_SEC: float = 0.28
 const BAR_SMOOTHING: float = 10.0
-const HOVER_SCALE: float = 1.02
+const HOVER_SCALE: float = 1.0
 const HOVER_SEC: float = 0.12
 const GUN_ROW_FADE_SEC: float = 0.18
 const CARD_DIM_ALPHA: float = 0.45
@@ -82,6 +82,8 @@ var _last_bought_identity: StringName = &""
 @onready var _error_sfx: AudioStreamPlayer = $ErrorSfx
 
 func _ready() -> void:
+	_panel.theme_type_variation = &"SurfaceGroup"
+	UiStyle.present(_root, true)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	layer = 20
@@ -536,7 +538,7 @@ func _sync_shelf(is_present: bool) -> void:
 func _spawn_card() -> Button:
 	var button: Button = ITEM_CARD_SCENE.instantiate() as Button
 	button.custom_minimum_size = ITEM_CARD_SIZE
-	button.theme_type_variation = &"OfferButton"
+	button.theme_type_variation = &"OfferRow"
 	button.pivot_offset = ITEM_CARD_SIZE * 0.5
 	button.disabled = false
 	button.pressed.connect(_on_shelf_card_pressed.bind(button))

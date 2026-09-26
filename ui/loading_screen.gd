@@ -90,6 +90,7 @@ static func _is_cover(node: Node) -> bool:
 	return script != null and script.resource_path.ends_with("loading_screen.gd")
 
 func _ready() -> void:
+	UiStyle.present(_root, false)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = LAYER_INDEX
 	visible = true

@@ -5,7 +5,7 @@ class_name UpgradeOffer
 signal picked(upgrade_id: StringName)
 signal cancelled
 
-const HOVER_SCALE: float = 1.02
+const HOVER_SCALE: float = 1.0
 const HOVER_SEC: float = 0.12
 const CARD_PUNCH_SCALE: float = 1.06
 const CARD_PUNCH_SEC: float = 0.12
@@ -31,6 +31,8 @@ var _sfx_gate: Dictionary = {}
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
+	_panel.theme_type_variation = &"SurfaceGroup"
+	UiStyle.present(self, true)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	layer = 20

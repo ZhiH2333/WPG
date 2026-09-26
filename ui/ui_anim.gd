@@ -1,20 +1,20 @@
 extends Object
 class_name UiAnim
 
-## 按意图区分的 UI 过渡。Page 位移 24px。Modal 只缩放 0.96 并淡入，不位移。Drawer 从左侧滑入。Focus 不缩放，只改标记颜色。
+## 按意图区分的 UI 过渡。Page 只交叉淡化。Modal 只淡入。Drawer 从左侧滑入。Focus 不缩放。
 const DIMMER_FADE_SEC: float = 0.2
 const CONTENT_FADE_SEC: float = 0.25
 const PANEL_MOVE_SEC: float = 0.45
 const PANEL_EXIT_SEC: float = 0.3
 const OVERLAY_EXIT_SEC: float = 0.15
-const PAGE_MOVE_SEC: float = 0.32
-const PAGE_EXIT_SEC: float = 0.2
-const PAGE_RISE_PX: float = 24.0
-const MODAL_ENTER_SCALE: float = 0.96
+const PAGE_MOVE_SEC: float = 0.16
+const PAGE_EXIT_SEC: float = 0.16
+const PAGE_RISE_PX: float = 0.0
+const MODAL_ENTER_SCALE: float = 1.0
 const MODAL_EXIT_SEC: float = 0.15
 const HOVER_SEC: float = 0.12
-const HOVER_SCALE: float = 1.02
-const PUNCH_PEAK: float = 1.06
+const HOVER_SCALE: float = 1.0
+const PUNCH_PEAK: float = 1.0
 const PUNCH_SEC: float = 0.12
 const CONNECTION_PULSE_SEC: float = 0.6
 const DRAWER_SLIDE_SEC: float = 0.6
@@ -24,7 +24,7 @@ const DRAWER_NAV_STAGGER_SEC: float = 0.04
 const OVERLAY_RISE_PX: float = PAGE_RISE_PX
 const CARD_FADE_SEC: float = 0.22
 const CARD_SCALE_SEC: float = 0.4
-const CARD_START_SCALE: float = 0.9
+const CARD_START_SCALE: float = 1.0
 const CARD_STAGGER_SEC: float = 0.06
 const MENU_ITEM_FADE_SEC: float = 0.35
 const MENU_ITEM_STAGGER_SEC: float = 0.07
@@ -53,11 +53,9 @@ static func enter_modal(host: Node, dimmer: CanvasItem, content: CanvasItem, ign
 	var tween: Tween = _make_parallel(host, ignore_pause)
 	_fade_dimmer_in(tween, dimmer)
 	if content != null:
-		_set_center_pivot(content)
-		content.scale = Vector2(MODAL_ENTER_SCALE, MODAL_ENTER_SCALE)
+		content.scale = Vector2.ONE
 		content.modulate.a = 0.0
 		tween.tween_property(content, "modulate:a", 1.0, CONTENT_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-		tween.tween_property(content, "scale", Vector2.ONE, CONTENT_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	return tween
 
 static func exit_modal(host: Node, dimmer: CanvasItem, content: CanvasItem, ignore_pause: bool = false) -> Tween:
@@ -135,10 +133,8 @@ static func punch_scale(host: Node, control: Control, peak: float, sec: float, i
 	var tween: Tween = host.create_tween()
 	if ignore_pause:
 		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	control.pivot_offset = control.custom_minimum_size * 0.5
-	var half: float = sec * 0.5
-	tween.tween_property(control, "scale", Vector2(peak, peak), half).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	tween.tween_property(control, "scale", Vector2.ONE, half).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	control.scale = Vector2.ONE
+	tween.tween_property(control, "modulate:a", control.modulate.a, sec)
 	return tween
 
 static func fade_modulate(host: Node, control: CanvasItem, to_alpha: float, sec: float, ignore_pause: bool) -> Tween:
@@ -176,13 +172,8 @@ static func flash_ready(host: Node, control: CanvasItem, ignore_pause: bool = fa
 static func pulse_connection(host: Node, control: CanvasItem, ignore_pause: bool = false) -> Tween:
 	if host == null or control == null:
 		return null
-	var tween: Tween = host.create_tween().set_loops()
-	if ignore_pause:
-		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	control.modulate.a = 1.0
-	tween.tween_property(control, "modulate:a", 0.55, CONNECTION_PULSE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(control, "modulate:a", 1.0, CONNECTION_PULSE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN_OUT)
-	return tween
+	return null
 
 static func _make_parallel(host: Node, ignore_pause: bool) -> Tween:
 	var tween: Tween = host.create_tween().set_parallel(true)
@@ -260,9 +251,7 @@ static func _append_card_entries(tween: Tween, cards: Array) -> void:
 		if card == null or not card.visible:
 			continue
 		var delay: float = CARD_STAGGER_SEC * float(order)
-		card.pivot_offset = card.custom_minimum_size * 0.5
+		card.scale = Vector2.ONE
 		card.modulate.a = 0.0
-		card.scale = Vector2(CARD_START_SCALE, CARD_START_SCALE)
 		tween.tween_property(card, "modulate:a", 1.0, CARD_FADE_SEC).set_delay(delay).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-		tween.tween_property(card, "scale", Vector2.ONE, CARD_SCALE_SEC).set_delay(delay).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		order += 1

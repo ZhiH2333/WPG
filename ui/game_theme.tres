@@ -1,689 +1,953 @@
-[gd_resource type="Theme" format=3 uid="uid://b772hyjkxh87v"]
+[gd_resource type="Theme" load_steps=43 format=3 uid="uid://b772hyjkxh87v"]
 
-[sub_resource type="StyleBoxFlat" id="sb_bar_btn_normal"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 16.0
-content_margin_bottom = 8.0
-bg_color = Color(1, 1, 1, 0)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[ext_resource type="FontFile" path="res://ui/fonts/PlaypenSans-Variable.ttf" id="1_playpen"]
+[ext_resource type="FontFile" path="res://ui/fonts/SourceSans3-Variable.ttf" id="2_sans"]
+[ext_resource type="FontFile" path="res://ui/fonts/NotoSansSC-Regular.otf" id="3_cjk"]
+[ext_resource type="Texture2D" path="res://ui/theme_icons/grabber.png" id="4_grab"]
+[ext_resource type="Texture2D" path="res://ui/theme_icons/grabber_focus.png" id="5_grab_focus"]
+[ext_resource type="Texture2D" path="res://ui/theme_icons/grabber_disabled.png" id="6_grab_off"]
+[ext_resource type="Texture2D" path="res://ui/theme_icons/check_off.png" id="7_off"]
+[ext_resource type="Texture2D" path="res://ui/theme_icons/check_on.png" id="8_on"]
+[ext_resource type="Texture2D" path="res://ui/theme_icons/check_off_disabled.png" id="9_off_d"]
+[ext_resource type="Texture2D" path="res://ui/theme_icons/check_on_disabled.png" id="10_on_d"]
 
-[sub_resource type="StyleBoxFlat" id="sb_focus_bar"]
-bg_color = Color(1, 1, 1, 0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+[sub_resource type="FontVariation" id="fv_p700"]
+base_font = ExtResource("1_playpen")
+fallbacks = Array[Font]([ExtResource("3_cjk")])
+variation_opentype = {
+"wght": 700
+}
+
+[sub_resource type="FontVariation" id="fv_p600"]
+base_font = ExtResource("1_playpen")
+fallbacks = Array[Font]([ExtResource("3_cjk")])
+variation_opentype = {
+"wght": 600
+}
+
+[sub_resource type="FontVariation" id="fv_p500"]
+base_font = ExtResource("1_playpen")
+fallbacks = Array[Font]([ExtResource("3_cjk")])
+variation_opentype = {
+"wght": 500
+}
+
+[sub_resource type="FontVariation" id="fv_s600"]
+base_font = ExtResource("2_sans")
+fallbacks = Array[Font]([ExtResource("3_cjk")])
+variation_opentype = {
+"wght": 600
+}
+
+[sub_resource type="FontVariation" id="fv_s500"]
+base_font = ExtResource("2_sans")
+fallbacks = Array[Font]([ExtResource("3_cjk")])
+variation_opentype = {
+"wght": 500
+}
+
+[sub_resource type="FontVariation" id="fv_s400"]
+base_font = ExtResource("2_sans")
+fallbacks = Array[Font]([ExtResource("3_cjk")])
+variation_opentype = {
+"wght": 400
+}
+
+[sub_resource type="StyleBoxFlat" id="sb_text"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
 border_width_bottom = 2
-border_color = Color(1, 0.55, 0.76, 0.8)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_bar_btn_hover"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 16.0
-content_margin_bottom = 8.0
-bg_color = Color(1, 1, 1, 0.18)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_bar_btn_pressed"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 16.0
-content_margin_bottom = 8.0
-bg_color = Color(1, 1, 1, 0.28)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_bar_panel"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
-bg_color = Color(0.1, 0.1, 0.1, 1)
-
-[sub_resource type="StyleBoxFlat" id="sb_card_disabled"]
-content_margin_left = 18.0
-content_margin_top = 16.0
-content_margin_right = 18.0
-content_margin_bottom = 16.0
-bg_color = Color(0.14, 0.12, 0.165, 0.8)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-
-[sub_resource type="StyleBoxFlat" id="sb_focus_btn"]
-bg_color = Color(1, 1, 1, 0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+[sub_resource type="StyleBoxFlat" id="sb_text_hover"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
 border_width_bottom = 2
-border_color = Color(1, 0.55, 0.76, 0.9)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+border_color = Color(0.180392, 0.141176, 0.109804, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_btn_hover"]
-content_margin_left = 16.0
-content_margin_top = 8.0
-content_margin_right = 16.0
-content_margin_bottom = 8.0
-bg_color = Color(0.33, 0.28, 0.38, 0.98)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[sub_resource type="StyleBoxFlat" id="sb_text_focus"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_bottom = 2
+border_color = Color(0.701961, 0.360784, 0.219608, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_btn_normal"]
-content_margin_left = 16.0
-content_margin_top = 8.0
-content_margin_right = 16.0
-content_margin_bottom = 8.0
-bg_color = Color(0.24, 0.205, 0.285, 0.97)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[sub_resource type="StyleBoxFlat" id="sb_text_pressed"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_bottom = 2
+border_color = Color(0.180392, 0.141176, 0.109804, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_btn_pressed"]
-content_margin_left = 16.0
-content_margin_top = 8.0
-content_margin_right = 16.0
-content_margin_bottom = 8.0
-bg_color = Color(0.42, 0.22, 0.33, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[sub_resource type="StyleBoxFlat" id="sb_text_disabled"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="SystemFont" id="font_bar_bold"]
-font_names = PackedStringArray("Inter", "Segoe UI", "Noto Sans", "Arial")
-font_weight = 700
-subpixel_positioning = 0
+[sub_resource type="StyleBoxFlat" id="sb_primary"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0.701961, 0.360784, 0.219608, 1)
+border_width_left = 4
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxEmpty" id="sb_empty"]
+[sub_resource type="StyleBoxFlat" id="sb_primary_hover"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0.603922, 0.305882, 0.188235, 1)
+border_width_left = 4
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_flat_panel"]
-content_margin_left = 28.0
-content_margin_top = 28.0
-content_margin_right = 28.0
-content_margin_bottom = 28.0
-bg_color = Color(0.13, 0.11, 0.155, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxFlat" id="sb_primary_focus"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0.701961, 0.360784, 0.219608, 1)
+border_width_left = 4
+border_width_bottom = 0
+border_color = Color(0.941176, 0.901961, 0.839216, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_slider_grabber"]
-bg_color = Color(1, 0.4, 0.67, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxFlat" id="sb_primary_pressed"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0.180392, 0.141176, 0.109804, 1)
+border_width_left = 4
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_slider_grabber_hl"]
-bg_color = Color(1, 0.55, 0.76, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxFlat" id="sb_primary_disabled"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0.788235, 0.733333, 0.658824, 1)
+border_width_left = 4
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_selected"]
+content_margin_left = 16
+content_margin_top = 10
+content_margin_right = 16
+content_margin_bottom = 10
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_bottom = 2
+border_color = Color(0.701961, 0.360784, 0.219608, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_line"]
+content_margin_left = 8
+content_margin_top = 8
+content_margin_right = 8
+content_margin_bottom = 8
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_bottom = 2
+border_color = Color(0.788235, 0.733333, 0.658824, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_line_focus"]
+content_margin_left = 8
+content_margin_top = 8
+content_margin_right = 8
+content_margin_bottom = 8
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_bottom = 2
+border_color = Color(0.701961, 0.360784, 0.219608, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
 [sub_resource type="StyleBoxFlat" id="sb_slider"]
-content_margin_left = 0.0
-content_margin_top = 10.0
-content_margin_right = 0.0
-content_margin_bottom = 10.0
-bg_color = Color(0.14, 0.12, 0.165, 0.95)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+content_margin_left = 0
+content_margin_top = 8
+content_margin_right = 0
+content_margin_bottom = 8
+bg_color = Color(0.788235, 0.733333, 0.658824, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_line_edit_focus"]
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
-bg_color = Color(0.19, 0.16, 0.225, 0.97)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+[sub_resource type="StyleBoxFlat" id="sb_grab"]
+content_margin_left = 0
+content_margin_top = 6
+content_margin_right = 0
+content_margin_bottom = 6
+bg_color = Color(0.180392, 0.141176, 0.109804, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_grab_focus"]
+content_margin_left = 0
+content_margin_top = 6
+content_margin_right = 0
+content_margin_bottom = 6
+bg_color = Color(0.701961, 0.360784, 0.219608, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_surface"]
+content_margin_left = 24
+content_margin_top = 24
+content_margin_right = 24
+content_margin_bottom = 24
+bg_color = Color(0.941176, 0.901961, 0.839216, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_modal"]
+content_margin_left = 28
+content_margin_top = 24
+content_margin_right = 28
+content_margin_bottom = 24
+bg_color = Color(0.941176, 0.901961, 0.839216, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_empty"]
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_track"]
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+bg_color = Color(0.788235, 0.733333, 0.658824, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_fill_ink"]
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+bg_color = Color(0.180392, 0.141176, 0.109804, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_fill_error"]
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+bg_color = Color(0.721569, 0.239216, 0.180392, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_fill_success"]
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+bg_color = Color(0.360784, 0.4, 0.258824, 1)
+border_width_left = 0
+border_width_bottom = 0
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_check"]
+content_margin_left = 8
+content_margin_top = 4
+content_margin_right = 8
+content_margin_bottom = 4
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
 border_width_bottom = 2
-border_color = Color(1, 0.55, 0.76, 0.9)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_line_edit"]
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
-bg_color = Color(0.19, 0.16, 0.225, 0.97)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="sb_logo"]
-bg_color = Color(1, 0.4, 0.67, 1)
-border_width_left = 6
-border_width_top = 6
-border_width_right = 6
-border_width_bottom = 6
-border_color = Color(1, 1, 1, 0.9)
-corner_radius_top_left = 120
-corner_radius_top_right = 120
-corner_radius_bottom_right = 120
-corner_radius_bottom_left = 120
-shadow_color = Color(1, 0.4, 0.67, 0.35)
-shadow_size = 18
-
-[sub_resource type="StyleBoxFlat" id="sb_focus_logo"]
-bg_color = Color(1, 1, 1, 0)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 1, 1, 0.6)
-corner_radius_top_left = 120
-corner_radius_top_right = 120
-corner_radius_bottom_right = 120
-corner_radius_bottom_left = 120
-
-[sub_resource type="StyleBoxFlat" id="sb_logo_hover"]
-bg_color = Color(1, 0.55, 0.76, 1)
-border_width_left = 6
-border_width_top = 6
-border_width_right = 6
-border_width_bottom = 6
-border_color = Color(1, 1, 1, 1)
-corner_radius_top_left = 120
-corner_radius_top_right = 120
-corner_radius_bottom_right = 120
-corner_radius_bottom_left = 120
-shadow_color = Color(1, 0.55, 0.76, 0.5)
-shadow_size = 26
-
-[sub_resource type="StyleBoxFlat" id="sb_logo_pressed"]
-bg_color = Color(0.85, 0.31, 0.55, 1)
-border_width_left = 6
-border_width_top = 6
-border_width_right = 6
-border_width_bottom = 6
-border_color = Color(1, 1, 1, 0.9)
-corner_radius_top_left = 120
-corner_radius_top_right = 120
-corner_radius_bottom_right = 120
-corner_radius_bottom_left = 120
-shadow_color = Color(1, 0.4, 0.67, 0.35)
-shadow_size = 14
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_disabled"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(0.14, 0.12, 0.165, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_focus_pill"]
-bg_color = Color(1, 1, 1, 0)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 1, 1, 0.85)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_neutral_hover"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(0.38, 0.33, 0.45, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_neutral"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(0.29, 0.25, 0.35, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_neutral_pressed"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(0.23, 0.2, 0.28, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_card_disabled"]
-content_margin_left = 18.0
-content_margin_top = 16.0
-content_margin_right = 18.0
-content_margin_bottom = 16.0
-bg_color = Color(0.14, 0.12, 0.165, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_focus_card"]
-bg_color = Color(1, 1, 1, 0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+[sub_resource type="StyleBoxFlat" id="sb_check_hover"]
+content_margin_left = 8
+content_margin_top = 4
+content_margin_right = 8
+content_margin_bottom = 4
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
 border_width_bottom = 2
-border_color = Color(1, 0.55, 0.76, 0.9)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.180392, 0.141176, 0.109804, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
-[sub_resource type="StyleBoxFlat" id="sb_flat_card_hover"]
-content_margin_left = 18.0
-content_margin_top = 16.0
-content_margin_right = 18.0
-content_margin_bottom = 16.0
-bg_color = Color(0.27, 0.225, 0.31, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_card_normal"]
-content_margin_left = 18.0
-content_margin_top = 16.0
-content_margin_right = 18.0
-content_margin_bottom = 16.0
-bg_color = Color(0.19, 0.16, 0.225, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_card_pressed"]
-content_margin_left = 18.0
-content_margin_top = 16.0
-content_margin_right = 18.0
-content_margin_bottom = 16.0
-bg_color = Color(0.42, 0.22, 0.33, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_pink_hover"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(1, 0.55, 0.76, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_pink"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(1, 0.4, 0.67, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_pink_pressed"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(0.85, 0.31, 0.55, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_red_hover"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(0.88, 0.34, 0.42, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_red"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(0.72, 0.24, 0.32, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_flat_pill_red_pressed"]
-content_margin_left = 34.0
-content_margin_top = 12.0
-content_margin_right = 34.0
-content_margin_bottom = 12.0
-bg_color = Color(0.56, 0.18, 0.25, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="sb_hp_bg"]
-bg_color = Color(0.09, 0.075, 0.105, 0.85)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_right = 7
-corner_radius_bottom_left = 7
-
-[sub_resource type="StyleBoxFlat" id="sb_hp_fill"]
-bg_color = Color(1, 0.4, 0.67, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_right = 7
-corner_radius_bottom_left = 7
-
-[sub_resource type="StyleBoxFlat" id="sb_hp_low"]
-bg_color = Color(0.94, 0.3, 0.36, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_right = 7
-corner_radius_bottom_left = 7
-
-[sub_resource type="StyleBoxFlat" id="sb_xp_fill"]
-bg_color = Color(0.4, 0.72, 1, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_right = 7
-corner_radius_bottom_left = 7
-
-[sub_resource type="StyleBoxFlat" id="sb_rank_fill"]
-bg_color = Color(0.95, 0.62, 0.35, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_right = 7
-corner_radius_bottom_left = 7
+[sub_resource type="StyleBoxFlat" id="sb_check_focus"]
+content_margin_left = 8
+content_margin_top = 4
+content_margin_right = 8
+content_margin_bottom = 4
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_bottom = 2
+border_color = Color(0.701961, 0.360784, 0.219608, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
 [resource]
+default_font = SubResource("fv_s400")
 default_font_size = 18
-BarButton/base_type = &"Button"
-BarButton/colors/font_color = Color(0.93, 0.9, 0.93, 1)
-BarButton/font_sizes/font_size = 16
-BarButton/styles/disabled = SubResource("sb_bar_btn_normal")
-BarButton/styles/focus = SubResource("sb_focus_bar")
-BarButton/styles/hover = SubResource("sb_bar_btn_hover")
-BarButton/styles/normal = SubResource("sb_bar_btn_normal")
-BarButton/styles/pressed = SubResource("sb_bar_btn_pressed")
-BarPanel/base_type = &"PanelContainer"
-BarPanel/styles/panel = SubResource("sb_bar_panel")
-Button/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-Button/styles/disabled = SubResource("sb_card_disabled")
-Button/styles/focus = SubResource("sb_focus_btn")
-Button/styles/hover = SubResource("sb_btn_hover")
-Button/styles/normal = SubResource("sb_btn_normal")
-Button/styles/pressed = SubResource("sb_btn_pressed")
-ClearedTitle/base_type = &"Label"
-ClearedTitle/colors/font_color = Color(0.55, 0.78, 0.22, 1)
-ClearedTitle/colors/font_outline_color = Color(0, 0, 0, 0.5)
-ClearedTitle/constants/outline_size = 4
-ClearedTitle/font_sizes/font_size = 28
-ClockLabel/base_type = &"Label"
-ClockLabel/colors/font_color = Color(0.97, 0.96, 0.98, 1)
-ClockLabel/colors/font_outline_color = Color(0, 0, 0, 0.4)
-ClockLabel/constants/outline_size = 2
-ClockLabel/font_sizes/font_size = 18
-ClockLabel/fonts/font = SubResource("font_bar_bold")
-EmptyButton/base_type = &"Button"
-EmptyButton/colors/font_color = Color(1, 1, 1, 1)
-EmptyButton/font_sizes/font_size = 18
-EmptyButton/styles/disabled = SubResource("sb_empty")
-EmptyButton/styles/focus = SubResource("sb_empty")
-EmptyButton/styles/hover = SubResource("sb_empty")
-EmptyButton/styles/normal = SubResource("sb_empty")
-EmptyButton/styles/pressed = SubResource("sb_empty")
-FloatingHeader/base_type = &"Label"
-FloatingHeader/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-FloatingHeader/colors/font_outline_color = Color(0, 0, 0, 0.5)
-FloatingHeader/constants/outline_size = 4
-FloatingHeader/font_sizes/font_size = 28
-FloatingHeader/fonts/font = SubResource("font_bar_bold")
-FloatingPanel/base_type = &"PanelContainer"
-FloatingPanel/styles/panel = SubResource("sb_flat_panel")
-HSlider/styles/grabber_area = SubResource("sb_slider_grabber")
-HSlider/styles/grabber_area_highlight = SubResource("sb_slider_grabber_hl")
+Label/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+Label/fonts/font = SubResource("fv_s400")
+Label/font_sizes/font_size = 18
+Label/constants/outline_size = 0
+Label/constants/line_spacing = 10
+Button/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+Button/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+Button/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+Button/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+Button/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+Button/fonts/font = SubResource("fv_s400")
+Button/font_sizes/font_size = 18
+Button/constants/outline_size = 0
+Button/styles/normal = SubResource("sb_text")
+Button/styles/hover = SubResource("sb_text_hover")
+Button/styles/pressed = SubResource("sb_text_pressed")
+Button/styles/focus = SubResource("sb_text_focus")
+Button/styles/disabled = SubResource("sb_text_disabled")
+
+PanelContainer/styles/panel = SubResource("sb_empty")
+TextAction/base_type = &"Button"
+TextAction/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+TextAction/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+TextAction/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+TextAction/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+TextAction/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+TextAction/fonts/font = SubResource("fv_s400")
+TextAction/font_sizes/font_size = 18
+TextAction/constants/outline_size = 0
+TextAction/styles/normal = SubResource("sb_text")
+TextAction/styles/hover = SubResource("sb_text_hover")
+TextAction/styles/pressed = SubResource("sb_text_pressed")
+TextAction/styles/focus = SubResource("sb_text_focus")
+TextAction/styles/disabled = SubResource("sb_text_disabled")
+
+NavItem/base_type = &"Button"
+NavItem/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+NavItem/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+NavItem/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+NavItem/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+NavItem/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+NavItem/fonts/font = SubResource("fv_p500")
+NavItem/font_sizes/font_size = 18
+NavItem/constants/outline_size = 0
+NavItem/styles/normal = SubResource("sb_text")
+NavItem/styles/hover = SubResource("sb_text_hover")
+NavItem/styles/pressed = SubResource("sb_text_pressed")
+NavItem/styles/focus = SubResource("sb_text_focus")
+NavItem/styles/disabled = SubResource("sb_text_disabled")
+
+PrimaryAction/base_type = &"Button"
+PrimaryAction/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+PrimaryAction/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+PrimaryAction/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+PrimaryAction/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+PrimaryAction/colors/font_disabled_color = Color(0.419608, 0.368627, 0.321569, 1)
+PrimaryAction/fonts/font = SubResource("fv_p600")
+PrimaryAction/font_sizes/font_size = 22
+PrimaryAction/constants/outline_size = 0
+PrimaryAction/styles/normal = SubResource("sb_primary")
+PrimaryAction/styles/hover = SubResource("sb_primary_hover")
+PrimaryAction/styles/pressed = SubResource("sb_primary_pressed")
+PrimaryAction/styles/focus = SubResource("sb_primary_focus")
+PrimaryAction/styles/disabled = SubResource("sb_primary_disabled")
+
+SecondaryAction/base_type = &"Button"
+SecondaryAction/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+SecondaryAction/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+SecondaryAction/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+SecondaryAction/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+SecondaryAction/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+SecondaryAction/fonts/font = SubResource("fv_p600")
+SecondaryAction/font_sizes/font_size = 22
+SecondaryAction/constants/outline_size = 0
+SecondaryAction/styles/normal = SubResource("sb_text")
+SecondaryAction/styles/hover = SubResource("sb_text_hover")
+SecondaryAction/styles/pressed = SubResource("sb_text_pressed")
+SecondaryAction/styles/focus = SubResource("sb_text_focus")
+SecondaryAction/styles/disabled = SubResource("sb_text_disabled")
+
+ActionRow/base_type = &"Button"
+ActionRow/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+ActionRow/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+ActionRow/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+ActionRow/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+ActionRow/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+ActionRow/fonts/font = SubResource("fv_s400")
+ActionRow/font_sizes/font_size = 18
+ActionRow/constants/outline_size = 0
+ActionRow/styles/normal = SubResource("sb_text")
+ActionRow/styles/hover = SubResource("sb_text_hover")
+ActionRow/styles/pressed = SubResource("sb_text_pressed")
+ActionRow/styles/focus = SubResource("sb_text_focus")
+ActionRow/styles/disabled = SubResource("sb_text_disabled")
+
+OfferRow/base_type = &"Button"
+OfferRow/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+OfferRow/colors/font_hover_color = Color(0.180392, 0.141176, 0.109804, 1)
+OfferRow/colors/font_focus_color = Color(0.180392, 0.141176, 0.109804, 1)
+OfferRow/colors/font_pressed_color = Color(0.180392, 0.141176, 0.109804, 1)
+OfferRow/colors/font_disabled_color = Color(0.419608, 0.368627, 0.321569, 1)
+OfferRow/fonts/font = SubResource("fv_s400")
+OfferRow/font_sizes/font_size = 18
+OfferRow/constants/outline_size = 0
+OfferRow/styles/normal = SubResource("sb_text")
+OfferRow/styles/hover = SubResource("sb_text_hover")
+OfferRow/styles/pressed = SubResource("sb_text_pressed")
+OfferRow/styles/focus = SubResource("sb_text_focus")
+OfferRow/styles/disabled = SubResource("sb_text_disabled")
+
+DangerAction/base_type = &"Button"
+DangerAction/colors/font_color = Color(0.721569, 0.239216, 0.180392, 1)
+DangerAction/colors/font_hover_color = Color(0.721569, 0.239216, 0.180392, 1)
+DangerAction/colors/font_focus_color = Color(0.721569, 0.239216, 0.180392, 1)
+DangerAction/colors/font_pressed_color = Color(0.721569, 0.239216, 0.180392, 1)
+DangerAction/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+DangerAction/fonts/font = SubResource("fv_s400")
+DangerAction/font_sizes/font_size = 18
+DangerAction/constants/outline_size = 0
+DangerAction/styles/normal = SubResource("sb_text")
+DangerAction/styles/hover = SubResource("sb_text_hover")
+DangerAction/styles/pressed = SubResource("sb_text_pressed")
+DangerAction/styles/focus = SubResource("sb_text_focus")
+DangerAction/styles/disabled = SubResource("sb_text_disabled")
+
+InkTextAction/base_type = &"Button"
+InkTextAction/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkTextAction/colors/font_hover_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkTextAction/colors/font_focus_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkTextAction/colors/font_pressed_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkTextAction/colors/font_disabled_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkTextAction/fonts/font = SubResource("fv_s400")
+InkTextAction/font_sizes/font_size = 18
+InkTextAction/constants/outline_size = 0
+InkTextAction/styles/normal = SubResource("sb_text")
+InkTextAction/styles/hover = SubResource("sb_text_hover")
+InkTextAction/styles/pressed = SubResource("sb_text_pressed")
+InkTextAction/styles/focus = SubResource("sb_text_focus")
+InkTextAction/styles/disabled = SubResource("sb_text_disabled")
+
+InkNav/base_type = &"Button"
+InkNav/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkNav/colors/font_hover_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkNav/colors/font_focus_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkNav/colors/font_pressed_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkNav/colors/font_disabled_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkNav/fonts/font = SubResource("fv_s600")
+InkNav/font_sizes/font_size = 14
+InkNav/constants/outline_size = 0
+InkNav/styles/normal = SubResource("sb_text")
+InkNav/styles/hover = SubResource("sb_text_hover")
+InkNav/styles/pressed = SubResource("sb_text_pressed")
+InkNav/styles/focus = SubResource("sb_text_focus")
+InkNav/styles/disabled = SubResource("sb_text_disabled")
+
+InkSecondary/base_type = &"Button"
+InkSecondary/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkSecondary/colors/font_hover_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkSecondary/colors/font_focus_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkSecondary/colors/font_pressed_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkSecondary/colors/font_disabled_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkSecondary/fonts/font = SubResource("fv_p600")
+InkSecondary/font_sizes/font_size = 22
+InkSecondary/constants/outline_size = 0
+InkSecondary/styles/normal = SubResource("sb_text")
+InkSecondary/styles/hover = SubResource("sb_text_hover")
+InkSecondary/styles/pressed = SubResource("sb_text_pressed")
+InkSecondary/styles/focus = SubResource("sb_text_focus")
+InkSecondary/styles/disabled = SubResource("sb_text_disabled")
+
+InkDanger/base_type = &"Button"
+InkDanger/colors/font_color = Color(0.721569, 0.239216, 0.180392, 1)
+InkDanger/colors/font_hover_color = Color(0.721569, 0.239216, 0.180392, 1)
+InkDanger/colors/font_focus_color = Color(0.721569, 0.239216, 0.180392, 1)
+InkDanger/colors/font_pressed_color = Color(0.721569, 0.239216, 0.180392, 1)
+InkDanger/colors/font_disabled_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkDanger/fonts/font = SubResource("fv_s400")
+InkDanger/font_sizes/font_size = 18
+InkDanger/constants/outline_size = 0
+InkDanger/styles/normal = SubResource("sb_text")
+InkDanger/styles/hover = SubResource("sb_text_hover")
+InkDanger/styles/pressed = SubResource("sb_text_pressed")
+InkDanger/styles/focus = SubResource("sb_text_focus")
+InkDanger/styles/disabled = SubResource("sb_text_disabled")
+
+SelectedRow/base_type = &"Button"
+SelectedRow/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+SelectedRow/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+SelectedRow/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+SelectedRow/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+SelectedRow/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+SelectedRow/fonts/font = SubResource("fv_s400")
+SelectedRow/font_sizes/font_size = 18
+SelectedRow/constants/outline_size = 0
+SelectedRow/styles/normal = SubResource("sb_selected")
+SelectedRow/styles/hover = SubResource("sb_selected")
+SelectedRow/styles/pressed = SubResource("sb_text_pressed")
+SelectedRow/styles/focus = SubResource("sb_text_focus")
+SelectedRow/styles/disabled = SubResource("sb_text_disabled")
+
+InkSelected/base_type = &"Button"
+InkSelected/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkSelected/colors/font_hover_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkSelected/colors/font_focus_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkSelected/colors/font_pressed_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkSelected/colors/font_disabled_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkSelected/fonts/font = SubResource("fv_s400")
+InkSelected/font_sizes/font_size = 18
+InkSelected/constants/outline_size = 0
+InkSelected/styles/normal = SubResource("sb_selected")
+InkSelected/styles/hover = SubResource("sb_selected")
+InkSelected/styles/pressed = SubResource("sb_text_pressed")
+InkSelected/styles/focus = SubResource("sb_text_focus")
+InkSelected/styles/disabled = SubResource("sb_text_disabled")
+
+RecordRow/base_type = &"Button"
+RecordRow/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+RecordRow/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+RecordRow/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+RecordRow/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+RecordRow/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+RecordRow/fonts/font = SubResource("fv_s400")
+RecordRow/font_sizes/font_size = 18
+RecordRow/constants/outline_size = 0
+RecordRow/styles/normal = SubResource("sb_text")
+RecordRow/styles/hover = SubResource("sb_text_hover")
+RecordRow/styles/pressed = SubResource("sb_text_pressed")
+RecordRow/styles/focus = SubResource("sb_text_focus")
+RecordRow/styles/disabled = SubResource("sb_text_disabled")
+
+PlayerRow/base_type = &"Button"
+PlayerRow/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+PlayerRow/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+PlayerRow/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+PlayerRow/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+PlayerRow/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+PlayerRow/fonts/font = SubResource("fv_s400")
+PlayerRow/font_sizes/font_size = 18
+PlayerRow/constants/outline_size = 0
+PlayerRow/styles/normal = SubResource("sb_text")
+PlayerRow/styles/hover = SubResource("sb_text_hover")
+PlayerRow/styles/pressed = SubResource("sb_text_pressed")
+PlayerRow/styles/focus = SubResource("sb_text_focus")
+PlayerRow/styles/disabled = SubResource("sb_text_disabled")
+
+RoomRow/base_type = &"Button"
+RoomRow/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+RoomRow/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+RoomRow/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+RoomRow/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+RoomRow/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+RoomRow/fonts/font = SubResource("fv_s400")
+RoomRow/font_sizes/font_size = 18
+RoomRow/constants/outline_size = 0
+RoomRow/styles/normal = SubResource("sb_text")
+RoomRow/styles/hover = SubResource("sb_text_hover")
+RoomRow/styles/pressed = SubResource("sb_text_pressed")
+RoomRow/styles/focus = SubResource("sb_text_focus")
+RoomRow/styles/disabled = SubResource("sb_text_disabled")
+
+CharacterChoice/base_type = &"Button"
+CharacterChoice/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+CharacterChoice/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+CharacterChoice/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+CharacterChoice/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+CharacterChoice/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+CharacterChoice/fonts/font = SubResource("fv_s400")
+CharacterChoice/font_sizes/font_size = 18
+CharacterChoice/constants/outline_size = 0
+CharacterChoice/styles/normal = SubResource("sb_text")
+CharacterChoice/styles/hover = SubResource("sb_text_hover")
+CharacterChoice/styles/pressed = SubResource("sb_text_pressed")
+CharacterChoice/styles/focus = SubResource("sb_text_focus")
+CharacterChoice/styles/disabled = SubResource("sb_text_disabled")
+
+IconAction/base_type = &"Button"
+IconAction/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+IconAction/colors/font_hover_color = Color(0.941176, 0.901961, 0.839216, 1)
+IconAction/colors/font_focus_color = Color(0.941176, 0.901961, 0.839216, 1)
+IconAction/colors/font_pressed_color = Color(0.941176, 0.901961, 0.839216, 1)
+IconAction/colors/font_disabled_color = Color(0.788235, 0.733333, 0.658824, 1)
+IconAction/fonts/font = SubResource("fv_p500")
+IconAction/font_sizes/font_size = 18
+IconAction/constants/outline_size = 0
+IconAction/styles/normal = SubResource("sb_text")
+IconAction/styles/hover = SubResource("sb_text_hover")
+IconAction/styles/pressed = SubResource("sb_text_pressed")
+IconAction/styles/focus = SubResource("sb_text_focus")
+IconAction/styles/disabled = SubResource("sb_text_disabled")
+
+Display/base_type = &"Label"
+Display/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+Display/fonts/font = SubResource("fv_p700")
+Display/font_sizes/font_size = 56
+Display/constants/outline_size = 0
+Display/constants/line_spacing = 8
+
+InkDisplay/base_type = &"Label"
+InkDisplay/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkDisplay/fonts/font = SubResource("fv_p700")
+InkDisplay/font_sizes/font_size = 56
+InkDisplay/constants/outline_size = 0
+InkDisplay/constants/line_spacing = 8
+
+Page/base_type = &"Label"
+Page/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+Page/fonts/font = SubResource("fv_p600")
+Page/font_sizes/font_size = 32
+Page/constants/outline_size = 0
+Page/constants/line_spacing = 8
+
+InkPage/base_type = &"Label"
+InkPage/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkPage/fonts/font = SubResource("fv_p600")
+InkPage/font_sizes/font_size = 32
+InkPage/constants/outline_size = 0
+InkPage/constants/line_spacing = 8
+
+Navigation/base_type = &"Label"
+Navigation/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+Navigation/fonts/font = SubResource("fv_p500")
+Navigation/font_sizes/font_size = 18
+Navigation/constants/outline_size = 0
+Navigation/constants/line_spacing = 6
+
+InkNavigation/base_type = &"Label"
+InkNavigation/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkNavigation/fonts/font = SubResource("fv_p500")
+InkNavigation/font_sizes/font_size = 18
+InkNavigation/constants/outline_size = 0
+InkNavigation/constants/line_spacing = 6
+
+PlayerName/base_type = &"Label"
+PlayerName/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+PlayerName/fonts/font = SubResource("fv_p700")
+PlayerName/font_sizes/font_size = 40
+PlayerName/constants/outline_size = 0
+PlayerName/constants/line_spacing = 8
+
+InkPlayerName/base_type = &"Label"
+InkPlayerName/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkPlayerName/fonts/font = SubResource("fv_p700")
+InkPlayerName/font_sizes/font_size = 40
+InkPlayerName/constants/outline_size = 0
+InkPlayerName/constants/line_spacing = 8
+
+RailTitle/base_type = &"Label"
+RailTitle/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+RailTitle/fonts/font = SubResource("fv_p600")
+RailTitle/font_sizes/font_size = 22
+RailTitle/constants/outline_size = 0
+RailTitle/constants/line_spacing = 6
+
+InkRailTitle/base_type = &"Label"
+InkRailTitle/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkRailTitle/fonts/font = SubResource("fv_p600")
+InkRailTitle/font_sizes/font_size = 22
+InkRailTitle/constants/outline_size = 0
+InkRailTitle/constants/line_spacing = 6
+
+Section/base_type = &"Label"
+Section/colors/font_color = Color(0.788235, 0.733333, 0.658824, 1)
+Section/fonts/font = SubResource("fv_s600")
+Section/font_sizes/font_size = 14
+Section/constants/outline_size = 0
+Section/constants/line_spacing = 6
+
+InkSection/base_type = &"Label"
+InkSection/colors/font_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkSection/fonts/font = SubResource("fv_s600")
+InkSection/font_sizes/font_size = 14
+InkSection/constants/outline_size = 0
+InkSection/constants/line_spacing = 6
+
+Body/base_type = &"Label"
+Body/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+Body/fonts/font = SubResource("fv_s400")
+Body/font_sizes/font_size = 18
+Body/constants/outline_size = 0
+Body/constants/line_spacing = 10
+
+InkBody/base_type = &"Label"
+InkBody/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkBody/fonts/font = SubResource("fv_s400")
+InkBody/font_sizes/font_size = 18
+InkBody/constants/outline_size = 0
+InkBody/constants/line_spacing = 10
+
+Caption/base_type = &"Label"
+Caption/colors/font_color = Color(0.788235, 0.733333, 0.658824, 1)
+Caption/fonts/font = SubResource("fv_s400")
+Caption/font_sizes/font_size = 15
+Caption/constants/outline_size = 0
+Caption/constants/line_spacing = 7
+
+InkCaption/base_type = &"Label"
+InkCaption/colors/font_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkCaption/fonts/font = SubResource("fv_s400")
+InkCaption/font_sizes/font_size = 15
+InkCaption/constants/outline_size = 0
+InkCaption/constants/line_spacing = 7
+
+Numeric/base_type = &"Label"
+Numeric/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+Numeric/fonts/font = SubResource("fv_s500")
+Numeric/font_sizes/font_size = 20
+Numeric/constants/outline_size = 0
+Numeric/constants/line_spacing = 4
+
+InkNumeric/base_type = &"Label"
+InkNumeric/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkNumeric/fonts/font = SubResource("fv_s500")
+InkNumeric/font_sizes/font_size = 20
+InkNumeric/constants/outline_size = 0
+InkNumeric/constants/line_spacing = 4
+
+Technical/base_type = &"Label"
+Technical/colors/font_color = Color(0.788235, 0.733333, 0.658824, 1)
+Technical/fonts/font = SubResource("fv_s400")
+Technical/font_sizes/font_size = 14
+Technical/constants/outline_size = 0
+Technical/constants/line_spacing = 6
+
+InkTechnical/base_type = &"Label"
+InkTechnical/colors/font_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkTechnical/fonts/font = SubResource("fv_s400")
+InkTechnical/font_sizes/font_size = 14
+InkTechnical/constants/outline_size = 0
+InkTechnical/constants/line_spacing = 6
+
+StatusSuccess/base_type = &"Label"
+StatusSuccess/colors/font_color = Color(0.360784, 0.4, 0.258824, 1)
+StatusSuccess/fonts/font = SubResource("fv_s400")
+StatusSuccess/font_sizes/font_size = 18
+StatusSuccess/constants/outline_size = 0
+StatusSuccess/constants/line_spacing = 10
+
+InkStatusSuccess/base_type = &"Label"
+InkStatusSuccess/colors/font_color = Color(0.360784, 0.4, 0.258824, 1)
+InkStatusSuccess/fonts/font = SubResource("fv_s400")
+InkStatusSuccess/font_sizes/font_size = 18
+InkStatusSuccess/constants/outline_size = 0
+InkStatusSuccess/constants/line_spacing = 10
+
+StatusWarning/base_type = &"Label"
+StatusWarning/colors/font_color = Color(0.65098, 0.486275, 0.196078, 1)
+StatusWarning/fonts/font = SubResource("fv_s400")
+StatusWarning/font_sizes/font_size = 18
+StatusWarning/constants/outline_size = 0
+StatusWarning/constants/line_spacing = 10
+
+InkStatusWarning/base_type = &"Label"
+InkStatusWarning/colors/font_color = Color(0.65098, 0.486275, 0.196078, 1)
+InkStatusWarning/fonts/font = SubResource("fv_s400")
+InkStatusWarning/font_sizes/font_size = 18
+InkStatusWarning/constants/outline_size = 0
+InkStatusWarning/constants/line_spacing = 10
+
+StatusError/base_type = &"Label"
+StatusError/colors/font_color = Color(0.721569, 0.239216, 0.180392, 1)
+StatusError/fonts/font = SubResource("fv_s400")
+StatusError/font_sizes/font_size = 18
+StatusError/constants/outline_size = 0
+StatusError/constants/line_spacing = 10
+
+InkStatusError/base_type = &"Label"
+InkStatusError/colors/font_color = Color(0.721569, 0.239216, 0.180392, 1)
+InkStatusError/fonts/font = SubResource("fv_s400")
+InkStatusError/font_sizes/font_size = 18
+InkStatusError/constants/outline_size = 0
+InkStatusError/constants/line_spacing = 10
+
+OpenSheet/base_type = &"PanelContainer"
+OpenSheet/styles/panel = SubResource("sb_empty")
+SurfaceGroup/base_type = &"PanelContainer"
+SurfaceGroup/styles/panel = SubResource("sb_surface")
+Modal/base_type = &"PanelContainer"
+Modal/styles/panel = SubResource("sb_modal")
+Drawer/base_type = &"PanelContainer"
+Drawer/styles/panel = SubResource("sb_surface")
+LineEdit/colors/font_color = Color(0.941176, 0.901961, 0.839216, 1)
+LineEdit/colors/font_placeholder_color = Color(0.788235, 0.733333, 0.658824, 1)
+LineEdit/colors/caret_color = Color(0.701961, 0.360784, 0.219608, 1)
+LineEdit/fonts/font = SubResource("fv_s400")
+LineEdit/font_sizes/font_size = 18
+LineEdit/styles/normal = SubResource("sb_line")
+LineEdit/styles/focus = SubResource("sb_line_focus")
+LineEdit/styles/read_only = SubResource("sb_line")
+InkLineEdit/base_type = &"LineEdit"
+InkLineEdit/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+InkLineEdit/colors/font_placeholder_color = Color(0.419608, 0.368627, 0.321569, 1)
+InkLineEdit/colors/caret_color = Color(0.701961, 0.360784, 0.219608, 1)
 HSlider/styles/slider = SubResource("sb_slider")
-HudHp/base_type = &"Label"
-HudHp/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-HudHp/colors/font_outline_color = Color(0, 0, 0, 0.85)
-HudHp/constants/outline_size = 6
-HudHp/font_sizes/font_size = 22
-HudPhrase/base_type = &"Label"
-HudPhrase/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-HudPhrase/colors/font_outline_color = Color(0, 0, 0, 0.85)
-HudPhrase/constants/outline_size = 8
-HudPhrase/font_sizes/font_size = 26
-HudWeapon/base_type = &"Label"
-HudWeapon/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-HudWeapon/colors/font_outline_color = Color(0, 0, 0, 0.85)
-HudWeapon/constants/outline_size = 6
-HudWeapon/font_sizes/font_size = 18
-IconBarButton/base_type = &"Button"
-IconBarButton/colors/font_color = Color(1, 1, 1, 1)
-IconBarButton/constants/h_separation = 10
-IconBarButton/constants/icon_max_width = 32
-IconBarButton/font_sizes/font_size = 18
-IconBarButton/fonts/font = SubResource("font_bar_bold")
-IconBarButton/styles/disabled = SubResource("sb_bar_btn_normal")
-IconBarButton/styles/focus = SubResource("sb_bar_btn_hover")
-IconBarButton/styles/hover = SubResource("sb_bar_btn_hover")
-IconBarButton/styles/normal = SubResource("sb_bar_btn_normal")
-IconBarButton/styles/pressed = SubResource("sb_bar_btn_pressed")
-Label/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-Label/colors/font_outline_color = Color(0, 0, 0, 0.75)
-Label/colors/font_shadow_color = Color(0, 0, 0, 0.75)
-Label/constants/outline_size = 6
-Label/constants/shadow_offset_x = 1
-Label/constants/shadow_offset_y = 1
-LineEdit/colors/caret_color = Color(1, 0.4, 0.67, 1)
-LineEdit/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-LineEdit/colors/font_placeholder_color = Color(0.8, 0.75, 0.81, 0.7)
-LineEdit/styles/focus = SubResource("sb_line_edit_focus")
-LineEdit/styles/normal = SubResource("sb_line_edit")
-LineEdit/styles/read_only = SubResource("sb_line_edit")
-LogoButton/base_type = &"Button"
-LogoButton/colors/font_color = Color(1, 1, 1, 1)
-LogoButton/font_sizes/font_size = 52
-LogoButton/styles/disabled = SubResource("sb_logo")
-LogoButton/styles/focus = SubResource("sb_focus_logo")
-LogoButton/styles/hover = SubResource("sb_logo_hover")
-LogoButton/styles/normal = SubResource("sb_logo")
-LogoButton/styles/pressed = SubResource("sb_logo_pressed")
-MainMenuButton/base_type = &"Button"
-MainMenuButton/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-MainMenuButton/font_sizes/font_size = 22
-MainMenuButton/fonts/font = SubResource("font_bar_bold")
-MainMenuButton/styles/disabled = SubResource("sb_flat_pill_disabled")
-MainMenuButton/styles/focus = SubResource("sb_focus_pill")
-MainMenuButton/styles/hover = SubResource("sb_flat_pill_neutral_hover")
-MainMenuButton/styles/normal = SubResource("sb_flat_pill_neutral")
-MainMenuButton/styles/pressed = SubResource("sb_flat_pill_neutral_pressed")
-MenuTitle/base_type = &"Label"
-MenuTitle/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-MenuTitle/colors/font_outline_color = Color(0, 0, 0, 0.85)
-MenuTitle/constants/outline_size = 8
-MenuTitle/font_sizes/font_size = 48
-ModeTitle/base_type = &"Label"
-ModeTitle/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-ModeTitle/colors/font_outline_color = Color(0, 0, 0, 0.5)
-ModeTitle/constants/outline_size = 4
-ModeTitle/font_sizes/font_size = 26
-ModeTitle/fonts/font = SubResource("font_bar_bold")
-OfferButton/base_type = &"Button"
-OfferButton/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-OfferButton/font_sizes/font_size = 18
-OfferButton/styles/disabled = SubResource("sb_flat_card_disabled")
-OfferButton/styles/focus = SubResource("sb_focus_card")
-OfferButton/styles/hover = SubResource("sb_flat_card_hover")
-OfferButton/styles/normal = SubResource("sb_flat_card_normal")
-OfferButton/styles/pressed = SubResource("sb_flat_card_pressed")
-OfferDesc/base_type = &"Label"
-OfferDesc/colors/font_color = Color(0.8, 0.75, 0.81, 1)
-OfferDesc/colors/font_outline_color = Color(0, 0, 0, 0.4)
-OfferDesc/constants/outline_size = 2
-OfferDesc/font_sizes/font_size = 16
-OfferTitle/base_type = &"Label"
-OfferTitle/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-OfferTitle/colors/font_outline_color = Color(0, 0, 0, 0.5)
-OfferTitle/constants/outline_size = 4
-OfferTitle/font_sizes/font_size = 22
-OfferTitle/fonts/font = SubResource("font_bar_bold")
-PauseTitle/base_type = &"Label"
-PauseTitle/colors/font_color = Color(1, 0.85, 0.3, 1)
-PauseTitle/colors/font_outline_color = Color(0, 0, 0, 0.55)
-PauseTitle/constants/outline_size = 4
-PauseTitle/font_sizes/font_size = 48
-PillNeutral/base_type = &"Button"
-PillNeutral/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-PillNeutral/font_sizes/font_size = 22
-PillNeutral/fonts/font = SubResource("font_bar_bold")
-PillNeutral/styles/disabled = SubResource("sb_flat_pill_disabled")
-PillNeutral/styles/focus = SubResource("sb_focus_pill")
-PillNeutral/styles/hover = SubResource("sb_flat_pill_neutral_hover")
-PillNeutral/styles/normal = SubResource("sb_flat_pill_neutral")
-PillNeutral/styles/pressed = SubResource("sb_flat_pill_neutral_pressed")
-PillPink/base_type = &"Button"
-PillPink/colors/font_color = Color(1, 1, 1, 1)
-PillPink/font_sizes/font_size = 22
-PillPink/fonts/font = SubResource("font_bar_bold")
-PillPink/styles/disabled = SubResource("sb_flat_pill_disabled")
-PillPink/styles/focus = SubResource("sb_focus_pill")
-PillPink/styles/hover = SubResource("sb_flat_pill_pink_hover")
-PillPink/styles/normal = SubResource("sb_flat_pill_pink")
-PillPink/styles/pressed = SubResource("sb_flat_pill_pink_pressed")
-PillRed/base_type = &"Button"
-PillRed/colors/font_color = Color(1, 1, 1, 1)
-PillRed/font_sizes/font_size = 22
-PillRed/fonts/font = SubResource("font_bar_bold")
-PillRed/styles/disabled = SubResource("sb_flat_pill_disabled")
-PillRed/styles/focus = SubResource("sb_focus_pill")
-PillRed/styles/hover = SubResource("sb_flat_pill_red_hover")
-PillRed/styles/normal = SubResource("sb_flat_pill_red")
-PillRed/styles/pressed = SubResource("sb_flat_pill_red_pressed")
-ProfileHeader/base_type = &"Label"
-ProfileHeader/colors/font_color = Color(1, 0.55, 0.76, 1)
-ProfileHeader/colors/font_outline_color = Color(0, 0, 0, 0.4)
-ProfileHeader/constants/outline_size = 2
-ProfileHeader/font_sizes/font_size = 22
-ProfileName/base_type = &"Label"
-ProfileName/colors/font_color = Color(0.93, 0.9, 0.93, 1)
-ProfileName/colors/font_outline_color = Color(0, 0, 0, 0.4)
-ProfileName/constants/outline_size = 2
-ProfileName/font_sizes/font_size = 18
-ProfileName/fonts/font = SubResource("font_bar_bold")
-ProgressBar/styles/background = SubResource("sb_hp_bg")
-ProgressBar/styles/fill = SubResource("sb_hp_fill")
+HSlider/styles/grabber_area = SubResource("sb_grab")
+HSlider/styles/grabber_area_highlight = SubResource("sb_grab_focus")
+HSlider/icons/grabber = ExtResource("4_grab")
+HSlider/icons/grabber_highlight = ExtResource("5_grab_focus")
+HSlider/icons/grabber_disabled = ExtResource("6_grab_off")
+CheckBox/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+CheckBox/colors/font_hover_color = Color(0.180392, 0.141176, 0.109804, 1)
+CheckBox/colors/font_focus_color = Color(0.180392, 0.141176, 0.109804, 1)
+CheckBox/colors/font_pressed_color = Color(0.180392, 0.141176, 0.109804, 1)
+CheckBox/colors/font_disabled_color = Color(0.419608, 0.368627, 0.321569, 1)
+CheckBox/fonts/font = SubResource("fv_s400")
+CheckBox/font_sizes/font_size = 18
+CheckBox/styles/normal = SubResource("sb_check")
+CheckBox/styles/hover = SubResource("sb_check_hover")
+CheckBox/styles/pressed = SubResource("sb_check")
+CheckBox/styles/focus = SubResource("sb_check_focus")
+CheckBox/styles/disabled = SubResource("sb_check")
+CheckBox/icons/checked = ExtResource("8_on")
+CheckBox/icons/unchecked = ExtResource("7_off")
+CheckBox/icons/checked_disabled = ExtResource("10_on_d")
+CheckBox/icons/unchecked_disabled = ExtResource("9_off_d")
+OptionButton/colors/font_color = Color(0.180392, 0.141176, 0.109804, 1)
+OptionButton/colors/font_focus_color = Color(0.180392, 0.141176, 0.109804, 1)
+OptionButton/colors/font_hover_color = Color(0.180392, 0.141176, 0.109804, 1)
+OptionButton/fonts/font = SubResource("fv_s400")
+OptionButton/font_sizes/font_size = 18
+OptionButton/styles/normal = SubResource("sb_line")
+OptionButton/styles/hover = SubResource("sb_line")
+OptionButton/styles/pressed = SubResource("sb_line")
+OptionButton/styles/focus = SubResource("sb_line_focus")
+ProgressBar/styles/background = SubResource("sb_track")
+ProgressBar/styles/fill = SubResource("sb_fill_ink")
 ProgressBarLow/base_type = &"ProgressBar"
-ProgressBarLow/styles/background = SubResource("sb_hp_bg")
-ProgressBarLow/styles/fill = SubResource("sb_hp_low")
+ProgressBarLow/styles/fill = SubResource("sb_fill_error")
 ProgressBarXp/base_type = &"ProgressBar"
-ProgressBarXp/styles/background = SubResource("sb_hp_bg")
-ProgressBarXp/styles/fill = SubResource("sb_xp_fill")
+ProgressBarXp/styles/fill = SubResource("sb_fill_success")
 RankBar/base_type = &"ProgressBar"
-RankBar/styles/background = SubResource("sb_hp_bg")
-RankBar/styles/fill = SubResource("sb_rank_fill")
-RunSummaryBody/base_type = &"Label"
-RunSummaryBody/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-RunSummaryBody/colors/font_outline_color = Color(0, 0, 0, 0.4)
-RunSummaryBody/constants/outline_size = 2
-RunSummaryBody/font_sizes/font_size = 18
-RunSummaryHint/base_type = &"Label"
-RunSummaryHint/colors/font_color = Color(0.8, 0.75, 0.81, 1)
-RunSummaryHint/colors/font_outline_color = Color(0, 0, 0, 0.4)
-RunSummaryHint/constants/outline_size = 2
-RunSummaryHint/font_sizes/font_size = 16
-RunSummaryPanel/base_type = &"PanelContainer"
-RunSummaryPanel/styles/panel = SubResource("sb_flat_panel")
-RunSummaryTitle/base_type = &"Label"
-RunSummaryTitle/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-RunSummaryTitle/colors/font_outline_color = Color(0, 0, 0, 0.5)
-RunSummaryTitle/constants/outline_size = 4
-RunSummaryTitle/font_sizes/font_size = 28
-SettingsHeader/base_type = &"Label"
-SettingsHeader/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-SettingsHeader/colors/font_outline_color = Color(0, 0, 0, 0.4)
-SettingsHeader/constants/outline_size = 2
-SettingsHeader/font_sizes/font_size = 22
-SettingsHeader/fonts/font = SubResource("font_bar_bold")
-SettingsNavCaption/base_type = &"Label"
-SettingsNavCaption/colors/font_color = Color(1, 1, 1, 1)
-SettingsNavCaption/font_sizes/font_size = 22
-SettingsNavCaption/fonts/font = SubResource("font_bar_bold")
-StripCaption/base_type = &"Label"
-StripCaption/colors/font_color = Color(1, 1, 1, 1)
-StripCaption/colors/font_outline_color = Color(0, 0, 0, 0)
-StripCaption/colors/font_shadow_color = Color(0, 0, 0, 0)
-StripCaption/constants/outline_size = 1
-StripCaption/constants/shadow_offset_x = 0
-StripCaption/constants/shadow_offset_y = 0
-StripCaption/font_sizes/font_size = 18
-WinnerHist/base_type = &"Label"
-WinnerHist/colors/font_color = Color(0.8, 0.75, 0.81, 1)
-WinnerHist/colors/font_outline_color = Color(0, 0, 0, 0.4)
-WinnerHist/constants/outline_size = 2
-WinnerHist/font_sizes/font_size = 16
-WinnerHistHi/base_type = &"Label"
-WinnerHistHi/colors/font_color = Color(1, 0.55, 0.76, 1)
-WinnerHistHi/colors/font_outline_color = Color(0, 0, 0, 0.4)
-WinnerHistHi/constants/outline_size = 2
-WinnerHistHi/font_sizes/font_size = 16
-WinnerNewBest/base_type = &"Label"
-WinnerNewBest/colors/font_color = Color(0.55, 0.78, 0.22, 1)
-WinnerNewBest/colors/font_outline_color = Color(0, 0, 0, 0.5)
-WinnerNewBest/constants/outline_size = 2
-WinnerNewBest/font_sizes/font_size = 20
-WinnerScore/base_type = &"Label"
-WinnerScore/colors/font_color = Color(0.97, 0.94, 0.96, 1)
-WinnerScore/colors/font_outline_color = Color(0, 0, 0, 0.5)
-WinnerScore/constants/outline_size = 4
-WinnerScore/font_sizes/font_size = 36
+RankBar/styles/fill = SubResource("sb_fill_ink")

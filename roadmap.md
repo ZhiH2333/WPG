@@ -153,7 +153,7 @@ LobbyManager → Room → LobbyPlayer → 假人进出 → make_launch / commit_
 
 玩家看见的正式大厅不是 Phase 3 的证据。`Add`、`Remove`、`Seed from record`、`no bind` 禁止回到正式界面。`add_mock_guest` / `remove_mock_guest` 只留给调试和探针。
 
-现有局域网面板保持原样，直到 Phase 5。不要把它换皮。
+UI 2.0 可以重排局域网叠层的 View。ENet、RPC 名和 `GameLaunch` 交接保持原样，直到 Phase 4。
 
 ---
 
@@ -284,15 +284,16 @@ LobbyManager → Room → LobbyPlayer → 假人进出 → make_launch / commit_
 ## Implementation Sequence
 
 ```text
-Phase 1  IA + Design System + Motion 意图     已落地。视觉模型以 art direction 重新锁定，不回头美化旧面板
+Phase 1  IA + Design System + Motion 意图     已落地。UI 2.0 把同一套系统铺到全部玩家界面
 Phase 2  PlayerProfile + 顶栏真名             已完成
 Phase 3  Lobby domain + 离线 mock             领域与探针已完成。测试面板不是产品 UI
-Phase 4  LobbyNet                             未开工。等待明确指令
-Phase 5  Create / Join / Lobby UX + Invite    线框已锁定。现在不实现
-Phase 6  动效 / 音效 / 焦点 polish
+UI 2.0  全部玩家界面的视觉与画面               现在做。用现有 LAN、mock 和 GameLaunch 驱动
+Phase 4  LobbyNet                             未开工。UI 2.0 Quality Gate 通过之前不做
+Phase 5  正式 JoinInvite / 协议 6             线框已锁定。QR 与短码在 Phase 4 之前只是 shell
+Phase 6  动效 / 音效 / 焦点的剩余抛光
 ```
 
-不要先把所有 UI 做完再接 Network。也不要先继续写 UPnP。
+UI 2.0 可以先把画面做到最终视觉。Phase 4 仍然不写 `LobbyNet`、不 bump 协议、不做 UPnP。
 
 其它轨道（不写入 Phase 1–6 的 DoD）：
 

@@ -24,6 +24,7 @@ var _anim_tween: Tween
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
+	UiStyle.present(self, false)
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
@@ -139,11 +140,8 @@ func _wire_rail_motion(button: Button) -> void:
 	button.focus_entered.connect(_set_rail_hover.bind(button, true))
 	button.focus_exited.connect(_set_rail_hover.bind(button, false))
 
-func _set_rail_hover(button: Button, hovered: bool) -> void:
-	button.pivot_offset = button.size * 0.5
-	var target: Vector2 = Vector2(UiAnim.HOVER_SCALE, UiAnim.HOVER_SCALE) if hovered else Vector2.ONE
-	var tween: Tween = create_tween()
-	tween.tween_property(button, "scale", target, UiAnim.HOVER_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+func _set_rail_hover(button: Button, _hovered: bool) -> void:
+	button.scale = Vector2.ONE
 
 func _play_hover() -> void:
 	if not _open:

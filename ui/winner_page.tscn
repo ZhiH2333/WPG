@@ -63,63 +63,63 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryTitle"
+theme_type_variation = &"Page"
 text = "DEAD"
 
 [node name="RecordName" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"Section"
 text = "-"
 
 [node name="Score" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"WinnerScore"
+theme_type_variation = &"Numeric"
 text = "score  0"
 
 [node name="NewBest" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"WinnerNewBest"
+theme_type_variation = &"StatusSuccess"
 text = "NEW BEST"
 
 [node name="LoopBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
+theme_type_variation = &"Body"
 text = "loop  0  ×1000  =  0"
 
 [node name="KillsBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
+theme_type_variation = &"Body"
 text = "kills  0  ×5  =  0"
 
 [node name="GoldBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
+theme_type_variation = &"Body"
 text = "gold  0  ×2  =  0"
 
 [node name="TimeBreak" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
+theme_type_variation = &"Body"
 text = "time  0.0s  →  0"
 
 [node name="ClearedBonus" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
+theme_type_variation = &"Body"
 text = "cleared  +5000"
 
 [node name="Summary" type="Label" parent="Root/Center/Panel/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "loop  0    kills  0    gold  0    time  0.0s    owned  -"
 autowrap_mode = 2
 
@@ -133,7 +133,7 @@ theme_override_constants/separation = 6
 [node name="HistTitle" type="Label" parent="Root/Center/Panel/Column/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"Section"
 text = "THIS RECORD"
 
 [node name="HistList" type="VBoxContainer" parent="Root/Center/Panel/Column/Body/Right"]
@@ -145,13 +145,13 @@ theme_override_constants/separation = 2
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"WinnerHist"
+theme_type_variation = &"Caption"
 text = "-"
 
 [node name="Rank" type="Label" parent="Root/Center/Panel/Column/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
+theme_type_variation = &"Body"
 text = "rank  -"
 
 [node name="Buttons" type="HBoxContainer" parent="Root/Center/Panel/Column"]
@@ -164,14 +164,14 @@ alignment = 1
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"PillPink"
+theme_type_variation = &"PrimaryAction"
 text = "Retry"
 
 [node name="Menu" type="Button" parent="Root/Center/Panel/Column/Buttons"]
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"PillNeutral"
+theme_type_variation = &"SecondaryAction"
 text = "Menu"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]

@@ -1,8 +1,8 @@
 # WPG UI Screen Specification
 
-**版本:** 1.2-ui-screen-spec
-**状态:** 线框已锁定。本文件不授权现在改界面，也不授权 Phase 4 或 Phase 5 开工。
-**上位约束:** [`roadmap.md`](../roadmap.md)（阶段）→ [`ui_lobby_architecture.md`](ui_lobby_architecture.md)（领域 / 网络）→ [`ui_art_direction.md`](ui_art_direction.md)（视觉模型）→ **本文件**（线框 / 焦点 / Back / 动效）
+**版本:** 2.0-ui-screen-spec
+**状态:** 线框已锁定。UI 2.0 按本文件画完全部玩家界面。不授权 Phase 4。
+**上位约束:** [`roadmap.md`](../roadmap.md)（阶段）→ [`ui_art_direction.md`](ui_art_direction.md)（视觉模型）→ [`ui_design_system.md`](ui_design_system.md)（令牌）→ **本文件**（线框 / 焦点 / Back / 动效）
 
 本文件回答「每一页有哪些事实、焦点怎么走、Back 回哪」。字、色、表面和按钮哲学以 art direction 为准。看见冲突时，不把线框画回中央巨钮或全屏卡片墙。
 
@@ -51,7 +51,7 @@ PLAY = primary user intent
 
 Phase 3 完成的是 `LobbyPlayer`、`Room`、`LobbyManager` 和 `tools/ci/lobby_probe.gd`。玩家菜单里的局域网叠层仍是原来的开房工具。曾经放上去又撤掉的 `Offline`、`no bind`、`Add`、`Remove`、`Seed from record`、五行 `EMPTY SEAT`，不是本文件的线框，禁止再排版或换皮。
 
-第 5–18 节是以后的正式页面。多人这些页的实现属于 Phase 5。Phase 4 只接网络，不按这些线框改画面。两段都要等 roadmap 明确开工，本文件写完不等于开工。
+第 5–18 节是正式页面。UI 2.0 现在把它们画出来，数据仍走现有 `LanOverlay`、mock 和 `GameLaunch`。QR / Short Code 若需要 `JoinInvite` 或协议变更，只留 shell。Phase 4 才实现 `LobbyNet` 与 protocol 6。
 
 ---
 
@@ -887,9 +887,9 @@ Copy 成功，旁边 caption `copied` 1.2s。第一刀可以只复制本机 IPv4
 
 ---
 
-## 20. 文件映射与 Phase 1 顺序
+## 20. 文件映射
 
-Phase 1 仍是网络零改。F5 进 Solo、进现有 LAN，行为与 Day 85 无法分辨。本文件写完不等于开工。
+UI 2.0 重画 View，不改网络。F5 进 Solo、进现有 LAN，开战与回菜单的交接与现在无法分辨。
 
 | 屏幕 | 现在 | Phase 1 | 以后 |
 |---|---|---|---|
@@ -899,19 +899,12 @@ Phase 1 仍是网络零改。F5 进 Solo、进现有 LAN，行为与 Day 85 无�
 | Play 页 | 不存在 | 新 Page，三条 Rail | — |
 | Profile | 只读大面板 | 改成疏页壳，数据仍只读 | Phase 2 可写 |
 | Solo / Ranking | 已有 | 只改 page 动效 | — |
-| MP 簇布局 | `lan_overlay` JOIN/HOST | **不重排** | Phase 5 按本文件 |
-| Settings | 开时关掉别的叠层 | 改为不关底下 Page | — |
+| MP 簇布局 | `lan_overlay` | UI 2.0 按第 9–17 节重排 View | Phase 4 才抽 RPC |
+| Settings | Drawer | 保持不关底下 Page，并改用功能字 | — |
+| Pause / Winner / Loading / HUD / Shop / Upgrade / Credits | 旧主题 | UI 2.0 同一套字、色、焦点 | — |
 | ENet / RPC | Overlay 持有 | 不碰 | Phase 4 |
 
-Phase 1 顺序：
-
-1. 只加 `UiAnim` 的 page / modal / drawer 函数。不改圆角，不新开皮肤。
-2. Home 改成舞台、一行状态、Rail。删除中央巨钮和两张 ModeChoice 卡。
-3. Play 页用 page 动效。RecordSelector、Profile、Ranking、现有 LanOverlay 的开合改 page 动效。Lan 内部视图不动。
-4. Settings 打开时不关 Profile / Solo / LAN。
-5. 顶栏名字槽改为 `Player`。MULTIPLAYER 在 Phase 1 可以先打开 **现有** LAN 叠层，不提前做 Create/Join/Lobby 新布局。
-
-Phase 1 不做：`profile.json`、`LobbyManager`、抽 `@rpc`、本文件第 9–17 节的新布局、UPnP、主动技能、虚拟摇杆、改战斗。
+UI 2.0 不做：抽 `@rpc`、`JoinInvite` 协议、UPnP、主动技能、虚拟摇杆、改战斗。
 
 ---
 
@@ -935,9 +928,33 @@ Phase 1 不做：`profile.json`、`LobbyManager`、抽 `@rpc`、本文件第 9�
 - Profile 是独立页。主页没有成绩卡
 - Play 是 Page，不是两张大卡 Modal
 - MP Home 是三条导航行。LAN Rooms 的标题或 caption 写明 Beacon，且没有公网列表
-- Join 只有 URI、QR、短码、手打地址
+- Join 界面有 Invite、Paste、Address、QR。QR 与短码在 Phase 4 之前只是 shell，不新写协议
 - Lobby 主列是人名和 Ready。IP 不在主列
 - Connecting、失败、版本不符是留白状态页。Host closed 仍是 Compact Modal
 - Continue 只在有档时出现，并且是新开一局
 - Settings 打开后底下的 Page 还在
-- Autoload = 0。Phase 1 之后 LAN 仍是 17777 / 17778、5 座、不写档
+- Autoload = 0。LAN 仍是 17777 / 17778、5 座、不写档
+
+---
+
+## 23. 战斗与其余画面
+
+这些画面共用 design system，不另起一套黑底发光 HUD。
+
+```text
+Pause     紧凑叠层。Continue 是唯一主动作。Retry / Quit 是文字动作
+Winner    结果页。标题、分数、历史与 Profile / Records 同一栅格
+Loading   实色或一张画面加一层遮罩。字用 Page / Caption
+HUD       更密，但用 Numeric / Caption / Ink / Error。无厚描边，无发光板
+Shop      一块 SurfaceGroup。每一件是 OfferRow：名称、说明、花费、状态
+Upgrade   与 Shop 共用 OfferRow
+Credits   Modal。不另选背景和字体
+```
+
+状态句用 `StatusText`，同时有字：Connecting、Authenticating、Connected、Ready、Failed、Host Closed、Version Mismatch。
+
+## 24. 布局与状态合同
+
+视口至少 1920×1080、1600×900、1280×720。TopBar 不溢出。标题不撞内容。ActionRow 不被挤成不可读。Settings 可滚动。Lobby 玩家行不溢出。技术文本截断时焦点条仍在。立绘不挡住标题、焦点和主动作。
+
+必须能摆下：空档、长玩家名、长房间名、没有 LAN 房间、满员、Connecting、Failed、Host closed、Version mismatch、没有最近一局、没有头像。

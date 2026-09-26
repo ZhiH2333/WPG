@@ -52,6 +52,8 @@ var _summary_text: String = ""
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
+	_panel.theme_type_variation = &"OpenSheet"
+	UiStyle.present(_root, false)
 	layer = 22
 	visible = false
 	_open = false
@@ -178,10 +180,10 @@ func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_i
 	_time_break.visible = true
 	if outcome == "cleared":
 		_title.text = "CLEARED"
-		_title.theme_type_variation = &"ClearedTitle"
+		_title.theme_type_variation = &"Page"
 	else:
 		_title.text = "DEAD"
-		_title.theme_type_variation = &"RunSummaryTitle"
+		_title.theme_type_variation = &"Page"
 	if lan:
 		_record_name.text = "LAN"
 	elif record != null and not record.name.is_empty():
@@ -227,7 +229,7 @@ func _fill_history(record: GameRecord) -> void:
 			_format_outcome(str(entry.get("outcome", "quit"))),
 			float(entry.get("time_sec", 0.0)),
 		]
-		row.theme_type_variation = &"WinnerHistHi" if i == highlight else &"WinnerHist"
+		row.theme_type_variation = &"Numeric" if i == highlight else &"Caption"
 	if highlight < 0:
 		_rank_label.text = "rank  -"
 	else:
@@ -236,13 +238,13 @@ func _fill_history(record: GameRecord) -> void:
 func _apply_battle_result(winner_seat: int, local_seat: int) -> void:
 	if winner_seat == 0:
 		_title.text = "DRAW"
-		_title.theme_type_variation = &"RunSummaryTitle"
+		_title.theme_type_variation = &"Page"
 	elif local_seat == winner_seat:
 		_title.text = "KO"
-		_title.theme_type_variation = &"ClearedTitle"
+		_title.theme_type_variation = &"Page"
 	else:
 		_title.text = "KO"
-		_title.theme_type_variation = &"RunSummaryTitle"
+		_title.theme_type_variation = &"Page"
 	_record_name.text = "BATTLE"
 	_loop_break.visible = false
 	_kills_break.visible = false
@@ -407,7 +409,7 @@ func _build_hist_rows() -> void:
 	var i: int = 0
 	while i < HIST_ROWS:
 		var row: Label = Label.new()
-		row.theme_type_variation = &"WinnerHist"
+		row.theme_type_variation = &"Caption"
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.visible = false
 		_hist_list.add_child(row)

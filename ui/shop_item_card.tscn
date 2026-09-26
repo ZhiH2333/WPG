@@ -3,7 +3,7 @@
 [node name="ShopItemCard" type="Button"]
 custom_minimum_size = Vector2(240, 148)
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 
 [node name="VBox" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -22,23 +22,23 @@ theme_override_constants/separation = 4
 [node name="Kind" type="Label" parent="VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 autowrap_mode = 2
 
 [node name="Title" type="Label" parent="VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferTitle"
+theme_type_variation = &"Section"
 autowrap_mode = 2
 
 [node name="Desc" type="Label" parent="VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 autowrap_mode = 2
 
 [node name="Cost" type="Label" parent="VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"

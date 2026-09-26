@@ -33,8 +33,7 @@ color = Color(0.2, 0.18, 0.22, 1)
 [node name="Header" type="Label" parent="Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
-theme_override_font_sizes/font_size = 26
+theme_type_variation = &"Page"
 text = "Section"
 
 [node name="Dim" type="ColorRect" parent="."]

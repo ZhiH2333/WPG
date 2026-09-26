@@ -58,24 +58,21 @@ theme_override_constants/separation = 12
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_type_variation = &"MenuTitle"
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_type_variation = &"Display"
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 32
 text = "PROFILE"
 
 [node name="RankButton" type="Button" parent="Sheet/Column/Header"]
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "RANKING"
 
 [node name="Avatar" type="Button" parent="Sheet/Column"]
 custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Portrait" type="TextureRect" parent="Sheet/Column/Avatar"]
 layout_mode = 1
@@ -92,9 +89,7 @@ stretch_mode = 5
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_type_variation = &"EmptyButton"
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"TextAction"
 text = "Player"
 alignment = 0
 
@@ -103,8 +98,6 @@ visible = false
 custom_minimum_size = Vector2(360, 48)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
-theme_override_font_sizes/font_size = 40
 max_length = 16
 caret_blink = true
 alignment = 0
@@ -112,18 +105,14 @@ alignment = 0
 [node name="Caption" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
+theme_type_variation = &"Caption"
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "local profile"
 
 [node name="CharacterTitle" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 14
 text = "CHARACTER"
 
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column"]
@@ -134,14 +123,14 @@ theme_override_constants/separation = 24
 [node name="Boar" type="Button" parent="Sheet/Column/Characters"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 toggle_mode = true
 text = "Boar"
 
 [node name="Chicken" type="Button" parent="Sheet/Column/Characters"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 toggle_mode = true
 text = "Chicken"
 
@@ -153,25 +142,19 @@ theme_override_constants/separation = 36
 [node name="BestLoop" type="Label" parent="Sheet/Column/Stats"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
 text = "BEST LOOP  0"
 
 [node name="LastLoop" type="Label" parent="Sheet/Column/Stats"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
 text = "LAST LOOP  0"
 
 [node name="Runs" type="Label" parent="Sheet/Column/Stats"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
 text = "RUNS  0"
 
 [node name="Facts" type="VBoxContainer" parent="Sheet/Column"]
@@ -182,33 +165,28 @@ theme_override_constants/separation = 4
 [node name="LastKills" type="Label" parent="Sheet/Column/Facts"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Last kills  0"
 
 [node name="LastGold" type="Label" parent="Sheet/Column/Facts"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Last gold  0"
 
 [node name="OwnedHint" type="Label" parent="Sheet/Column/Facts"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "last owned  -"
 
 [node name="RecordsTitle" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 14
 text = "RECORDS"
 
 [node name="Rows" type="VBoxContainer" parent="Sheet/Column"]
@@ -221,9 +199,7 @@ theme_override_constants/separation = 8
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_type_variation = &"EmptyButton"
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "Back"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]

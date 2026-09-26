@@ -1,8 +1,8 @@
 # WPG Art Direction
 
-**版本:** 1.0-art-direction
-**状态:** 视觉模型已锁定。Phase 1A 只把本文件用在主菜单（Playpen Sans、顶栏无底板、操作带下划线）。不改 `game_theme.tres`，不推广到其他页面。
-**上位:** [`roadmap.md`](../roadmap.md) 管阶段和硬约束。本文件管「看起来为什么是这样」。页面线框、焦点和 Back 栈在 [`ui_screen_spec.md`](ui_screen_spec.md)。领域和网络在 [`ui_lobby_architecture.md`](ui_lobby_architecture.md)。
+**版本:** 2.0-art-direction
+**状态:** 视觉模型已锁定，并用于全部玩家界面。精确色值、字级和焦点在 [`ui_design_system.md`](ui_design_system.md)。
+**上位:** [`roadmap.md`](../roadmap.md) 管阶段和硬约束。本文件管「看起来为什么是这样」。令牌在 [`ui_design_system.md`](ui_design_system.md)。页面线框、焦点和 Back 栈在 [`ui_screen_spec.md`](ui_screen_spec.md)。领域和网络在 [`ui_lobby_architecture.md`](ui_lobby_architecture.md)。
 
 视觉冲突时以本文件为准。线框冲突时以 screen spec 为准。阶段是否开工以 roadmap 为准。
 
@@ -103,38 +103,29 @@ Restrained Accent：一屏一种强调，而且必须有含义。强调色不是
 
 ---
 
-## 2. Playpen Sans
+## 2. 两种字体
 
-品牌字和界面字是 TypeTogether 的 **Playpen Sans**。
+品牌字是 TypeTogether 的 **Playpen Sans**。功能字是 **Source Sans 3**。中日韩缺字只落到随包的 **Noto Sans SC**，不落到系统字体。
+
+Playpen Sans 只用于 Brand、Display、Page Title、Player Name、Major Navigation、Major Action。
+
+Source Sans 3 用于 Body、Caption、Numeric、Technical、Settings、Dense metadata、Section。
+
+可读性优先于手写感。正文、设置和技术信息不得使用 Playpen。
 
 来源：[TypeTogether/Playpen-Sans](https://github.com/TypeTogether/Playpen-Sans)。许可 OFL 1.1。可变字重 Thin 到 ExtraBold。每个字符有交替字形。官方把它定义为有机、自发、可信的手写感。
 
 它出自拉丁文手写教学，并带一套给儿童的奖励图形。那些图形 **不进入 WPG**。交替字形不用于按钮、导航、座位名和数字，否则焦点下的字会自己换脸。交替只允许出现在不参与操作的品牌瞬间，例如舞台上的字标。
 
-实现时用一份可变字体加 `FontVariation`，放进主题。不要拆成互不相干的八个家族。现有 `font_bar_bold` 是旧槽。新菜单把它收成下面的角色，不保留第二套科技无衬线当品牌字。
-
-本文件不导入字体，不改 `game_theme.tres`。
+两份可变字体加 Noto Sans SC fallback 放进 `game_theme.tres`。不保留 Inter / Segoe 系统栈。不把 Playpen 当成唯一界面字体。
 
 ---
 
 ## 3. Typography
 
-八个角色。界面只用四档字重。
+字级以 [`ui_design_system.md`](ui_design_system.md) 为准。Playpen 只用 500 / 600 / 700。Source Sans 3 只用 400 / 500 / 600。禁止把 740、680、640 或 800 当成默认字重。
 
-| 角色 | 用途 | 字重 | 轴 | 字号 | 行高 | 字距 | 大小写 |
-|---|---|---|---|---|---|---|---|
-| Display | 舞台上的短标题、品牌瞬间 | Bold | 700 | 56 | 64 | +2% | 原样。不强制大写 |
-| Navigation | 顶栏 | Medium | 500 | 18 | 24 | +4% | 大写短标签 |
-| Section | 栏目标题，如 PLAYERS、ROOM | SemiBold | 600 | 14 | 20 | +8% | 大写短标签 |
-| Button | Rail、主动作、页内动作 | SemiBold | 600 | 22 | 28 | +2% | 大写短标签 |
-| Body | 说明句 | Regular | 400 | 18 | 28 | 0 | 句首大写 |
-| Caption | 一行状态、次级事实 | Regular | 400 | 15 | 22 | +1% | 句首大写 |
-| Numeric | 圈数、人数、时间 | Medium | 500 | 20 | 24 | 0 | 不改写。`Inf` 保持现有拼法 |
-| Technical | 地址、协议、只在次级或邀请细节里出现 | Regular | 400 | 14 | 20 | 0 | 原样 |
-
-舞台上的玩家名用 40 / 48，Bold，不用 Display 56。名字沿用 Profile 的 1–16 个可见字符。
-
-Page 标题用 32 / 40，SemiBold，字距 +1%，最长约 24 字。它不是第九个随便加粗的样式，而是 Section 之上、Display 之下的页面名。
+舞台上的玩家名用 PlayerName 40 / 48，不用 Display 56。Page 标题用 32 / 40。Body 行高 28，不得为了海报感压扁。
 
 画布 1920×1080。字号不随 `ui_scale` 再乘。收缩仍走 `UiFit`。
 
@@ -162,15 +153,13 @@ Page 标题用 32 / 40，SemiBold，字距 +1%，最长约 24 字。它不是第
 
 ### CJK fallback
 
-Playpen Sans 不覆盖中日韩。
-
 ```text
-1. Playpen Sans
-2. 一款以后指定的伙伴黑体，只补缺字
+1. Playpen Sans 或 Source Sans 3（按角色）
+2. 随包的 Noto Sans SC，只补缺字
 3. 不再落到系统界面字体
 ```
 
-伙伴黑体本文件不选定、不导入。选定之前，菜单文案保持拉丁文。禁止用 Inter、Segoe UI、PingFang、微软雅黑或思源黑体临时顶上。以后的伙伴黑体要能映射 Regular / Medium / SemiBold / Bold，笔画有人味，不带霓虹，不带圆体。拉丁字母仍由 Playpen Sans 画。
+拉丁字母仍由角色指定的那一款字体画。Noto Sans SC 不负责拉丁正文。
 
 ---
 
@@ -186,11 +175,11 @@ Playpen Sans 不覆盖中日韩。
 | Structure | 比 Ground 略亮的一条线，或一小块实心面 |
 | Accent | 一个品牌色。一屏最多一处，并且有含义 |
 
-强调色可以给 Host 的 Start，或舞台上的字标。它不给 Hover，不给 Focus，不给每颗按钮，不给描边。
+强调色给唯一主动作、主焦点条，或舞台字标。它不给 Hover，不给每一颗按钮，不给发光描边。
 
-Focus 是骨白下划线，或一条 shear。键鼠和手柄同一套。不发光。
+Focus 是 Accent 标记加上对比提升。次级焦点可以是下划线。按下不缩放、不发光、不改布局。键鼠和手柄同一套。
 
-现有粉紫 `PillPink`、紫黑渐变、焦点粉边，是旧 HUD。新页面不再扩散。精确色值留到真正改主题的那一刀，本文件只锁稀缺规则。
+精确色值在 design system。粉紫 `PillPink`、紫黑渐变、焦点粉边、Blur、Wash、Vignette 不再进入玩家界面。一层 Scrim 可以压在 Modal 或 Drawer 后面，不能再叠第二层透明。
 
 ---
 
@@ -288,7 +277,7 @@ Playpen Sans 自带的儿童奖励图形不使用。
 - 主动作靠位置。Host 的 Start 是少数可以实心的动作。客人没有 Start，也不放一颗灰按钮占位。
 - Ready 在正式大厅里是动作。Phase 3 的领域层把它默认为真。正式切换是以后的多人界面，不是现在往测试面板上加一颗更好看的 Ready。
 - 危险动作（离开、退出）用文字和确认，不靠发光红胶囊。
-- Disabled 是降透明度并且不可点。满员房间被按下时走 Error，不假装连上了。
+- Disabled 用更低但仍然可读的实色对比，并且不可点。不靠一层新的透明罩。满员房间被按下时走 Error，不假装连上了。
 
 ---
 
@@ -296,7 +285,7 @@ Playpen Sans 自带的儿童奖励图形不使用。
 
 Panel 不是页面的同义词。
 
-正式界面里，Panel 只等于 Compact Modal 和那一块座位组。`FloatingPanel` 作为「把整页功能装进 1680×920 深色板」的做法，到此停用。已经存在的局域网叠层保持原样，直到 Phase 5 按本文件和 screen spec 换掉。在那之前不要美化它。
+正式界面里，Panel 只等于 Compact Modal、Drawer 和那一块共用表面。`FloatingPanel` 作为「把整页功能装进 1680×920 深色板」的做法已经停用。多人页面按 screen spec 画在现有 `LanOverlay` 上，不新写 `LobbyNet`。
 
 设置是从侧面进入的 Drawer，不是第二块居中大板。
 

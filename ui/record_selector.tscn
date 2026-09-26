@@ -43,7 +43,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(1680, 920)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"FloatingPanel"
+theme_type_variation = &"OpenSheet"
 
 [node name="Column" type="VBoxContainer" parent="Center/Panel"]
 layout_mode = 2
@@ -70,7 +70,7 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
+theme_type_variation = &"Page"
 text = "RECORDS"
 vertical_alignment = 1
 
@@ -114,7 +114,7 @@ columns = 2
 custom_minimum_size = Vector2(780, 140)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/ListRoot/Scroll/Cards/NewRecord"]
 layout_mode = 1
@@ -134,14 +134,14 @@ alignment = 1
 [node name="Title" type="Label" parent="Center/Panel/Column/Content/ListRoot/Scroll/Cards/NewRecord/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"Section"
 text = "+ New Record"
 autowrap_mode = 2
 
 [node name="Desc" type="Label" parent="Center/Panel/Column/Content/ListRoot/Scroll/Cards/NewRecord/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "Brand a save"
 autowrap_mode = 2
 
@@ -182,7 +182,7 @@ button_pressed = true
 action_mode = 0
 button_group = SubResource("group_character")
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar"]
 layout_mode = 1
@@ -209,7 +209,7 @@ stretch_mode = 5
 [node name="Title" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"Section"
 text = "Boar"
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -217,7 +217,7 @@ autowrap_mode = 2
 [node name="Desc" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "Tanky."
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -229,7 +229,7 @@ toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_character")
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken"]
 layout_mode = 1
@@ -256,7 +256,7 @@ stretch_mode = 5
 [node name="Title" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"Section"
 text = "Chicken"
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -264,7 +264,7 @@ autowrap_mode = 2
 [node name="Desc" type="Label" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "Hard to hit."
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -283,7 +283,7 @@ button_pressed = true
 action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Yard"
 
 [node name="Pit" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas"]
@@ -293,7 +293,7 @@ toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Pit"
 
 [node name="Keep" type="Button" parent="Center/Panel/Column/Content/EditorRoot/Center/Column/Arenas"]
@@ -303,7 +303,7 @@ toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Keep"
 
 [node name="LoopRow" type="HBoxContainer" parent="Center/Panel/Column/Content/EditorRoot/Center/Column"]
@@ -327,7 +327,7 @@ rounded = true
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "20 loops"
 horizontal_alignment = 2
 
@@ -343,7 +343,7 @@ custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 0
-theme_type_variation = &"PillPink"
+theme_type_variation = &"PrimaryAction"
 text = "Confirm"
 
 [node name="DeleteRoot" type="Control" parent="Center/Panel/Column/Content"]
@@ -377,7 +377,7 @@ alignment = 1
 [node name="Title" type="Label" parent="Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"ModeTitle"
+theme_type_variation = &"Section"
 text = "Delete this record?"
 horizontal_alignment = 1
 
@@ -391,14 +391,14 @@ alignment = 1
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Yes"
 
 [node name="No" type="Button" parent="Center/Panel/Column/Content/DeleteRoot/Center/Panel/Column/Buttons"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "No"
 
 [node name="Back" type="Button" parent="Center/Panel/Column"]
@@ -406,7 +406,7 @@ custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 0
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Back"
 
 

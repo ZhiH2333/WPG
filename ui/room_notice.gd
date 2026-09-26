@@ -30,6 +30,11 @@ var _modal_tween: Tween
 @onready var _toast_label: Label = $Root/Toast/Message
 
 func _ready() -> void:
+	_modal_panel.theme_type_variation = &"Modal"
+	_toast_panel.theme_type_variation = &"Modal"
+	UiStyle.present(_modal_panel, true)
+	UiStyle.present(_toast_panel, true)
+	UiStyle.scrim(_dimmer)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 40
 	visible = true

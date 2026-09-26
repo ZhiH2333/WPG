@@ -46,6 +46,8 @@ var _selected_arena_id: String = "yard"
 @onready var _error_sfx: AudioStreamPlayer = $ErrorSfx
 
 func _ready() -> void:
+	_panel.theme_type_variation = &"OpenSheet"
+	UiStyle.present(self, false)
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
@@ -262,12 +264,17 @@ func _select_character(character_id: String) -> void:
 	_selected_character_id = character_id
 	_boar_button.set_pressed_no_signal(character_id == CHAR_BOAR)
 	_chicken_button.set_pressed_no_signal(character_id == CHAR_CHICKEN)
+	_boar_button.theme_type_variation = &"SelectedRow" if character_id == CHAR_BOAR else &"CharacterChoice"
+	_chicken_button.theme_type_variation = &"SelectedRow" if character_id == CHAR_CHICKEN else &"CharacterChoice"
 
 func _select_arena(arena_id: String) -> void:
 	_selected_arena_id = GameLaunch._sanitize_arena_id(arena_id)
 	_yard_button.set_pressed_no_signal(_selected_arena_id == "yard")
 	_pit_button.set_pressed_no_signal(_selected_arena_id == "pit")
 	_keep_button.set_pressed_no_signal(_selected_arena_id == "keep")
+	_yard_button.theme_type_variation = &"SelectedRow" if _selected_arena_id == "yard" else &"CharacterChoice"
+	_pit_button.theme_type_variation = &"SelectedRow" if _selected_arena_id == "pit" else &"CharacterChoice"
+	_keep_button.theme_type_variation = &"SelectedRow" if _selected_arena_id == "keep" else &"CharacterChoice"
 
 func _refresh_loop_label() -> void:
 	_loop_label.text = RecordCard.format_loop_badge(maxi(roundi(_loop_slider.value), 0))
@@ -349,7 +356,7 @@ func _make_record_row(record: GameRecord) -> Button:
 func _make_delete_button(record_id: String) -> Button:
 	var button: Button = Button.new()
 	button.custom_minimum_size = DELETE_SIZE
-	button.theme_type_variation = &"OfferButton"
+	button.theme_type_variation = &"RecordRow"
 	button.text = "×"
 	button.pressed.connect(_on_delete_pressed.bind(record_id))
 	_wire_hover(button)

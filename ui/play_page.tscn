@@ -52,19 +52,15 @@ theme_override_constants/separation = 24
 [node name="Title" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"MenuTitle"
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
+theme_type_variation = &"Display"
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 32
 text = "PLAY"
 
 [node name="Subtitle" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
+theme_type_variation = &"Caption"
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 18
 text = "Choose a run"
 
 [node name="Gap" type="Control" parent="Sheet/Column"]
@@ -87,8 +83,7 @@ theme_override_constants/separation = 48
 custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"TextAction"
 
 [node name="Title" type="Label" parent="Sheet/Column/Rail/Continue"]
 layout_mode = 1
@@ -97,9 +92,7 @@ anchor_right = 1.0
 offset_bottom = 32.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
 text = "CONTINUE"
 
 [node name="Caption" type="Label" parent="Sheet/Column/Rail/Continue"]
@@ -112,16 +105,14 @@ offset_top = -28.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Loop 0"
 
 [node name="Solo" type="Button" parent="Sheet/Column/Rail"]
 custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Title" type="Label" parent="Sheet/Column/Rail/Solo"]
 layout_mode = 1
@@ -130,9 +121,7 @@ anchor_right = 1.0
 offset_bottom = 32.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
 text = "SOLO"
 
 [node name="Caption" type="Label" parent="Sheet/Column/Rail/Solo"]
@@ -145,16 +134,14 @@ offset_top = -28.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Records"
 
 [node name="Multi" type="Button" parent="Sheet/Column/Rail"]
 custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Title" type="Label" parent="Sheet/Column/Rail/Multi"]
 layout_mode = 1
@@ -163,9 +150,7 @@ anchor_right = 1.0
 offset_bottom = 32.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
 text = "MULTIPLAYER"
 
 [node name="Caption" type="Label" parent="Sheet/Column/Rail/Multi"]
@@ -178,9 +163,7 @@ offset_top = -28.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Rooms"
 
 [node name="BottomLine" type="ColorRect" parent="Sheet/Column"]
@@ -193,9 +176,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_type_variation = &"EmptyButton"
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "Back"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]

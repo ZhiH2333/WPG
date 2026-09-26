@@ -154,9 +154,9 @@ Action Rail（三条同级，没有一颗更大的 PLAY）
 
 - `UiFit`：按 `visible_rect` 收缩，禁止 `size * ui_scale`
 - `UiAnim`：Tween 工具，逻辑 open/close 仍瞬时
-- `game_theme.tres`：今天仍是旧 FlatBold StyleBox + `font_bar_bold`。目标字体栈和色哲学见 screen spec，实现前不改文件
+- `game_theme.tres`：UI 2.0 的纸面主题。色值和字级以 `ui_design_system.md` 为准
 - Overlay 架构：Dimmer + Center + Panel + 自管 Hover/Click/Back/Error
-- `menu_blur.gdshader` / `menu_shear.gdshader`
+- 不再使用 `menu_blur` / `menu_shear` / `menu_wash` / `loading_blur`
 - 键盘 / 手柄 Focus（Settings 已能重绑；完整手柄后置）
 
 ### 2.1 必须补齐的状态表

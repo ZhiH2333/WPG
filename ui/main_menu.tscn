@@ -4,7 +4,6 @@
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://ui/record_selector.tscn" id="4_records"]
-[ext_resource type="Shader" uid="uid://drihfndyb6kkn" path="res://ui/menu_blur.gdshader" id="5_blur"]
 [ext_resource type="Texture2D" uid="uid://bgq6sex7atw7d" path="res://images/mainmenu.png" id="6_bg"]
 [ext_resource type="AudioStream" uid="uid://c78ia73bu3lhq" path="res://audio/main.mp3" id="7_music"]
 [ext_resource type="Texture2D" uid="uid://b611thnj3ted4" path="res://ui/icons/clock.png" id="14_clock"]
@@ -14,11 +13,6 @@
 [ext_resource type="PackedScene" path="res://ui/record_leaderboard_overlay.tscn" id="19_leaderboard"]
 [ext_resource type="PackedScene" path="res://ui/play_page.tscn" id="20_play"]
 [ext_resource type="Script" path="res://ui/lobby_manager.gd" id="21_lobby"]
-
-[sub_resource type="ShaderMaterial" id="mat_blur"]
-shader = ExtResource("5_blur")
-shader_parameter/blur_amount = 0.0
-shader_parameter/dim_amount = 0.0
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -42,26 +36,6 @@ mouse_filter = 2
 texture = ExtResource("6_bg")
 expand_mode = 1
 stretch_mode = 6
-
-[node name="Vignette" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.05, 0.05, 0.04, 0)
-
-[node name="Wash" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.1, 0.08, 0.05, 0.28)
 
 [node name="Home" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -90,17 +64,13 @@ mouse_filter = 2
 [node name="Name" type="Label" parent="Home/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 40
 text = "Player"
 
 [node name="Status" type="Label" parent="Home/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Ready to play"
 
 [node name="TopLine" type="ColorRect" parent="Home/Body"]
@@ -119,7 +89,7 @@ visible = false
 custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Title" type="Label" parent="Home/Body/Rail/Continue"]
 layout_mode = 1
@@ -128,9 +98,7 @@ anchor_right = 1.0
 offset_bottom = 32.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
 text = "CONTINUE"
 
 [node name="Caption" type="Label" parent="Home/Body/Rail/Continue"]
@@ -143,16 +111,14 @@ offset_top = -28.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Loop 0"
 
 [node name="Solo" type="Button" parent="Home/Body/Rail"]
 custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Title" type="Label" parent="Home/Body/Rail/Solo"]
 layout_mode = 1
@@ -161,9 +127,7 @@ anchor_right = 1.0
 offset_bottom = 32.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
 text = "SOLO"
 
 [node name="Caption" type="Label" parent="Home/Body/Rail/Solo"]
@@ -176,16 +140,14 @@ offset_top = -28.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "New run"
 
 [node name="Multi" type="Button" parent="Home/Body/Rail"]
 custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Title" type="Label" parent="Home/Body/Rail/Multi"]
 layout_mode = 1
@@ -194,9 +156,7 @@ anchor_right = 1.0
 offset_bottom = 32.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
 text = "MULTIPLAYER"
 
 [node name="Caption" type="Label" parent="Home/Body/Rail/Multi"]
@@ -209,9 +169,7 @@ offset_top = -28.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 15
 text = "Play with friends"
 
 [node name="BottomLine" type="ColorRect" parent="Home/Body"]
@@ -229,7 +187,7 @@ theme_override_constants/separation = 24
 [node name="Best" type="Button" parent="Home/Body/Secondary"]
 custom_minimum_size = Vector2(180, 44)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Title" type="Label" parent="Home/Body/Secondary/Best"]
 layout_mode = 1
@@ -237,9 +195,7 @@ offset_top = 4.0
 offset_right = 70.0
 offset_bottom = 24.0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 14
 text = "BEST"
 
 [node name="Value" type="Label" parent="Home/Body/Secondary/Best"]
@@ -249,9 +205,7 @@ offset_top = 2.0
 offset_right = 160.0
 offset_bottom = 28.0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
 text = "0"
 
 [node name="Spacer" type="Control" parent="Home/Body/Secondary"]
@@ -262,7 +216,7 @@ mouse_filter = 2
 [node name="Last" type="Button" parent="Home/Body/Secondary"]
 custom_minimum_size = Vector2(220, 44)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Title" type="Label" parent="Home/Body/Secondary/Last"]
 layout_mode = 1
@@ -270,9 +224,7 @@ offset_top = 4.0
 offset_right = 110.0
 offset_bottom = 24.0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 14
 text = "LAST RUN"
 
 [node name="Value" type="Label" parent="Home/Body/Secondary/Last"]
@@ -282,9 +234,7 @@ offset_top = 2.0
 offset_right = 200.0
 offset_bottom = 28.0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.93, 0.88, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 20
 text = "00:00"
 
 [node name="Quit" type="Button" parent="."]
@@ -301,20 +251,8 @@ offset_right = -48.0
 offset_bottom = -36.0
 grow_horizontal = 0
 grow_vertical = 0
-theme_type_variation = &"EmptyButton"
-theme_override_colors/font_color = Color(0.62, 0.58, 0.52, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "Quit"
-
-[node name="BlurLayer" type="ColorRect" parent="."]
-material = SubResource("mat_blur")
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
 
 [node name="Music" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("7_music")
@@ -364,7 +302,7 @@ anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 60.0
 grow_horizontal = 2
-theme_type_variation = &"BarPanel"
+theme_type_variation = &"OpenSheet"
 
 [node name="Row" type="HBoxContainer" parent="TopBar"]
 layout_mode = 2
@@ -375,15 +313,13 @@ theme_override_constants/separation = 4
 custom_minimum_size = Vector2(88, 60)
 layout_mode = 2
 focus_mode = 0
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "WPG"
 
 [node name="HomeButton" type="Button" parent="TopBar/Row"]
 custom_minimum_size = Vector2(96, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "HOME"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/HomeButton"]
@@ -402,8 +338,7 @@ color = Color(0.96, 0.93, 0.88, 1)
 [node name="PlayButton" type="Button" parent="TopBar/Row"]
 custom_minimum_size = Vector2(88, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "PLAY"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/PlayButton"]
@@ -422,8 +357,7 @@ color = Color(0.96, 0.93, 0.88, 1)
 [node name="MultiButton" type="Button" parent="TopBar/Row"]
 custom_minimum_size = Vector2(180, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "MULTIPLAYER"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/MultiButton"]
@@ -442,8 +376,7 @@ color = Color(0.96, 0.93, 0.88, 1)
 [node name="ProfileButton" type="Button" parent="TopBar/Row"]
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "PROFILE"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/ProfileButton"]
@@ -462,8 +395,7 @@ color = Color(0.96, 0.93, 0.88, 1)
 [node name="SettingsButton" type="Button" parent="TopBar/Row"]
 custom_minimum_size = Vector2(130, 60)
 layout_mode = 2
-theme_type_variation = &"EmptyButton"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextAction"
 text = "SETTINGS"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/SettingsButton"]
@@ -488,7 +420,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(400, 60)
 layout_mode = 2
 focus_mode = 0
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 
 [node name="Avatar" type="TextureRect" parent="TopBar/Row/Identity"]
 custom_minimum_size = Vector2(32, 32)
@@ -517,9 +449,8 @@ offset_right = 388.0
 offset_bottom = 14.0
 grow_vertical = 2
 mouse_filter = 2
-theme_type_variation = &"ProfileName"
+theme_type_variation = &"PlayerName"
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 18
 text = "Player"
 
 [node name="TimeBox" type="HBoxContainer" parent="TopBar/Row"]
@@ -545,7 +476,7 @@ stretch_mode = 5
 
 [node name="Clock" type="Label" parent="TopBar/Row/TimeBox"]
 layout_mode = 2
-theme_type_variation = &"ClockLabel"
+theme_type_variation = &"Technical"
 text = "00:00:00"
 vertical_alignment = 1
 

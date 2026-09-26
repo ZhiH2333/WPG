@@ -41,7 +41,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(1480, 820)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"FloatingPanel"
+theme_type_variation = &"OpenSheet"
 
 [node name="Column" type="VBoxContainer" parent="Root/Center/Panel"]
 layout_mode = 2
@@ -60,7 +60,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
+theme_type_variation = &"Page"
 text = "SHOP"
 vertical_alignment = 1
 
@@ -68,7 +68,7 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"HudHp"
+theme_type_variation = &"Numeric"
 text = "gold  0"
 vertical_alignment = 1
 
@@ -115,13 +115,13 @@ show_percentage = false
 [node name="HpLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status/HpRow"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"HudHp"
+theme_type_variation = &"Numeric"
 text = "100/100"
 
 [node name="WeaponLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"HudWeapon"
+theme_type_variation = &"Caption"
 text = "Pistol"
 
 [node name="XpRow" type="HBoxContainer" parent="Root/Center/Panel/Column/Content/Body/Status"]
@@ -143,13 +143,13 @@ show_percentage = false
 [node name="XpLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status/XpRow"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"HudWeapon"
+theme_type_variation = &"Caption"
 text = "Lv.1  0/30"
 
 [node name="CompanionLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"HudWeapon"
+theme_type_variation = &"Caption"
 text = "none"
 
 [node name="OwnedLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
@@ -157,7 +157,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
-theme_type_variation = &"RunSummaryBody"
+theme_type_variation = &"Body"
 autowrap_mode = 3
 text = "none"
 
@@ -190,7 +190,7 @@ custom_minimum_size = Vector2(200, 120)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Pistol"
 
 [node name="Gun1" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
@@ -198,7 +198,7 @@ custom_minimum_size = Vector2(200, 120)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Shotgun"
 
 [node name="Gun2" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
@@ -206,7 +206,7 @@ custom_minimum_size = Vector2(200, 120)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Rifle"
 
 [node name="Gun3" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
@@ -214,7 +214,7 @@ custom_minimum_size = Vector2(200, 120)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Smg"
 
 [node name="Continue" type="Button" parent="Root/Center/Panel/Column"]
@@ -222,7 +222,7 @@ custom_minimum_size = Vector2(160, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Continue"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]

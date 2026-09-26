@@ -1,30 +1,11 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://ui/pause_overlay.gd" id="1_pause"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
-[ext_resource type="Shader" path="res://ui/menu_shear.gdshader" id="3_shear"]
 [ext_resource type="PackedScene" path="res://ui/settings_overlay.tscn" id="4_settings"]
 [ext_resource type="Texture2D" path="res://ui/icons/gear.png" id="5_gear"]
 [ext_resource type="Texture2D" path="res://ui/icons/clock.png" id="6_clock"]
 [ext_resource type="Texture2D" path="res://ui/icons/avatar.png" id="7_avatar"]
-
-[sub_resource type="ShaderMaterial" id="mat_continue"]
-shader = ExtResource("3_shear")
-shader_parameter/fill_color = Color(0.55, 0.78, 0.22, 0.95)
-shader_parameter/shear = 0.16
-shader_parameter/hover = 0.0
-
-[sub_resource type="ShaderMaterial" id="mat_retry"]
-shader = ExtResource("3_shear")
-shader_parameter/fill_color = Color(0.92, 0.68, 0.16, 0.95)
-shader_parameter/shear = 0.16
-shader_parameter/hover = 0.0
-
-[sub_resource type="ShaderMaterial" id="mat_quit"]
-shader = ExtResource("3_shear")
-shader_parameter/fill_color = Color(0.67, 0.11, 0.15, 0.95)
-shader_parameter/shear = 0.16
-shader_parameter/hover = 0.0
 
 [node name="PauseOverlay" type="CanvasLayer"]
 process_mode = 3
@@ -70,16 +51,16 @@ alignment = 1
 [node name="Title" type="Label" parent="Root/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"PauseTitle"
+theme_type_variation = &"Page"
 text = "PAUSED"
 horizontal_alignment = 1
 
 [node name="Continue" type="Button" parent="Root/Center/Column"]
-custom_minimum_size = Vector2(760, 80)
+custom_minimum_size = Vector2(420, 52)
 layout_mode = 2
 pivot_offset = Vector2(380, 40)
 mouse_filter = 0
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 focus_neighbor_top = NodePath("../Quit")
 focus_neighbor_bottom = NodePath("../Retry")
 focus_neighbor_left = NodePath(".")
@@ -88,7 +69,6 @@ focus_next = NodePath("../Retry")
 focus_previous = NodePath("../Quit")
 
 [node name="Bg" type="ColorRect" parent="Root/Center/Column/Continue"]
-material = SubResource("mat_continue")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -105,18 +85,17 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_type_variation = &"StripCaption"
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"RailTitle"
 text = "Continue"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Retry" type="Button" parent="Root/Center/Column"]
-custom_minimum_size = Vector2(760, 80)
+custom_minimum_size = Vector2(420, 52)
 layout_mode = 2
 pivot_offset = Vector2(380, 40)
 mouse_filter = 0
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 focus_neighbor_top = NodePath("../Continue")
 focus_neighbor_bottom = NodePath("../Quit")
 focus_neighbor_left = NodePath(".")
@@ -125,7 +104,6 @@ focus_next = NodePath("../Quit")
 focus_previous = NodePath("../Continue")
 
 [node name="Bg" type="ColorRect" parent="Root/Center/Column/Retry"]
-material = SubResource("mat_retry")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -142,18 +120,17 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_type_variation = &"StripCaption"
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"RailTitle"
 text = "Retry"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Quit" type="Button" parent="Root/Center/Column"]
-custom_minimum_size = Vector2(760, 80)
+custom_minimum_size = Vector2(420, 52)
 layout_mode = 2
 pivot_offset = Vector2(380, 40)
 mouse_filter = 0
-theme_type_variation = &"EmptyButton"
+theme_type_variation = &"TextAction"
 focus_neighbor_top = NodePath("../Retry")
 focus_neighbor_bottom = NodePath("../Continue")
 focus_neighbor_left = NodePath(".")
@@ -162,7 +139,6 @@ focus_next = NodePath("../Continue")
 focus_previous = NodePath("../Retry")
 
 [node name="Bg" type="ColorRect" parent="Root/Center/Column/Quit"]
-material = SubResource("mat_quit")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -179,8 +155,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_type_variation = &"StripCaption"
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"RailTitle"
 text = "Quit"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -188,7 +163,7 @@ vertical_alignment = 1
 [node name="Stats" type="Label" parent="Root/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "loop  0    gold  0    kills  0"
 horizontal_alignment = 1
 
@@ -204,7 +179,7 @@ offset_bottom = 60.0
 grow_horizontal = 2
 mouse_filter = 0
 theme = ExtResource("2_theme")
-theme_type_variation = &"BarPanel"
+theme_type_variation = &"OpenSheet"
 
 [node name="Row" type="HBoxContainer" parent="TopBarLayer/TopBar"]
 layout_mode = 2
@@ -218,7 +193,7 @@ layout_mode = 2
 size_flags_vertical = 3
 focus_mode = 0
 mouse_filter = 0
-theme_type_variation = &"IconBarButton"
+theme_type_variation = &"NavItem"
 tooltip_text = "Settings"
 text = "Settings"
 icon = ExtResource("5_gear")
@@ -240,7 +215,7 @@ mouse_filter = 2
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"ClockLabel"
+theme_type_variation = &"Technical"
 text = "Phase  -"
 vertical_alignment = 1
 
@@ -266,7 +241,7 @@ mouse_filter = 2
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"ClockLabel"
+theme_type_variation = &"Technical"
 text = "playtime  00:00"
 vertical_alignment = 1
 
@@ -287,7 +262,7 @@ size_flags_vertical = 3
 disabled = true
 focus_mode = 0
 mouse_filter = 2
-theme_type_variation = &"IconBarButton"
+theme_type_variation = &"NavItem"
 tooltip_text = "Profile"
 
 [node name="Layout" type="HBoxContainer" parent="TopBarLayer/TopBar/Row/Profile"]
@@ -307,7 +282,7 @@ alignment = 1
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"ProfileName"
+theme_type_variation = &"PlayerName"
 text = "Player"
 vertical_alignment = 1
 
@@ -346,7 +321,7 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_type_variation = &"ClockLabel"
+theme_type_variation = &"Technical"
 text = "00:00:00"
 vertical_alignment = 1
 

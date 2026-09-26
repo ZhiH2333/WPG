@@ -1,15 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://ui/loading_screen.gd" id="1_loading"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
-[ext_resource type="Shader" path="res://ui/loading_blur.gdshader" id="3_blur"]
 [ext_resource type="Texture2D" uid="uid://bgq6sex7atw7d" path="res://images/mainmenu.png" id="4_bg"]
-
-[sub_resource type="ShaderMaterial" id="mat_loading_blur"]
-shader = ExtResource("3_blur")
-shader_parameter/blur_lod = 6.0
-shader_parameter/blur_spread = 0.045
-shader_parameter/dim_amount = 0.82
 
 [node name="LoadingScreen" type="CanvasLayer"]
 process_mode = 3
@@ -37,8 +30,6 @@ mouse_filter = 2
 texture = ExtResource("4_bg")
 expand_mode = 1
 stretch_mode = 6
-texture_filter = 4
-material = SubResource("mat_loading_blur")
 
 [node name="Dimmer" type="ColorRect" parent="Root"]
 layout_mode = 1
@@ -68,16 +59,15 @@ alignment = 1
 [node name="Title" type="Label" parent="Root/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
+theme_type_variation = &"Page"
 theme_override_constants/outline_size = 10
-theme_override_font_sizes/font_size = 96
 text = "LOADING"
 horizontal_alignment = 1
 
 [node name="VersionLabel" type="Label" parent="Root/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "version  1.0.0"
 horizontal_alignment = 1
 
@@ -100,6 +90,6 @@ color = Color(1, 0.55, 0.76, 1)
 [node name="StatusLabel" type="Label" parent="Root/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "loading"
 horizontal_alignment = 1

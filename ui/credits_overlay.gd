@@ -19,6 +19,8 @@ var _sfx_gate: Dictionary = {}
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
 
 func _ready() -> void:
+	_panel.theme_type_variation = &"Modal"
+	UiStyle.present(self, true)
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process_input(false)

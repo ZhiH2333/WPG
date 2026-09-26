@@ -4,7 +4,6 @@ class_name MainMenu
 ## 主菜单：舞台、一行玩家状态、Action Rail。顶栏负责导航。没有中央 PLAY。
 const SANDBOX_SCENE := "res://sandbox/combat_sandbox.tscn"
 const LOADING_SCREEN_SCRIPT := preload("res://ui/loading_screen.gd")
-const MENU_TYPE := preload("res://ui/menu_type.gd")
 const TOP_BAR_HEIGHT: float = 60.0
 const MUSIC_DB_NORMAL: float = -6.0
 const MUSIC_DB_DIMMED: float = -16.0
@@ -27,7 +26,6 @@ var _record_origin: RecordOrigin = RecordOrigin.HOME
 var _settings_return: Control = null
 var _sfx_gate: Dictionary = {}
 
-@onready var _blur_layer: ColorRect = $BlurLayer
 @onready var _stage: Control = $Home/Body/Stage
 @onready var _player_name: Label = $Home/Body/Name
 @onready var _player_status: Label = $Home/Body/Status
@@ -103,7 +101,6 @@ func _ready() -> void:
 	_refresh_home_facts()
 	_apply_menu_type()
 	_clear_top_bar_surface()
-	_blur_layer.visible = false
 	_ensure_rail_marks()
 	_play_enter_animation()
 	_top_bar.move_to_front()
@@ -379,25 +376,35 @@ func _set_rail_hover(button: Button, hovered: bool) -> void:
 
 func _paint_rail(button: Button, hovered: bool = false) -> void:
 	var title: Label = button.get_node_or_null("Title") as Label
-	MENU_TYPE.paint_title_mark(button, title, hovered)
+	var mark: ColorRect = button.get_node_or_null("FocusMark") as ColorRect
+	if title == null or mark == null:
+		return
+	var focused: bool = button.has_focus()
+	var hot: bool = hovered or button.is_hovered() or focused
+	title.theme_type_variation = &"RailTitle"
+	mark.visible = hot
+	mark.color = UiTokens.ACCENT if focused else UiTokens.PAPER
+	mark.offset_top = -3.0
+	mark.offset_bottom = 0.0
 
 func _apply_menu_type() -> void:
-	MENU_TYPE.apply_label(_player_name, &"display")
-	MENU_TYPE.apply_label(_player_status, &"caption")
-	MENU_TYPE.apply_label(_profile_name, &"navigation")
-	MENU_TYPE.apply_label(_clock_label, &"technical")
+	UiStyle.present($Home, false)
+	UiStyle.present($TopBar, false)
+	UiStyle.present($Quit, false)
+	_player_name.theme_type_variation = &"PlayerName"
+	_player_status.theme_type_variation = &"Caption"
+	_profile_name.theme_type_variation = &"Navigation"
+	_clock_label.theme_type_variation = &"Technical"
 	for button: Button in [_brand_button, _home_button, _top_play_button, _top_multi_button, _top_profile_button, _top_settings_button]:
-		MENU_TYPE.apply_button(button, &"navigation")
-	MENU_TYPE.apply_button(_quit_button, &"caption")
+		button.theme_type_variation = &"NavItem"
+	_quit_button.theme_type_variation = &"TextAction"
 	for button: Button in [_continue_button, _solo_button, _multi_button]:
-		var title: Label = button.get_node("Title") as Label
-		var caption: Label = button.get_node("Caption") as Label
-		MENU_TYPE.apply_label(title, &"button")
-		MENU_TYPE.apply_label(caption, &"caption")
-	MENU_TYPE.apply_label(_best_button.get_node("Title") as Label, &"section")
-	MENU_TYPE.apply_label(_best_value, &"numeric")
-	MENU_TYPE.apply_label(_last_button.get_node("Title") as Label, &"section")
-	MENU_TYPE.apply_label(_last_value, &"numeric")
+		(button.get_node("Title") as Label).theme_type_variation = &"RailTitle"
+		(button.get_node("Caption") as Label).theme_type_variation = &"Caption"
+	(_best_button.get_node("Title") as Label).theme_type_variation = &"Section"
+	_best_value.theme_type_variation = &"Numeric"
+	(_last_button.get_node("Title") as Label).theme_type_variation = &"Section"
+	_last_value.theme_type_variation = &"Numeric"
 
 func _clear_top_bar_surface() -> void:
 	var empty: StyleBoxEmpty = StyleBoxEmpty.new()
@@ -486,10 +493,11 @@ func _refresh_nav_marks() -> void:
 	for nav: Button in [_home_button, _top_play_button, _top_multi_button, _top_profile_button, _top_settings_button]:
 		var mark: ColorRect = nav.get_node_or_null("Mark") as ColorRect
 		var hot: bool = nav.is_hovered() or nav.has_focus()
+		nav.theme_type_variation = &"NavItem"
+		nav.remove_theme_color_override("font_color")
 		if mark != null:
-			mark.visible = nav == current
-			mark.color = MENU_TYPE.PAPER
-		nav.add_theme_color_override("font_color", MENU_TYPE.PAPER if hot or nav == current else MENU_TYPE.MUTED_PAPER)
+			mark.visible = nav == current or hot
+			mark.color = UiTokens.ACCENT if nav == current or nav.has_focus() else UiTokens.PAPER
 
 func _is_overlay_owned(node: Node) -> bool:
 	var current: Node = node

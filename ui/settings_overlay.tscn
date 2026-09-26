@@ -144,7 +144,7 @@ theme_override_constants/separation = 8
 [node name="VolumeLabel" type="Label" parent="Drawer/Panel/Clip/Content/AudioSection/Body/VolumeBlock"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"SettingsHeader"
+theme_type_variation = &"InkSection"
 text = "Master"
 
 [node name="VolumeSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/VolumeBlock"]
@@ -166,7 +166,7 @@ theme_override_constants/separation = 8
 [node name="MusicLabel" type="Label" parent="Drawer/Panel/Clip/Content/AudioSection/Body/MusicBlock"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"SettingsHeader"
+theme_type_variation = &"InkSection"
 text = "Music"
 
 [node name="MusicSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/MusicBlock"]
@@ -188,7 +188,7 @@ theme_override_constants/separation = 8
 [node name="SfxLabel" type="Label" parent="Drawer/Panel/Clip/Content/AudioSection/Body/SfxBlock"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"SettingsHeader"
+theme_type_variation = &"InkSection"
 text = "SFX"
 
 [node name="SfxSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/SfxBlock"]
@@ -234,7 +234,7 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"SettingsHeader"
+theme_type_variation = &"InkSection"
 text = "Render Resolution  100%"
 
 [node name="RenderScaleSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/RenderBlock"]
@@ -251,7 +251,7 @@ scrollable = false
 [node name="RenderScaleHint" type="Label" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/RenderBlock"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "Takes effect in combat / on Continue"
 
 [node name="UiBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
@@ -263,7 +263,7 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"SettingsHeader"
+theme_type_variation = &"InkSection"
 text = "UI Scale  100%"
 
 [node name="UiScaleSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/UiBlock"]
@@ -303,7 +303,7 @@ theme_override_constants/separation = 8
 [node name="MsaaLabel" type="Label" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/MsaaBlock"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"SettingsHeader"
+theme_type_variation = &"InkSection"
 text = "MSAA"
 
 [node name="MsaaOption" type="OptionButton" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/MsaaBlock"]
@@ -326,7 +326,7 @@ search_name = "Data delete progress records credits about version"
 [node name="Warning" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "Deletes progress and records. Settings are kept."
 
 [node name="CreditsButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
@@ -335,7 +335,7 @@ custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "CREDITS"
 
 [node name="DeleteButton" parent="Drawer/Panel/Clip/Content/DataSection/Body" instance=ExtResource("3_hold")]
@@ -344,14 +344,14 @@ custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "HOLD TO DELETE ALL DATA"
 
 [node name="StatusLabel" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 
 [node name="BottomPad" type="Control" parent="Drawer/Panel/Clip/Content"]
 custom_minimum_size = Vector2(0, 240)
@@ -389,21 +389,20 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"Page"
 text = "Settings"
 
 [node name="Subtitle" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "Change game settings"
 
 [node name="VersionLabel" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "version  1.0.0"
 
 [node name="SearchWrap" type="MarginContainer" parent="Drawer/Panel"]

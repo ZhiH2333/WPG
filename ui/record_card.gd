@@ -7,14 +7,10 @@ const ARENA_CATALOG: ArenaCatalog = preload("res://data/arena_catalog.tres")
 const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const RANK_WIDTH: float = 56.0
 const RANK_BAR_HEIGHT: float = 28.0
-const RANK_GOLD := Color(1, 0.85, 0.3, 1)
-const RANK_SILVER := Color(0.85, 0.85, 0.9, 1)
-const RANK_BRONZE := Color(0.85, 0.55, 0.35, 1)
-
 static func make_main_card(record: GameRecord, card_size: Vector2, portrait_px: float) -> Button:
 	var button: Button = Button.new()
 	button.custom_minimum_size = card_size
-	button.theme_type_variation = &"OfferButton"
+	button.theme_type_variation = &"RecordRow"
 	var inner: HBoxContainer = HBoxContainer.new()
 	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
 	inner.offset_left = 20.0
@@ -71,7 +67,7 @@ static func resolve_body_texture(character_id: String) -> Texture2D:
 
 static func _make_overview_name_label(record: GameRecord) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"RunSummaryBody"
+	label.theme_type_variation = &"Body"
 	label.text = record.name
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -79,7 +75,7 @@ static func _make_overview_name_label(record: GameRecord) -> Label:
 
 static func _make_overview_meta_label(record: GameRecord) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"OfferDesc"
+	label.theme_type_variation = &"Caption"
 	label.text = "%s  %s  ·  %s" % [_read_display_name(record.character_id), format_loop_badge(record.loop_goal), format_arena_name(record.arena_id)]
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -88,16 +84,10 @@ static func _make_overview_meta_label(record: GameRecord) -> Label:
 static func _make_rank_label(rank: int) -> Label:
 	var label: Label = Label.new()
 	label.custom_minimum_size = Vector2(RANK_WIDTH, 0.0)
-	label.theme_type_variation = &"ModeTitle"
+	label.theme_type_variation = &"Numeric"
 	label.text = "#%d" % rank
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if rank == 1:
-		label.add_theme_color_override("font_color", RANK_GOLD)
-	elif rank == 2:
-		label.add_theme_color_override("font_color", RANK_SILVER)
-	elif rank == 3:
-		label.add_theme_color_override("font_color", RANK_BRONZE)
 	return label
 
 static func _make_rank_bar(score: int, max_score: int) -> ProgressBar:
@@ -130,12 +120,12 @@ static func _make_meta_box(record: GameRecord) -> VBoxContainer:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_constant_override("separation", 4)
 	var title: Label = Label.new()
-	title.theme_type_variation = &"ModeTitle"
+	title.theme_type_variation = &"Body"
 	title.text = record.name
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var meta: Label = Label.new()
-	meta.theme_type_variation = &"OfferDesc"
+	meta.theme_type_variation = &"Caption"
 	meta.text = "%s  %s  ·  %s" % [_read_display_name(record.character_id), format_loop_badge(record.loop_goal), format_arena_name(record.arena_id)]
 	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(title)
@@ -144,7 +134,7 @@ static func _make_meta_box(record: GameRecord) -> VBoxContainer:
 
 static func _make_score_label(best_score: int) -> Label:
 	var label: Label = Label.new()
-	label.theme_type_variation = &"ModeTitle"
+	label.theme_type_variation = &"Numeric"
 	label.text = str(best_score)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

@@ -39,7 +39,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(960, 720)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"FloatingPanel"
+theme_type_variation = &"OpenSheet"
 
 [node name="Column" type="VBoxContainer" parent="Center/Panel"]
 layout_mode = 2
@@ -51,13 +51,13 @@ theme_override_constants/separation = 8
 [node name="Header" type="Label" parent="Center/Panel/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"FloatingHeader"
+theme_type_variation = &"Page"
 text = "CREDITS"
 
 [node name="VersionLabel" type="Label" parent="Center/Panel/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
+theme_type_variation = &"Caption"
 text = "version  1.0.0"
 
 [node name="Scroll" type="ScrollContainer" parent="Center/Panel/Column"]
@@ -76,13 +76,13 @@ theme_override_constants/separation = 12
 [node name="StudioTitle" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferTitle"
+theme_type_variation = &"Section"
 text = "STUDIO"
 
 [node name="StudioNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "FM Studio"
 autowrap_mode = 3
 
@@ -93,13 +93,13 @@ mouse_filter = 2
 [node name="ImplTitle" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferTitle"
+theme_type_variation = &"Section"
 text = "IMPLEMENTATION"
 
 [node name="ImplNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "@ZhiH2333"
 autowrap_mode = 3
 
@@ -107,7 +107,7 @@ autowrap_mode = 3
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "github.com/ZhiH2333"
 
 [node name="SepCreative" type="HSeparator" parent="Center/Panel/Column/Scroll/Body"]
@@ -117,13 +117,13 @@ mouse_filter = 2
 [node name="CreativeTitle" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferTitle"
+theme_type_variation = &"Section"
 text = "CREATIVE"
 
 [node name="CreativeNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "@一加一  @黎瓜  @私は幸せです  @小猪болва  @苏  @Charles  @解放战争论证者  @实名认证  @127  @ZhiH  @清羽  @青蛙不吃大白菜"
 autowrap_mode = 3
 
@@ -134,13 +134,13 @@ mouse_filter = 2
 [node name="ArtTitle" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferTitle"
+theme_type_variation = &"Section"
 text = "ART"
 
 [node name="ArtNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "@黎瓜  @实名认证  @私は幸せです"
 autowrap_mode = 3
 
@@ -151,13 +151,13 @@ mouse_filter = 2
 [node name="ThanksTitle" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferTitle"
+theme_type_variation = &"Section"
 text = "SPECIAL THANKS"
 
 [node name="ThanksNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "@解放战争论证者  @黎瓜  @127  @清羽  @Cursor AI"
 autowrap_mode = 3
 
@@ -168,13 +168,13 @@ mouse_filter = 2
 [node name="EngineTitle" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferTitle"
+theme_type_variation = &"Section"
 text = "ENGINE"
 
 [node name="EngineNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"OfferDesc"
+theme_type_variation = &"Caption"
 text = "Godot 4.6"
 autowrap_mode = 3
 
@@ -183,7 +183,7 @@ custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 0
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"ActionRow"
 text = "Back"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
