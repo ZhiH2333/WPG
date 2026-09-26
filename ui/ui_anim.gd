@@ -11,6 +11,9 @@ const PAGE_MOVE_SEC: float = 0.32
 const PAGE_EXIT_SEC: float = 0.2
 const PAGE_RISE_PX: float = 24.0
 const PAGE_SLIDE_SEC: float = 0.32
+## 翻页是一条刚性纸带：进页与出页共用同一时长与同一曲线，位移严格互补（x_new - x_old == 页宽）。
+const PAGE_SLIDE_TRANS: Tween.TransitionType = Tween.TRANS_QUINT
+const PAGE_SLIDE_EASE: Tween.EaseType = Tween.EASE_IN_OUT
 const MODAL_ENTER_SCALE: float = 0.96
 const MODAL_EXIT_SEC: float = 0.15
 const HOVER_SEC: float = 0.12
@@ -35,11 +38,12 @@ const READY_FLASH_SEC: float = 0.06
 ## direction: 0 = 淡入 + 上浮（旧行为）；+1 = 从右侧滑入（app 式翻页）；-1 = 从左侧滑入。
 static func enter_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_pause: bool = false, direction: int = 0) -> Tween:
 	var tween: Tween = _make_parallel(host, ignore_pause)
-	_fade_dimmer(tween, dimmer, PAGE_MOVE_SEC, Tween.EASE_OUT)
 	if direction == 0:
+		_fade_dimmer(tween, dimmer, PAGE_MOVE_SEC, Tween.EASE_OUT)
 		_rise_page_in(tween, panel)
 	else:
-		_slide_panel(tween, panel, direction, true)
+		# 方向翻页：纸带整体滑入，本体与 Dimmer 都不淡入，位移曲线与 exit_page 严格一致。
+		_slide_panel(tween, panel, direction)
 	return tween
 
 ## direction 与 enter_page 同一含义：+1 表示新页从右侧进 → 本页向左滑出。
@@ -48,12 +52,12 @@ static func exit_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_
 	var rest: Vector2 = Vector2.ZERO
 	if panel != null:
 		rest = panel.position
-		tween.tween_property(panel, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 		if direction == 0:
+			tween.tween_property(panel, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 			tween.tween_property(panel, "position:y", rest.y + PAGE_RISE_PX, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 		else:
-			tween.tween_property(panel, "position:x", rest.x - float(direction) * _page_width(panel), PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
-	if dimmer != null:
+			tween.tween_property(panel, "position:x", rest.x - float(direction) * _page_width(panel), PAGE_SLIDE_SEC).set_trans(PAGE_SLIDE_TRANS).set_ease(PAGE_SLIDE_EASE)
+	if dimmer != null and direction == 0:
 		tween.tween_property(dimmer, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 	tween.chain().tween_callback(_reset_page.bind(dimmer, panel, rest))
 	return tween
@@ -271,7 +275,8 @@ static func slide_out(host: Node, panel: CanvasItem, direction: int, fade: bool 
 		return tween
 	var base_x: float = _base_x(panel)
 	panel.position.x = base_x
-	tween.tween_property(panel, "position:x", base_x - float(direction) * _page_width(panel), PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	panel.modulate.a = 1.0
+	tween.tween_property(panel, "position:x", base_x - float(direction) * _page_width(panel), PAGE_SLIDE_SEC).set_trans(PAGE_SLIDE_TRANS).set_ease(PAGE_SLIDE_EASE)
 	if fade:
 		tween.tween_property(panel, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 	return tween
@@ -282,26 +287,19 @@ static func slide_in(host: Node, panel: CanvasItem, direction: int, fade: bool =
 		return tween
 	var rest_x: float = _base_x(panel)
 	panel.position.x = rest_x + float(direction) * _page_width(panel)
-	tween.tween_property(panel, "position:x", rest_x, PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	panel.modulate.a = 1.0
+	tween.tween_property(panel, "position:x", rest_x, PAGE_SLIDE_SEC).set_trans(PAGE_SLIDE_TRANS).set_ease(PAGE_SLIDE_EASE)
 	if fade:
-		panel.modulate.a = 0.0
-		tween.tween_property(panel, "modulate:a", 1.0, PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	else:
-		panel.modulate.a = 1.0
+		tween.tween_property(panel, "modulate:a", 1.0, PAGE_SLIDE_SEC).set_trans(PAGE_SLIDE_TRANS).set_ease(PAGE_SLIDE_EASE)
 	return tween
 
-static func _slide_panel(tween: Tween, panel: CanvasItem, direction: int, fade: bool) -> void:
+static func _slide_panel(tween: Tween, panel: CanvasItem, direction: int) -> void:
 	if panel == null:
 		return
-	var parent_container: Container = panel.get_parent() as Container
-	if parent_container != null:
-		parent_container.notification(Container.NOTIFICATION_SORT_CHILDREN)
 	var rest_x: float = _base_x(panel)
 	panel.position.x = rest_x + float(direction) * _page_width(panel)
-	if fade:
-		panel.modulate.a = 0.0
-		tween.tween_property(panel, "modulate:a", 1.0, PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	tween.tween_property(panel, "position:x", rest_x, PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	panel.modulate.a = 1.0
+	tween.tween_property(panel, "position:x", rest_x, PAGE_SLIDE_SEC).set_trans(PAGE_SLIDE_TRANS).set_ease(PAGE_SLIDE_EASE)
 
 static func _page_width(panel: CanvasItem) -> float:
 	if panel == null:
