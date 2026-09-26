@@ -107,6 +107,14 @@ static func card_columns(panel_w: float) -> int:
 		return 1
 	return 2
 
+## 宽页（Multiplayer 等左右填满的页面）按可用宽度排到最多 max_columns 列。
+static func card_columns_for(content_w: float, max_columns: int = 4) -> int:
+	var columns: int = 1
+	for candidate: int in range(2, maxi(max_columns, 1) + 1):
+		if card_size(content_w, candidate).x >= MIN_CARD_WIDTH:
+			columns = candidate
+	return columns
+
 static func connect_refit(host: Control, on_refit: Callable) -> void:
 	if not host.resized.is_connected(on_refit):
 		host.resized.connect(on_refit)

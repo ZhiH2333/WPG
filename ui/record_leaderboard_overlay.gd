@@ -28,7 +28,7 @@ func _ready() -> void:
 func is_open() -> bool:
 	return _open
 
-func open() -> void:
+func open(direction: int = 0) -> void:
 	_open = true
 	visible = true
 	GameRecords.load_from_disk()
@@ -36,24 +36,26 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet)
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
 	_back_button.grab_focus()
 
-func close() -> void:
+func close(direction: int = 0) -> void:
 	if not _open:
 		return
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet, false, direction)
 	_anim_tween.finished.connect(_finish_close)
 
+## 回到 Profile 必须走主菜单的统一翻页，否则 MainMenu 的 _page 会记错、下次点 tab 方向反。
 func return_to_profile() -> void:
-	var profile: ProfileOverlay = get_parent().get_node_or_null("ProfileOverlay") as ProfileOverlay
-	if profile == null:
-		return
-	profile.open()
-	profile.focus_rank()
+	var menu: Node = get_parent()
+	if menu != null and menu.has_method("_on_profile_pressed"):
+		menu.call("_on_profile_pressed")
+	var profile: Node = get_parent().get_node_or_null("ProfileOverlay")
+	if profile != null and profile.has_method("focus_rank"):
+		profile.call("focus_rank")
 
 func _finish_close() -> void:
 	if _open:
@@ -72,7 +74,7 @@ func _on_back_pressed() -> void:
 	if not _open:
 		return
 	_play_back()
-	close()
+	close(-1)
 	return_to_profile()
 
 func _rebuild_rows() -> void:

@@ -11,7 +11,6 @@ const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
 const DEFAULT_LOOP_GOAL: int = 20
-const CONTENT_MAX_WIDTH: float = 1200.0
 
 var _open: bool = false
 var _view: View = View.HOME
@@ -41,19 +40,19 @@ var _beacon: LanBeacon
 @onready var _pick_scroll: ScrollContainer = $Sheet/Column/Content/PickRoot/Scroll
 @onready var _pick_cards: GridContainer = $Sheet/Column/Content/PickRoot/Scroll/Cards
 @onready var _custom_button: Button = $Sheet/Column/Content/PickRoot/Scroll/Cards/Custom
-@onready var _host_address: Label = $Sheet/Column/Content/HostRoot/Center/Column/AddressList
-@onready var _host_status: Label = $Sheet/Column/Content/HostRoot/Center/Column/Status
-@onready var _record_hint: Label = $Sheet/Column/Content/HostRoot/Center/Column/RecordHint
-@onready var _host_boar: Button = $Sheet/Column/Content/HostRoot/Center/Column/Characters/Boar
-@onready var _host_chicken: Button = $Sheet/Column/Content/HostRoot/Center/Column/Characters/Chicken
-@onready var _host_yard: Button = $Sheet/Column/Content/HostRoot/Center/Column/Arenas/Yard
-@onready var _host_pit: Button = $Sheet/Column/Content/HostRoot/Center/Column/Arenas/Pit
-@onready var _host_keep: Button = $Sheet/Column/Content/HostRoot/Center/Column/Arenas/Keep
-@onready var _host_coop: Button = $Sheet/Column/Content/HostRoot/Center/Column/Modes/Coop
-@onready var _host_battle: Button = $Sheet/Column/Content/HostRoot/Center/Column/Modes/Battle
-@onready var _loop_slider: HSlider = $Sheet/Column/Content/HostRoot/Center/Column/LoopRow/Slider
-@onready var _loop_label: Label = $Sheet/Column/Content/HostRoot/Center/Column/LoopRow/LoopLabel
-@onready var _start_button: Button = $Sheet/Column/Content/HostRoot/Center/Column/Start
+@onready var _host_address: Label = $Sheet/Column/Content/HostRoot/Body/Left/AddressList
+@onready var _host_status: Label = $Sheet/Column/Content/HostRoot/Body/Left/Status
+@onready var _record_hint: Label = $Sheet/Column/Content/HostRoot/Body/Left/RecordHint
+@onready var _host_boar: Button = $Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar
+@onready var _host_chicken: Button = $Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken
+@onready var _host_yard: Button = $Sheet/Column/Content/HostRoot/Body/Right/Arenas/Yard
+@onready var _host_pit: Button = $Sheet/Column/Content/HostRoot/Body/Right/Arenas/Pit
+@onready var _host_keep: Button = $Sheet/Column/Content/HostRoot/Body/Right/Arenas/Keep
+@onready var _host_coop: Button = $Sheet/Column/Content/HostRoot/Body/Right/Modes/Coop
+@onready var _host_battle: Button = $Sheet/Column/Content/HostRoot/Body/Right/Modes/Battle
+@onready var _loop_slider: HSlider = $Sheet/Column/Content/HostRoot/Body/Right/LoopRow/Slider
+@onready var _loop_label: Label = $Sheet/Column/Content/HostRoot/Body/Right/LoopRow/LoopLabel
+@onready var _start_button: Button = $Sheet/Column/Content/HostRoot/Body/Right/Start
 @onready var _join_search: LineEdit = $Sheet/Column/Content/JoinRoot/Row/Browse/Search
 @onready var _create_room_button: Button = $Sheet/Column/Content/JoinRoot/Row/Browse/CreateRoom
 @onready var _join_empty: Label = $Sheet/Column/Content/JoinRoot/Row/Browse/EmptyHint
@@ -105,6 +104,7 @@ func _ready() -> void:
 	for button: Button in [_host_button, _join_button, _create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
 		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
+	_content.resized.connect(_on_content_resized)
 	_reset_seats()
 	_ensure_beacon()
 	_join_search.text_changed.connect(_on_join_search_changed)
@@ -117,7 +117,7 @@ func _exit_tree() -> void:
 func is_open() -> bool:
 	return _open
 
-func open() -> void:
+func open(direction: int = 0) -> void:
 	_open = true
 	visible = true
 	modulate.a = 1.0
@@ -126,10 +126,10 @@ func open() -> void:
 	_reset_play_mode()
 	_enter_join()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet)
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
 	_create_room_button.grab_focus()
 
-func close() -> void:
+func close(direction: int = 0) -> void:
 	if not _open:
 		return
 	_open = false
@@ -137,7 +137,7 @@ func close() -> void:
 	_clear_peer()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet, false, direction)
 	_anim_tween.finished.connect(_finish_close)
 	var menu: MainMenu = get_parent() as MainMenu
 	if menu != null:
@@ -181,7 +181,7 @@ func _input(event: InputEvent) -> void:
 func _handle_back() -> void:
 	_play_back()
 	if _view == View.HOME or _view == View.JOIN:
-		close()
+		close(-1)
 		return
 	if _view == View.PICK:
 		_enter_join()
@@ -617,18 +617,16 @@ func _clear_pick_rows() -> void:
 		_pick_cards.remove_child(child)
 		child.queue_free()
 
-## 卡片宽度取 Content 的实际布局宽度（Page 已排版）；极早期为 0 时退回 Sheet 宽度推算。
+## 卡片宽度取 Content 的实际布局宽度（Page 已排版），按宽度排满 2～4 列；极早期为 0 时退回 Sheet 宽度推算。
 func _content_width() -> float:
 	var width: float = _content.size.x
 	if width <= 1.0:
 		width = _sheet.size.x + _column.offset_right - _column.offset_left
-	if width <= 1.0:
-		return CONTENT_MAX_WIDTH
-	return clampf(width, UiFit.MIN_CARD_WIDTH + UiFit.CARD_INSET, CONTENT_MAX_WIDTH)
+	return maxf(width, UiFit.MIN_CARD_WIDTH + UiFit.CARD_INSET)
 
 func _fit_card_size() -> Vector2:
 	var content_w: float = _content_width()
-	var columns: int = UiFit.card_columns(content_w)
+	var columns: int = UiFit.card_columns_for(content_w, 4)
 	_pick_cards.columns = columns
 	return UiFit.card_size(content_w, columns)
 
@@ -710,17 +708,28 @@ func _clear_peer() -> void:
 func _on_host_resized() -> void:
 	if not _open:
 		return
+	_fit_cards.call_deferred()
+
+## Content 是 Page 里唯一随窗口变宽的那一段；它的 resized 带新宽度，比 host.resized 早一步可用。
+func _on_content_resized() -> void:
+	if not _open:
+		return
 	_fit_cards()
 
 func _fit_cards() -> void:
 	if _view != View.PICK:
 		return
 	var card: Vector2 = _fit_card_size()
+	var portrait: float = UiFit.portrait_px(card)
 	_custom_button.custom_minimum_size = card
 	for child: Node in _pick_cards.get_children():
 		var button: Button = child as Button
-		if button != null:
-			button.custom_minimum_size = card
+		if button == null:
+			continue
+		button.custom_minimum_size = card
+		var portrait_rect: TextureRect = button.get_node_or_null("Content/Portrait") as TextureRect
+		if portrait_rect != null:
+			portrait_rect.custom_minimum_size = Vector2(portrait, portrait)
 
 func _on_home_join_pressed() -> void:
 	_play_click()

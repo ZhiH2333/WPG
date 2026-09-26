@@ -1625,6 +1625,13 @@ Phase 1 的 IA / 动效 / Play 页已落地，但 Home 与 Play 的 Label **把�
 - **room_notice**：720×260 → 560×220、toast 496×96 → 420×72，删掉两个内嵌带 3px 白描边的 StyleBoxFlat。
 - 静态 `theme_override_*` 只剩布局类（margin / separation / icon_max_width）；`theme_override_font_sizes` / `font_color` / `outline_size` 在 `ui/` 已清零（运行时状态色除外）。
 
+### 翻页与 Multiplayer 满宽（第二刀）
+
+- **tab 切换 = app 式水平翻页**：`MainMenu._switch_page()` 是唯一入口，`PAGE_ORDER`（home 0 / play 1 / records 2 / multiplayer 3 / profile 4 / ranking 5）算出 `direction = +1 / -1`，旧页与新页**同帧反向滑动**（`UiAnim.enter_page/exit_page(..., direction)`，`PAGE_SLIDE_SEC = 0.32`，OutQuint 进 / InQuint 出）；Home 舞台块由 `UiAnim.slide_in/slide_out` 一起滑，静止位置用 `page_base_x` meta 记住（Home 的父节点是 Control，不是 Container，布局不会把被移动过的 position 收回来）。`direction = 0` 仍是旧的淡入 + 上浮，给非 tab 的叠层与直接调用用。Settings 是 Drawer，不参与翻页。
+- 页面自带的 Back / Esc 走 `close(-1)`（向右滑回）；Ranking 的 Back 改走 `MainMenu._on_profile_pressed()`（不再自己 `profile.open()`），保证 `MainMenu._page` 永远与屏幕一致 —— 实测状态机：home→play→multiplayer→profile→ranking→(Back)→profile→home 每一步 `_page` / `_home_slid_out` 都对，结束 `home.x = 0`。
+- **Multiplayer 左右填满**：`Sheet/Column` 右边距 672 → **48**（整页 1380 宽）；PICK 档位卡列数改 `UiFit.card_columns_for(content_w, 4)`（实测全宽 3 列、卡 ≈415×96）；HOST 从「左半居中的单列」改成 `Body(HBox)` 左右**各 666** 的两列（左 = 角色卡 / 房间信息，右 = loop 滑杆 / 地图 / 模式 / Start），JOIN 的地址与角色卡摊满左列。其余 Page 仍守 1200 内容列。
+- arena / mode / 地图这类**小号芯片**改用 `OfferButtonSmall`（44），不再借卡片 token（卡片 token 的最小高度是 54）。
+
 ### 例外与保留
 
 - **loading 页**：按要求保留旧的 `loading_blur.gdshader` 背景模糊与手写 `BarTrack/BarFill` 进度条（只把标题/版本/状态文案换成 token）。

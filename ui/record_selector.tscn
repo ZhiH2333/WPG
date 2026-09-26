@@ -327,7 +327,7 @@ button_pressed = true
 action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"OfferButtonSmall"
 text = "Yard"
 
 [node name="Pit" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Arenas"]
@@ -337,7 +337,7 @@ toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"OfferButtonSmall"
 text = "Pit"
 
 [node name="Keep" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Arenas"]
@@ -347,7 +347,7 @@ toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
-theme_type_variation = &"OfferButton"
+theme_type_variation = &"OfferButtonSmall"
 text = "Keep"
 
 [node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column"]

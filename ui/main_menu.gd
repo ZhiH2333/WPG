@@ -16,6 +16,17 @@ const FOCUS_SMOOTH: float = 9.0
 
 enum RecordOrigin { HOME, PLAY }
 
+## app 式翻页：tab 顺序决定滑动方向（direction = +1 表示新页从右侧滑入、旧页向左滑出）。
+const PAGE_HOME: StringName = &"home"
+const PAGE_PLAY: StringName = &"play"
+const PAGE_RECORDS: StringName = &"records"
+const PAGE_MULTIPLAYER: StringName = &"multiplayer"
+const PAGE_PROFILE: StringName = &"profile"
+const PAGE_RANKING: StringName = &"ranking"
+const PAGE_ORDER: Dictionary = {
+	PAGE_HOME: 0, PAGE_PLAY: 1, PAGE_RECORDS: 2, PAGE_MULTIPLAYER: 3, PAGE_PROFILE: 4, PAGE_RANKING: 5,
+}
+
 var _enter_tween: Tween
 var _music_fade_tween: Tween
 var _focus_amount: float = 0.0
@@ -24,6 +35,8 @@ var _leaving: bool = false
 var _last_clock_second: int = -1
 var _suppress_return: bool = false
 var _record_origin: RecordOrigin = RecordOrigin.HOME
+var _page: StringName = PAGE_HOME
+var _home_slid_out: bool = false
 var _settings_return: Control = null
 var _sfx_gate: Dictionary = {}
 
@@ -139,18 +152,21 @@ func on_record_selector_closed() -> void:
 	if _suppress_return:
 		return
 	if _record_origin == RecordOrigin.PLAY:
-		_open_play_page()
+		_switch_page(PAGE_PLAY)
 		return
+	_return_home(PAGE_RECORDS)
 	_focus_control(_solo_button)
 
 func on_profile_closed() -> void:
 	if _suppress_return:
 		return
+	_return_home(PAGE_PROFILE)
 	_focus_control(_top_profile_button)
 
 func on_lan_closed() -> void:
 	if _suppress_return:
 		return
+	_return_home(PAGE_MULTIPLAYER)
 	_focus_control(_top_multi_button)
 
 func _blocks_home_accept() -> bool:
@@ -168,13 +184,10 @@ func _on_play_nav_pressed() -> void:
 	_open_play_page()
 
 func _open_play_page() -> void:
-	_close_other_pages(&"play")
-	_play_page.open()
-	_refresh_nav_marks()
+	_switch_page(PAGE_PLAY)
 
 func _on_play_back_pressed() -> void:
-	if _play_page.is_open():
-		_play_page.close()
+	_switch_page(PAGE_HOME)
 	_focus_control(_top_play_button)
 
 func _on_home_solo_pressed() -> void:
@@ -185,29 +198,21 @@ func _on_play_solo_pressed() -> void:
 
 func _open_records(origin: RecordOrigin) -> void:
 	_record_origin = origin
-	_close_other_pages(&"records")
-	_record_selector.open()
-	_refresh_nav_marks()
+	_switch_page(PAGE_RECORDS)
 
 func _enter_multi_flow() -> void:
 	if _lan_overlay.is_open():
 		_refresh_nav_marks()
 		return
-	_close_other_pages(&"lan")
-	_lan_overlay.open()
-	_refresh_nav_marks()
+	_switch_page(PAGE_MULTIPLAYER)
 
 func _on_profile_pressed() -> void:
 	if _profile_overlay.is_open():
 		return
-	_close_other_pages(&"profile")
-	_profile_overlay.open()
-	_refresh_nav_marks()
+	_switch_page(PAGE_PROFILE)
 
 func _enter_leaderboard() -> void:
-	_close_other_pages(&"ranking")
-	_leaderboard_overlay.open()
-	_refresh_nav_marks()
+	_switch_page(PAGE_RANKING)
 
 func _on_settings_pressed() -> void:
 	if _overlay.is_open() or _overlay.is_credits_open():
@@ -218,28 +223,64 @@ func _on_settings_pressed() -> void:
 	_top_bar.move_to_front()
 
 func _on_home_pressed() -> void:
-	_suppress_return = true
 	if _overlay.is_open():
 		_overlay.close()
-	_close_other_pages(&"")
-	_suppress_return = false
+	_switch_page(PAGE_HOME)
 	_refresh_home_facts()
 	_focus_home_default()
+
+## 唯一的页面切换入口：旧页与新页同帧反向滑动，方向由 PAGE_ORDER 决定。
+func _switch_page(target: StringName) -> void:
+	var from_index: int = int(PAGE_ORDER.get(_page, 0))
+	var to_index: int = int(PAGE_ORDER.get(target, 0))
+	var direction: int = 1 if to_index >= from_index else -1
+	_suppress_return = true
+	if _page != target:
+		_close_page(_page, direction)
+		_set_home_slid(target != PAGE_HOME, direction)
+		if target != PAGE_HOME:
+			_open_page(target, direction)
+		_page = target
+	_suppress_return = false
 	_refresh_nav_marks()
 
-func _close_other_pages(keep: StringName) -> void:
-	_suppress_return = true
-	if keep != &"play" and _play_page.is_open():
-		_play_page.close()
-	if keep != &"records" and _record_selector.is_open():
-		_record_selector.close()
-	if keep != &"profile" and _profile_overlay.is_open():
-		_profile_overlay.close()
-	if keep != &"ranking" and _leaderboard_overlay.is_open():
-		_leaderboard_overlay.close()
-	if keep != &"lan" and _lan_overlay.is_open():
-		_lan_overlay.close()
-	_suppress_return = false
+## 页面自己 Back 关掉后回到 Home：Home 从左侧滑回。
+func _return_home(from: StringName) -> void:
+	if _page == PAGE_HOME:
+		return
+	_page = PAGE_HOME
+	_set_home_slid(false, -1)
+
+func _page_node(name: StringName) -> Node:
+	match name:
+		PAGE_PLAY: return _play_page
+		PAGE_RECORDS: return _record_selector
+		PAGE_MULTIPLAYER: return _lan_overlay
+		PAGE_PROFILE: return _profile_overlay
+		PAGE_RANKING: return _leaderboard_overlay
+	return null
+
+func _open_page(name: StringName, direction: int) -> void:
+	var node: Node = _page_node(name)
+	if node != null:
+		node.call("open", direction)
+
+func _close_page(name: StringName, direction: int) -> void:
+	var node: Node = _page_node(name)
+	if node == null or not node.has_method("close"):
+		return
+	node.call("close", direction)
+
+## Home 舞台块与页面互斥：滑出/滑回，方向跟页面切换一致。
+func _set_home_slid(slid_out: bool, direction: int) -> void:
+	if slid_out == _home_slid_out:
+		return
+	_home_slid_out = slid_out
+	var home: Control = $Home
+	if slid_out:
+		UiAnim.slide_out(self, home, direction)
+	else:
+		UiAnim.slide_in(self, home, direction)
 
 func _on_continue_pressed() -> void:
 	var record: GameRecord = _find_last_record()

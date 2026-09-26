@@ -10,6 +10,7 @@ const OVERLAY_EXIT_SEC: float = 0.15
 const PAGE_MOVE_SEC: float = 0.32
 const PAGE_EXIT_SEC: float = 0.2
 const PAGE_RISE_PX: float = 24.0
+const PAGE_SLIDE_SEC: float = 0.32
 const MODAL_ENTER_SCALE: float = 0.96
 const MODAL_EXIT_SEC: float = 0.15
 const HOVER_SEC: float = 0.12
@@ -31,22 +32,30 @@ const MENU_ITEM_STAGGER_SEC: float = 0.07
 const ERROR_FLASH_SEC: float = 0.12
 const READY_FLASH_SEC: float = 0.06
 
-static func enter_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_pause: bool = false) -> Tween:
+## direction: 0 = 淡入 + 上浮（旧行为）；+1 = 从右侧滑入（app 式翻页）；-1 = 从左侧滑入。
+static func enter_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_pause: bool = false, direction: int = 0) -> Tween:
 	var tween: Tween = _make_parallel(host, ignore_pause)
 	_fade_dimmer(tween, dimmer, PAGE_MOVE_SEC, Tween.EASE_OUT)
-	_rise_page_in(tween, panel)
+	if direction == 0:
+		_rise_page_in(tween, panel)
+	else:
+		_slide_panel(tween, panel, direction, true)
 	return tween
 
-static func exit_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_pause: bool = false) -> Tween:
+## direction 与 enter_page 同一含义：+1 表示新页从右侧进 → 本页向左滑出。
+static func exit_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_pause: bool = false, direction: int = 0) -> Tween:
 	var tween: Tween = _make_parallel(host, ignore_pause)
-	var rest_y: float = 0.0
+	var rest: Vector2 = Vector2.ZERO
 	if panel != null:
-		rest_y = panel.position.y
+		rest = panel.position
 		tween.tween_property(panel, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
-		tween.tween_property(panel, "position:y", rest_y + PAGE_RISE_PX, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+		if direction == 0:
+			tween.tween_property(panel, "position:y", rest.y + PAGE_RISE_PX, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+		else:
+			tween.tween_property(panel, "position:x", rest.x - float(direction) * _page_width(panel), PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 	if dimmer != null:
 		tween.tween_property(dimmer, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
-	tween.chain().tween_callback(_reset_page.bind(dimmer, panel, rest_y))
+	tween.chain().tween_callback(_reset_page.bind(dimmer, panel, rest))
 	return tween
 
 static func enter_modal(host: Node, dimmer: CanvasItem, content: CanvasItem, ignore_pause: bool = false) -> Tween:
@@ -255,9 +264,65 @@ static func _rise_panel_in(tween: Tween, panel: CanvasItem) -> void:
 	tween.tween_property(panel, "modulate:a", 1.0, CONTENT_FADE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	tween.tween_property(panel, "position:y", base_y, PAGE_MOVE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
-static func _reset_page(dimmer: CanvasItem, panel: CanvasItem, rest_y: float) -> void:
+## 供 MainMenu 滑 Home 舞台块：direction = 新页进入的方向（+1 右侧）。
+static func slide_out(host: Node, panel: CanvasItem, direction: int, fade: bool = false) -> Tween:
+	var tween: Tween = host.create_tween().set_parallel(true)
+	if panel == null:
+		return tween
+	var base_x: float = _base_x(panel)
+	panel.position.x = base_x
+	tween.tween_property(panel, "position:x", base_x - float(direction) * _page_width(panel), PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	if fade:
+		tween.tween_property(panel, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	return tween
+
+static func slide_in(host: Node, panel: CanvasItem, direction: int, fade: bool = false) -> Tween:
+	var tween: Tween = host.create_tween().set_parallel(true)
+	if panel == null:
+		return tween
+	var rest_x: float = _base_x(panel)
+	panel.position.x = rest_x + float(direction) * _page_width(panel)
+	tween.tween_property(panel, "position:x", rest_x, PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	if fade:
+		panel.modulate.a = 0.0
+		tween.tween_property(panel, "modulate:a", 1.0, PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	else:
+		panel.modulate.a = 1.0
+	return tween
+
+static func _slide_panel(tween: Tween, panel: CanvasItem, direction: int, fade: bool) -> void:
+	if panel == null:
+		return
+	var parent_container: Container = panel.get_parent() as Container
+	if parent_container != null:
+		parent_container.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	var rest_x: float = _base_x(panel)
+	panel.position.x = rest_x + float(direction) * _page_width(panel)
+	if fade:
+		panel.modulate.a = 0.0
+		tween.tween_property(panel, "modulate:a", 1.0, PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(panel, "position:x", rest_x, PAGE_SLIDE_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+
+static func _page_width(panel: CanvasItem) -> float:
+	if panel == null:
+		return 0.0
+	return maxf(panel.get_viewport_rect().size.x, 1.0)
+
+## 面板的静止 x：第一次滑动时记下当时布局值，之后一直用它（Home 的父节点是 Control，
+## 不是 Container，布局不会自己把被移动过的 position 收回来）。
+static func _base_x(panel: CanvasItem) -> float:
+	if panel.has_meta(&"page_base_x"):
+		return float(panel.get_meta(&"page_base_x"))
+	var parent_container: Container = panel.get_parent() as Container
+	if parent_container != null:
+		parent_container.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	var value: float = panel.position.x
+	panel.set_meta(&"page_base_x", value)
+	return value
+
+static func _reset_page(dimmer: CanvasItem, panel: CanvasItem, rest: Vector2) -> void:
 	if panel != null:
-		panel.position.y = rest_y
+		panel.position = rest
 		panel.modulate.a = 1.0
 	if dimmer != null:
 		dimmer.modulate.a = 1.0

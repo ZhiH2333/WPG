@@ -42,7 +42,7 @@ func focus_rank() -> void:
 func is_open() -> bool:
 	return _open
 
-func open() -> void:
+func open(direction: int = 0) -> void:
 	_open = true
 	visible = true
 	_refresh_stats()
@@ -50,16 +50,16 @@ func open() -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel)
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _panel, false, direction)
 	_name_button.grab_focus()
 
-func close() -> void:
+func close(direction: int = 0) -> void:
 	if not _open:
 		return
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _panel, false, direction)
 	_anim_tween.finished.connect(_finish_close)
 	var menu: MainMenu = get_parent() as MainMenu
 	if menu != null:
@@ -82,7 +82,7 @@ func _on_back_pressed() -> void:
 	if not _open:
 		return
 	_play_back()
-	close()
+	close(-1)
 
 func _emit_view_ranking() -> void:
 	_play_click()

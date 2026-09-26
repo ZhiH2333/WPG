@@ -40,7 +40,7 @@ func _ready() -> void:
 func is_open() -> bool:
 	return _open
 
-func open() -> void:
+func open(direction: int = 0) -> void:
 	_open = true
 	visible = true
 	modulate.a = 1.0
@@ -48,16 +48,16 @@ func open() -> void:
 	_refresh_continue()
 	_wire_focus()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet)
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
 	_first_rail().grab_focus()
 
-func close() -> void:
+func close(direction: int = 0) -> void:
 	if not _open:
 		return
 	_open = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet, false, direction)
 	_anim_tween.finished.connect(_finish_close)
 
 func _finish_close() -> void:

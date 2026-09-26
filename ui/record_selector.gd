@@ -85,7 +85,7 @@ func _ready() -> void:
 func is_open() -> bool:
 	return _open
 
-func open() -> void:
+func open(direction: int = 0) -> void:
 	_open = true
 	visible = true
 	modulate.a = 1.0
@@ -96,11 +96,11 @@ func open() -> void:
 	_fit_cards()
 	_refresh_list()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet)
+	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
 	UiAnim.enter_cards(self, _collect_list_cards())
 	_focus_list()
 
-func close() -> void:
+func close(direction: int = 0) -> void:
 	if not _open:
 		return
 	_open = false
@@ -108,7 +108,7 @@ func close() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hide_delete_modal()
 	UiAnim.kill_tween(_anim_tween)
-	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet)
+	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet, false, direction)
 	_anim_tween.finished.connect(_finish_close)
 	_refocus_menu()
 
@@ -158,7 +158,7 @@ func _handle_back() -> void:
 	if _view == View.EDITOR:
 		_enter_list(false)
 		return
-	close()
+	close(-1)
 
 func _on_back_pressed() -> void:
 	_handle_back()

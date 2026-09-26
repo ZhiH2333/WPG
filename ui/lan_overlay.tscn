@@ -49,7 +49,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 48.0
 offset_top = 24.0
-offset_right = -672.0
+offset_right = -48.0
 offset_bottom = -36.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -224,7 +224,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Center" type="CenterContainer" parent="Sheet/Column/Content/HostRoot"]
+[node name="Body" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -232,59 +232,59 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_constants/separation = 48
 
-[node name="Column" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Center"]
+[node name="Left" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
 text = "HOST"
-horizontal_alignment = 1
 
-[node name="RecordHint" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="RecordHint" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-horizontal_alignment = 1
 
-[node name="PortLabel" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="PortLabel" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "port  17777"
-horizontal_alignment = 1
 
-[node name="AddressList" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="AddressList" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "127.0.0.1"
-horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Status" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="Status" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "waiting"
-horizontal_alignment = 1
 
-[node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Boar" type="Button" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters"]
+[node name="Boar" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters"]
 custom_minimum_size = Vector2(240, 200)
 layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 button_pressed = true
 action_mode = 0
@@ -292,7 +292,7 @@ button_group = SubResource("group_host_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters/Boar"]
+[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -307,14 +307,14 @@ mouse_filter = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/VBox"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
@@ -322,7 +322,7 @@ text = "Boar"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
@@ -330,16 +330,17 @@ text = "Tanky."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Chicken" type="Button" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters"]
+[node name="Chicken" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters"]
 custom_minimum_size = Vector2(240, 200)
 layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_host_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters/Chicken"]
+[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -354,14 +355,14 @@ mouse_filter = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/VBox"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
@@ -369,7 +370,7 @@ text = "Chicken"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
@@ -377,77 +378,20 @@ text = "Hard to hit."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="Right" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Yard" type="Button" parent="Sheet/Column/Content/HostRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 44)
-layout_mode = 2
-toggle_mode = true
-button_pressed = true
-action_mode = 0
-button_group = SubResource("group_host_arena")
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "Yard"
-
-[node name="Pit" type="Button" parent="Sheet/Column/Content/HostRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 44)
-layout_mode = 2
-toggle_mode = true
-action_mode = 0
-button_group = SubResource("group_host_arena")
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "Pit"
-
-[node name="Keep" type="Button" parent="Sheet/Column/Content/HostRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 44)
-layout_mode = 2
-toggle_mode = true
-action_mode = 0
-button_group = SubResource("group_host_arena")
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "Keep"
-
-[node name="Modes" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Center/Column"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
-
-[node name="Coop" type="Button" parent="Sheet/Column/Content/HostRoot/Center/Column/Modes"]
-custom_minimum_size = Vector2(200, 44)
-layout_mode = 2
-toggle_mode = true
-button_pressed = true
-action_mode = 0
-button_group = SubResource("group_host_mode")
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "Co-op"
-
-[node name="Battle" type="Button" parent="Sheet/Column/Content/HostRoot/Center/Column/Modes"]
-custom_minimum_size = Vector2(200, 44)
-layout_mode = 2
-toggle_mode = true
-action_mode = 0
-button_group = SubResource("group_host_mode")
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-text = "Battle"
-
-[node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
-alignment = 1
 
-[node name="Slider" type="HSlider" parent="Sheet/Column/Content/HostRoot/Center/Column/LoopRow"]
+[node name="Slider" type="HSlider" parent="Sheet/Column/Content/HostRoot/Body/Right/LoopRow"]
 custom_minimum_size = Vector2(280, 28)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -458,7 +402,7 @@ step = 5.0
 value = 20.0
 rounded = true
 
-[node name="LoopLabel" type="Label" parent="Sheet/Column/Content/HostRoot/Center/Column/LoopRow"]
+[node name="LoopLabel" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Right/LoopRow"]
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 mouse_filter = 2
@@ -466,10 +410,79 @@ theme_type_variation = &"OfferDesc"
 text = "20 loops"
 horizontal_alignment = 2
 
-[node name="Start" type="Button" parent="Sheet/Column/Content/HostRoot/Center/Column"]
+[node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Yard" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Arenas"]
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_pressed = true
+action_mode = 0
+button_group = SubResource("group_host_arena")
+mouse_filter = 0
+theme_type_variation = &"OfferButtonSmall"
+text = "Yard"
+
+[node name="Pit" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Arenas"]
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+action_mode = 0
+button_group = SubResource("group_host_arena")
+mouse_filter = 0
+theme_type_variation = &"OfferButtonSmall"
+text = "Pit"
+
+[node name="Keep" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Arenas"]
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+action_mode = 0
+button_group = SubResource("group_host_arena")
+mouse_filter = 0
+theme_type_variation = &"OfferButtonSmall"
+text = "Keep"
+
+[node name="Modes" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Coop" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Modes"]
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_pressed = true
+action_mode = 0
+button_group = SubResource("group_host_mode")
+mouse_filter = 0
+theme_type_variation = &"OfferButtonSmall"
+text = "Co-op"
+
+[node name="Battle" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Modes"]
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+action_mode = 0
+button_group = SubResource("group_host_mode")
+mouse_filter = 0
+theme_type_variation = &"OfferButtonSmall"
+text = "Battle"
+
+[node name="Start" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right"]
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"PillPink"
 disabled = true
@@ -512,6 +525,7 @@ horizontal_alignment = 1
 [node name="Address" type="LineEdit" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 custom_minimum_size = Vector2(360, 44)
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 0
 text = "127.0.0.1"
 placeholder_text = "IPv4"
@@ -520,7 +534,7 @@ caret_blink = true
 [node name="Connect" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"PillPink"
 text = "Connect"
@@ -540,6 +554,7 @@ alignment = 1
 [node name="Boar" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters"]
 custom_minimum_size = Vector2(240, 200)
 layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 button_pressed = true
 action_mode = 0
@@ -588,6 +603,7 @@ autowrap_mode = 2
 [node name="Chicken" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters"]
 custom_minimum_size = Vector2(240, 200)
 layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_join_character")
