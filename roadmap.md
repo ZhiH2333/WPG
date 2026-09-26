@@ -1,6 +1,6 @@
 # WPG Roadmap
 
-正式路线图，不是临时 TODO。领域与网络规格见 [`docs/ui_lobby_architecture.md`](docs/ui_lobby_architecture.md)。页面布局、wireframe、Back 栈、令牌见 [`docs/ui_screen_spec.md`](docs/ui_screen_spec.md)。逐日契约仍按「一天一个可验收交付」开工前另写 prompt；本文件锁定阶段目标、完成条件和不可违反的架构约束。三份冲突时以本文件为准。
+正式路线图，不是临时 TODO。领域与网络规格见 [`docs/ui_lobby_architecture.md`](docs/ui_lobby_architecture.md)。视觉模型见 [`docs/ui_art_direction.md`](docs/ui_art_direction.md)。页面线框、Back 栈、动效见 [`docs/ui_screen_spec.md`](docs/ui_screen_spec.md)。逐日契约仍按「一天一个可验收交付」开工前另写 prompt。阶段是否开工以本文件为准。视觉冲突以 art direction 为准。线框冲突以 screen spec 为准。
 
 ---
 
@@ -21,7 +21,7 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 
 信息架构参考 osu!lazer 的导航方式：顶栏全局导航、大面积内容空间、主体是视觉舞台、Overlay / Page、键鼠手柄都能走。不机械模仿 osu 的页面构图，也不把 PLAY 做成屏幕中央最大的一颗按钮。
 
-美术方向是 Editorial / Graphic / Tactile：世界负责画面，UI 负责克制的导航。品牌字体是 TypeTogether Playpen Sans。FlatBold 是排版、剪切几何、少量表面、留白、轻材质和稀缺强调色，不是圆角卡片墙，也不是黑底发光 HUD。细则在 [`docs/ui_screen_spec.md`](docs/ui_screen_spec.md) 的 Typography & Art Direction。
+美术方向以 [`docs/ui_art_direction.md`](docs/ui_art_direction.md) 为准：Editorial / Graphic / Tactile，品牌字是 TypeTogether Playpen Sans。世界负责画面，界面负责克制的导航。FlatBold 若还指「每块内容一张深色浮层」，那是旧界面，不是最终方向。线框在 [`docs/ui_screen_spec.md`](docs/ui_screen_spec.md)。
 
 旧作 Wild-Pig-Gun 只允许对照设计。禁止移植其 Autoload、UI 缩放器、云存档、账号、图鉴。
 
@@ -34,30 +34,23 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 | 已有 | 证据 |
 |---|---|
 | Godot 4.6，纯 GDScript，Forward Plus，Autoload = 0 | `project.godot` |
-| 主场景 `ui/main_menu.tscn` | 顶栏 + 中央 shear 三钮 + 多个 Overlay |
-| Profile Overlay | 只读 `GameProgress` + `GameRecords` |
-| 顶栏 Profile 文案 | `"best  %d"`，**不是**玩家名 |
-| 本地存档三分 | `progress.cfg` / `records.json` / `settings.cfg` |
-| ENet 多人、Host 权威、5 座、协议 5、快照 v3 | `GameLaunch.NET_*`、`LanOverlay`、`NetSession` |
-| 游戏口 17777、发现口 17778 | `LanBeacon` Guest 探针 / Host 应答 |
-| LAN 房间列表 + 搜索 + 手打 IP | Day 81 |
-| Co-op 2–5、Battle FFA 2–5、十字出生、Roster 短血 | Day 78–85 |
-| LAN 不写档 | Day 50 起锁死 |
-| UI 动画 / 主题 | `UiAnim`、`UiFit`、`game_theme.tres` FlatBold |
-| 四态音效 hover/click/back/error | 菜单与商店 |
-| 战斗沙盒、句读、商店、跟班、三图 | Day 1–74 内容轨道 |
+| 主菜单信息架构 | 顶栏、舞台、一行身份、Action Rail。没有中央巨大 PLAY |
+| `PlayerProfile` / `user://profile.json` | 顶栏是显示名。统计和档位仍分开 |
+| `LobbyPlayer` / `Room` / `LobbyManager` | 挂在主菜单下。座位 1–5 不前挪。`ready` 默认真 |
+| 离线 mock | `tools/ci/lobby_probe.gd` 调用 `add_mock_guest` / `remove_mock_guest` / `make_launch` / `commit_launch` |
+| 现有局域网 | `LanOverlay` 仍持有 ENet 和大厅 RPC，命令发给 `LobbyManager`。`NetSession` 职责未改 |
+| 协议 5、快照 v3、口 17777 / 17778、5 座、LAN 不写档 | Day 78–85 仍在 |
+| 视觉规格 | `docs/ui_art_direction.md`、`docs/ui_screen_spec.md`。字体还没进 `game_theme.tres` |
 
-明确**还没有**：
+明确**还没有**，也不要写成已完成：
 
-- `PlayerProfile` / `user://profile.json`
-- `LobbyManager` / `Room` / `LobbyPlayer` / `LobbyNet` / `JoinInvite`
-- Ready 状态机（今天 handshake 完成就能 Start）
-- 邀请 URI / QR / token / UPnP / IPv6 fallback
-- 顶栏真实昵称
-- 按意图区分的 Motion System（`exit_overlay` 仍是整页 fade）
-- Playpen Sans 尚未进 `game_theme.tres`
+- 正式多人界面。Phase 5 才做 Create / Join / Lobby / Connecting / Invite。现有局域网面板不是那套界面
+- 测试面板。`Add` / `Remove` / `Seed from record` / `no bind` / 五行 `EMPTY SEAT` 已从玩家界面撤掉，禁止再排版
+- `LobbyNet` / `JoinInvite` / 协议 6 / UPnP / IPv6
+- Ready 的玩家切换。领域里的 `ready` 仍是默认真
+- Playpen Sans 尚未进主题
 
-README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指针。** 主动技能仍是战斗内容，排在大厅离线 mock 能跑之后，不插进 Phase 1–3。
+Phase 3 的完成证明是领域对象和探针，不是一张大厅截图。主动技能仍排在后面，不插进 Phase 4。
 
 ---
 
@@ -144,11 +137,27 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 - 现有 2 人 LAN 仍能开（允许仍走旧 Overlay RPC，只要 Manager 已是命令入口）
 - 无 Autoload；`NetSession` 文件未改职责
 
+### 事实基线（Audit 已接受）
+
+领域层按上面的 DoD 视为完成，不要为了界面重写。
+
+完成证明是探针里的这条链：
+
+```text
+LobbyManager → Room → LobbyPlayer → 假人进出 → make_launch / commit_launch → GameLaunch
+```
+
+玩家看见的正式大厅不是 Phase 3 的证据。`Add`、`Remove`、`Seed from record`、`no bind` 禁止回到正式界面。`add_mock_guest` / `remove_mock_guest` 只留给调试和探针。
+
+现有局域网面板保持原样，直到 Phase 5。不要把它换皮。
+
 ---
 
 ## Phase 4 — Network Integration
 
-目标：UI 不再直接操作 ENet。大厅 RPC 从 Overlay 迁到 `LobbyNet`。战斗 `NetSession` 零改职责。
+**未开工。** 规格已经写下，不等于可以写 `LobbyNet`。下一条明确指令之前，不做 ENet 迁移、协议号、IPv6、UPnP、WAN 或邀请实现。
+
+目标：UI 不再直接操作 ENet。大厅 RPC 从 Overlay 迁到 `LobbyNet`。战斗 `NetSession` 零改职责。Phase 4 不实现 screen spec 里的正式多人页面。
 
 包含：
 
@@ -271,11 +280,11 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 ## Implementation Sequence
 
 ```text
-Phase 1  IA + Design System + Motion 意图     网络零改
-Phase 2  PlayerProfile + 顶栏真名
-Phase 3  Lobby domain + 离线 mock
-Phase 4  LobbyNet 接入现有 ENet / 大厅 RPC
-Phase 5  Create / Join / Lobby UX + Invite
+Phase 1  IA + Design System + Motion 意图     已落地。视觉模型以 art direction 重新锁定，不回头美化旧面板
+Phase 2  PlayerProfile + 顶栏真名             已完成
+Phase 3  Lobby domain + 离线 mock             领域与探针已完成。测试面板不是产品 UI
+Phase 4  LobbyNet                             未开工。等待明确指令
+Phase 5  Create / Join / Lobby UX + Invite    线框已锁定。现在不实现
 Phase 6  动效 / 音效 / 焦点 polish
 ```
 

@@ -1,12 +1,10 @@
 # WPG UI Screen Specification
 
-**版本:** 1.1-ui-screen-spec
-**状态:** 信息层级已锁定，尚未按本文件改代码
-**上位约束:** [`roadmap.md`](../roadmap.md)（最高）→ [`ui_lobby_architecture.md`](ui_lobby_architecture.md)（领域 / 网络 / 职责）→ **本文件**（页面布局 / 动效 / 令牌 / 导航栈）
+**版本:** 1.2-ui-screen-spec
+**状态:** 线框已锁定。本文件不授权现在改界面，也不授权 Phase 4 或 Phase 5 开工。
+**上位约束:** [`roadmap.md`](../roadmap.md)（阶段）→ [`ui_lobby_architecture.md`](ui_lobby_architecture.md)（领域 / 网络）→ [`ui_art_direction.md`](ui_art_direction.md)（视觉模型）→ **本文件**（线框 / 焦点 / Back / 动效）
 
-本文件回答「每个页面长什么样、焦点怎么走、Back 回哪」。它不改核心架构，也不授权公网房间目录。
-
-实现者应能只凭本文件和两份上位文档，做出同一套层级。本轮只锁文档，不开始 Phase 1。
+本文件回答「每一页有哪些事实、焦点怎么走、Back 回哪」。字、色、表面和按钮哲学以 art direction 为准。看见冲突时，不把线框画回中央巨钮或全屏卡片墙。
 
 ---
 
@@ -49,6 +47,12 @@ PLAY = primary user intent
 
 未发现与上表冲突的页面。若以后的稿子把 LAN 行写成「在线房间」或把 PLAY 再画成中央巨钮，以 roadmap 为准，退回本节。
 
+### 0.3 Phase 3 的测试面不是这些页面
+
+Phase 3 完成的是 `LobbyPlayer`、`Room`、`LobbyManager` 和 `tools/ci/lobby_probe.gd`。玩家菜单里的局域网叠层仍是原来的开房工具。曾经放上去又撤掉的 `Offline`、`no bind`、`Add`、`Remove`、`Seed from record`、五行 `EMPTY SEAT`，不是本文件的线框，禁止再排版或换皮。
+
+第 5–18 节是以后的正式页面。多人这些页的实现属于 Phase 5。Phase 4 只接网络，不按这些线框改画面。两段都要等 roadmap 明确开工，本文件写完不等于开工。
+
 ---
 
 ## 1. 锁定的信息层级
@@ -88,208 +92,15 @@ Avatar + Stats + Play 堆在中心
 强层级
 ```
 
-宁可少显示一行，也不要再叠一块面板。锚点用位置和字重建立。实心色块只给 Rail、当前导航、Host 的 Start。其余是字，不是盒子。
-
-视觉语法见下一章。FlatBold 是排版、几何、少量表面、留白、材质和稀缺强调色。它不是圆角卡片，也不是发光描边。
+宁可少显示一行，也不要再叠一块面板。锚点用位置和字重建立。实心色块只给座位组、Host 的 Start、Compact Modal。Rail 是字，不是盒子。视觉模型见 art direction。
 
 ---
 
-## Typography & Art Direction
+## 视觉
 
-这一章锁 WPG 的美术方向。组件、动效和 `game_theme.tres` 的字体变体都从这里长出来。本轮只写规格，不导入字体，不改主题文件。
+字级、颜色、表面、按钮和面板以 [`ui_art_direction.md`](ui_art_direction.md) 为准。本文件不另定一套皮肤。下面的线框只用那些角色：Display、Navigation、Section、Button、Body、Caption、Numeric、Technical。
 
-方向：
-
-```text
-Editorial
-Graphic
-Tactile
-Atmospheric
-Handcrafted
-Restrained
-```
-
-人话：专业游戏的信息架构，手工字体的人味，平面图形，大量留白，少量材质。不是儿童软件，也不是科技 HUD。
-
-世界承担大约七成视觉重量：角色、场景、动态背景。UI 只负责导航和少量事实。高级感来自构图和约束，不来自发光。
-
-禁止：
-
-```text
-Cyber
-Neon
-Glow
-HUD
-纯黑底加纯白字
-粉紫发光
-紫黑渐变
-到处软阴影
-高亮描边当层级
-每个状态都用强调色
-```
-
-### 1. Font family
-
-品牌字体 / Display UI 字体是 TypeTogether 的 **Playpen Sans**。
-
-来源：[TypeTogether/Playpen-Sans](https://github.com/TypeTogether/Playpen-Sans)。OFL 1.1。可变字重从 Thin 到 ExtraBold。每个字符有七个自动交替，并有打散器，避免相邻字形重复。官方说明把它定义为有机、自发、可信的手写感。这是它进入 WPG 的原因。
-
-它也来自拉丁文 handwriting 教学研究，并带一套给儿童的奖励 emoji。那些 emoji **不进入 WPG**。手写感只提供人味，不把界面做成卡通或儿童产品。
-
-实现时放进 `game_theme.tres` 的默认字体栈，用一份可变字体加 `FontVariation`，不要拆成八个互不相干的家族。菜单铬（导航、按钮、房间名、数字）关闭逐帧交替，字形必须稳定。交替只允许用在不参与焦点的品牌瞬间，例如舞台上的字标。
-
-现有 `font_bar_bold` 是旧的粗体槽。Phase 1 实现时把它收成下面的字重角色，不保留第二套科技无衬线当品牌字。
-
-### 2. Weight system
-
-可变轴 `wght` 100–800。界面只用其中四档。其余字重不进主题。
-
-| 角色 | 字重 | 轴 |
-|---|---|---|
-| Display | Bold | 700 |
-| Navigation | Medium | 500 |
-| Section title | SemiBold | 600 |
-| Button / Rail | SemiBold | 600 |
-| Body | Regular | 400 |
-| Caption | Regular | 400 |
-| Numeric / Stats | Medium | 500 |
-| Technical | Regular | 400 |
-
-禁止把 Body、Caption、Technical 升到 Bold。禁止整页都用 ExtraBold。Thin 和 Light 不用于 18px 以下的正文，避免发虚。
-
-### 3. Size scale
-
-画布 1920×1080。行高是像素。字号不随 `ui_scale` 再乘一遍，收缩仍走 `UiFit`。
-
-| 角色 | 字号 | 行高 | 字距 | 一行最长 |
-|---|---|---|---|---|
-| Display | 56 | 64 | +2% | 16 字 |
-| 舞台上的玩家名 | 40 | 48 | 0 | 16 字 |
-| Page 标题 | 32 | 40 | +1% | 24 字 |
-| Navigation | 18 | 24 | +4% | 14 字 |
-| Section title | 14 | 20 | +8% | 24 字 |
-| Button / Rail | 22 | 28 | +2% | 18 字 |
-| Body | 18 | 28 | 0 | 62 字 |
-| Caption | 15 | 22 | +1% | 42 字 |
-| Numeric / Stats | 20 | 24 | 0 | 8 字 |
-| Technical | 14 | 20 | 0 | 72 字 |
-
-玩家名沿用 Profile 的 1–16 可见字符，不把 Display 56 用在名字上。
-
-### 4. Spacing
-
-字距见上表。手写字靠得太紧会粘成一团，所以导航和栏目标签略松，正文不加点距。
-
-垂直节奏仍只用 4 / 8 / 12 / 16 / 24 / 36 / 48。Rail 与上下分隔线的距离是 24。栏目标题与正文的距离是 12。不要用负字距。
-
-### 5. Casing
-
-| 角色 | 大小写 |
-|---|---|
-| Display、玩家名 | 玩家输入的原样。不强制大写 |
-| Navigation、Rail、Section title | 大写，作为短标签 |
-| Body、Caption、状态句 | 句首大写 |
-| Technical | 句首大写。地址和协议号保持原样 |
-| Numeric | 不改写。`Inf` 保持现有拼法 |
-
-大写只给短标签。句子不大写。不要用小型大写去模仿另一套字体。
-
-### 6. Numeric treatment
-
-Playpen Sans 不保证等宽数字。统计不换一套等宽科技字。
-
-数字用 Medium，和左侧标签分成两列对齐。时间、人数、loop 用同一字号。不把分数做成发光计数器。`2/5` 这种比例中间留一个普通斜线，不加图标底。
-
-### 7. CJK fallback
-
-Playpen Sans 覆盖一百五十多种拉丁文，不覆盖中日韩。
-
-主题字体栈：
-
-```text
-1. Playpen Sans      拉丁、数字、标点
-2. 一款指定的伙伴黑体  只补 CJK
-3. 不再向下落到系统 UI 字体
-```
-
-伙伴黑体这一轮不选定、不导入。选定之前，菜单文案保持拉丁文。禁止用 Inter、Segoe UI、PingFang、微软雅黑或思源黑体临时顶上，以免一句中文把气质切成系统界面。
-
-伙伴黑体以后要满足：字重能映射到 Regular / Medium / SemiBold / Bold，笔画有人味，不带霓虹，不带圆体可爱。拉丁字形仍由 Playpen Sans 画，伙伴字体只在缺字时出现。
-
-### 8. Typography examples
-
-Home：
-
-```text
-NIGHTFOX                         Display 名，40 / Bold，原样
-Ready to play                    Caption，15 / Regular，句首大写
-
-CONTINUE          SOLO           Navigation 标签，22 / SemiBold，大写
-Loop 21           New run        Caption
-
-BEST 24                          Section 14 / SemiBold + Numeric 20 / Medium
-```
-
-Join 的技术行：
-
-```text
-192.168.1.20                     Technical，14 / Regular
-Beacon. Not an internet directory.
-```
-
-Lobby 座位：
-
-```text
-NIGHTFOX     HOST     BOAR     READY
-名字 Bold 不升到 ExtraBold。状态是 Caption，不是第二套显示字。
-```
-
-### 9. What not to do
-
-- 不要把所有字都设成 Bold 或 ExtraBold
-- 不要打开奖励 emoji，不要用交替打散器刷新按钮文字
-- 不要为了中文换回 Inter 或系统 UI 字体
-- 不要用字距和全大写把句子排成海报口号
-- 不要用粉紫描边、外发光或软阴影补偿字重
-- 不要为数字单开一套未来感等宽字
-
-### Color
-
-底不是 `#000000`。结构色保持低饱和。
-
-| 角色 | 方向 |
-|---|---|
-| Ground | 深炭黑或深灰绿 |
-| Ink | 骨白、暖白 |
-| Secondary | 灰米、低饱和暖灰 |
-| Structure | 比 Ground 略亮的一条线或一块面 |
-| Accent | 一个品牌色 |
-
-强调色一屏最多出现一次，并且必须有含义：例如 Host 的 Start，或品牌字标。它不用于 Hover，不用于 Focus，不用于描边，不用于每一颗按钮。
-
-现有粉紫 `PillPink` / focus 描边是旧 HUD 语言。新页面不再扩散它。精确色值在实现 Phase 1 时写进 `game_theme.tres`，本轮只锁稀缺规则。
-
-Focus 用骨白下划线或一条 shear 标记，键鼠手柄同一套。不发光。
-
-### Geometry 与 Surface
-
-shear 是几何语言，不是按钮特效。它出现在分隔、当前导航和少量块面上。
-
-实心表面只给：Lobby 的座位组、Host 的 Start、Compact Modal。Home 的 Action Rail 是两条横线之间的三列文字，不是三张卡片。
-
-导航行默认只有字。悬停改变字色到 Ink，不铺一块发光底板。
-
-圆角若出现，仍是 6，并且少见。大多数边缘是剪切或直角。没有胶囊。
-
-### Texture 与 Imagery
-
-允许一层很轻的颗粒或纸感，盖在 Ground 上，不盖住字。禁止用粒子、光晕和扫描线制造质感。
-
-舞台是角色、场景或一张完整的环境画面。UI 不负责把黑底填满。没有新插画时，舞台留空，也不用卡片代替画面。
-
-### Motion
-
-运动说明状态改变：页面进出、座位进出、Ready。不负责制造高级感。禁止发光脉冲、按钮呼吸灯、焦点霓虹。时长仍以第 4 节为准。
+实心表面只给座位组、Host 的 Start、Compact Modal。Home 的 Rail 是两条线之间的文字。空座位不是一张卡。
 
 ---
 
@@ -361,7 +172,7 @@ Drawer。从任何菜单页都能开。打开不关闭底下 Page，关掉仍停
 
 ## 3. 令牌
 
-空间和动效落在现有 `game_theme.tres`。字体角色以上一章为准，实现时写成主题变体。本轮不改 `.tres`。
+空间和动效落在现有 `game_theme.tres`。字体角色以 art direction 为准。本文件不改 `.tres`。
 
 | 令牌 | 值 |
 |---|---|
@@ -371,7 +182,7 @@ Drawer。从任何菜单页都能开。打开不关闭底下 Page，关掉仍停
 | 内容最大宽 | 1200。舞台本身可全宽，字和 Rail 不超过 1200 |
 | Spacing | 只许 4 / 8 / 12 / 16 / 24 / 36 / 48 |
 
-字号、字重、字距和大小写见 Typography & Art Direction。这里不另定一套。
+字号、字重、字距和大小写见 art direction。这里不另定一套。
 
 | 控件 | 尺寸 | 样式 |
 |---|---|---|

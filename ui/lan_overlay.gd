@@ -1,7 +1,7 @@
 extends Control
 class_name LanOverlay
 
-## 主菜单局域网叠层：JOIN 房间列表 / PICK / HOST。Multi 直接进发现。Create a room 开房。Host 可借已有档预填角色、loop_goal 和地图，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。座位 1～5，第三人进房不踢，满 5 才踢。大厅 Host 听 17778，Guest 探针。
+## 主菜单局域网叠层：JOIN 房间列表 / PICK / HOST。画面仍是原来的局域网面板。开房、占座、借档、开战发给 LobbyManager。ENet 与 RPC 仍留在本叠层。假人进出不出现在这个界面。禁止 Autoload，禁止 AcceptDialog。座位 1～5，第三人进房不踢，满 5 才踢。大厅 Host 听 17778，Guest 探针。
 signal start_lan
 
 enum View { HOME, PICK, HOST, JOIN }
@@ -25,7 +25,9 @@ var _seat_peer_ids: PackedInt32Array = PackedInt32Array()
 var _seat_character_ids: PackedStringArray = PackedStringArray()
 var _seat_handshake: PackedByteArray = PackedByteArray()
 var _roster_character_ids: PackedStringArray = PackedStringArray()
+var _guest_seat: int = 1
 var _beacon: LanBeacon
+var _lobby: LobbyManager
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Center/Panel
@@ -101,8 +103,9 @@ func _ready() -> void:
 	_back_button.pressed.connect(_handle_back)
 	for button: Button in [_host_button, _join_button, _create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
 		_wire_hover(button)
+	_bind_lobby()
 	UiFit.connect_refit(self, _on_host_resized)
-	_reset_seats()
+	_project_from_room()
 	_ensure_beacon()
 	_join_search.text_changed.connect(_on_join_search_changed)
 	_enter_join()
@@ -132,6 +135,7 @@ func close() -> void:
 		return
 	_open = false
 	_picked_record_id = ""
+	_abandon_room()
 	_clear_peer()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
@@ -184,7 +188,7 @@ func _handle_back() -> void:
 	if _view == View.PICK:
 		_enter_join()
 		return
-	_clear_peer()
+	_leave_room_view()
 	if _view == View.HOST and not _picked_record_id.is_empty():
 		_enter_pick()
 		return
@@ -225,11 +229,7 @@ func _on_pick_record_pressed(record_id: String) -> void:
 
 func _enter_pick() -> void:
 	_stop_beacon()
-	_view = View.PICK
-	_home_root.visible = false
-	_host_root.visible = false
-	_join_root.visible = false
-	_pick_root.visible = true
+	_apply_view(View.PICK)
 	_refresh_pick()
 	_play_pick_enter()
 	_focus_pick()
@@ -256,13 +256,15 @@ func _enter_host_from_record(record: GameRecord) -> void:
 	_begin_host()
 
 func _begin_host() -> void:
-	_view = View.HOST
-	_home_root.visible = false
-	_pick_root.visible = false
-	_join_root.visible = false
-	_host_root.visible = true
+	_abandon_room()
+	_apply_view(View.HOST)
 	_host_address.text = _format_addresses()
-	_reset_seats()
+	if not _open_host_room():
+		_host_status.text = "bind failed"
+		_play_error()
+		_refresh_host_start()
+		return
+	_project_from_room()
 	_refresh_host_status()
 	_refresh_host_start()
 	if not _create_server():
@@ -278,11 +280,7 @@ func _begin_host() -> void:
 	_back_button.grab_focus()
 
 func _enter_join() -> void:
-	_view = View.JOIN
-	_home_root.visible = false
-	_pick_root.visible = false
-	_host_root.visible = false
-	_join_root.visible = true
+	_apply_view(View.JOIN)
 	_reset_character()
 	_join_edit.text = GameLaunch.DEFAULT_JOIN_ADDRESS
 	_join_status.text = ""
@@ -301,7 +299,7 @@ func _create_server() -> bool:
 	if err != OK:
 		return false
 	multiplayer.multiplayer_peer = peer
-	_reset_seats()
+	_project_from_room()
 	return true
 
 func _on_connect_pressed() -> void:
@@ -349,8 +347,11 @@ func _unwire_multiplayer() -> void:
 func _on_peer_connected(id: int) -> void:
 	if not multiplayer.is_server():
 		return
-	var seat: int = _assign_guest_seat(id)
-	if seat < 2:
+	var seat: int = 0
+	if _lobby != null:
+		seat = _lobby.occupy_remote(id, CHAR_BOAR)
+	_project_from_room()
+	if seat < Room.FIRST_GUEST_SEAT:
 		multiplayer.multiplayer_peer.disconnect_peer(id)
 		return
 	_refresh_host_status()
@@ -360,9 +361,11 @@ func _on_peer_connected(id: int) -> void:
 func _on_peer_disconnected(id: int) -> void:
 	if not multiplayer.is_server():
 		return
-	if _seat_for_peer(id) < 2:
+	if _seat_for_peer(id) < Room.FIRST_GUEST_SEAT:
 		return
-	_clear_seat_of_peer(id)
+	if _lobby != null:
+		_lobby.vacate_peer(id)
+	_project_from_room()
 	_refresh_host_status()
 	_refresh_host_start()
 	_broadcast_roster()
@@ -409,10 +412,12 @@ func rpc_hello_ok() -> void:
 	if not multiplayer.is_server():
 		return
 	var sender: int = multiplayer.get_remote_sender_id()
+	if _lobby != null:
+		_lobby.mark_connected(sender)
+	_project_from_room()
 	var seat: int = _seat_for_peer(sender)
-	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
+	if seat < Room.FIRST_GUEST_SEAT or seat > GameLaunch.NET_MAX_SEATS:
 		return
-	_seat_handshake[seat - 1] = 1
 	_refresh_host_status()
 	_refresh_host_start()
 	rpc_assign_seat.rpc_id(sender, seat)
@@ -425,31 +430,27 @@ func rpc_guest_character(character_id: String) -> void:
 		return
 	var sender: int = multiplayer.get_remote_sender_id()
 	var seat: int = _seat_for_peer(sender)
-	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
+	if seat < Room.FIRST_GUEST_SEAT or seat > GameLaunch.NET_MAX_SEATS:
 		return
-	_seat_character_ids[seat - 1] = GameLaunch._sanitize_character_id(character_id)
+	if _lobby != null:
+		_lobby.set_remote_character(sender, character_id)
+	_project_from_room()
 	_broadcast_roster()
 
 @rpc("authority", "call_remote", "reliable")
 func rpc_assign_seat(seat: int) -> void:
-	var clamped: int = clampi(seat, 1, GameLaunch.NET_MAX_SEATS)
-	GameLaunch.set_local_seat(clamped)
+	_guest_seat = clampi(seat, Room.HOST_SEAT, GameLaunch.NET_MAX_SEATS)
 	_join_seat.visible = true
-	_join_seat.text = "seat  %d" % clamped
+	_join_seat.text = "seat  %d" % _guest_seat
 
 @rpc("authority", "call_remote", "reliable")
 func rpc_roster(data: PackedByteArray) -> void:
 	_roster_character_ids = _decode_roster(data)
-	GameLaunch.set_lan_roster(_roster_character_ids, _empty_peer_ids(), 0)
 
 @rpc("authority", "call_remote", "reliable")
 func rpc_begin(loop_goal: int, arena_id: String, net_play: int) -> void:
 	_host_started = true
-	GameLaunch.set_lan_roster(_roster_character_ids, _empty_peer_ids(), loop_goal)
-	GameLaunch.set_net_role(GameLaunch.NetRole.GUEST)
-	GameLaunch.set_join_address(_join_edit.text)
-	GameLaunch.set_arena_id(arena_id)
-	GameLaunch.set_net_play(_play_from_net(net_play))
+	_commit_guest_launch(loop_goal, arena_id, net_play)
 	start_lan.emit()
 
 @rpc("authority", "call_remote", "reliable")
@@ -478,28 +479,32 @@ func _on_start_pressed() -> void:
 	if not _can_start():
 		return
 	_play_click()
-	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
-	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
-	_seat_character_ids[0] = _selected_character_id
-	_seat_peer_ids[0] = 1
-	GameLaunch.set_lan_roster(_seat_character_ids.duplicate(), _seat_peer_ids.duplicate(), loop_goal)
-	GameLaunch.set_local_seat(1)
-	GameLaunch.set_net_role(GameLaunch.NetRole.HOST)
-	GameLaunch.set_arena_id(arena_id)
-	GameLaunch.set_net_play(_net_play)
+	_push_host_rules()
+	if _lobby == null:
+		return
+	var launch: Dictionary = _lobby.make_launch()
+	if launch.is_empty() or not _lobby.commit_launch(launch):
+		_play_error()
+		return
 	_host_started = true
 	_stop_beacon()
+	_project_from_room()
 	var packed: PackedByteArray = _encode_roster()
+	var loop_goal: int = int(launch[LobbyManager.KEY_LOOP])
+	var arena_id: String = str(launch[LobbyManager.KEY_ARENA])
+	var net_play: int = int(launch[LobbyManager.KEY_PLAY])
 	for peer: int in _handshake_guest_peers():
 		rpc_roster.rpc_id(peer, packed)
 		rpc_goal.rpc_id(peer, loop_goal)
 		rpc_arena.rpc_id(peer, arena_id)
-		rpc_play_mode.rpc_id(peer, int(_net_play))
-		rpc_begin.rpc_id(peer, loop_goal, arena_id, int(_net_play))
+		rpc_play_mode.rpc_id(peer, net_play)
+		rpc_begin.rpc_id(peer, loop_goal, arena_id, net_play)
 	start_lan.emit()
 
 func _on_loop_changed(_value: float) -> void:
 	_refresh_loop_label()
+	if _view == View.HOST and _lobby != null:
+		_lobby.set_loop_goal(maxi(roundi(_loop_slider.value), 0))
 	_broadcast_goal()
 	_sync_host_beacon()
 
@@ -509,10 +514,11 @@ func _select_character(character_id: String) -> void:
 	_host_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
 	_join_boar.button_pressed = _selected_character_id == CHAR_BOAR
 	_join_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
-	if _view == View.HOST:
-		_seat_character_ids[0] = _selected_character_id
+	if _view == View.HOST and _lobby != null:
+		_lobby.set_character(_selected_character_id)
+		_project_from_room()
 		_broadcast_roster()
-	if _view == View.JOIN and multiplayer.multiplayer_peer != null:
+	if _view == View.JOIN and _has_live_peer() and not multiplayer.is_server():
 		rpc_guest_character.rpc_id(1, _selected_character_id)
 
 func _select_arena(arena_id: String) -> void:
@@ -520,6 +526,8 @@ func _select_arena(arena_id: String) -> void:
 	_host_yard.button_pressed = _selected_arena_id == "yard"
 	_host_pit.button_pressed = _selected_arena_id == "pit"
 	_host_keep.button_pressed = _selected_arena_id == "keep"
+	if _view == View.HOST and _lobby != null:
+		_lobby.set_arena(_selected_arena_id)
 	_broadcast_arena()
 	_sync_host_beacon()
 
@@ -552,6 +560,8 @@ func _select_net_play(play: GameLaunch.NetPlay) -> void:
 	_host_battle.button_pressed = play == GameLaunch.NetPlay.BATTLE
 	_refresh_mode_ui()
 	_refresh_host_start()
+	if _view == View.HOST and _lobby != null:
+		_lobby.set_net_play(play)
 	_broadcast_play_mode()
 	_sync_host_beacon()
 
@@ -684,11 +694,14 @@ func _fill_character(button: Button, character_id: String) -> void:
 	if desc != null:
 		desc.text = def.description if def != null else ""
 
+func _has_live_peer() -> bool:
+	return multiplayer.multiplayer_peer is ENetMultiplayerPeer
+
 func _clear_peer() -> void:
 	_stop_beacon()
 	_unwire_multiplayer()
 	if not _host_started:
-		_reset_seats()
+		_project_from_room()
 	if _host_started:
 		return
 	var peer: MultiplayerPeer = multiplayer.multiplayer_peer
@@ -753,40 +766,104 @@ func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
 	_sfx_gate[key] = frame
 	player.play()
 
-func _reset_seats() -> void:
+func _bind_lobby() -> void:
+	var menu: Node = get_parent()
+	if menu == null:
+		return
+	_lobby = menu.get_node_or_null("LobbyManager") as LobbyManager
+	if _lobby == null:
+		return
+	if not _lobby.room_changed.is_connected(_on_room_changed):
+		_lobby.room_changed.connect(_on_room_changed)
+
+func _on_room_changed(_room: Variant) -> void:
+	_project_from_room()
+	if _view != View.HOST:
+		return
+	_refresh_host_status()
+	_refresh_host_start()
+
+func _apply_view(next: View) -> void:
+	_view = next
+	_home_root.visible = next == View.HOME
+	_pick_root.visible = next == View.PICK
+	_host_root.visible = next == View.HOST
+	_join_root.visible = next == View.JOIN
+
+func _abandon_room() -> void:
+	if _lobby == null:
+		return
+	_lobby.close_room()
+
+func _leave_room_view() -> void:
+	_abandon_room()
+	_clear_peer()
+
+func _open_host_room() -> bool:
+	if _lobby == null or not _lobby.create_room():
+		return false
+	if _picked_record_id.is_empty():
+		_lobby.set_character(_selected_character_id)
+		_lobby.set_arena(_selected_arena_id)
+		_lobby.set_loop_goal(maxi(roundi(_loop_slider.value), 0))
+		_lobby.set_net_play(_net_play)
+		return true
+	if _lobby.seed_from_record(_picked_record_id):
+		return true
+	_abandon_room()
+	return false
+
+func _push_host_rules() -> void:
+	if _lobby == null:
+		return
+	_lobby.set_character(_selected_character_id)
+	_lobby.set_arena(_selected_arena_id)
+	_lobby.set_loop_goal(maxi(roundi(_loop_slider.value), 0))
+	_lobby.set_net_play(_net_play)
+
+func _commit_guest_launch(loop_goal: int, arena_id: String, net_play: int) -> void:
+	if _lobby == null:
+		return
+	var launch: Dictionary = {
+		LobbyManager.KEY_CHARACTERS: _roster_character_ids.duplicate(),
+		LobbyManager.KEY_PEERS: _empty_peer_ids(),
+		LobbyManager.KEY_LOOP: loop_goal,
+		LobbyManager.KEY_ARENA: arena_id,
+		LobbyManager.KEY_PLAY: int(_play_from_net(net_play)),
+		LobbyManager.KEY_SEAT: _guest_seat,
+		LobbyManager.KEY_ROLE: int(GameLaunch.NetRole.GUEST),
+		LobbyManager.KEY_ADDRESS: _join_edit.text,
+	}
+	_lobby.commit_launch(launch)
+
+func _project_from_room() -> void:
+	_blank_seats()
+	if _lobby == null or _lobby.get_room() == null:
+		_seat_peer_ids[0] = LobbyManager.HOST_PEER_ID
+		_seat_character_ids[0] = _selected_character_id
+		_seat_handshake[0] = 1
+		return
+	for player: LobbyPlayer in _lobby.get_room().players:
+		_write_projected_seat(player)
+
+func _write_projected_seat(player: LobbyPlayer) -> void:
+	var index: int = player.seat - 1
+	if index < 0 or index >= GameLaunch.NET_MAX_SEATS:
+		return
+	_seat_peer_ids[index] = player.peer_id
+	_seat_character_ids[index] = player.selected_character_id
+	_seat_handshake[index] = 1 if player.has_joined() else 0
+
+func _blank_seats() -> void:
 	_seat_peer_ids = PackedInt32Array()
 	_seat_peer_ids.resize(GameLaunch.NET_MAX_SEATS)
 	_seat_peer_ids.fill(0)
-	_seat_peer_ids[0] = 1
 	_seat_character_ids = PackedStringArray()
 	_seat_character_ids.resize(GameLaunch.NET_MAX_SEATS)
 	_seat_character_ids.fill("")
-	_seat_character_ids[0] = _selected_character_id
 	_seat_handshake = PackedByteArray()
 	_seat_handshake.resize(GameLaunch.NET_MAX_SEATS)
 	_seat_handshake.fill(0)
-	_seat_handshake[0] = 1
-	_roster_character_ids = PackedStringArray()
-	_roster_character_ids.resize(GameLaunch.NET_MAX_SEATS)
-
-func _assign_guest_seat(peer_id: int) -> int:
-	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
-		if _seat_peer_ids[seat - 1] != 0:
-			continue
-		_seat_peer_ids[seat - 1] = peer_id
-		_seat_character_ids[seat - 1] = CHAR_BOAR
-		_seat_handshake[seat - 1] = 0
-		return seat
-	return 0
-
-func _clear_seat_of_peer(peer_id: int) -> void:
-	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
-		if _seat_peer_ids[seat - 1] != peer_id:
-			continue
-		_seat_peer_ids[seat - 1] = 0
-		_seat_character_ids[seat - 1] = ""
-		_seat_handshake[seat - 1] = 0
-		return
 
 func _seat_for_peer(peer_id: int) -> int:
 	if peer_id <= 0:
@@ -834,7 +911,7 @@ func _refresh_host_status() -> void:
 	_sync_host_beacon()
 
 func _encode_roster() -> PackedByteArray:
-	_seat_character_ids[0] = _selected_character_id
+	_project_from_room()
 	var buf: StreamPeerBuffer = StreamPeerBuffer.new()
 	var n: int = _occupied_count()
 	buf.put_u8(n)

@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://ui/lan_overlay.tscn" id="17_lan"]
 [ext_resource type="PackedScene" path="res://ui/record_leaderboard_overlay.tscn" id="19_leaderboard"]
 [ext_resource type="PackedScene" path="res://ui/play_page.tscn" id="20_play"]
+[ext_resource type="Script" path="res://ui/lobby_manager.gd" id="21_lobby"]
 
 [sub_resource type="ShaderMaterial" id="mat_blur"]
 shader = ExtResource("5_blur")
@@ -335,6 +336,9 @@ offset_top = 60.0
 [node name="RecordLeaderboardOverlay" parent="." instance=ExtResource("19_leaderboard")]
 layout_mode = 1
 offset_top = 60.0
+
+[node name="LobbyManager" type="Node" parent="."]
+script = ExtResource("21_lobby")
 
 [node name="LanOverlay" parent="." instance=ExtResource("17_lan")]
 layout_mode = 1
