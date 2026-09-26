@@ -44,7 +44,12 @@ static func enter_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore
 		_fade_dimmer(tween, dimmer, PAGE_MOVE_SEC, Tween.EASE_OUT)
 		_rise_page_in(tween, panel)
 	else:
-		# 方向翻页：纸带整体滑入，本体与 Dimmer 都不淡入，位移曲线与 exit_page 严格一致。
+		# 方向翻页：纸带整体滑入。Dimmer 必须与离开的那张**同曲线交叉**淡入 ——
+		# 两张 Dimmer 都是全屏的，a_in + a_out == 1 就保证整屏遮罩总量恒定，
+		# 否则两层 0.42 会叠成 ~0.66，切的那一瞬间整屏会暗一下。
+		if dimmer != null:
+			dimmer.modulate.a = 0.0
+			tween.tween_property(dimmer, "modulate:a", 1.0, PAGE_SLIDE_SEC).set_trans(PAGE_SLIDE_TRANS).set_ease(PAGE_SLIDE_EASE)
 		_slide_panel(tween, panel, direction)
 	return tween
 
@@ -59,8 +64,12 @@ static func exit_page(host: Node, dimmer: CanvasItem, panel: CanvasItem, ignore_
 			tween.tween_property(panel, "position:y", rest.y + PAGE_RISE_PX, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
 		else:
 			tween.tween_property(panel, "position:x", rest.x - float(direction) * _page_width(panel), PAGE_SLIDE_SEC).set_trans(PAGE_SLIDE_TRANS).set_ease(PAGE_SLIDE_EASE)
-	if dimmer != null and direction == 0:
-		tween.tween_property(dimmer, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	if dimmer != null:
+		if direction == 0:
+			tween.tween_property(dimmer, "modulate:a", 0.0, PAGE_EXIT_SEC).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+		else:
+			# 与 enter_page 的反向交叉：a_out = 1 - a_in，遮罩总量恒定。
+			tween.tween_property(dimmer, "modulate:a", 0.0, PAGE_SLIDE_SEC).set_trans(PAGE_SLIDE_TRANS).set_ease(PAGE_SLIDE_EASE)
 	tween.chain().tween_callback(_reset_page.bind(dimmer, panel, rest))
 	return tween
 
