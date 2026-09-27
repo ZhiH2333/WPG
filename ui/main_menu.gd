@@ -81,6 +81,8 @@ func _ready() -> void:
 	GameSettings.apply()
 	GameProgress.load_from_disk()
 	GameRecords.load_from_disk()
+	PlayerProfile.load_from_disk()
+	refresh_profile_label()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
@@ -333,7 +335,7 @@ func _finish_leave_to_sandbox() -> void:
 	LOADING_SCREEN_SCRIPT.switch_current(get_tree())
 
 func _refresh_player_labels() -> void:
-	_player_name.text = PLACEHOLDER_NAME
+	_player_name.text = PlayerProfile.get_display_name()
 	_player_status.text = "Ready to play"
 
 func _refresh_home_facts() -> void:
@@ -469,6 +471,11 @@ func _secondary_focus() -> Control:
 func _set_horizontal(control: Control, left: Control, right: Control) -> void:
 	control.focus_neighbor_left = left.get_path()
 	control.focus_neighbor_right = right.get_path()
+
+## 顶栏 PROFILE 项显示 display_name（不再是 "best  0"，也没有第二处名字槽）。
+func refresh_profile_label() -> void:
+	_top_profile_button.text = "PROFILE"
+	_refresh_nav_marks()
 
 func _refresh_nav_marks() -> void:
 	var current: Button = _home_button

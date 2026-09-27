@@ -1,7 +1,7 @@
 # WPG UI / UX / Lobby Architecture Specification
 
 **版本:** 1.0-ui-lobby-arch
-**状态:** 规格已锁定，尚未大规模改代码
+**状态:** Phase 1（UI/UX 统一重构）与 Phase 2（PlayerProfile）**已落地**；§3.1 已实现，§4 起（LobbyManager / LobbyNet / JoinInvite / 门票握手 / P2P 预留）为 Phase 3 与 Phase 7–9 的目标，代码尚未建立。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
 **配套:** 根目录 [`roadmap.md`](../roadmap.md)（阶段 / 硬约束）· [`ui_screen_spec.md`](ui_screen_spec.md)（页面布局 / 动效 / 导航栈）
 
 布局、CTA 层级、wireframe、Back 栈以 `ui_screen_spec.md` 为准。本文件管领域模型、职责、网络与换场。冲突时 `roadmap.md` 最高。
@@ -15,21 +15,29 @@
 当前真实路径（Day 1–85 已完成，Autoload = 0）：
 
 ```text
-MainMenu
-  +- TopBar: Settings / Home / Solo / Multi / Profile("best %d") / Clock
-  +- Center: Logo + Settings / Play / Quit 三颗 shear 平行四边形
-  +- ModeChoiceOverlay     Play 路由器，不记上次选择
-  +- RecordSelector        Solo 档位大面板
-  +- ProfileOverlay        只读 GameProgress + GameRecords
-  +- RecordLeaderboardOverlay
-  +- SettingsOverlay       抽屉
-  +- LanOverlay            UI + ENet + 大厅 RPC + 座位表 + LanBeacon + 写 GameLaunch
+MainMenu（F5 主场景；无 Autoload）
+  +- TopBar: [WPG 图标] HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS / 时钟
+  |           （每项带图标；右端只有时钟；PROFILE 文案 = PlayerProfile.display_name）
+  +- Home: Stage(spacer) + Name("Player") + Status("Ready to play")
+  |        + Action Rail：CONTINUE / SOLO / MULTIPLAYER + Secondary(BEST LOOP / LAST RUN) + Quit
+  +- PlayPage              PLAY 页（三条 Rail + Back）
+  +- RecordSelector         RECORDS Page（LIST / EDITOR + 删除确认 Modal）
+  +- ProfileOverlay         PROFILE Page（就地改昵称 / 头像 / 常用角色）
+  +- RecordLeaderboardOverlay  RANKING Page
+  +- SettingsOverlay        抽屉（叠在当前页上）
+  +- LanOverlay             MULTIPLAYER Page：PICK / HOST / JOIN
+  +- CreditsOverlay / RoomNotice（战斗侧 Modal 的菜单内对应物）
   start_lan / selected_record
     -> GameLaunch 静态信封（take 一次）
     -> CombatSandbox
          +- RunSession     本局 XP / gold / outcome
-         +- NetSession     局内 20Hz / 商店 / winner / pause
+         +- NetSession     战斗网络（20Hz 快照 v3；只服务战斗，不建连）
+         +- LanBeacon      17778 房间发现（UDP 探针 / 应答）
+         +- Hud / WinnerPage / UpgradeOffer / ShopOffer / PauseOverlay / RoomNotice
 ```
+
+（UI 形态：Page / Modal / Drawer 三选一，Page 不套大面板；顶栏 tab 之间是水平翻页。细节见 `ui_screen_spec.md`。）
+
 
 关键文件体量：
 
@@ -308,5 +316,37 @@ wpg://join?v=6&t=TOKEN&lan=...&lp=17777&wan=...&wp=49152&ip6=...
 ## 4. 运行时职责（不要叫错名字）
 
 用户口中的 NetworkSession，在 GDScript 里 **不要** `class_name NetworkSession`。仓库已有战斗 `NetSession`。两套 Session 同名会把 CombatSandbox 和大厅 RPC 缠死。
+
+命名与分层是硬约束，抄 `roadmap.md` 的 Architecture Rules：
+
+| 对象 | 类型 / 位置 | 职责 | 禁止 |
+|---|---|---|---|
+| `PlayerProfile` | `ui/player_profile.gd`，static `Object` | 本机身份（`user://profile.json`）；`get_public_profile()` 只发公开四字段 | 不负责 Network；不能当 Autoload；不写 progress / records / settings |
+| `LobbyPlayer` | `RefCounted`（大厅域对象） | 房间内实例：`profile_id / display_name / avatar_id / peer_id / seat / selected_character_id / ready / connection_state / is_host / path / rtt_ms` | 不落盘；不持有 ENet 对象 |
+| `Room` | `RefCounted`（大厅域对象） | 房间身份与状态：seats 1–5（Host = seat 1）、room lifecycle、模式 / 地图 / `loop_goal` 种子 | Room **不是** IP；不直接处理 socket |
+| `LobbyManager` | `Node`，挂在 MainMenu 下 | 大厅唯一状态机 + 唯一命令入口（create / join / leave / ready / start / invite）；决定状态 | **不是 Autoload**；不碰 ENet API |
+| `LobbyNet` | `Node`（Phase 7 建立） | 建连 / 关连 / 大厅 RPC：`host_listen` / `client_connect` / `disconnect` / `hello` / `roster` / `ready` / `start` / `invite` / connection state | 不决定 UI 状态；不承担战斗流量 |
+| `JoinInvite` | static（Phase 8 建立） | `create()` / `parse()` 连接信息（LAN IPv4 / IPv6 / WAN IPv4）；UI 只调这两个 | UI 禁止自己拼 IP / Port / Token |
+| `NetSession` | `arena/net_session.gd`（已存在） | 战斗内同步（输入 / 快照 v3 / 局内事件）；复用具 SceneTree 上的 peer | **职责不改**：不建连、不管大厅、不做发现 |
+| `LanBeacon` | `arena/lan_beacon.gd`（已存在） | 同网发现（17778 UDP）；进战斗停信标 | 不扫网段；不做游戏流量 |
+| `GameLaunch` | static 信封 | 换场一次性交接（`take` 一次） | 不进 Autoload；不长期持有大厅对象 |
+
+### 4.1 硬规则（每条都有历史教训）
+
+1. UI 不直接操作 ENet：`ENetMultiplayerPeer.new()` 只允许出现在 `LobbyNet`。当前唯一越界点是 `ui/lan_overlay.gd`（Phase 7 迁走）。
+2. Feature 阶段不允许两套 `multiplayer_peer` 同时工作；SceneTree 同一时间一个 peer。
+3. 协议因门票握手只 bump 一次 5 → 6；不要为显示名 / 房间名单独 bump。
+4. 席位 1–5 保持，Host = 1，号不前挪，满员才踢；`ready` 第一刀默认 `true`。
+5. LAN 不写档；Host 借档只把种子写进 `Room`，不广播 `records.json`，`progress.cfg` 同理。
+6. 战斗掉线沿用现有 `peer_lost`；1.0 不做重连与 Host 迁移。
+7. 无 Autoload：`LobbyManager` 是 MainMenu 子节点；大厅对象随主菜单场景销毁，进沙盒后只剩 `GameLaunch` 快照。
+8. 每一刀都必须能 F5 进现有 Solo；拆大厅中途若不能开房，这一刀不算完成。
+
+## 5. 换场与连接信息（Phase 3 / 7 / 8 的目标态）
+
+- 离线 mock（Phase 3）：`LobbyManager` 自己维护 `Room` + 假 `LobbyPlayer` 进出，`Start` 直接写 `GameLaunch`，可不 bind 17777。
+- 接网（Phase 7）：`LobbyManager` 发命令 → `LobbyNet` 执行 ENet 与大厅 RPC；pending peer 不进 `Room.players`，认证失败 disconnect 且 occupied 不变。
+- WAN / P2P 预留（Phase 8）：`JoinInvite.create()` / `parse()` 是 UI 的唯一入口；`ConnectionPath` 枚举 `LAN_IPV4 / IPV6 / WAN_IPV4`；协议 bump 5 → 6 与门票握手同一天落地。
+- P2P（Phase 9）：Host / Guest 各自与 rendezvous 交换连接信息后走 Direct UDP，rendezvous 不承担游戏流量；必须定义连接超时、打洞超时、直连失败与手动连接文案，且**不承诺**所有 NAT 都能直连。
 
 [Showing lines 1-300 of 578. Use :301 to continue]

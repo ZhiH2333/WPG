@@ -34,9 +34,9 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 | 已有 | 证据 |
 |---|---|
 | Godot 4.6，纯 GDScript，Forward Plus，Autoload = 0 | `project.godot` |
-| 主场景 `ui/main_menu.tscn` | 顶栏 + 中央 shear 三钮 + 多个 Overlay |
-| Profile Overlay | 只读 `GameProgress` + `GameRecords` |
-| 顶栏 Profile 文案 | `"best  %d"`，**不是**玩家名 |
+| 主场景 `ui/main_menu.tscn` | 顶栏（WPG 图标 + HOME/PLAY/MULTIPLAYER/PROFILE/SETTINGS + 时钟）+ Home 舞台块（Stage / Name / Status / Action Rail / Secondary / Quit）+ 6 层叠层 |
+| Profile 页（Page 形态，`PAGE_PROFILE`） | 只读 `GameProgress` + `GameRecords`；昵称/头像/常用角色已就地读写 `PlayerProfile` |
+| 顶栏 | 右端只有时钟，五个 tab 无名字/头像槽；PROFILE 项文案 = `PlayerProfile.display_name` |
 | 本地存档三分 | `progress.cfg` / `records.json` / `settings.cfg` |
 | ENet 多人、Host 权威、5 座、协议 5、快照 v3 | `GameLaunch.NET_*`、`LanOverlay`、`NetSession` |
 | 游戏口 17777、发现口 17778 | `LanBeacon` Guest 探针 / Host 应答 |
@@ -54,14 +54,38 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 - Ready 状态机（今天 handshake 完成就能 Start）
 - 邀请 URI / QR / token / UPnP / IPv6 fallback
 - 顶栏真实昵称
-- 按意图区分的 Motion System（`exit_overlay` 仍是整页 fade）
-- Playpen Sans 尚未进 `game_theme.tres`
+- Playpen Sans 尚未进 `game_theme.tres`（仓库无任何 `.ttf/.otf`，主题仍是 system 回落 Inter/Segoe UI/Noto Sans/Arial）
+- 战斗侧 4 个 overlay 仍用 `enter_overlay/exit_overlay`（`pause_overlay` / `shop_offer` / `upgrade_offer` / `room_notice`），归 Phase 6
+- 无 Warning / Success 语义令牌
 
+README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指针。**
 README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指针。** 主动技能仍是战斗内容，排在大厅离线 mock 能跑之后，不插进 Phase 1–3。
 
 ---
 
-## Phase 1 — UI / UX Architecture
+## 阶段划分（2026-09-26 起，当前有效）
+
+下面 Phase 1–6 是上一轮编号，其 **Non-Goals / Architecture Rules / 各段「不做」清单继续是硬约束**；阶段排期与验收以下表为准（内容吸收旧的 Phase 3–6）。
+
+| # | 阶段 | 状态 | 核心交付 | 不做 |
+|---|---|---|---|---|
+| 1 | 文档同步 | 已完成 | 四份文档与 dev 代码一致；删掉「UI 尚未实现 / 顶栏 best 0」类旧状态 | 不为文档同步改游戏逻辑 |
+| 2 | PlayerProfile | 已完成 | `ui/player_profile.gd` + `user://profile.json`；Profile 页就地改名/头像/常用角色；顶栏 PROFILE 项 = `display_name` | 不进 progress/records/settings；`profile_id` 不当 token / seat / peer_id；无 Autoload |
+| 3 | Lobby domain（离线 mock） | 进行中 | `LobbyPlayer` / `Room` / `LobbyManager`（挂 MainMenu 下）；Create → Lobby → 假座位进出 → Ready → Start → `GameLaunch` | 不碰 `NetSession`；不做 WAN / P2P；不 bump 协议 |
+| 4 | 移动端输入抽象 | 待开始 | `VirtualStick` / `TouchActionButton` / 轻量 TouchInput 适配层；左摇杆移动、右摇杆瞄准、主射击、Dash、技能预留按钮 | 不写 `TouchPlayerInput` / `TouchPlayer` / `TouchCombat`；不复制战斗逻辑 |
+| 5 | 移动端 Vertical Slice | 待开始 | Android → MainMenu → Solo → Combat → Pause → Winner；export preset、renderer 可行性、Safe Area / UiFit / 触控命中 / 性能 | 移动端 P2P；直接套用 Desktop Forward+ 假设 |
+| 6 | Ability Framework | 待开始 | `AbilityDef` / `AbilityController` / `AbilityState` / `AbilityEffect` + cooldown / duration / cost；输入只给 `ability_0/1` → `try_activate(index)` | 不绑键盘/鼠标/Pad/触屏按键；不先堆技能数量 |
+| 7 | LobbyNet | 待开始 | `LobbyNet`（host_listen / client_connect / hello / roster / ready / start / invite / connection state）；`LanOverlay` 最终只发 Manager 命令 | UI 不得建 `ENetMultiplayerPeer`；`NetSession` 职责不变 |
+| 8 | WAN / P2P 预留 | 待开始 | `JoinInvite` + `ConnectionPath`（LAN IPv4 / IPv6 / WAN IPv4）；协议 5→6 只 bump 一次 | UI 不拼 IP / Port / Token；不直接做复杂打洞 |
+| 9 | P2P | 待开始 | Direct UDP：Host/Guest 各自与 rendezvous 交换连接信息 → NAT 穿透 → 直连 ENet；定义连接/打洞超时与失败文案 | 不写死公网 IP；不做第二套战斗 Session；不同时两个 peer；不承诺所有 NAT 都能直连 |
+| 10 | 最终集成 | 待开始 | Desktop Solo/LAN/WAN + Android Solo/LAN/WAN；再做 Skill multiplayer、多人 UX、reconnect、timeout、profiling、release | 不为 P2P 改战斗快照结构（除非规格明确要求） |
+
+阶段 3 起每阶的硬性验收（沿用 Architecture Rules）：能 F5 进 Solo、无 Autoload、`NetSession` 只服务战斗、Lobby 网络全归 `LobbyNet`、UI 不碰 ENet、Touch 不复制 Combat、Skill 不绑设备、四份存档继续分离、LAN 不写档、每阶完成同步 roadmap / README。
+
+
+---
+
+## Phase 1（已完成 2026-09-26）— UI / UX Architecture
 
 目标：把主菜单收成「顶栏全局导航 + Visual Stage + 轻量玩家状态 + Action Rail」，并开始按意图用动效，而不是再堆一套皮肤。布局以 [`docs/ui_screen_spec.md`](docs/ui_screen_spec.md) 为准。
 
@@ -70,21 +94,23 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 包含：
 
 - Main Menu IA：大面积 Visual Stage；玩家状态只有名字和一行状态；Action Rail 是 Continue / Solo / Multiplayer 三条同级操作。禁止中央巨大 PLAY，禁止把头像、成绩、档位和 Play 堆在中心
-- TopBar：HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS，右端头像 + 显示名。Solo 不进顶栏。顶栏项是导航，不与 Rail 做成第二套等大按钮
+- TopBar：WPG 图标 + HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS（每项带图标），右端**只有时钟** —— 头像 + 显示名槽已于 2026-09-26 整槽移除。Solo 不进顶栏。顶栏项是导航，不与 Rail 做成第二套等大按钮
 - PLAY 打开 Play 页（Page），不是两张大 Modal 卡
 - Profile 是自己的 Page。主页不放完整 Profile 卡
 - Overlay 分层：Page / Drawer / Modal / Row / Status
-- Design System：Playpen Sans 字级、炭黑/骨白/单一强调色、FlatBold 语法（令牌已写进 screen spec；本阶段开工前不改 `.tres`）
-- 状态：Default / Hover / Focus / Selected / Disabled / Warning / Error / Success
-- Motion：`UiAnim` 增加 page / modal / drawer / ready / connection 意图；Page 退出反向 24px；Modal 不升 56px
+- Design System：Playpen Sans 字级、炭黑/骨白/单一强调色、FlatBold 语法（令牌已在 `ui/game_theme.tres` 落地并成为唯一来源：全 `sb_flat_*`、圆角统一 6、无阴影、focus 下划线、脚本禁止 `StyleBoxFlat.new()`）
+- 状态：已落地 Default / Hover / Pressed / Disabled / Focus 五态 + 危险色 `sb_flat_pill_red`；**仍缺** Warning / Success / Selected 令牌，状态反馈暂由 `UiAnim.flash_error/flash_ready/pulse_connection` 承担
+- Motion（已完成）：`UiAnim` 的 page / modal / drawer / ready / error / connection 意图；`PAGE_RISE_PX = 24`；Modal 只有 fade + scale 不进位上浮；顶栏 tab 是水平翻页（`PAGE_SLIDE_SEC 0.32` / `TRANS_CUBIC` / `EASE_OUT`，刚性纸带）
 - Settings 打开时不关闭底下 Page
-- 顶栏名字槽改占位 `Player`，禁止继续写 `best %d`（2026-09-26 该槽整槽移除：右端只留时钟，显示名改由 PROFILE 项承担）
+- 顶栏无名字槽（2026-09-26 整槽移除，右端只留时钟）；Home 的 Name/Status 显示占位 `Player` / `Ready to play`（`main_menu.gd` PLACEHOLDER_NAME）；PROFILE 项文案在 Phase 2 接 `display_name`
 - FlatBold 按新语法执行。禁止 osu 紫黑渐变、霓虹、发光描边、纯黑 HUD、卡片墙
 - 实现顺序见 screen spec 末节
 
 **不做：** 改 ENet、改协议、拆 `LanOverlay` 的 RPC（那是 Phase 4）、重排 LAN 内部 JOIN/HOST、`PlayerProfile` 磁盘（Phase 2）、主动技能、虚拟摇杆。
 
 ### Definition of Done
+
+**状态：已完成（2026-09-26）。** 未清尾项：① Playpen Sans 未接；② 战斗侧 4 个 overlay 仍 `enter_overlay/exit_overlay`（Phase 6）；③ 无 Warning/Success 令牌。
 
 - 打开主菜单，最大的区域是空的 Visual Stage；其下是一行玩家状态和一条 Action Rail。没有中央巨大 PLAY，没有居中的 Profile 大卡
 - Continue 只表示「用最近一档新开一局」。没有中途续打。无档时该格不占位
@@ -97,7 +123,7 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 
 ---
 
-## Phase 2 — Profile
+## Phase 2（已完成 2026-09-26）— Profile
 
 目标：本机真正拥有身份。顶栏不再把最佳成绩伪装成名字。
 
@@ -108,13 +134,15 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 - 首次运行自动生成 UUID-like `profile_id`，显示名默认 `"Player"`，头像与常用角色默认 `boar`
 - Profile Overlay：可改昵称（1–16）、头像、常用角色
 - 统计列继续只读 `GameProgress`；档位列继续只读 `GameRecords`
-- 主菜单顶栏显示 `display_name`（落在 PROFILE 项文案上，右端名字槽已删）
+- 主菜单顶栏显示 `display_name`（落在 PROFILE 项文案上，右端名字槽已删；已落地）
 
 **不做：** 把 records / progress / settings 打进 Profile；登录；用 `profile_id` 当入房 token。
 
 ### Definition of Done
 
-- 删掉 `user://profile.json` 再开游戏，会生成一份，且顶栏 PROFILE 项显示 `display_name` 而不是 `"best  0"`
+**状态：已完成（2026-09-26）。** `ui/player_profile.gd`（static Object，原子写 `.tmp → rename`）+ Profile 页就地改名/换头像/选常用角色 + 顶栏 PROFILE 项 = `display_name`；实测首启生成、夹 16 字符、空名回默认、控制字符清理、`progress.cfg`/`records.json`/`settings.cfg` 字节未变。
+
+- 删掉 `user://profile.json` 再开游戏，会生成一份，且顶栏 PROFILE 项从固定字面 `PROFILE` 变成 `display_name`（Home 的 `BEST LOOP` 格读数与顶栏无关）
 - 改昵称后顶栏与 Profile 页立即一致，重开游戏仍在
 - `progress.cfg` 与 `records.json` 字节结构不变
 - best / last / runs 仍在 Profile 页统计列
@@ -271,8 +299,8 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 ## Implementation Sequence
 
 ```text
-Phase 1  IA + Design System + Motion 意图     网络零改
-Phase 2  PlayerProfile + 顶栏真名
+Phase 1  IA + Design System + Motion 意图     网络零改   ← 已完成 2026-09-26
+Phase 2  PlayerProfile + 顶栏真名                  ← 已完成 2026-09-26
 Phase 3  Lobby domain + 离线 mock
 Phase 4  LobbyNet 接入现有 ENet / 大厅 RPC
 Phase 5  Create / Join / Lobby UX + Invite
@@ -296,7 +324,7 @@ Phase 6  动效 / 音效 / 焦点 polish
 
 Phase 1–6 全部完成时：
 
-- 玩家有本机身份；顶栏是名字不是 `best 0`
+- 玩家有本机身份；顶栏 PROFILE 项显示本机 `display_name`（`best` 只在 Home 的 BEST LOOP 格）
 - 多人体验以 Lobby 为核心页面，房间不是 IP
 - Overlay 不持有 ENet 与座位权威
 - 现有 2–5 人 Co-op / Battle、商店、跟班、三图、句读全部仍能打完

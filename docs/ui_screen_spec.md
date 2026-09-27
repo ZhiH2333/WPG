@@ -1,12 +1,19 @@
 # WPG UI Screen Specification
 
 **版本:** 1.1-ui-screen-spec
-**状态:** 信息层级已锁定，尚未按本文件改代码
+**状态:** §5–§8、§17、§19、§22 所描述的 Main Menu / Play / Profile / Records / Ranking / Settings / Pause / Winner / Shop / Upgrade / Credits / Loading **已落地**（Phase 1 UI/UX 统一重构 + Phase 2 PlayerProfile，2026-09-26）；§9–§18（Multiplayer 簇 / Lobby / Create / Join / Connecting）是 **Phase 5 目标，尚未建立**，当前 MULTIPLAYER tab 打开的是现存 `LanOverlay`（PICK / HOST / JOIN）。
+
+**与本文档最初稿的已落地差异（以代码为准，2026-09-26）：**
+- 顶栏：五项各自带图标（`ui/icons/{home,play,multi,profile,gear}.png`）+ 最左 WPG App 图标；**右端只有时钟**，头像 + 名字槽已整槽移除；PROFILE 项文案 = `PlayerProfile.display_name`。
+- 令牌：`ui/game_theme.tres` 是唯一来源 —— 圆角统一 6、无阴影、装饰描边全删、focus 是骨白下划线（`sb_focus_underline`）；文字只有骨白 / 灰褐两色。
+- 尺寸：Page 走 48 margin 的 Column（不套面板）；Modal 尺寸见 `ui/ui_fit.gd`（通用 960×640 / 商店 1120×660 / 三选一 880×360 / Credits 720×560 / Pause 620×420 / RoomNotice 560×220）。
+- 动效：顶栏 tab 之间是水平翻页（`PAGE_SLIDE_SEC 0.32` / `TRANS_CUBIC` / `EASE_OUT`，刚性纸带）；行级 hover/focus 只有 `UiAnim.wire_row_feedback()` 一条实现。
+- 例外：`loading_screen` 保留旧 `loading_blur.gdshader` 与手写 `BarTrack/BarFill` 进度条。
 **上位约束:** [`roadmap.md`](../roadmap.md)（最高）→ [`ui_lobby_architecture.md`](ui_lobby_architecture.md)（领域 / 网络 / 职责）→ **本文件**（页面布局 / 动效 / 令牌 / 导航栈）
 
 本文件回答「每个页面长什么样、焦点怎么走、Back 回哪」。它不改核心架构，也不授权公网房间目录。
 
-实现者应能只凭本文件和两份上位文档，做出同一套层级。本轮只锁文档，不开始 Phase 1。
+实现者应能只凭本文件和两份上位文档，做出同一套层级。（本文档最初只锁文档；Phase 1 已于 2026-09-26 落地，差异见上。）
 
 ---
 

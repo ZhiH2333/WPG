@@ -10,7 +10,7 @@
 
 ## 怎么运行
 
-用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐。顶栏是全局导航：最左是 WPG App 图标，然后 HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS（每项带图标），右端只有时钟。舞台下是一行身份（`Player` / `Ready to play`）和三条 Rail：`CONTINUE`（用最近一档新开一局，无档时整格不出现）、`SOLO`（Records 页）、`MULTIPLAYER`（联机页），右下是 `Quit`。PLAY 打开 Play 页（同样三条 Rail + Back），PROFILE 打开 Profile 页，SETTINGS 是叠在当前页上的抽屉；这些屏幕只分 Page / Drawer / Modal 三种形态，打开时背景模糊压暗、音乐衰减，Esc / Back 逐层退出。有档时 CONTINUE 下多一行 loop 目标，点了按该档新开一局。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 5，最多 5 座。MULTI 直接进同网房间列表，Create a room 开房；发现端口 17778 是 Guest 探针 / Host 应答。手打 IPv4 仍能进。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。PROFILE 页只读 `progress.cfg` 与 `records.json`（best / last / runs + 档位概览），右上 RANKING 打开排行页。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history，但 Profile 仍只读 progress.cfg。每局永远新开，不续打。`settings.cfg` 有 Master / Music / SFX 三轨音量和显示项。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火；Dash 默认 A、切枪默认十字键，可在 Settings Controls 的 Pad 列改按钮，摇杆和扳机不重绑。冲突会旁白并播 Error；RESTORE DEFAULTS 只清键位，Start 仍暂停/关店/取消三选一。
+用 Godot **4.6** 打开本仓库，按 F5。主场景是 `ui/main_menu.tscn`：全屏背景图 + 主题音乐。顶栏是全局导航：最左是 WPG App 图标，然后 HOME / PLAY / MULTIPLAYER / PROFILE / SETTINGS（每项带图标），右端只有时钟。舞台下是一行身份（`Player` / `Ready to play`）和三条 Rail：`CONTINUE`（用最近一档新开一局，无档时整格不出现）、`SOLO`（Records 页）、`MULTIPLAYER`（联机页），右下是 `Quit`。PLAY 打开 Play 页（同样三条 Rail + Back），PROFILE 打开 Profile 页，SETTINGS 是叠在当前页上的抽屉；这些屏幕只分 Page / Drawer / Modal 三种形态，打开时背景模糊压暗、音乐衰减，Esc / Back 逐层退出。有档时 CONTINUE 下多一行 loop 目标，点了按该档新开一局。空档时只有 “+ New Record”；点已有档直接进沙盒（读该档 arena_id，不再弹选图）；新建档时选野猪/野鸡、Yard/Pit/Keep 和 loop 目标（滑杆 0=Inf，默认 Yard / 20）。Host Custom 可选图；借档锁定角色、loop_goal 和地图，联机不写盘；Join 仍自选角色、不能选图，端口 17777，协议 5，最多 5 座。MULTI 直接进同网房间列表，Create a room 开房；发现端口 17778 是 Guest 探针 / Host 应答。手打 IPv4 仍能进。Host 在 Arenas 与 LoopRow 之间选 Co-op / Battle；Battle 关句读/商店/跟班，玩家弹打得到对方，联机仍不写档。任何叠层打开时背景模糊压暗、音乐衰减。Esc 在编辑态先回列表，列表再关叠层。PROFILE 页只读 `progress.cfg` 与 `records.json`（best / last / runs + 档位概览），右上 RANKING 打开排行页。沙盒里活着且没有三选一/商店时 Esc 打开暂停（Continue / Retry / Quit）；死了或通关弹出 WinnerPage（分数拆解逐行滚出 + 本档 Top 10 + Retry / Menu），Esc / Menu 回主菜单。点已有档进沙盒或结算/暂停 Quit 回菜单时，当前曲先 0.45s 淡出再切场景，进场曲再淡入；Retry 不停 war.mp3。关掉游戏还记得 `user://progress.cfg` 里的 best loop；局末还会往 `user://records.json` 记档位 history；Profile 与 Ranking 页只读 `progress.cfg` + `records.json`，都不写盘。每局永远新开，不续打。`settings.cfg` 有 `[audio]`（Master/Music/SFX）、`[display]`（全屏 / render_scale / ui_scale / vsync / msaa）、`[controls]`（键盘重绑）、`[gamepad]`（Dash + 四把枪 Pad 按钮）。不插手柄时 WASD + 鼠标瞄准开火，空格短冲刺；插一把手柄则左杆走、右杆瞄、扳机开火；Dash 默认 A、切枪默认十字键，可在 Settings Controls 的 Pad 列改按钮，摇杆和扳机不重绑。冲突会旁白并播 Error；RESTORE DEFAULTS 只清键位，Start 仍暂停/关店/取消三选一。
 
 - 平台：Desktop 为主（同一套战斗规则；**手机触控整包后置到内容/壳/美术/局域网都做完之后**，现在不要做双摇杆）
 - 引擎：Godot 4.6，纯 GDScript，静态类型
@@ -736,10 +736,10 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 ## 明确不做（直到后续对应日）
 
-- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。**Day 47（已完成）= RecordSelector**。**Day 48（已完成）= WinnerPage v2**。**Day 49（已完成）= 局域网 2 客户端**。**Day 50（已完成）= 用现有档开 LAN**。同机分屏明确不做。下一步才是 Day 51 Profile + 可视化排行；5 人 / 房间浏览器仍后置。手机触控整包仍后置。仍无 4 张新卡、无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打
+- **Day 42/43（已完成）= 接美术**：英文改名 + 朝向合同 + 主角/四枪/敌人换 sprite。**Day 44（已完成）= 地板 / 火花池 / 死亡碎裂 / 战斗 BGM**。**Day 45（已完成）= GameRecords / records.json**。**Day 46（已完成）= CharacterDef / 猪鸡底值**。**Day 47（已完成）= RecordSelector**。**Day 48（已完成）= WinnerPage v2**。**Day 49（已完成）= 局域网 2 客户端**。**Day 50（已完成）= 用现有档开 LAN**。同机分屏明确不做。Day 51 Profile + 可视化排行早已完成（见下「已完成」表），5 人 Co-op/Battle 与房间列表也已落地（Day 78–85）。手机触控整包仍后置。仍无 Boss 条、无五格枪架、无 Virtual Sticks、无 WaveDirector、无钱包、无中途续打（鸡专属 4 卡已在 Day 70 落地）
 - GPUParticles2D 死亡粒子海、掉落物、敌人对象池、EnemyManager
 - Arena 波次、中途续打、永久钱包
-- 虚拟摇杆、触控、顶栏 Toolbar、键位重绑
+- 虚拟摇杆、触控、顶栏 Toolbar、第五栏 Gamepad 页（摇杆轴/扳机轴/Start 重绑）
 - Web 导出妥协、C#、外部 ECS、任何 Autoload
 
 ## Day 36（已完成）：战斗暂停叠层
@@ -914,7 +914,7 @@ combat/     碰撞层常量、DamageNumber、HitReaction、MuzzleFlash、HitSpar
 audio/      程序生成短 WAV（手枪/霰弹/步枪/命中/击杀/受伤/拒发/敌人弹）+ 菜单 main.mp3 + 战斗 war.mp3
 arena/      EncounterPhrases 手写句读（P0–P7 + Boss，PHRASE_TOTAL=9）+ 本局节点 RunSession + UpgradeApplier；不是 Autoload RunState / WaveDirector
 camera/     PlayerCamera、AimReticle
-ui/         MainMenu（F5 主场景，Play / Settings / Quit）+ ModeChoiceOverlay（Play 后 SOLO / MULTI 小卡）+ RecordSelector（大面板 FloatingPanel + Header + LIST 2 列网格）+ LanOverlay（大面板 FloatingPanel + Header + PICK 2 列网格）+ SettingsOverlay + ProfileOverlay（大面板 FloatingPanel + Header，best/last/runs，仍只读 progress.cfg）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload；进沙盒只传 id）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，可写 boar/chicken，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + WinnerPage（layer=22，DEAD/CLEARED，分数拆解 + 本档 Top 10 + Retry/Menu）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `loop_goal>0` 时 `L0/5  0/9`，否则 `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关 WinnerPage layer=22 含拆解与本档历史；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
+ui/         MainMenu（F5 主场景；顶栏五项带图标 + 时钟 + Home 舞台块 + 6 层叠层；Page/Modal/Drawer 三形态，水平翻页）+ PlayPage（PLAY 页，三条 Rail + Back）+ RecordSelector（Page：Dimmer/Sheet/Column，LIST/EDITOR + 删除确认 Modal）+ LanOverlay（Page：PICK/HOST/JOIN）+ SettingsOverlay（Drawer）+ ProfileOverlay（Page：就地改昵称/头像/常用角色，统计只读 progress.cfg，档位只读 records.json）+ GameSettings（user://settings.cfg 仅 audio/display）+ GameLaunch（一次性 mode / record id 交接，不是 Autoload；进沙盒只传 id）+ GameProgress（user://progress.cfg，跨局成绩，不是 Autoload）+ GameRecord / GameRecords（user://records.json，上限 12，可写 boar/chicken，不是 Autoload）+ Hud + UpgradeOffer + ShopOffer + WinnerPage（layer=22，DEAD/CLEARED，分数拆解 + 本档 Top 10 + Retry/Menu）+ PauseOverlay（layer=25，活着 Esc 暂停，唯一允许 `get_tree().paused`）+ game_theme.tres（左下 HP+武器+XP+`gold  0`，顶中 `loop_goal>0` 时 `L0/5  0/9`，否则 `L0  0/9`；句间/升级三选一 layer=20；P8 后商店 layer=20 买一张或 Skip；死亡/通关 WinnerPage layer=22 含拆解与本档历史；暂停 PAUSED layer=25）；DebugOverlay 仍在 debug/
 data/       UpgradeDef + UpgradeCatalog.tres + data/upgrades/ 10 条；CharacterDef + CharacterCatalog.tres + data/characters/ 野猪/野鸡底值；升级从角色底值重算
 debug/      DebugOverlay
 sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite 隐式 boar；Floor 平铺地砖 / Player / PlayerCamera / AimReticle / Projectiles / EnemyProjectiles / HitSparks / DeathShards / CombatMusic / SfxPool / Enemies / EncounterPhrases / RunSession / UpgradeApplier / Hud / UpgradeOffer / ShopOffer / WinnerPage / PauseOverlay / DebugOverlay）
@@ -934,7 +934,7 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 
 ## 剩余顺序
 
-手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。Day 33 点 Play 出模式窗已落地。Day 35 osu 式主题回炉已落地（圆角粉紫 Theme、背景图 + 主题音乐 + 模糊衰减、合成点击音效）。局域网 2 客户端和「用现有档开 Host」已落地。同机分屏明确不做。5 人 / 房间浏览器后置。
+手机触控已放弃本周实现，**整包挪到最后**。Day 31 手柄已按 `device_id` 拆开（仍单人）。Day 32 本局金币 + P8 后商店已落地。Day 33 点 Play 出模式窗已落地。Day 35 osu 式主题回炉当时是圆角粉紫 Theme（背景图 + 主题音乐 + 模糊衰减 + 合成音效）；**该主题已被 Phase 1 统一重构取代**：FlatBold 双色（骨白 / 灰褐）+ 圆角 6 + Rail 形态 + 粉色 accent。局域网 2 客户端和「用现有档开 Host」已落地。同机分屏明确不做。5 人 Co-op/Battle 与房间浏览器已在 Day 78–85 落地。
 
 | 顺序 | 仓库里做什么 | 玩家会感到什么 | 先不要做 |
 |---|---|---|---|
@@ -969,8 +969,8 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 | **59（已完成）** | 可见区 fit：大面板/卡片随 `visible_rect` 收缩 | ui_scale 130% 两列仍完整可见，不双倍放大 | 商店深化、跟班、TopBar |
 | **61（已完成）** | 两种跟班上场：CompanionDef + F8 debug，上限 1 | 身侧青色近战/远程能打能死；商店仍只卖升级 | 商店接线、主动技能、LAN 同步跟班 |
 | **62（已完成）** | 厚血远程跟班：买时选枪，AI 绕圈/LOS，删近战 | P8 可出 Gunner 70，选枪上场；战斗绕圈不站桩 | 跟班 HUD、主动技能、LAN 同步、消耗品 |
-| **63** | 商店其它可购项（消耗品）或跟班死亡再买的手感收尾 | 局内还能买一次性道具 | 手柄、地图、主动技能 |
-| **更后面** | 5 人 / 房间浏览器 | — | Steam、互联网匹配、Mods |
+| **63（已完成）** | 商店其它可购项（消耗品）或跟班死亡再买的手感收尾 | 已落地 Pack S/L/Stim + 连买 | 手柄、地图、主动技能 |
+| **Phase 2–6** | 见 `roadmap.md`：PlayerProfile → Lobby → LobbyNet → 多人 UX → polish | — | Steam、互联网匹配、Mods |
 | **做完之后** | 手机双摇杆 + 设置里 Virtual Sticks（电脑调试） | 手机上也能打；电脑勾上才能拖盘调试 | 不要提前做；触控有 bug 就整包后置 |
 
 ## Day 44（已完成）：地板 / 火花池 / 死亡碎裂 / 战斗 BGM
@@ -1093,7 +1093,7 @@ Host 可以借一条本地档的角色和 `loop_goal` 开房。联机只借配�
 Play 先问 SOLO / MULTI。顶栏也能各自直达。档位列表 / 联机房 / 资料页换成接近全屏的 FloatingPanel，从下方弹起。LIST / PICK 改 2 列卡片网格。内部状态机、握手、写档规则与 Day 50 相同。Autoload 仍为 0。
 
 - `UiAnim.enter_overlay`：content 先记下 `position.y` 为 `base_y`，放到 `base_y + 56`，再 `PANEL_MOVE_SEC` + `TRANS_BACK` / `EASE_OUT` tween 回去，和 modulate 淡入并行。ProfileOverlay / WinnerPage / PauseOverlay 已经把自己的 Panel/Column 当 content 传入，自动获得弹起。不要为了只改新叠层拆第二个函数。
-- `ui/mode_choice_overlay.gd`（`class_name ModeChoiceOverlay`）：路由器，不套大面板。两张 OfferButton `240×200` 横排，文案 SOLO / MULTI。Dimmer `Color(0,0,0,0.35)`。信号只有 `solo_pressed` / `multi_pressed`。不要 AcceptDialog，不要记住上次选择。
+- `ui/mode_choice_overlay.gd`（`class_name ModeChoiceOverlay`）：**已在 Phase 1 删除**（原路由器，两张 OfferButton `240×200` 横排，文案 SOLO / MULTI；现由 PlayPage 承担）。Dimmer `Color(0,0,0,0.35)`。信号只有 `solo_pressed` / `multi_pressed`。不要 AcceptDialog，不要记住上次选择。
 - 顶栏：原 `LanButton` 改名 `MultiButton` 文案 MULTI；旁边新增 `SoloButton` 文案 SOLO，Home 右边成对出现。两者跳过 Mode Choice，直接 `_enter_solo_flow` / `_enter_multi_flow`。
 - MainMenu 路由收拢：`_enter_solo_flow()` 关其它叠层后 `_record_selector.open()`；`_enter_multi_flow()` 关其它叠层后 `_lan_overlay.open()`。Play / Logo / `ui_accept` 打开 Mode Choice。`_any_overlay_open()` 含 Mode Choice；Esc 关掉它。
 - RecordSelector / LanOverlay / ProfileOverlay 统一外壳：Dimmer + CenterContainer + FloatingPanel `1680×920` + Header（Title FloatingHeader + spacer + Back 120×44 OfferButton）+ Content（四边 margin 24）。原各视图的独立 CenterContainer 删除；表单类视图内部仍居中窄列；LIST / PICK 铺满的 2 列 GridContainer。卡片约 `780×140`，`+ New Record` / `+ Custom` 占一格。Back 仍是原来的 `_handle_back()`，只是挪到 Header。
@@ -1650,17 +1650,17 @@ Phase 1 的 IA / 动效 / Play 页已落地，但 Home 与 Play 的 Label **把�
 
 **Day 50 = 用现有档开 LAN（已完成）**：Host 借档预填并锁定角色 + `loop_goal`；Guest 仍自选；空档走 Custom；联机不写盘。5 人 / 房间浏览器是后续日。
 
-**Day 51 = Play 分岔 Solo/Multi（已完成）**：Mode Choice 路由、顶栏直达、三个叠层大面板 + 2 列网格、`enter_overlay` 弹起。Profile 新内容和 Settings 大面板化是后续日。
+**Day 51 = Play 分岔 Solo/Multi（已完成，随后被 Phase 1 取代）**：当时是 Mode Choice 路由 + 三叠层大面板；Phase 1 已把 Play 换成 PlayPage、三叠层改成 Page 形态（`ModeChoiceOverlay` 已删）。Profile 新内容和 Settings 大面板化是后续日。
 
 **Day 52 = Profile 概览 + 可视化排行（已完成）**：RecordCard 新增两种只读行、RecordLeaderboardOverlay 排行条、RankBar/Gold/Silver/Bronze 主题。
 
-**Day 53 = Settings osu 式抽屉（已完成）**：渲染分辨率/UI 缩放/垂直同步/抗锯齿/按键绑定/长按删档六项新设置落盘，抽屉式导航 + 搜索 + 惯性滚动。渲染分辨率仍是占位。
+**Day 53 = Settings osu 式抽屉（已完成）**：渲染分辨率/UI 缩放/垂直同步/抗锯齿/按键绑定/长按删档六项新设置落盘，抽屉式导航 + 搜索 + 惯性滚动。渲染分辨率已在 Day 54 接进 SubViewport（不再是占位）。
 
 **Day 54 = 渲染分辨率落地 SubViewport（已完成）**：战斗世界进 SubViewport，HUD 留主视口。
 
 **Day 55 = FlatBold 令牌 + OfferButton（已完成）**：卡片圆角 6、不透明、无阴影；`OfferTitle` 加粗。
 
-**Day 56 = 大面板 + 胶囊 CTA FlatBold（已完成）**：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊去阴影、圆角 6、不透明；Header / ModeTitle / Pill 加 `font_bar_bold`。
+**Day 56 = 大面板 + 胶囊 CTA FlatBold（已完成）**：`FloatingPanel` / 三色胶囊去阴影、圆角 6、不透明（`RunSummaryPanel` 变体已在 Phase 1 删除）；Header / ModeTitle / Pill 加 `font_bar_bold`。
 
 **Day 57 = 右摇杆即时瞄准（已完成）**：回中 keep last，出 0.12 当帧对准，无转向平滑；左摇杆仍模拟走速；`map_aim_stick` 是虚拟摇杆合同。
 
@@ -1722,11 +1722,11 @@ Phase 1 的 IA / 动效 / Play 页已落地，但 Home 与 Play 的 Label **把�
 
 **Day 85 = 5 人 Co-op 与 5 人 FFA 各打完一场（已完成）**：Pit loop 1 CLEARED（店+跟班、中途掉 seat 4）与 Yard 最后一人 KO。未一次过，只修 gated 5。LAN 仍不写档。协议仍 5。
 
-**下一步：Phase 2 PlayerProfile。** Phase 1（主菜单 IA、分意图动效、Settings 不关底下页面）已完成。Lobby / 网络未改。规格仍是根目录 `roadmap.md`、`docs/ui_lobby_architecture.md`、`docs/ui_screen_spec.md`。主动技能仍排在大厅离线 mock 之后。
+**Phase 1（UI/UX 统一重构）与 Phase 2（PlayerProfile）均已完成。** 下一步是 Phase 3：Lobby domain 离线 mock（`LobbyPlayer` / `Room` / `LobbyManager`，挂 MainMenu 下）。Lobby / 网络未改。规格仍是根目录 `roadmap.md`、`docs/ui_lobby_architecture.md`、`docs/ui_screen_spec.md`。主动技能仍排在大厅离线 mock 之后。
 
 **完整手柄适配后置（已拍板）**：虚拟摇杆布局编辑与触屏整包仍后置，不插进大厅架构阶段。Day 76 已做 Settings 手柄按钮落盘；Day 77 已做冲突旁白、Restore Defaults、商店选枪跟绑定。Day 57 的右摇杆 `map_aim_stick` 保留。
 
-> **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（`TopBar` 平行四边形按钮那一套：实心色底、无渐变、无软阴影、字重加粗），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Day 58 已完成第三刀：Settings 抽屉。TopBar、LogoButton 仍用旧皮。
+> **视觉方向决定（自 Day 54 起生效）：** 后续所有新叠层/新控件改用「纯色块 + 粗体字」的顶栏语言（实心色底、无渐变、无软阴影、字重加粗；Phase 1 已把 TopBar 换成 `IconBarButton` + `Mark`，`menu_shear.gdshader` / `LogoButton` / `RunSummaryPanel` 均已删除），逐步淘汰 Day 34/35 引入的 osu 紫黑渐变 + 细描边风格。旧叠层不强制推倒重做，但每次 touch 到的叠层顺手换皮。Day 55 已完成第一刀：FlatBold 令牌 + `OfferButton`。Day 56 已完成第二刀：`FloatingPanel` / `RunSummaryPanel` / 三色胶囊 CTA。Day 58 已完成第三刀：Settings 抽屉。TopBar、LogoButton 仍用旧皮。
 
 ## 完整 roadmap 展望（Day 54 → Day 100，生产级里程碑）
 

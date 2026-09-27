@@ -80,21 +80,44 @@ grow_vertical = 0
 mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 1)
 
-[node name="Avatar" type="TextureRect" parent="Sheet/Column"]
+[node name="Avatar" type="Button" parent="Sheet/Column"]
 custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"EmptyButton"
+
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Avatar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("3_avatar")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Name" type="Button" parent="Sheet/Column"]
-custom_minimum_size = Vector2(240, 48)
+[node name="Mark" type="ColorRect" parent="Sheet/Column/Avatar"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 1)
+[node name="Name" type="LineEdit" parent="Sheet/Column"]
+custom_minimum_size = Vector2(420, 58)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_type_variation = &"EmptyButton"
-
+theme_type_variation = &"ProfileNameEdit"
+max_length = 16
+placeholder_text = "Player"
+caret_blink = true
 [node name="Mark" type="ColorRect" parent="Sheet/Column/Name"]
 visible = false
 layout_mode = 1
@@ -160,6 +183,18 @@ grow_vertical = 0
 mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 1)
 
+[node name="Sel" type="ColorRect" parent="Sheet/Column/Characters/Boar"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(1, 0.4, 0.67, 1)
 [node name="Chicken" type="Button" parent="Sheet/Column/Characters"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
@@ -179,6 +214,18 @@ grow_vertical = 0
 mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 1)
 
+[node name="Sel" type="ColorRect" parent="Sheet/Column/Characters/Chicken"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(1, 0.4, 0.67, 1)
 [node name="Stats" type="HBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2

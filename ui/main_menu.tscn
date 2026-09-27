@@ -506,7 +506,7 @@ mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 1)
 
 [node name="ProfileButton" type="Button" parent="TopBar/Row"]
-custom_minimum_size = Vector2(160, 60)
+custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
 theme_type_variation = &"IconBarButton"
 icon = ExtResource("26_profile_icon")

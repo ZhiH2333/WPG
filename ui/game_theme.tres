@@ -71,6 +71,30 @@ subpixel_positioning = 0
 
 [sub_resource type="StyleBoxEmpty" id="sb_empty"]
 
+[sub_resource type="StyleBoxFlat" id="sb_name_edit"]
+content_margin_left = 0.0
+content_margin_top = 2.0
+content_margin_right = 0.0
+content_margin_bottom = 2.0
+bg_color = Color(1, 1, 1, 0)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="sb_name_edit_focus"]
+content_margin_left = 0.0
+content_margin_top = 2.0
+content_margin_right = 0.0
+content_margin_bottom = 2.0
+bg_color = Color(1, 1, 1, 0)
+border_width_bottom = 2
+border_color = Color(0.96, 0.93, 0.88, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [sub_resource type="StyleBoxFlat" id="sb_flat_chip_normal"]
 content_margin_left = 14.0
 content_margin_top = 8.0
@@ -600,6 +624,17 @@ PillRed/styles/focus = SubResource("sb_focus_pill")
 PillRed/styles/hover = SubResource("sb_flat_pill_red_hover")
 PillRed/styles/normal = SubResource("sb_flat_pill_red")
 PillRed/styles/pressed = SubResource("sb_flat_pill_red_pressed")
+ProfileNameEdit/base_type = &"LineEdit"
+ProfileNameEdit/colors/caret_color = Color(1, 0.4, 0.67, 1)
+ProfileNameEdit/colors/font_color = Color(0.96, 0.93, 0.88, 1)
+ProfileNameEdit/colors/font_placeholder_color = Color(0.62, 0.58, 0.52, 0.8)
+ProfileNameEdit/colors/font_selected_color = Color(0.96, 0.93, 0.88, 1)
+ProfileNameEdit/colors/selection_color = Color(1, 0.4, 0.67, 0.35)
+ProfileNameEdit/font_sizes/font_size = 48
+ProfileNameEdit/fonts/font = SubResource("font_bar_bold")
+ProfileNameEdit/styles/focus = SubResource("sb_name_edit_focus")
+ProfileNameEdit/styles/normal = SubResource("sb_name_edit")
+ProfileNameEdit/styles/read_only = SubResource("sb_name_edit")
 ProfileHeader/base_type = &"Label"
 ProfileHeader/colors/font_color = Color(1, 0.4, 0.67, 1)
 ProfileHeader/colors/font_outline_color = Color(0, 0, 0, 0.4)
