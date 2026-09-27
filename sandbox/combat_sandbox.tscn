@@ -26,6 +26,7 @@
 [ext_resource type="AudioStream" path="res://audio/war.mp3" id="24_music"]
 [ext_resource type="Script" path="res://arena/net_session.gd" id="25_net"]
 [ext_resource type="PackedScene" path="res://ui/room_notice.tscn" id="26_notice"]
+[ext_resource type="PackedScene" path="res://ui/mobile/touch_controls.tscn" id="27_touch"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -302,3 +303,5 @@ script = ExtResource("25_net")
 [node name="PauseOverlay" parent="." instance=ExtResource("18_pause")]
 
 [node name="RoomNotice" parent="." instance=ExtResource("26_notice")]
+
+[node name="TouchControls" parent="." instance=ExtResource("27_touch")]

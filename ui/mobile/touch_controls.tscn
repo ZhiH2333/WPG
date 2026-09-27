@@ -1,0 +1,183 @@
+[gd_scene load_steps=5 format=3 uid="uid://touch_controls"]
+
+[ext_resource type="Script" path="res://ui/mobile/touch_controls.gd" id="1_touch_controls"]
+[ext_resource type="Script" path="res://player/player_input.gd" id="2_player_input"]
+[ext_resource type="Script" path="res://ui/mobile/virtual_stick.gd" id="3_virtual_stick"]
+[ext_resource type="Script" path="res://ui/mobile/touch_action_button.gd" id="4_touch_button"]
+[ext_resource type="Script" path="res://ui/mobile/touch_input.gd" id="5_touch_input"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="6_theme"]
+
+[node name="TouchControls" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("6_theme")
+script = ExtResource("1_touch_controls")
+
+[node name="Root" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MoveStick" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 2
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -200.0
+offset_right = 184.0
+offset_bottom = -24.0
+grow_horizontal = 1
+grow_vertical = 0
+script = ExtResource("3_virtual_stick")
+
+[node name="Base" type="TextureRect" parent="Root/MoveStick"]
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 0
+
+[node name="Knob" type="TextureRect" parent="Root/MoveStick"]
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 0
+
+[node name="AimStick" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -184.0
+offset_top = -200.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("3_virtual_stick")
+
+[node name="Base" type="TextureRect" parent="Root/AimStick"]
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 0
+
+[node name="Knob" type="TextureRect" parent="Root/AimStick"]
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 0
+
+[node name="ActionButtons" type="HBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -460.0
+offset_top = -200.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 16
+
+[node name="FireButton" type="Control" parent="Root/ActionButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 100)
+script = ExtResource("4_touch_button")
+
+[node name="Button" type="Button" parent="Root/ActionButtons/FireButton"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 100)
+theme_type_variation = ""
+focus_mode = 0
+
+[node name="Label" type="Label" parent="Root/ActionButtons/FireButton/Button"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DashButton" type="Control" parent="Root/ActionButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 100)
+script = ExtResource("4_touch_button")
+
+[node name="Button" type="Button" parent="Root/ActionButtons/DashButton"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 100)
+theme_type_variation = ""
+focus_mode = 0
+
+[node name="Label" type="Label" parent="Root/ActionButtons/DashButton/Button"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Ability0Button" type="Control" parent="Root/ActionButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+script = ExtResource("4_touch_button")
+
+[node name="Button" type="Button" parent="Root/ActionButtons/Ability0Button"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+theme_type_variation = ""
+focus_mode = 0
+
+[node name="Label" type="Label" parent="Root/ActionButtons/Ability0Button/Button"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Ability1Button" type="Control" parent="Root/ActionButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+script = ExtResource("4_touch_button")
+
+[node name="Button" type="Button" parent="Root/ActionButtons/Ability1Button"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+theme_type_variation = ""
+focus_mode = 0
+
+[node name="Label" type="Label" parent="Root/ActionButtons/Ability1Button/Button"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TouchInput" type="Node" parent="Root"]
+script = ExtResource("5_touch_input")
+move_stick_path = NodePath("MoveStick")
+aim_stick_path = NodePath("AimStick")
+fire_button_path = NodePath("ActionButtons/FireButton")
+dash_button_path = NodePath("ActionButtons/DashButton")
+ability0_button_path = NodePath("ActionButtons/Ability0Button")
+ability1_button_path = NodePath("ActionButtons/Ability1Button")

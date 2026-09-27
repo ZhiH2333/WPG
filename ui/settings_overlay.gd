@@ -608,6 +608,11 @@ func _on_msaa_selected(index: int) -> void:
 	GameSettings.apply()
 	GameSettings.save_to_disk()
 
+func _on_touch_controls_selected(index: int) -> void:
+	_play_click()
+	GameSettings.set_touch_controls_mode(index)
+	GameSettings.save_to_disk()
+
 func _on_delete_all_confirmed() -> void:
 	_play_click()
 	var dir: DirAccess = DirAccess.open("user://")
@@ -622,11 +627,36 @@ func _on_delete_all_confirmed() -> void:
 
 func _build_bind_rows() -> void:
 	var body: VBoxContainer = _controls_section.body
+	
+	# Touch Controls Mode
+	var touch_row: HBoxContainer = HBoxContainer.new()
+	touch_row.set_meta("settings_search", "touch controls mobile on screen")
+	touch_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	touch_row.add_theme_constant_override("separation", 12)
+	var touch_label: Label = Label.new()
+	touch_label.theme_type_variation = &"SettingsHeader"
+	touch_label.text = "Touch Controls"
+	touch_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	touch_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var touch_option: OptionButton = OptionButton.new()
+	touch_option.theme_type_variation = ""
+	touch_option.custom_minimum_size = Vector2(160, 44)
+	touch_option.mouse_filter = Control.MOUSE_FILTER_STOP
+	touch_option.add_item("AUTO")
+	touch_option.add_item("ON")
+	touch_option.add_item("OFF")
+	touch_option.select(int(GameSettings.get_touch_controls_mode()))
+	touch_option.item_selected.connect(_on_touch_controls_selected)
+	touch_row.add_child(touch_label)
+	touch_row.add_child(touch_option)
+	body.add_child(touch_row)
+	
 	var hint: Label = Label.new()
 	hint.theme_type_variation = &"RunSummaryHint"
-	hint.text = "Sticks stay analog. Pad column rebinds Dash and guns."
+	
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(hint)
+	
 	var bind_status: Label = Label.new()
 	bind_status.name = "BindStatus"
 	bind_status.theme_type_variation = &"Caption"

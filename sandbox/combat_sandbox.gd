@@ -97,6 +97,7 @@ var _battle_winner_seat: int = 0
 @onready var _players_root: Node2D = $ViewportContainer/GameViewport/World/Players
 @onready var _net: NetSession = $NetSession
 @onready var _room_notice: RoomNotice = $RoomNotice
+@onready var _touch_controls: TouchControls = $TouchControls
 
 func _ready() -> void:
 	GameSettings.load_from_disk()
@@ -289,6 +290,18 @@ func _bind_runtime() -> void:
 	_hud.bind_weapon_host(_local_player.get_weapon_host())
 	_hud.bind_encounter(_encounter)
 	_hud.bind_run_session(_run_session)
+	
+	# Bind TouchControls to PlayerInput
+	if _touch_controls != null:
+		var touch_input: TouchInput = _touch_controls.get_touch_input()
+		if touch_input != null:
+			if player_input != null:
+				touch_input._set_player_input_for_test(player_input)
+				# Also bind the individual components
+				touch_input._set_move_stick_for_test(_touch_controls._move_stick)
+				touch_input._set_aim_stick_for_test(_touch_controls._aim_stick)
+				touch_input._set_fire_button_for_test(_touch_controls._fire_button)
+				touch_input._set_dash_button_for_test(_touch_controls._dash_button)
 	_bind_party_hud()
 	_bind_weapon_hit_players()
 	_run_session.bind_players(_synced_pawns)

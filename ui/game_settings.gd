@@ -50,6 +50,13 @@ const DEFAULT_JOY: Dictionary = {
 	"weapon_smg": JOY_BUTTON_DPAD_DOWN,
 }
 
+enum TouchControlsMode {
+	AUTO = 0,
+	ON = 1,
+	OFF = 2,
+}
+
+static var _touch_controls_mode: int = TouchControlsMode.AUTO
 static var _volume: float = DEFAULT_VOLUME
 static var _music_volume: float = DEFAULT_VOLUME
 static var _sfx_volume: float = DEFAULT_VOLUME
@@ -70,6 +77,7 @@ static func load_from_disk() -> void:
 	_ui_scale = 1.0
 	_vsync_enabled = true
 	_msaa_index = 0
+	_touch_controls_mode = TouchControlsMode.AUTO
 	_key_overrides.clear()
 	_joy_overrides.clear()
 	if not FileAccess.file_exists(PATH):
@@ -85,6 +93,7 @@ static func load_from_disk() -> void:
 	_ui_scale = clampf(float(cfg.get_value("display", "ui_scale", 1.0)), 0.8, 1.3)
 	_vsync_enabled = bool(cfg.get_value("display", "vsync", true))
 	_msaa_index = clampi(int(cfg.get_value("display", "msaa", 0)), 0, 3)
+	_touch_controls_mode = clampi(int(cfg.get_value("input", "touch_controls", int(TouchControlsMode.AUTO))), 0, 2)
 	for action: String in REBINDABLE_ACTIONS:
 		var default_key: int = int(DEFAULT_KEYS[action])
 		var stored: int = int(cfg.get_value("controls", action, default_key))
@@ -106,6 +115,7 @@ static func save_to_disk() -> void:
 	cfg.set_value("display", "ui_scale", _ui_scale)
 	cfg.set_value("display", "vsync", _vsync_enabled)
 	cfg.set_value("display", "msaa", _msaa_index)
+	cfg.set_value("input", "touch_controls", int(_touch_controls_mode))
 	for action: String in REBINDABLE_ACTIONS:
 		cfg.set_value("controls", action, get_key_for_action(action))
 	for action: String in REBINDABLE_JOY_ACTIONS:
@@ -198,6 +208,25 @@ static func get_msaa_index() -> int:
 
 static func set_msaa_index(index: int) -> void:
 	_msaa_index = clampi(index, 0, 3)
+
+static func get_touch_controls_mode() -> TouchControlsMode:
+	return _touch_controls_mode
+
+static func set_touch_controls_mode(mode: TouchControlsMode) -> void:
+	_touch_controls_mode = mode
+
+static func is_mobile_platform() -> bool:
+	return OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+
+static func is_touch_controls_enabled() -> bool:
+	match _touch_controls_mode:
+		TouchControlsMode.ON:
+			return true
+		TouchControlsMode.OFF:
+			return false
+		TouchControlsMode.AUTO:
+			return is_mobile_platform()
+	return false
 
 static func get_key_for_action(action: String) -> int:
 	return int(_key_overrides.get(action, DEFAULT_KEYS.get(action, -1)))

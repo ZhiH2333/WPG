@@ -431,6 +431,88 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
+[sub_resource type="StyleBoxFlat" id="sb_touch_action_normal"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.19, 0.16, 0.225, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+
+[sub_resource type="StyleBoxFlat" id="sb_touch_action_hover"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.27, 0.225, 0.31, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+
+[sub_resource type="StyleBoxFlat" id="sb_touch_action_pressed"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.42, 0.22, 0.33, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+
+[sub_resource type="StyleBoxFlat" id="sb_touch_action_focus"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.96, 0.93, 0.88, 0.9)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+
+[sub_resource type="StyleBoxFlat" id="sb_touch_action_disabled"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.14, 0.12, 0.165, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+
+[sub_resource type="StyleBoxFlat" id="sb_touch_stick_base"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(1, 1, 1, 0.12)
+corner_radius_top_left = 80
+corner_radius_top_right = 80
+corner_radius_bottom_right = 80
+corner_radius_bottom_left = 80
+
+[sub_resource type="StyleBoxFlat" id="sb_touch_stick_knob"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(1, 1, 1, 0.35)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+
 [resource]
 CheckBox/colors/font_color = Color(0.96, 0.93, 0.88, 1)
 CheckBox/colors/font_hover_color = Color(0.96, 0.93, 0.88, 1)
@@ -696,3 +778,29 @@ StatValue/colors/font_outline_color = Color(0.18, 0.17, 0.17, 1)
 StatValue/constants/outline_size = 6
 StatValue/font_sizes/font_size = 24
 StatValue/fonts/font = SubResource("font_bar_bold")
+
+TouchActionButton/base_type = &"Button"
+TouchActionButton/colors/font_color = Color(1, 1, 1, 1)
+TouchActionButton/font_sizes/font_size = 28
+TouchActionButton/fonts/font = SubResource("font_bar_bold")
+TouchActionButton/styles/disabled = SubResource("sb_touch_action_disabled")
+TouchActionButton/styles/focus = SubResource("sb_touch_action_focus")
+TouchActionButton/styles/hover = SubResource("sb_touch_action_hover")
+TouchActionButton/styles/normal = SubResource("sb_touch_action_normal")
+TouchActionButton/styles/pressed = SubResource("sb_touch_action_pressed")
+
+TouchActionButtonSmall/base_type = &"Button"
+TouchActionButtonSmall/colors/font_color = Color(1, 1, 1, 1)
+TouchActionButtonSmall/font_sizes/font_size = 20
+TouchActionButtonSmall/fonts/font = SubResource("font_bar_bold")
+TouchActionButtonSmall/styles/disabled = SubResource("sb_touch_action_disabled")
+TouchActionButtonSmall/styles/focus = SubResource("sb_touch_action_focus")
+TouchActionButtonSmall/styles/hover = SubResource("sb_touch_action_hover")
+TouchActionButtonSmall/styles/normal = SubResource("sb_touch_action_normal")
+TouchActionButtonSmall/styles/pressed = SubResource("sb_touch_action_pressed")
+
+TouchStickBase/base_type = &"TextureRect"
+TouchStickBase/styles/normal = SubResource("sb_touch_stick_base")
+
+TouchStickKnob/base_type = &"TextureRect"
+TouchStickKnob/styles/normal = SubResource("sb_touch_stick_knob")

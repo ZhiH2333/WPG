@@ -3,14 +3,13 @@ class_name VirtualStick
 
 ## 通用虚拟摇杆组件：base/knob + 触摸拖动 + 归一化输出 + deadzone + clamp
 ## 左摇杆用于移动，右摇杆用于瞄准。无业务逻辑，只产出 Vector2
+## 使用 FlatBold theme tokens，不创建 StyleBoxFlat.new()
 
 signal stick_moved(direction: Vector2)
 signal stick_released
 
 @export var deadzone: float = 0.15
 @export var max_radius: float = 80.0
-@export var base_color: Color = Color(1, 1, 1, 0.12)
-@export var knob_color: Color = Color(1, 1, 1, 0.35)
 @export var base_size: float = 160.0
 @export var knob_size: float = 80.0
 
@@ -35,11 +34,8 @@ func _setup_visuals() -> void:
 	_base.size = Vector2(base_size, base_size)
 	_knob.size = Vector2(knob_size, knob_size)
 	
-	var base_tex: ImageTexture = _create_circle_texture(base_size, base_color)
-	_base.texture = base_tex
-	
-	var knob_tex: ImageTexture = _create_circle_texture(knob_size, knob_color)
-	_knob.texture = knob_tex
+	_base.theme_type_variation = "TouchStickBase"
+	_knob.theme_type_variation = "TouchStickKnob"
 	
 	_knob.anchor_left = 0.5
 	_knob.anchor_top = 0.5
@@ -49,18 +45,6 @@ func _setup_visuals() -> void:
 	_knob.offset_top = -knob_size * 0.5
 	_knob.offset_right = knob_size * 0.5
 	_knob.offset_bottom = knob_size * 0.5
-
-func _create_circle_texture(size: float, color: Color) -> ImageTexture:
-	var img: Image = Image.create(int(size), int(size), false, Image.FORMAT_RGBA8)
-	var center: Vector2 = Vector2(size * 0.5, size * 0.5)
-	var radius: float = size * 0.5
-	for x in range(int(size)):
-		for y in range(int(size)):
-			var pos: Vector2 = Vector2(x, y)
-			if pos.distance_to(center) <= radius:
-				img.set_pixel(x, y, color)
-	var tex: ImageTexture = ImageTexture.create_from_image(img)
-	return tex
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:

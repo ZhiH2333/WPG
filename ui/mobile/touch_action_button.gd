@@ -3,15 +3,16 @@ class_name TouchActionButton
 
 ## 轻量触屏按钮组件：pressed / released / held / just_pressed
 ## 不包含任何战斗逻辑，只产出边沿与状态
+## 使用 FlatBold theme tokens，不创建 StyleBoxFlat.new()
 
 signal pressed
 signal released
 signal just_pressed
 
 @export var button_text: String = "ACTION"
-@export var button_color: Color = Color(1, 0.4, 0.67, 1)
 @export var button_size: Vector2 = Vector2(100, 100)
 @export var font_size: int = 28
+@export var use_small_variant: bool = false
 
 var _held: bool = false
 var _just_pressed: bool = false
@@ -30,41 +31,8 @@ func _ready() -> void:
 func _setup_button() -> void:
 	_button.custom_minimum_size = button_size
 	_button.size = button_size
-	_button.theme_type_variation = ""
-	
-	var style_normal: StyleBoxFlat = StyleBoxFlat.new()
-	style_normal.bg_color = button_color
-	style_normal.corner_radius_top_left = 50
-	style_normal.corner_radius_top_right = 50
-	style_normal.corner_radius_bottom_right = 50
-	style_normal.corner_radius_bottom_left = 50
-	style_normal.content_margin_left = 0
-	style_normal.content_margin_top = 0
-	style_normal.content_margin_right = 0
-	style_normal.content_margin_bottom = 0
-	
-	var style_hover: StyleBoxFlat = style_normal.duplicate() as StyleBoxFlat
-	style_hover.bg_color = button_color * Color(1.15, 1.15, 1.15, 1)
-	
-	var style_pressed: StyleBoxFlat = style_normal.duplicate() as StyleBoxFlat
-	style_pressed.bg_color = button_color * Color(0.85, 0.85, 0.85, 1)
-	
-	var style_focus: StyleBoxFlat = StyleBoxFlat.new()
-	style_focus.border_width_left = 3
-	style_focus.border_width_top = 3
-	style_focus.border_width_right = 3
-	style_focus.border_width_bottom = 3
-	style_focus.border_color = Color(0.96, 0.93, 0.88, 0.9)
-	style_focus.corner_radius_top_left = 50
-	style_focus.corner_radius_top_right = 50
-	style_focus.corner_radius_bottom_right = 50
-	style_focus.corner_radius_bottom_left = 50
-	
-	_button.add_theme_stylebox_override("normal", style_normal)
-	_button.add_theme_stylebox_override("hover", style_hover)
-	_button.add_theme_stylebox_override("pressed", style_pressed)
-	_button.add_theme_stylebox_override("focus", style_focus)
-	_button.add_theme_stylebox_override("disabled", style_normal.duplicate())
+	_button.theme_type_variation = "TouchActionButtonSmall" if use_small_variant else "TouchActionButton"
+	_button.focus_mode = Control.FOCUS_NONE
 	
 	_label.text = button_text
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
