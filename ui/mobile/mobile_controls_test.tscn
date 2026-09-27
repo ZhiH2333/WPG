@@ -1,0 +1,189 @@
+[gd_scene load_steps=5 format=3 uid="uid://mobile_controls_test"]
+
+[ext_resource type="Script" path="res://ui/mobile/mobile_controls_test.gd" id="1_test"]
+[ext_resource type="Script" path="res://player/player_input.gd" id="2_player_input"]
+[ext_resource type="Script" path="res://ui/mobile/virtual_stick.gd" id="3_virtual_stick"]
+[ext_resource type="Script" path="res://ui/mobile/touch_action_button.gd" id="4_touch_button"]
+[ext_resource type="Script" path="res://ui/mobile/touch_input.gd" id="5_touch_input"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="6_theme"]
+
+[node name="MobileControlsTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("6_theme")
+script = ExtResource("1_test")
+
+[node name="PlayerInput" type="Node" parent="."]
+script = ExtResource("2_player_input")
+
+[node name="MoveStick" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = -208.0
+offset_right = 208.0
+offset_bottom = -48.0
+grow_horizontal = 1
+grow_vertical = 0
+script = ExtResource("3_virtual_stick")
+
+[node name="Base" type="TextureRect" parent="MoveStick"]
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 0
+
+[node name="Knob" type="TextureRect" parent="MoveStick"]
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 0
+
+[node name="AimStick" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -208.0
+offset_top = -208.0
+offset_right = -48.0
+offset_bottom = -48.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("3_virtual_stick")
+
+[node name="Base" type="TextureRect" parent="AimStick"]
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 0
+
+[node name="Knob" type="TextureRect" parent="AimStick"]
+layout_mode = 1
+anchors_preset = 0
+mouse_filter = 0
+
+[node name="ActionButtons" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -480.0
+offset_top = -208.0
+offset_right = -48.0
+offset_bottom = -48.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 24
+
+[node name="FireButton" type="Control" parent="ActionButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 100)
+script = ExtResource("4_touch_button")
+
+[node name="Button" type="Button" parent="ActionButtons/FireButton"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 100)
+theme_type_variation = ""
+focus_mode = 0
+
+[node name="Label" type="Label" parent="ActionButtons/FireButton/Button"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DashButton" type="Control" parent="ActionButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 100)
+script = ExtResource("4_touch_button")
+
+[node name="Button" type="Button" parent="ActionButtons/DashButton"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 100)
+theme_type_variation = ""
+focus_mode = 0
+
+[node name="Label" type="Label" parent="ActionButtons/DashButton/Button"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Ability0Button" type="Control" parent="ActionButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+script = ExtResource("4_touch_button")
+
+[node name="Button" type="Button" parent="ActionButtons/Ability0Button"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+theme_type_variation = ""
+focus_mode = 0
+
+[node name="Label" type="Label" parent="ActionButtons/Ability0Button/Button"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Ability1Button" type="Control" parent="ActionButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+script = ExtResource("4_touch_button")
+
+[node name="Button" type="Button" parent="ActionButtons/Ability1Button"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+theme_type_variation = ""
+focus_mode = 0
+
+[node name="Label" type="Label" parent="ActionButtons/Ability1Button/Button"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TouchInput" type="Node" parent="."]
+script = ExtResource("5_touch_input")
+
+[node name="DebugLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+offset_left = -300.0
+offset_top = 48.0
+offset_right = 300.0
+offset_bottom = 128.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"Caption"
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "Touch Input Debug"
