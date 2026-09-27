@@ -275,6 +275,17 @@ mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "waiting"
 
+[node name="PlayersTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "PLAYERS"
+
+[node name="Seats" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 layout_mode = 2
 mouse_filter = 2

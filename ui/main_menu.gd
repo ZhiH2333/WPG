@@ -75,6 +75,7 @@ var _sfx_gate: Dictionary = {}
 @onready var _leaderboard_overlay: RecordLeaderboardOverlay = $RecordLeaderboardOverlay
 @onready var _lan_overlay: LanOverlay = $LanOverlay
 @onready var _play_page: PlayPage = $PlayPage
+@onready var _lobby: LobbyManager = $LobbyManager
 
 func _ready() -> void:
 	GameSettings.load_from_disk()
@@ -105,6 +106,7 @@ func _ready() -> void:
 	_play_page.multi_pressed.connect(_enter_multi_flow)
 	_play_page.back_pressed.connect(_on_play_back_pressed)
 	_lan_overlay.start_lan.connect(_enter_lan)
+	_lan_overlay.bind_lobby(_lobby)
 	_record_selector.selected_record.connect(_enter_record)
 	_profile_overlay.view_ranking_pressed.connect(_enter_leaderboard)
 	_wire_button_sounds()
@@ -474,7 +476,7 @@ func _set_horizontal(control: Control, left: Control, right: Control) -> void:
 
 ## 顶栏 PROFILE 项显示 display_name（不再是 "best  0"，也没有第二处名字槽）。
 func refresh_profile_label() -> void:
-	_top_profile_button.text = "PROFILE"
+	_top_profile_button.text = PlayerProfile.get_display_name()
 	_refresh_nav_marks()
 
 func _refresh_nav_marks() -> void:

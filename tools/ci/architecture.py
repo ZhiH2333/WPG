@@ -25,6 +25,37 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _lobby_guards() -> list:
+    """Phase 3 硬约束：Lobby 域对象存在、不碰 ENet、UI 只发命令。"""
+    failures = []
+    expected = {
+        "lobby/lobby_player.gd": "class_name LobbyPlayer",
+        "lobby/room.gd": "class_name Room",
+        "lobby/lobby_manager.gd": "class_name LobbyManager",
+    }
+    for rel, marker in expected.items():
+        text = read(ROOT / rel)
+        if not text:
+            failures.append("缺少 %s" % rel)
+            continue
+        if marker not in text:
+            failures.append("%s 缺少 %s" % (rel, marker))
+        if "ENetMultiplayerPeer" in text or "multiplayer." in text:
+            failures.append("%s 不允许出现 ENet / multiplayer（建连归 LobbyNet）" % rel)
+    room = read(ROOT / "lobby/room.gd")
+    if "const MAX_PLAYERS: int = GameLaunch.NET_MAX_SEATS" not in room:
+        failures.append("Room 上限必须取自 GameLaunch.NET_MAX_SEATS（= 5）")
+    manager = read(ROOT / "lobby/lobby_manager.gd")
+    if "func start_match() -> bool" not in manager:
+        failures.append("LobbyManager 缺少 start_match()：信封必须由 domain 写")
+    overlay = read(ROOT / "ui/lan_overlay.gd")
+    if "_lobby.start_match()" not in overlay:
+        failures.append("LanOverlay 的 Start 必须走 LobbyManager.start_match()")
+    if "note_peer_connecting" not in overlay:
+        failures.append("LanOverlay 未把 peer 事件转给 LobbyManager")
+    return failures
+
+
 def main() -> int:
     failures = []
     project = read(PROJECT_GODOT)
@@ -65,6 +96,7 @@ def main() -> int:
         text = path.read_text(encoding="utf-8", errors="replace")
         if "class_name NetworkSession" in text or "class_name CombatSession" in text:
             failures.append("%s 引入了禁止的网络类名" % rel)
+    failures.extend(_lobby_guards())
     presets = read(EXPORT_PRESETS)
     for key, name in PRESETS.items():
         if ('name="%s"' % name) not in presets:

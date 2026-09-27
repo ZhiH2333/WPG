@@ -1,7 +1,7 @@
 # WPG UI / UX / Lobby Architecture Specification
 
 **版本:** 1.0-ui-lobby-arch
-**状态:** Phase 1（UI/UX 统一重构）与 Phase 2（PlayerProfile）**已落地**；§3.1 已实现，§4 起（LobbyManager / LobbyNet / JoinInvite / 门票握手 / P2P 预留）为 Phase 3 与 Phase 7–9 的目标，代码尚未建立。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
+**状态:** Phase 1（UI/UX 统一重构）、Phase 2（PlayerProfile）与 Phase 3（Lobby domain 离线 mock）**已落地**：§3.1–3.4 的 `PlayerProfile` / `LobbyPlayer` / `Room` 与 §4 的 `LobbyManager`（离线 mock，挂 MainMenu 下）已在 `ui/player_profile.gd`、`lobby/` 下实现；`LobbyNet` / `JoinInvite` / 门票握手 / P2P 预留仍未建立（旧编号 Phase 4 与 Phase 7–9 的目标）。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
 **配套:** 根目录 [`roadmap.md`](../roadmap.md)（阶段 / 硬约束）· [`ui_screen_spec.md`](ui_screen_spec.md)（页面布局 / 动效 / 导航栈）
 
 布局、CTA 层级、wireframe、Back 栈以 `ui_screen_spec.md` 为准。本文件管领域模型、职责、网络与换场。冲突时 `roadmap.md` 最高。
@@ -25,7 +25,8 @@ MainMenu（F5 主场景；无 Autoload）
   +- ProfileOverlay         PROFILE Page（就地改昵称 / 头像 / 常用角色）
   +- RecordLeaderboardOverlay  RANKING Page
   +- SettingsOverlay        抽屉（叠在当前页上）
-  +- LanOverlay             MULTIPLAYER Page：PICK / HOST / JOIN
+  +- LanOverlay             MULTIPLAYER Page：PICK / HOST（含 5 行座位墙）/ JOIN
+  +- LobbyManager           Lobby domain 唯一入口（Node，不是 Autoload；只持有 Room + 假座位）
   +- CreditsOverlay / RoomNotice（战斗侧 Modal 的菜单内对应物）
   start_lan / selected_record
     -> GameLaunch 静态信封（take 一次）
@@ -36,6 +37,17 @@ MainMenu（F5 主场景；无 Autoload）
          +- Hud / WinnerPage / UpgradeOffer / ShopOffer / PauseOverlay / RoomNotice
 ```
 
+Lobby domain 对象（`lobby/`，全部 `RefCounted`，不碰 ENet、不碰 SceneTree、不碰 UI）：
+
+```text
+LobbyManager（Node，MainMenu 子节点）
+  -> Room（room_id / host 身份 / 5 个座位 / arena / net_play / loop_goal / privacy / state / invite / borrowed_record_id）
+       -> LobbyPlayer（profile_id / display_name / avatar_id / preferred_character_id / peer_id / seat /
+                       selected_character_id / ready / connection_state / is_host / path / rtt_ms）
+```
+
+UI 只做两件事：向 `LobbyManager` 发命令、读 `get_snapshot()` 画座位行。Start 由 `LobbyManager.start_match()` 写 `GameLaunch` 信封。
+
 （UI 形态：Page / Modal / Drawer 三选一，Page 不套大面板；顶栏 tab 之间是水平翻页。细节见 `ui_screen_spec.md`。）
 
 
@@ -43,8 +55,11 @@ MainMenu（F5 主场景；无 Autoload）
 
 | 文件 | 行数 | 现在实际职责 |
 |---|---|---|
-| `ui/lan_overlay.gd` | 1074 | JOIN/PICK/HOST 视图、音效、Fit、ENet `create_server`/`create_client`、peer 信号、`rpc_hello`/`hello_ok`/`guest_character`/`assign_seat`/`roster`/`goal`/`arena`/`play_mode`/`begin`、座位数组、角色/地图/模式/loop、借档、LanBeacon、写 `GameLaunch` |
-| `ui/main_menu.gd` | 351 | 叠层互斥路由、模糊/BGM、换场信封触发、顶栏 `"best  %d"` |
+| `ui/lan_overlay.gd` | 1282 | JOIN/PICK/HOST 视图、音效、Fit、ENet `create_server`/`create_client`、peer 信号、`rpc_hello`/`hello_ok`/`guest_character`/`assign_seat`/`roster`/`goal`/`arena`/`play_mode`/`begin`、座位数组（RPC 路由缓存）、角色/地图/模式/loop、借档、LanBeacon、5 行座位墙（读 `LobbyManager` 快照）、把 peer 事件转给 `LobbyManager`、Start 走 `LobbyManager.start_match()` |
+| `lobby/lobby_manager.gd` | 424 | Lobby domain 唯一入口（Node，MainMenu 子节点）：create / join / leave、pending peer 占位与确认、ready / character / host、can_start、`get_snapshot()`、`start_match()` 写 `GameLaunch` 信封。**不碰 ENet** |
+| `lobby/room.gd` | 330 | 房间身份与 5 个座位：seat 分配 / 释放（号不前挪）、pending reservation、上限 5、重复 profile_id / peer_id 拒绝、Host 离房即关房、`can_start()` / `start_block_reason()` |
+| `lobby/lobby_player.gd` | 116 | 房间内实例：profile_id / display_name / avatar_id / preferred_character_id / peer_id / seat / selected_character_id / ready / connection_state / is_host / path / rtt_ms + `to_dict()` / `from_dict()` / `copy()` |
+| `ui/main_menu.gd` | 547 | 叠层互斥路由、模糊/BGM、换场信封触发、顶栏 PROFILE 项 = `display_name`、把 `LobbyManager` 注入 `LanOverlay` |
 | `ui/settings_overlay.gd` | 977 | Settings 抽屉（Audio/Display/Controls/Data） |
 | `arena/net_session.gd` | 303 | 沙盒内同步。**不建连**。peer 是大厅挂上 SceneTree 后留下来的 |
 | `arena/lan_beacon.gd` | 274 | 17778 发现。Overlay 子节点。房间卡标题目前是 IP |
@@ -57,14 +72,9 @@ MainMenu（F5 主场景；无 Autoload）
 | `ui/game_records.gd` | — | `user://records.json` 最多 12 档 |
 | `ui/game_settings.gd` | — | `user://settings.cfg` 音量/显示/键位 |
 
-顶栏 Profile 文案是硬编码：
+顶栏 PROFILE 项文案 = `PlayerProfile.display_name`（Phase 2 已落地，`MainMenu.refresh_profile_label()`）。
 
-```text
-MainMenu._refresh_profile_name()
-  _profile_name.text = "best  %d" % GameProgress.get_best_loop()
-```
-
-仓库里**没有** `PlayerProfile`、没有 `user://profile.json`、没有 `LobbyManager`、没有 `LobbyNet`、没有 `Room`、没有 Ready 状态、没有邀请 URI。
+仓库里**已有** `ui/player_profile.gd` + `user://profile.json`、`lobby/lobby_player.gd` / `lobby/room.gd` / `lobby/lobby_manager.gd`（MainMenu 下 `LobbyManager` 节点，离线 mock）、Ready / connection_state 枚举（`ready` 默认 true）。**没有** `LobbyNet`、`JoinInvite`、`ConnectionPath`、协议 6 的门票握手、邀请 URI / QR、Guest 侧 Room 同步、公网目录。
 
 `NetSession` **不建连**。`LanOverlay._create_server` / `create_client` 把 `ENetMultiplayerPeer` 挂到 `SceneTree.multiplayer`；进沙盒后 overlay 销毁，peer 还在。这是正确的换场合同，拆大厅时必须保留。
 

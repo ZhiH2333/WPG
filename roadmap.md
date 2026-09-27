@@ -38,6 +38,8 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 | Profile 页（Page 形态，`PAGE_PROFILE`） | 只读 `GameProgress` + `GameRecords`；昵称/头像/常用角色已就地读写 `PlayerProfile` |
 | 顶栏 | 右端只有时钟，五个 tab 无名字/头像槽；PROFILE 项文案 = `PlayerProfile.display_name` |
 | 本地存档三分 | `progress.cfg` / `records.json` / `settings.cfg` |
+| 本机身份 | `ui/player_profile.gd` + `user://profile.json`（Phase 2）；顶栏 PROFILE 项文案 = `display_name` |
+| Lobby domain（离线 mock） | `lobby/lobby_player.gd` / `lobby/room.gd` / `lobby/lobby_manager.gd`；MainMenu 下 `LobbyManager` 节点；LanOverlay 座位墙读 Room 快照 |
 | ENet 多人、Host 权威、5 座、协议 5、快照 v3 | `GameLaunch.NET_*`、`LanOverlay`、`NetSession` |
 | 游戏口 17777、发现口 17778 | `LanBeacon` Guest 探针 / Host 应答 |
 | LAN 房间列表 + 搜索 + 手打 IP | Day 81 |
@@ -49,11 +51,10 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 
 明确**还没有**：
 
-- `PlayerProfile` / `user://profile.json`
-- `LobbyManager` / `Room` / `LobbyPlayer` / `LobbyNet` / `JoinInvite`
-- Ready 状态机（今天 handshake 完成就能 Start）
+- `LobbyNet` / `JoinInvite` / `ConnectionPath`
+- Ready 状态机只是 domain 落地（`ready` 默认 true）；Lobby UI 还没有 Ready 钮，真房间仍以握手完成即满足 Start
 - 邀请 URI / QR / token / UPnP / IPv6 fallback
-- 顶栏真实昵称
+- Guest 侧 Room 同步（协议 5 不回传 profile_id / 昵称，Guest 仍走旧 Overlay RPC）
 - Playpen Sans 尚未进 `game_theme.tres`（仓库无任何 `.ttf/.otf`，主题仍是 system 回落 Inter/Segoe UI/Noto Sans/Arial）
 - 战斗侧 4 个 overlay 仍用 `enter_overlay/exit_overlay`（`pause_overlay` / `shop_offer` / `upgrade_offer` / `room_notice`），归 Phase 6
 - 无 Warning / Success 语义令牌
@@ -71,7 +72,7 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 |---|---|---|---|---|
 | 1 | 文档同步 | 已完成 | 四份文档与 dev 代码一致；删掉「UI 尚未实现 / 顶栏 best 0」类旧状态 | 不为文档同步改游戏逻辑 |
 | 2 | PlayerProfile | 已完成 | `ui/player_profile.gd` + `user://profile.json`；Profile 页就地改名/头像/常用角色；顶栏 PROFILE 项 = `display_name` | 不进 progress/records/settings；`profile_id` 不当 token / seat / peer_id；无 Autoload |
-| 3 | Lobby domain（离线 mock） | 进行中 | `LobbyPlayer` / `Room` / `LobbyManager`（挂 MainMenu 下）；Create → Lobby → 假座位进出 → Ready → Start → `GameLaunch` | 不碰 `NetSession`；不做 WAN / P2P；不 bump 协议 |
+| 3 | Lobby domain（离线 mock） | 已完成 (2026-09-27) | `LobbyPlayer` / `Room` / `LobbyManager`（挂 MainMenu 下）；Create → Lobby → 假座位进出 → Ready → Start → `GameLaunch` | 不碰 `NetSession`；不做 WAN / P2P；不 bump 协议 |
 | 4 | 移动端输入抽象 | 待开始 | `VirtualStick` / `TouchActionButton` / 轻量 TouchInput 适配层；左摇杆移动、右摇杆瞄准、主射击、Dash、技能预留按钮 | 不写 `TouchPlayerInput` / `TouchPlayer` / `TouchCombat`；不复制战斗逻辑 |
 | 5 | 移动端 Vertical Slice | 待开始 | Android → MainMenu → Solo → Combat → Pause → Winner；export preset、renderer 可行性、Safe Area / UiFit / 触控命中 / 性能 | 移动端 P2P；直接套用 Desktop Forward+ 假设 |
 | 6 | Ability Framework | 待开始 | `AbilityDef` / `AbilityController` / `AbilityState` / `AbilityEffect` + cooldown / duration / cost；输入只给 `ability_0/1` → `try_activate(index)` | 不绑键盘/鼠标/Pad/触屏按键；不先堆技能数量 |
@@ -150,7 +151,7 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 
 ---
 
-## Phase 3 — Lobby
+## Phase 3（已完成 2026-09-27）— Lobby
 
 目标：房间是领域对象，不再是 IP。先离线 mock，再接网。
 
@@ -167,9 +168,11 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 
 ### Definition of Done
 
-- 不插网线也能走完 Create → Lobby 座位墙 → Start（信封字段齐全）
+**状态：已完成（2026-09-27）。** 落地：`lobby/lobby_player.gd` / `lobby/room.gd` / `lobby/lobby_manager.gd` + MainMenu 下 `LobbyManager` 节点 + LanOverlay 座位墙（读 Room 快照）+ `tests/lobby_domain_test.gd` + `tools/ci/architecture.py` 的 Lobby 域守卫。未做（留给旧编号 Phase 4/7 轨道）：`LobbyNet`、`JoinInvite`、`LobbyNet` 接管 `@rpc`、Guest 侧 Room 同步（协议 5 不回传身份，Guest 仍是旧 Overlay RPC 路径）。
+
+- 不插网线也能走完 Create → Lobby 座位墙 → Start（信封字段齐全）：实测 HOST 视图 5 行座位 + 状态行 + Start 门槛；离线房间 Start 走 `OFFLINE` 信封（`active_record_id` / `arena_id` / `mode` / local seat 齐），真房间走 `HOST` 信封（roster 角色 + peer 齐）
 - Room 快照能驱动座位行：Host / Empty / Character，而不是只显示 `127.0.0.1:17777`
-- 现有 2 人 LAN 仍能开（允许仍走旧 Overlay RPC，只要 Manager 已是命令入口）
+- 现有 2 人 LAN 仍能开（允许仍走旧 Overlay RPC，只要 Manager 已是命令入口）：两进程实测 Host 座位墙出现真实 Guest（`Player 02`，CONNECTED），`peers=[1, <guest>]`、Guest 侧 `seat  2` + roster 到位
 - 无 Autoload；`NetSession` 文件未改职责
 
 ---
@@ -301,7 +304,7 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 ```text
 Phase 1  IA + Design System + Motion 意图     网络零改   ← 已完成 2026-09-26
 Phase 2  PlayerProfile + 顶栏真名                  ← 已完成 2026-09-26
-Phase 3  Lobby domain + 离线 mock
+Phase 3  Lobby domain + 离线 mock              ← 已完成 2026-09-27
 Phase 4  LobbyNet 接入现有 ENet / 大厅 RPC
 Phase 5  Create / Join / Lobby UX + Invite
 Phase 6  动效 / 音效 / 焦点 polish

@@ -11,6 +11,7 @@ const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
 const DEFAULT_LOOP_GOAL: int = 20
+const SEAT_ROW_HEIGHT: float = 24.0
 
 var _open: bool = false
 var _view: View = View.HOME
@@ -26,6 +27,9 @@ var _seat_character_ids: PackedStringArray = PackedStringArray()
 var _seat_handshake: PackedByteArray = PackedByteArray()
 var _roster_character_ids: PackedStringArray = PackedStringArray()
 var _beacon: LanBeacon
+## Lobby domain 的唯一入口，由 MainMenu 注入（不是 Autoload）。座位分配 / ready / start 条件全归它。
+var _lobby: LobbyManager = null
+var _seat_rows: Array[HBoxContainer] = []
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _sheet: Control = $Sheet
@@ -42,6 +46,7 @@ var _beacon: LanBeacon
 @onready var _custom_button: Button = $Sheet/Column/Content/PickRoot/Scroll/Cards/Custom
 @onready var _host_address: Label = $Sheet/Column/Content/HostRoot/Body/Left/AddressList
 @onready var _host_status: Label = $Sheet/Column/Content/HostRoot/Body/Left/Status
+@onready var _seats: VBoxContainer = $Sheet/Column/Content/HostRoot/Body/Left/Seats
 @onready var _record_hint: Label = $Sheet/Column/Content/HostRoot/Body/Left/RecordHint
 @onready var _host_boar: Button = $Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar
 @onready var _host_chicken: Button = $Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken
@@ -105,6 +110,7 @@ func _ready() -> void:
 		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
 	_content.resized.connect(_on_content_resized)
+	_build_seat_rows()
 	_reset_seats()
 	_ensure_beacon()
 	_join_search.text_changed.connect(_on_join_search_changed)
@@ -116,6 +122,113 @@ func _exit_tree() -> void:
 
 func is_open() -> bool:
 	return _open
+
+## MainMenu 在 _ready 注入 LobbyManager。UI 只发命令、只读 snapshot，不碰 Room 内部数组、不碰 ENet。
+func bind_lobby(manager: LobbyManager) -> void:
+	_lobby = manager
+	if _lobby == null:
+		return
+	if not _lobby.room_changed.is_connected(_on_lobby_changed):
+		_lobby.room_changed.connect(_on_lobby_changed)
+	if not _lobby.room_closed.is_connected(_on_lobby_closed):
+		_lobby.room_closed.connect(_on_lobby_closed)
+	_refresh_lobby_view()
+
+func _on_lobby_changed() -> void:
+	if not _open:
+		return
+	_refresh_lobby_view()
+
+func _on_lobby_closed() -> void:
+	if not _open:
+		return
+	_refresh_lobby_view()
+
+## 座位墙：5 行固定结构，只按 Room 快照改字，不重建节点。
+func _build_seat_rows() -> void:
+	for seat: int in range(1, GameLaunch.NET_MAX_SEATS + 1):
+		var row: HBoxContainer = HBoxContainer.new()
+		row.name = "Seat%d" % seat
+		row.custom_minimum_size = Vector2(0, SEAT_ROW_HEIGHT)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_theme_constant_override("separation", 12)
+		row.add_child(_make_seat_label("Name", &"OfferTitle", 260.0, Control.SIZE_EXPAND_FILL, HORIZONTAL_ALIGNMENT_LEFT))
+		row.add_child(_make_seat_label("Tag", &"Caption", 72.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_LEFT))
+		row.add_child(_make_seat_label("Character", &"OfferDesc", 96.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_LEFT))
+		row.add_child(_make_seat_label("State", &"StatValue", 104.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_RIGHT))
+		_seats.add_child(row)
+		_seat_rows.append(row)
+
+func _make_seat_label(node_name: String, variation: StringName, min_width: float, size_flags: int, align: int) -> Label:
+	var label: Label = Label.new()
+	label.name = node_name
+	label.theme_type_variation = variation
+	label.custom_minimum_size = Vector2(min_width, 0)
+	label.size_flags_horizontal = size_flags
+	label.horizontal_alignment = align
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.clip_text = true
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+func _refresh_lobby_view() -> void:
+	if _lobby == null or _seat_rows.is_empty():
+		return
+	var snapshot: Dictionary = _lobby.get_snapshot()
+	var seats: Array = snapshot.get("seats", [])
+	for index: int in _seat_rows.size():
+		var seat_data: Dictionary = seats[index] if index < seats.size() else {"occupied": false}
+		_apply_seat_row(index, seat_data)
+	_host_status.text = _lobby_status_text(snapshot)
+	_refresh_host_start()
+
+func _apply_seat_row(index: int, seat_data: Dictionary) -> void:
+	var row: HBoxContainer = _seat_rows[index]
+	var name_label: Label = row.get_node("Name") as Label
+	var tag_label: Label = row.get_node("Tag") as Label
+	var character_label: Label = row.get_node("Character") as Label
+	var state_label: Label = row.get_node("State") as Label
+	if not bool(seat_data.get("occupied", false)):
+		name_label.text = "EMPTY SEAT"
+		tag_label.text = ""
+		character_label.text = ""
+		state_label.text = ""
+		row.modulate.a = 0.5
+		return
+	row.modulate.a = 1.0
+	var display_name: String = str(seat_data.get("display_name", "")).to_upper()
+	name_label.text = display_name if not display_name.is_empty() else "CONNECTING"
+	tag_label.text = "HOST" if bool(seat_data.get("is_host", false)) else "PLAYER"
+	character_label.text = _seat_character_text(str(seat_data.get("selected_character_id", "")))
+	state_label.text = _seat_state_text(seat_data)
+
+func _seat_character_text(character_id: String) -> String:
+	if character_id.is_empty():
+		return ""
+	var def: CharacterDef = CATALOG.get_by_id(StringName(character_id))
+	return (def.display_name if def != null else character_id).to_upper()
+
+func _seat_state_text(seat_data: Dictionary) -> String:
+	if bool(seat_data.get("pending", false)):
+		return "CONNECTING"
+	match int(seat_data.get("connection_state", LobbyPlayer.ConnectionState.CONNECTED)):
+		LobbyPlayer.ConnectionState.CONNECTING:
+			return "CONNECTING"
+		LobbyPlayer.ConnectionState.LOST:
+			return "LOST"
+	return "READY" if bool(seat_data.get("ready", false)) else "WAITING"
+
+func _lobby_status_text(snapshot: Dictionary) -> String:
+	if not bool(snapshot.get("has_room", false)):
+		return "waiting"
+	if bool(snapshot.get("networked", false)):
+		var occupied: int = int(snapshot.get("occupied_count", 0))
+		if occupied <= 1:
+			return "waiting"
+		return "%d/%d connected" % [occupied, int(snapshot.get("max_players", GameLaunch.NET_MAX_SEATS))]
+	if int(snapshot.get("player_count", 0)) <= 1:
+		return "offline mock"
+	return "offline mock · %d seats" % int(snapshot.get("player_count", 0))
 
 func open(direction: int = 0) -> void:
 	_open = true
@@ -135,6 +248,7 @@ func close(direction: int = 0) -> void:
 	_open = false
 	_picked_record_id = ""
 	_clear_peer()
+	_leave_lobby_room()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet, false, direction)
@@ -162,6 +276,9 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			_handle_back()
 			return
+	if _handle_lobby_debug_key(event):
+		get_viewport().set_input_as_handled()
+		return
 	if _view == View.HOME or _view == View.PICK:
 		return
 	if _is_host_locked():
@@ -178,8 +295,43 @@ func _input(event: InputEvent) -> void:
 		_play_click()
 		_select_character(CHAR_CHICKEN)
 
+## 离线 mock 调试键（仅 debug 构建，只在 HOST 视图生效；不是玩家功能，不进 InputMap）：
+## F10 = 加一个假座位，F11 = 移除最后一个假座位，F12 = 断开 ENet 退回离线 mock。
+## 假座位只为验证 roster / seat / ready / 上限 / start 条件，不上网也不参战。
+func _handle_lobby_debug_key(event: InputEvent) -> bool:
+	if not OS.is_debug_build() or _view != View.HOST or _lobby == null:
+		return false
+	var key: InputEventKey = event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return false
+	match key.physical_keycode:
+		KEY_F10:
+			if _lobby.add_mock_player() == null:
+				_play_error()
+				return true
+			_play_click()
+			return true
+		KEY_F11:
+			if not _lobby.remove_mock_player():
+				_play_error()
+				return true
+			_play_back()
+			return true
+		KEY_F12:
+			if _occupied_count() > 1 or _lobby.has_pending():
+				_play_error()
+				return true
+			_play_click()
+			_clear_peer()
+			_lobby.mark_offline()
+			_refresh_host_status()
+			return true
+	return false
+
 func _handle_back() -> void:
 	_play_back()
+	if _view == View.HOST or _view == View.JOIN:
+		_leave_lobby_room()
 	if _view == View.HOME or _view == View.JOIN:
 		close(-1)
 		return
@@ -191,6 +343,13 @@ func _handle_back() -> void:
 		_enter_pick()
 		return
 	_enter_join()
+
+## 离开 HOST 视图 / 关页 = 离房。Host 离房即关房（1.0 不做 Host 迁移）。
+## 已开战（_host_started）时不碰房间，交给换场。
+func _leave_lobby_room() -> void:
+	if _host_started or _lobby == null or not _lobby.has_room():
+		return
+	_lobby.leave_room()
 
 func _show_home(_animate: bool) -> void:
 	_picked_record_id = ""
@@ -265,19 +424,31 @@ func _begin_host() -> void:
 	_host_root.visible = true
 	_host_address.text = _format_addresses()
 	_reset_seats()
-	_refresh_host_status()
-	_refresh_host_start()
+	_begin_host_room()
 	if not _create_server():
+		_refresh_host_start()
 		_host_status.text = "bind failed"
 		_play_error()
-		_refresh_host_start()
 		return
+	_lobby_mark_networked()
 	_wire_multiplayer()
 	_start_host_beacon()
+	_refresh_host_status()
 	if _picked_record_id.is_empty():
 		_host_boar.grab_focus()
 		return
 	_back_button.grab_focus()
+
+## 建房先于 bind：房间是领域状态，有没有 ENet peer 只是它的一种形态（离线 mock / 真 LAN）。
+func _begin_host_room() -> void:
+	if _lobby == null:
+		return
+	_lobby.create_room(_selected_arena_id, _net_play, _host_loop_goal(), _picked_record_id)
+	_lobby.set_local_character(_selected_character_id)
+
+func _lobby_mark_networked() -> void:
+	if _lobby != null:
+		_lobby.mark_networked()
 
 func _enter_join() -> void:
 	_view = View.JOIN
@@ -351,10 +522,16 @@ func _unwire_multiplayer() -> void:
 func _on_peer_connected(id: int) -> void:
 	if not multiplayer.is_server():
 		return
-	var seat: int = _assign_guest_seat(id)
+	# 占座归 Room：peer_connected 立刻占位（pending），握手完成才进 players。
+	var seat: int = _lobby.note_peer_connecting(id) if _lobby != null and _lobby.has_room() else 0
 	if seat < 2:
+		if _lobby == null or not _lobby.has_room():
+			push_error("lobby: peer %d connected without a room" % id)
 		multiplayer.multiplayer_peer.disconnect_peer(id)
 		return
+	_seat_peer_ids[seat - 1] = id
+	_seat_character_ids[seat - 1] = CHAR_BOAR
+	_seat_handshake[seat - 1] = 0
 	_refresh_host_status()
 	_refresh_host_start()
 	rpc_hello.rpc_id(id, GameLaunch.NET_PROTOCOL)
@@ -365,6 +542,8 @@ func _on_peer_disconnected(id: int) -> void:
 	if _seat_for_peer(id) < 2:
 		return
 	_clear_seat_of_peer(id)
+	if _lobby != null:
+		_lobby.drop_peer(id)
 	_refresh_host_status()
 	_refresh_host_start()
 	_broadcast_roster()
@@ -415,6 +594,8 @@ func rpc_hello_ok() -> void:
 	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
 		return
 	_seat_handshake[seat - 1] = 1
+	if _lobby != null:
+		_lobby.confirm_peer(sender)
 	_refresh_host_status()
 	_refresh_host_start()
 	rpc_assign_seat.rpc_id(sender, seat)
@@ -430,6 +611,8 @@ func rpc_guest_character(character_id: String) -> void:
 	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
 		return
 	_seat_character_ids[seat - 1] = GameLaunch._sanitize_character_id(character_id)
+	if _lobby != null:
+		_lobby.set_peer_character(sender, _seat_character_ids[seat - 1])
 	_broadcast_roster()
 
 @rpc("authority", "call_remote", "reliable")
@@ -478,19 +661,17 @@ func rpc_play_mode(net_play: int) -> void:
 
 func _on_start_pressed() -> void:
 	if not _can_start():
+		_play_error()
 		return
 	_play_click()
-	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
-	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
-	_seat_character_ids[0] = _selected_character_id
-	_seat_peer_ids[0] = 1
-	GameLaunch.set_lan_roster(_seat_character_ids.duplicate(), _seat_peer_ids.duplicate(), loop_goal)
-	GameLaunch.set_local_seat(1)
-	GameLaunch.set_net_role(GameLaunch.NetRole.HOST)
-	GameLaunch.set_arena_id(arena_id)
-	GameLaunch.set_net_play(_net_play)
+	# 信封只由 LobbyManager 写：UI 不再自己拼 GameLaunch 字段。
+	if _lobby == null or not _lobby.start_match():
+		_play_error()
+		return
 	_host_started = true
 	_stop_beacon()
+	var loop_goal: int = _host_loop_goal()
+	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
 	var packed: PackedByteArray = _encode_roster()
 	for peer: int in _handshake_guest_peers():
 		rpc_roster.rpc_id(peer, packed)
@@ -502,6 +683,8 @@ func _on_start_pressed() -> void:
 
 func _on_loop_changed(_value: float) -> void:
 	_refresh_loop_label()
+	if _lobby != null:
+		_lobby.set_loop_goal(_host_loop_goal())
 	_broadcast_goal()
 	_sync_host_beacon()
 
@@ -513,6 +696,8 @@ func _select_character(character_id: String) -> void:
 	_join_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
 	if _view == View.HOST:
 		_seat_character_ids[0] = _selected_character_id
+		if _lobby != null:
+			_lobby.set_local_character(_selected_character_id)
 		_broadcast_roster()
 	if _view == View.JOIN and multiplayer.multiplayer_peer != null:
 		rpc_guest_character.rpc_id(1, _selected_character_id)
@@ -522,6 +707,8 @@ func _select_arena(arena_id: String) -> void:
 	_host_yard.button_pressed = _selected_arena_id == "yard"
 	_host_pit.button_pressed = _selected_arena_id == "pit"
 	_host_keep.button_pressed = _selected_arena_id == "keep"
+	if _lobby != null:
+		_lobby.set_arena_id(_selected_arena_id)
 	_broadcast_arena()
 	_sync_host_beacon()
 
@@ -552,6 +739,8 @@ func _select_net_play(play: GameLaunch.NetPlay) -> void:
 	_net_play = play
 	_host_coop.button_pressed = play == GameLaunch.NetPlay.COOP
 	_host_battle.button_pressed = play == GameLaunch.NetPlay.BATTLE
+	if _lobby != null:
+		_lobby.set_net_play(play)
 	_refresh_mode_ui()
 	_refresh_host_start()
 	_broadcast_play_mode()
@@ -792,16 +981,6 @@ func _reset_seats() -> void:
 	_roster_character_ids = PackedStringArray()
 	_roster_character_ids.resize(GameLaunch.NET_MAX_SEATS)
 
-func _assign_guest_seat(peer_id: int) -> int:
-	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
-		if _seat_peer_ids[seat - 1] != 0:
-			continue
-		_seat_peer_ids[seat - 1] = peer_id
-		_seat_character_ids[seat - 1] = CHAR_BOAR
-		_seat_handshake[seat - 1] = 0
-		return seat
-	return 0
-
 func _clear_seat_of_peer(peer_id: int) -> void:
 	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
 		if _seat_peer_ids[seat - 1] != peer_id:
@@ -826,19 +1005,9 @@ func _occupied_count() -> int:
 			n += 1
 	return n
 
-func _all_guests_handshake() -> bool:
-	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
-		if _seat_peer_ids[seat - 1] == 0:
-			continue
-		if _seat_handshake[seat - 1] == 0:
-			return false
-	return true
-
+## Start 合同归 LobbyManager（Room 的 can_start + 有没有真实 peer 背书），UI 只读结果。
 func _can_start() -> bool:
-	var occupied: int = _occupied_count()
-	if occupied < 2 or not _all_guests_handshake():
-		return false
-	return occupied <= GameLaunch.NET_MAX_SEATS
+	return _lobby != null and _lobby.can_start()
 
 func _handshake_guest_peers() -> PackedInt32Array:
 	var peers: PackedInt32Array = PackedInt32Array()
@@ -849,11 +1018,7 @@ func _handshake_guest_peers() -> PackedInt32Array:
 	return peers
 
 func _refresh_host_status() -> void:
-	var occupied: int = _occupied_count()
-	if occupied <= 1:
-		_host_status.text = "waiting"
-	else:
-		_host_status.text = "%d/%d connected" % [occupied, GameLaunch.NET_MAX_SEATS]
+	_refresh_lobby_view()
 	_sync_host_beacon()
 
 func _encode_roster() -> PackedByteArray:
