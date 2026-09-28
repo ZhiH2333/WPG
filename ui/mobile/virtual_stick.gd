@@ -18,8 +18,8 @@ var _touch_id: int = -1
 var _base_pos: Vector2 = Vector2.ZERO
 var _current_vector: Vector2 = Vector2.ZERO
 
-@onready var _base: TextureRect = $Base
-@onready var _knob: TextureRect = $Knob
+@onready var _base: Panel = $Base
+@onready var _knob: Panel = $Knob
 var _has_visuals: bool = false
 
 func _ready() -> void:

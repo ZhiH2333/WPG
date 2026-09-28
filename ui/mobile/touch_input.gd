@@ -108,11 +108,11 @@ func reset() -> void:
 		_ability1_button.reset()
 	_dash_pending = false
 
-## 测试注入方法
-func _set_player_input_for_test(pi: PlayerInput) -> void:
-	_player_input = pi
+## 正式运行时绑定 API
+func bind_player_input(player_input: PlayerInput) -> void:
+	_player_input = player_input
 
-func _set_move_stick_for_test(stick: VirtualStick) -> void:
+func bind_move_stick(stick: VirtualStick) -> void:
 	if _move_stick != null:
 		_move_stick.stick_moved.disconnect(_on_move_stick_moved)
 		_move_stick.stick_released.disconnect(_on_move_stick_released)
@@ -121,7 +121,7 @@ func _set_move_stick_for_test(stick: VirtualStick) -> void:
 		_move_stick.stick_moved.connect(_on_move_stick_moved)
 		_move_stick.stick_released.connect(_on_move_stick_released)
 
-func _set_aim_stick_for_test(stick: VirtualStick) -> void:
+func bind_aim_stick(stick: VirtualStick) -> void:
 	if _aim_stick != null:
 		_aim_stick.stick_moved.disconnect(_on_aim_stick_moved)
 		_aim_stick.stick_released.disconnect(_on_aim_stick_released)
@@ -130,7 +130,7 @@ func _set_aim_stick_for_test(stick: VirtualStick) -> void:
 		_aim_stick.stick_moved.connect(_on_aim_stick_moved)
 		_aim_stick.stick_released.connect(_on_aim_stick_released)
 
-func _set_fire_button_for_test(btn: TouchActionButton) -> void:
+func bind_fire_button(btn: TouchActionButton) -> void:
 	if _fire_button != null:
 		_fire_button.pressed.disconnect(_on_fire_pressed)
 		_fire_button.released.disconnect(_on_fire_released)
@@ -139,9 +139,25 @@ func _set_fire_button_for_test(btn: TouchActionButton) -> void:
 		_fire_button.pressed.connect(_on_fire_pressed)
 		_fire_button.released.connect(_on_fire_released)
 
-func _set_dash_button_for_test(btn: TouchActionButton) -> void:
+func bind_dash_button(btn: TouchActionButton) -> void:
 	if _dash_button != null:
 		_dash_button.just_pressed.disconnect(_on_dash_just_pressed)
 	_dash_button = btn
 	if _dash_button != null:
 		_dash_button.just_pressed.connect(_on_dash_just_pressed)
+
+## 测试注入方法
+func _set_player_input_for_test(pi: PlayerInput) -> void:
+	_player_input = pi
+
+func _set_move_stick_for_test(stick: VirtualStick) -> void:
+	bind_move_stick(stick)
+
+func _set_aim_stick_for_test(stick: VirtualStick) -> void:
+	bind_aim_stick(stick)
+
+func _set_fire_button_for_test(btn: TouchActionButton) -> void:
+	bind_fire_button(btn)
+
+func _set_dash_button_for_test(btn: TouchActionButton) -> void:
+	bind_dash_button(btn)

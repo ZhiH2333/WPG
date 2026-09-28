@@ -7,8 +7,11 @@
 [ext_resource type="Script" path="res://ui/mobile/touch_input.gd" id="5_touch_input"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="6_theme"]
 
-[node name="TouchControls" type="Control"]
-layout_mode = 3
+[node name="TouchControls" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_touch_controls")
+
+[node name="Root" type="Control" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -16,17 +19,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("6_theme")
-script = ExtResource("1_touch_controls")
-
-[node name="Root" type="Control" parent="."]
-visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
 
 [node name="MoveStick" type="Control" parent="Root"]
 layout_mode = 1
@@ -43,15 +35,17 @@ grow_horizontal = 1
 grow_vertical = 0
 script = ExtResource("3_virtual_stick")
 
-[node name="Base" type="TextureRect" parent="Root/MoveStick"]
+[node name="Base" type="Panel" parent="Root/MoveStick"]
 layout_mode = 1
 anchors_preset = 0
 mouse_filter = 0
+theme_type_variation = "TouchStickBase"
 
-[node name="Knob" type="TextureRect" parent="Root/MoveStick"]
+[node name="Knob" type="Panel" parent="Root/MoveStick"]
 layout_mode = 1
 anchors_preset = 0
 mouse_filter = 0
+theme_type_variation = "TouchStickKnob"
 
 [node name="AimStick" type="Control" parent="Root"]
 layout_mode = 1
@@ -68,15 +62,17 @@ grow_horizontal = 0
 grow_vertical = 0
 script = ExtResource("3_virtual_stick")
 
-[node name="Base" type="TextureRect" parent="Root/AimStick"]
+[node name="Base" type="Panel" parent="Root/AimStick"]
 layout_mode = 1
 anchors_preset = 0
 mouse_filter = 0
+theme_type_variation = "TouchStickBase"
 
-[node name="Knob" type="TextureRect" parent="Root/AimStick"]
+[node name="Knob" type="Panel" parent="Root/AimStick"]
 layout_mode = 1
 anchors_preset = 0
 mouse_filter = 0
+theme_type_variation = "TouchStickKnob"
 
 [node name="ActionButtons" type="HBoxContainer" parent="Root"]
 layout_mode = 1

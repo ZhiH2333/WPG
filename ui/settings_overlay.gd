@@ -611,6 +611,7 @@ func _on_msaa_selected(index: int) -> void:
 func _on_touch_controls_selected(index: int) -> void:
 	_play_click()
 	GameSettings.set_touch_controls_mode(index)
+	GameSettings.apply()
 	GameSettings.save_to_disk()
 
 func _on_delete_all_confirmed() -> void:

@@ -1,4 +1,4 @@
-extends Control
+extends CanvasLayer
 class_name TouchControls
 
 ## Touch Controls 容器：管理虚拟摇杆和动作按钮的显示/隐藏
@@ -7,31 +7,29 @@ class_name TouchControls
 
 signal touch_visibility_changed(visible: bool)
 
-@onready var _move_stick: VirtualStick = $MoveStick
-@onready var _aim_stick: VirtualStick = $AimStick
-@onready var _fire_button: TouchActionButton = $ActionButtons/FireButton
-@onready var _dash_button: TouchActionButton = $ActionButtons/DashButton
-@onready var _ability0_button: TouchActionButton = $ActionButtons/Ability0Button
-@onready var _ability1_button: TouchActionButton = $ActionButtons/Ability1Button
-@onready var _touch_input: TouchInput = $TouchInput
+@onready var _move_stick: VirtualStick = $Root/MoveStick
+@onready var _aim_stick: VirtualStick = $Root/AimStick
+@onready var _fire_button: TouchActionButton = $Root/ActionButtons/FireButton
+@onready var _dash_button: TouchActionButton = $Root/ActionButtons/DashButton
+@onready var _ability0_button: TouchActionButton = $Root/ActionButtons/Ability0Button
+@onready var _ability1_button: TouchActionButton = $Root/ActionButtons/Ability1Button
+@onready var _touch_input: TouchInput = $Root/TouchInput
 @onready var _root: Control = $Root
 
 func _ready() -> void:
-	GameSettings.load_from_disk()
+	_setup_buttons_if_enabled()
 	_update_visibility()
+	GameSettings.load_from_disk()
 	set_process(true)
-	print("DEBUG TouchControls _ready: visible=" + str(_root.visible) + " should_show=" + str(GameSettings.is_touch_controls_enabled()))
 
 func _process(delta: float) -> void:
 	_update_visibility()
 
 func _update_visibility() -> void:
 	var should_show: bool = GameSettings.is_touch_controls_enabled()
-	print("DEBUG _update_visibility: current visible=" + str(_root.visible) + " should_show=" + str(should_show))
 	if _root.visible != should_show:
 		_root.visible = should_show
 		touch_visibility_changed.emit(should_show)
-		print("DEBUG Visibility changed to=" + str(should_show))
 
 func set_touch_visible(visible: bool) -> void:
 	_root.visible = visible
@@ -60,5 +58,34 @@ func _setup_buttons_if_enabled() -> void:
 	_ability0_button._setup_button()
 	_ability1_button._setup_button()
 
+func bind_player_input(player_input: PlayerInput) -> void:
+	if _touch_input != null:
+		_touch_input.bind_player_input(player_input)
+		_touch_input.bind_move_stick(_move_stick)
+		_touch_input.bind_aim_stick(_aim_stick)
+		_touch_input.bind_fire_button(_fire_button)
+		_touch_input.bind_dash_button(_dash_button)
+
 func get_touch_input() -> TouchInput:
 	return _touch_input
+
+func get_move_stick() -> VirtualStick:
+	return _move_stick
+
+func get_aim_stick() -> VirtualStick:
+	return _aim_stick
+
+func get_fire_button() -> TouchActionButton:
+	return _fire_button
+
+func get_dash_button() -> TouchActionButton:
+	return _dash_button
+
+func get_ability0_button() -> TouchActionButton:
+	return _ability0_button
+
+func get_ability1_button() -> TouchActionButton:
+	return _ability1_button
+
+func refresh_visibility() -> void:
+	_update_visibility()

@@ -799,8 +799,8 @@ TouchActionButtonSmall/styles/hover = SubResource("sb_touch_action_hover")
 TouchActionButtonSmall/styles/normal = SubResource("sb_touch_action_normal")
 TouchActionButtonSmall/styles/pressed = SubResource("sb_touch_action_pressed")
 
-TouchStickBase/base_type = &"TextureRect"
+TouchStickBase/base_type = &"Panel"
 TouchStickBase/styles/normal = SubResource("sb_touch_stick_base")
 
-TouchStickKnob/base_type = &"TextureRect"
+TouchStickKnob/base_type = &"Panel"
 TouchStickKnob/styles/normal = SubResource("sb_touch_stick_knob")
