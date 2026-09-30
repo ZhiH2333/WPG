@@ -47,10 +47,6 @@ func _setup_buttons_if_enabled() -> void:
 	_dash_button.button_text = "DASH"
 	_ability0_button.button_text = "A0"
 	_ability1_button.button_text = "A1"
-	_fire_button.button_color = Color(1, 0.4, 0.67, 1)
-	_dash_button.button_color = Color(0.4, 0.72, 1, 1)
-	_ability0_button.button_color = Color(0.95, 0.62, 0.35, 1)
-	_ability1_button.button_color = Color(0.95, 0.62, 0.35, 1)
 	_ability0_button.use_small_variant = true
 	_ability1_button.use_small_variant = true
 	_fire_button._setup_button()
