@@ -1,35 +1,59 @@
 extends CanvasLayer
 class_name TouchControls
 
-## Touch Controls 容器：管理虚拟摇杆和动作按钮的显示/隐藏
-## 根据 GameSettings.is_touch_controls_enabled() 决定是否显示
-## 不包含战斗逻辑，只负责组合 VirtualStick / TouchActionButton / TouchInput
+## Touch Controls 容器：固定双摇杆 + 右下 Action Cluster。
+## 屏幕空间常驻，不随 world/camera 移动。视觉来自 ui/game_theme.tres。
+## 由 GameSettings.is_touch_controls_enabled() 决定整体显示，并支持临时 modal 屏蔽。
+## 不包含战斗逻辑，只负责组合 VirtualStick / TouchActionButton / TouchInput。
 
 signal touch_visibility_changed(visible: bool)
 
-@onready var _move_stick: VirtualStick = $Root/MoveStick
-@onready var _aim_stick: VirtualStick = $Root/AimStick
-@onready var _fire_button: TouchActionButton = $Root/ActionButtons/FireButton
-@onready var _dash_button: TouchActionButton = $Root/ActionButtons/DashButton
-@onready var _ability0_button: TouchActionButton = $Root/ActionButtons/Ability0Button
-@onready var _ability1_button: TouchActionButton = $Root/ActionButtons/Ability1Button
+@onready var _move_stick: VirtualStick = $Root/SafeAreaRoot/MoveStick
+@onready var _aim_stick: VirtualStick = $Root/SafeAreaRoot/AimStick
+@onready var _fire_button: TouchActionButton = $Root/SafeAreaRoot/ActionCluster/FireButton
+@onready var _dash_button: TouchActionButton = $Root/SafeAreaRoot/ActionCluster/DashButton
+@onready var _ability0_button: TouchActionButton = $Root/SafeAreaRoot/ActionCluster/Ability0Button
+@onready var _ability1_button: TouchActionButton = $Root/SafeAreaRoot/ActionCluster/Ability1Button
 @onready var _touch_input: TouchInput = $Root/TouchInput
 @onready var _root: Control = $Root
+@onready var _safe_area: SafeAreaRoot = $Root/SafeAreaRoot
+
+var _modal_blocked: bool = false
 
 func _ready() -> void:
-	_setup_buttons_if_enabled()
 	_update_visibility()
-	GameSettings.load_from_disk()
-	set_process(true)
 
 func _process(delta: float) -> void:
 	_update_visibility()
 
+func _should_show() -> bool:
+	return GameSettings.is_touch_controls_enabled() and not _modal_blocked
+
 func _update_visibility() -> void:
-	var should_show: bool = GameSettings.is_touch_controls_enabled()
+	var should_show: bool = _should_show()
 	if _root.visible != should_show:
 		_root.visible = should_show
 		touch_visibility_changed.emit(should_show)
+	_apply_input_policy(should_show)
+
+## 隐藏时让出鼠标，避免 PC 正常操作被 Touch UI 拦截。
+func _apply_input_policy(show: bool) -> void:
+	_root.mouse_filter = Control.MOUSE_FILTER_PASS if show else Control.MOUSE_FILTER_IGNORE
+	_root.process_mode = Node.PROCESS_MODE_INHERIT if show else Node.PROCESS_MODE_DISABLED
+	if not show:
+		_touch_input.reset()
+
+## Modal（Pause / Winner / Upgrade / Shop）打开时屏蔽 Touch Controls。
+func set_modal_blocked(blocked: bool) -> void:
+	if _modal_blocked == blocked:
+		return
+	_modal_blocked = blocked
+	if blocked:
+		_touch_input.reset()
+	_update_visibility()
+
+func is_modal_blocked() -> bool:
+	return _modal_blocked
 
 func set_touch_visible(visible: bool) -> void:
 	_root.visible = visible
@@ -37,30 +61,9 @@ func set_touch_visible(visible: bool) -> void:
 func is_touch_visible() -> bool:
 	return _root.visible
 
-func _setup_buttons_if_enabled() -> void:
-	if not GameSettings.is_touch_controls_enabled():
-		return
-	if _fire_button == null or _dash_button == null or _ability0_button == null or _ability1_button == null:
-		print("WARNING: TouchActionButton references are null, buttons not setup")
-		return
-	_fire_button.button_text = "FIRE"
-	_dash_button.button_text = "DASH"
-	_ability0_button.button_text = "A0"
-	_ability1_button.button_text = "A1"
-	_ability0_button.use_small_variant = true
-	_ability1_button.use_small_variant = true
-	_fire_button._setup_button()
-	_dash_button._setup_button()
-	_ability0_button._setup_button()
-	_ability1_button._setup_button()
-
 func bind_player_input(player_input: PlayerInput) -> void:
 	if _touch_input != null:
 		_touch_input.bind_player_input(player_input)
-		_touch_input.bind_move_stick(_move_stick)
-		_touch_input.bind_aim_stick(_aim_stick)
-		_touch_input.bind_fire_button(_fire_button)
-		_touch_input.bind_dash_button(_dash_button)
 
 func get_touch_input() -> TouchInput:
 	return _touch_input

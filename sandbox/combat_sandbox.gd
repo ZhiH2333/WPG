@@ -122,6 +122,7 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	if _leaving:
 		return
+	_sync_touch_modal()
 	if _pause_overlay.is_open() and not _is_lan():
 		return
 	if _is_guest():
@@ -291,7 +292,7 @@ func _bind_runtime() -> void:
 	_hud.bind_encounter(_encounter)
 	_hud.bind_run_session(_run_session)
 	
-	# Bind TouchControls to PlayerInput
+	# Bind TouchControls to PlayerInput（正式公开接口）
 	if _touch_controls != null:
 		if player_input != null:
 			_touch_controls.bind_player_input(player_input)
@@ -735,6 +736,14 @@ func _on_window_mouse_entered() -> void:
 func _on_window_mouse_exited() -> void:
 	_mouse_inside_window = false
 	_sync_system_cursor()
+
+## Modal（Pause / Winner / Upgrade / Shop）打开时屏蔽 Touch Controls，避免穿透。
+func _sync_touch_modal() -> void:
+	if _touch_controls == null:
+		return
+	var blocked: bool = _pause_overlay.is_open() or _winner_page.is_open() or \
+		_upgrade_offer.is_open() or _shop_offer.is_open()
+	_touch_controls.set_modal_blocked(blocked)
 
 func _sync_system_cursor() -> void:
 	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _winner_page.is_open() or _run_session.is_player_dead() or _run_session.is_cleared() or _is_local_battle_spectator():

@@ -1,11 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://touch_controls"]
+[gd_scene load_steps=7 format=3 uid="uid://touch_controls"]
 
 [ext_resource type="Script" path="res://ui/mobile/touch_controls.gd" id="1_touch_controls"]
-[ext_resource type="Script" path="res://player/player_input.gd" id="2_player_input"]
 [ext_resource type="Script" path="res://ui/mobile/virtual_stick.gd" id="3_virtual_stick"]
 [ext_resource type="Script" path="res://ui/mobile/touch_action_button.gd" id="4_touch_button"]
 [ext_resource type="Script" path="res://ui/mobile/touch_input.gd" id="5_touch_input"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="6_theme"]
+[ext_resource type="Script" path="res://ui/mobile/safe_area_root.gd" id="7_safe_area"]
 
 [node name="TouchControls" type="CanvasLayer"]
 layer = 100
@@ -20,88 +20,106 @@ grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("6_theme")
 
-[node name="MoveStick" type="Control" parent="Root"]
+[node name="SafeAreaRoot" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("7_safe_area")
+
+[node name="MoveStick" type="Control" parent="Root/SafeAreaRoot"]
 layout_mode = 1
 anchors_preset = 2
-anchor_left = 0.0
 anchor_top = 1.0
-anchor_right = 0.0
 anchor_bottom = 1.0
-offset_left = 24.0
+offset_left = 0.0
 offset_top = -200.0
-offset_right = 184.0
-offset_bottom = -24.0
-grow_horizontal = 1
+offset_right = 200.0
+offset_bottom = 0.0
 grow_vertical = 0
 script = ExtResource("3_virtual_stick")
 
-[node name="Base" type="Panel" parent="Root/MoveStick"]
-layout_mode = 1
-anchors_preset = 0
-mouse_filter = 0
+[node name="Base" type="Panel" parent="Root/SafeAreaRoot/MoveStick"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 200.0
+mouse_filter = 2
 theme_type_variation = "TouchStickBase"
 
-[node name="Knob" type="Panel" parent="Root/MoveStick"]
-layout_mode = 1
-anchors_preset = 0
-mouse_filter = 0
+[node name="Knob" type="Panel" parent="Root/SafeAreaRoot/MoveStick"]
+layout_mode = 0
+offset_right = 80.0
+offset_bottom = 80.0
+mouse_filter = 2
 theme_type_variation = "TouchStickKnob"
 
-[node name="AimStick" type="Control" parent="Root"]
+[node name="AimStick" type="Control" parent="Root/SafeAreaRoot"]
 layout_mode = 1
-anchors_preset = 1
+anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -184.0
+offset_left = -200.0
 offset_top = -200.0
-offset_right = -24.0
-offset_bottom = -24.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 0
 grow_vertical = 0
 script = ExtResource("3_virtual_stick")
 
-[node name="Base" type="Panel" parent="Root/AimStick"]
-layout_mode = 1
-anchors_preset = 0
-mouse_filter = 0
+[node name="Base" type="Panel" parent="Root/SafeAreaRoot/AimStick"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 200.0
+mouse_filter = 2
 theme_type_variation = "TouchStickBase"
 
-[node name="Knob" type="Panel" parent="Root/AimStick"]
-layout_mode = 1
-anchors_preset = 0
-mouse_filter = 0
+[node name="Knob" type="Panel" parent="Root/SafeAreaRoot/AimStick"]
+layout_mode = 0
+offset_right = 80.0
+offset_bottom = 80.0
+mouse_filter = 2
 theme_type_variation = "TouchStickKnob"
 
-[node name="ActionButtons" type="HBoxContainer" parent="Root"]
+[node name="ActionCluster" type="Control" parent="Root/SafeAreaRoot"]
 layout_mode = 1
-anchors_preset = 1
+anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -460.0
-offset_top = -200.0
-offset_right = -24.0
-offset_bottom = -24.0
+offset_left = -420.0
+offset_top = -420.0
+offset_right = -200.0
+offset_bottom = -200.0
 grow_horizontal = 0
 grow_vertical = 0
-theme_override_constants/separation = 16
+mouse_filter = 2
 
-[node name="FireButton" type="Control" parent="Root/ActionButtons"]
-layout_mode = 2
-custom_minimum_size = Vector2(100, 100)
+[node name="FireButton" type="Control" parent="Root/SafeAreaRoot/ActionCluster"]
+layout_mode = 0
+offset_left = 130.0
+offset_top = 210.0
+offset_right = 290.0
+offset_bottom = 370.0
+mouse_filter = 1
 script = ExtResource("4_touch_button")
+variant = 0
+button_text = "FIRE"
+button_size = Vector2(160, 160)
 
-[node name="Button" type="Button" parent="Root/ActionButtons/FireButton"]
-layout_mode = 2
-custom_minimum_size = Vector2(100, 100)
-theme_type_variation = ""
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/ActionCluster/FireButton"]
+layout_mode = 0
+offset_right = 160.0
+offset_bottom = 160.0
 focus_mode = 0
 
-[node name="Label" type="Label" parent="Root/ActionButtons/FireButton/Button"]
-layout_mode = 2
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/ActionCluster/FireButton/Button"]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -109,19 +127,26 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="DashButton" type="Control" parent="Root/ActionButtons"]
-layout_mode = 2
-custom_minimum_size = Vector2(100, 100)
+[node name="DashButton" type="Control" parent="Root/SafeAreaRoot/ActionCluster"]
+layout_mode = 0
+offset_left = 160.0
+offset_top = 90.0
+offset_right = 300.0
+offset_bottom = 230.0
+mouse_filter = 1
 script = ExtResource("4_touch_button")
+variant = 1
+button_text = "DASH"
+button_size = Vector2(120, 120)
 
-[node name="Button" type="Button" parent="Root/ActionButtons/DashButton"]
-layout_mode = 2
-custom_minimum_size = Vector2(100, 100)
-theme_type_variation = ""
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/ActionCluster/DashButton"]
+layout_mode = 0
+offset_right = 120.0
+offset_bottom = 120.0
 focus_mode = 0
 
-[node name="Label" type="Label" parent="Root/ActionButtons/DashButton/Button"]
-layout_mode = 2
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/ActionCluster/DashButton/Button"]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -129,19 +154,26 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Ability0Button" type="Control" parent="Root/ActionButtons"]
-layout_mode = 2
-custom_minimum_size = Vector2(80, 80)
+[node name="Ability0Button" type="Control" parent="Root/SafeAreaRoot/ActionCluster"]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 0.0
+offset_right = 230.0
+offset_bottom = 80.0
+mouse_filter = 1
 script = ExtResource("4_touch_button")
+variant = 2
+button_text = "A0"
+button_size = Vector2(80, 80)
 
-[node name="Button" type="Button" parent="Root/ActionButtons/Ability0Button"]
-layout_mode = 2
-custom_minimum_size = Vector2(80, 80)
-theme_type_variation = ""
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/ActionCluster/Ability0Button"]
+layout_mode = 0
+offset_right = 80.0
+offset_bottom = 80.0
 focus_mode = 0
 
-[node name="Label" type="Label" parent="Root/ActionButtons/Ability0Button/Button"]
-layout_mode = 2
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/ActionCluster/Ability0Button/Button"]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -149,19 +181,26 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Ability1Button" type="Control" parent="Root/ActionButtons"]
-layout_mode = 2
-custom_minimum_size = Vector2(80, 80)
+[node name="Ability1Button" type="Control" parent="Root/SafeAreaRoot/ActionCluster"]
+layout_mode = 0
+offset_left = 240.0
+offset_top = 0.0
+offset_right = 320.0
+offset_bottom = 80.0
+mouse_filter = 1
 script = ExtResource("4_touch_button")
+variant = 2
+button_text = "A1"
+button_size = Vector2(80, 80)
 
-[node name="Button" type="Button" parent="Root/ActionButtons/Ability1Button"]
-layout_mode = 2
-custom_minimum_size = Vector2(80, 80)
-theme_type_variation = ""
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/ActionCluster/Ability1Button"]
+layout_mode = 0
+offset_right = 80.0
+offset_bottom = 80.0
 focus_mode = 0
 
-[node name="Label" type="Label" parent="Root/ActionButtons/Ability1Button/Button"]
-layout_mode = 2
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/ActionCluster/Ability1Button/Button"]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -171,9 +210,9 @@ mouse_filter = 2
 
 [node name="TouchInput" type="Node" parent="Root"]
 script = ExtResource("5_touch_input")
-move_stick_path = NodePath("MoveStick")
-aim_stick_path = NodePath("AimStick")
-fire_button_path = NodePath("ActionButtons/FireButton")
-dash_button_path = NodePath("ActionButtons/DashButton")
-ability0_button_path = NodePath("ActionButtons/Ability0Button")
-ability1_button_path = NodePath("ActionButtons/Ability1Button")
+move_stick_path = NodePath("../SafeAreaRoot/MoveStick")
+aim_stick_path = NodePath("../SafeAreaRoot/AimStick")
+fire_button_path = NodePath("../SafeAreaRoot/ActionCluster/FireButton")
+dash_button_path = NodePath("../SafeAreaRoot/ActionCluster/DashButton")
+ability0_button_path = NodePath("../SafeAreaRoot/ActionCluster/Ability0Button")
+ability1_button_path = NodePath("../SafeAreaRoot/ActionCluster/Ability1Button")

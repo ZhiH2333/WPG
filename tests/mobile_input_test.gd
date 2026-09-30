@@ -41,9 +41,16 @@ func _create_virtual_stick(deadzone: float = 0.15, max_radius: float = 80.0) -> 
 	var stick: VirtualStick = VirtualStick.new()
 	stick.deadzone = deadzone
 	stick.max_radius = max_radius
+	stick.size = Vector2(160, 160)
+	stick.base_size = 160.0
+	stick.knob_size = 80.0
 	root.add_child(stick)
 	stick._ready()
 	return stick
+
+## 摇杆中心（本地坐标）
+func _stick_center(stick: VirtualStick) -> Vector2:
+	return stick.size * 0.5
 
 func _case_virtual_stick_center_zero() -> void:
 	var stick: VirtualStick = _create_virtual_stick()
@@ -53,8 +60,9 @@ func _case_virtual_stick_center_zero() -> void:
 
 func _case_virtual_stick_clamp_to_unit() -> void:
 	var stick: VirtualStick = _create_virtual_stick(0.0, 80.0)
-	stick._activate(Vector2(100, 100), 1)
-	stick._update_stick(Vector2(100 + 200, 100))
+	var center: Vector2 = _stick_center(stick)
+	stick._activate(1)
+	stick._update_stick(center + Vector2(200, 0))
 	
 	var vector: Vector2 = stick.get_vector()
 	_expect(vector.length() <= 1.0 + 0.001, "向量长度 clamp 到 <= 1，实际: %.3f" % vector.length())
@@ -63,21 +71,23 @@ func _case_virtual_stick_clamp_to_unit() -> void:
 
 func _case_virtual_stick_deadzone() -> void:
 	var stick: VirtualStick = _create_virtual_stick(0.3, 80.0)
-	stick._activate(Vector2(100, 100), 1)
-	stick._update_stick(Vector2(100 + 20, 100))
+	var center: Vector2 = _stick_center(stick)
+	stick._activate(1)
+	stick._update_stick(center + Vector2(20, 0))
 	
 	var vector: Vector2 = stick.get_vector()
 	_expect(vector.is_zero_approx(), "deadzone 内返回 ZERO，实际长度: %.3f" % vector.length())
 	
-	stick._update_stick(Vector2(100 + 80, 100))
+	stick._update_stick(center + Vector2(80, 0))
 	vector = stick.get_vector()
 	_expect(not vector.is_zero_approx(), "deadzone 外返回非零向量")
 	stick.queue_free()
 
 func _case_virtual_stick_release_returns_zero() -> void:
 	var stick: VirtualStick = _create_virtual_stick(0.0, 80.0)
-	stick._activate(Vector2(100, 100), 1)
-	stick._update_stick(Vector2(180, 100))
+	var center: Vector2 = _stick_center(stick)
+	stick._activate(1)
+	stick._update_stick(center + Vector2(80, 0))
 	_expect(not stick.get_vector().is_zero_approx(), "拖动时非零")
 	
 	stick._release()
@@ -133,8 +143,8 @@ func _case_touch_input_left_stick_to_move_vector() -> void:
 	var touch_input: TouchInput = _make_test_touch_input(player_input)
 	touch_input._set_move_stick_for_test(move_stick)
 	
-	move_stick._activate(Vector2(100, 100), 1)
-	move_stick._update_stick(Vector2(150, 100))
+	move_stick._activate(1)
+	move_stick._update_stick(_stick_center(move_stick) + Vector2(50, 0))
 	touch_input._process(0.016)
 	
 	_expect(not player_input.move_vector.is_zero_approx(), "左摇杆产生 move_vector")
@@ -155,8 +165,8 @@ func _case_touch_input_right_stick_to_aim_vector() -> void:
 	var touch_input: TouchInput = _make_test_touch_input(player_input)
 	touch_input._set_aim_stick_for_test(aim_stick)
 	
-	aim_stick._activate(Vector2(800, 100), 2)
-	aim_stick._update_stick(Vector2(800, 50))
+	aim_stick._activate(2)
+	aim_stick._update_stick(_stick_center(aim_stick) + Vector2(0, -50))
 	touch_input._process(0.016)
 	
 	_expect(not player_input.aim_vector.is_zero_approx(), "右摇杆产生 aim_vector")

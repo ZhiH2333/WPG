@@ -2,16 +2,24 @@ extends Control
 class_name TouchActionButton
 
 ## 轻量触屏按钮组件：pressed / released / held / just_pressed
-## 不包含任何战斗逻辑，只产出边沿与状态
-## 使用 FlatBold theme tokens，不创建 StyleBoxFlat.new()
+## 不包含任何战斗逻辑，只产出边沿与状态。
+## 视觉全部来自 ui/game_theme.tres，按 variant 选择 theme_type_variation。
+## 禁止 StyleBoxFlat.new()。
 
 signal pressed
 signal released
 signal just_pressed
 
+enum Variant {
+	PRIMARY = 0,
+	DEFAULT = 1,
+	SMALL = 2,
+}
+
+@export var variant: Variant = Variant.DEFAULT
 @export var button_text: String = "ACTION"
 @export var button_size: Vector2 = Vector2(100, 100)
-@export var font_size: int = 28
+@export var font_size: int = 0
 @export var use_small_variant: bool = false
 
 var _held: bool = false
@@ -25,22 +33,31 @@ var _has_visuals: bool = false
 
 func _ready() -> void:
 	_has_visuals = is_instance_valid(_button) and is_instance_valid(_label)
+	if use_small_variant and variant == Variant.DEFAULT:
+		variant = Variant.SMALL
 	if _has_visuals:
 		_setup_button()
 
 func _setup_button() -> void:
 	_button.custom_minimum_size = button_size
 	_button.size = button_size
-	_button.theme_type_variation = "TouchActionButtonSmall" if use_small_variant else "TouchActionButton"
+	_button.theme_type_variation = _variation_name()
 	_button.focus_mode = Control.FOCUS_NONE
-	
+
 	_label.text = button_text
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_label.add_theme_font_size_override("font_size", font_size)
-	_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-	_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-	_label.add_theme_constant_override("outline_size", 4)
+	if font_size > 0:
+		_label.add_theme_font_size_override("font_size", font_size)
+
+func _variation_name() -> String:
+	match variant:
+		Variant.PRIMARY:
+			return "TouchActionButtonPrimary"
+		Variant.SMALL:
+			return "TouchActionButtonSmall"
+		_:
+			return "TouchActionButton"
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
