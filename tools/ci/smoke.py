@@ -22,10 +22,32 @@ def automated_tests() -> list:
     return sorted(found)
 
 
+def import_project(godot: Path) -> int:
+    """全新 checkout 没有 .godot/，必须先 import 生成 global_script_class_cache.cfg。
+    否则所有 class_name 类型在 --script 运行时无法解析，测试会 parse error。
+    smoke 是独立 job，不能依赖 validate job 的 import 产物。"""
+    log_path = LOG_DIR / "smoke-import.log"
+    proc = run_cmd(
+        [str(godot), "--headless", "--path", str(ROOT), "--import", "--quit"],
+        log_path=log_path,
+    )
+    output = proc.stdout or ""
+    if proc.returncode != 0 or "SCRIPT ERROR" in output or "Parse Error" in output:
+        emit_outcome(Outcome("FAIL", "Godot import 失败，日志：%s" % log_path))
+        tail = "\n".join(output.splitlines()[-40:])
+        if tail:
+            print(tail)
+        return 1
+    emit("PASS", "Godot import")
+    return 0
+
+
 def main() -> int:
     godot = find_godot()
     if godot is None:
         emit_outcome(Outcome("FAIL", "Missing: Godot"))
+        return 1
+    if import_project(godot) != 0:
         return 1
     script = ROOT / "tools/ci/smoke_load.gd"
     log_path = LOG_DIR / "smoke.log"
@@ -70,9 +92,10 @@ def main() -> int:
             timeout=180,
         )
         output = test_proc.stdout or ""
-        # 自管理退出的测试会打印 *_OK 标记；有标记时必须出现，避免 --quit 掩盖失败。
+        # 测试必须自己打印 *_OK 成功标记。缺标记 = 脚本未真正跑完（parse error /
+        # 提前退出），不能因为 Godot 退出码恰为 0 就当成通过，否则会掩盖 CI 失败。
         marker = _success_marker(output)
-        if test_proc.returncode != 0 or (marker is not None and marker not in output):
+        if test_proc.returncode != 0 or marker is None:
             failures.append(test.relative_to(ROOT).as_posix())
     if failures:
         emit("FAIL", "自动测试失败：%s" % ", ".join(failures))
