@@ -10,6 +10,8 @@ extends SceneTree
 var _failures: PackedStringArray = PackedStringArray()
 var _tc: TouchControls
 var _pi: PlayerInput
+var _host: Node2D
+var _reticle: AimReticle
 
 func _initialize() -> void:
 	_run()
@@ -23,8 +25,15 @@ func _run() -> void:
 	var scene: PackedScene = load("res://ui/mobile/touch_controls.tscn")
 	_tc = scene.instantiate() as TouchControls
 	root.add_child(_tc)
+	## PlayerInput 挂在 Node2D 宿主下，让 AimReticle 能拿到玩家位置，走真实准星路径。
+	_host = Node2D.new()
+	_host.position = Vector2(400, 300)
+	root.add_child(_host)
 	_pi = PlayerInput.new()
-	root.add_child(_pi)
+	_host.add_child(_pi)
+	_reticle = AimReticle.new()
+	root.add_child(_reticle)
+	_reticle.bind_player_input(_pi)
 	_tc.bind_player_input(_pi)
 	await process_frame
 	_tc.refresh_visibility()
@@ -32,6 +41,7 @@ func _run() -> void:
 
 	await _case_real_screen_touch_drives_move()
 	await _case_real_touch_multi_index()
+	await _case_real_aim_pad_direction_only()
 	await _case_real_touch_button_edge()
 	await _case_emulated_mouse_ignored()
 	await _case_real_mouse_works()
@@ -69,6 +79,30 @@ func _stick_release(stick: VirtualStick, index: int) -> void:
 	ev.position = center
 	get_root().push_input(ev)
 
+func _aim_pad_press(pad: TouchAimPad, index: int, offset: Vector2 = Vector2.ZERO) -> void:
+	var center: Vector2 = pad.global_position + pad.size * 0.5
+	var ev: InputEventScreenTouch = InputEventScreenTouch.new()
+	ev.index = index
+	ev.pressed = true
+	ev.position = center + offset
+	get_root().push_input(ev)
+
+func _aim_pad_drag(pad: TouchAimPad, index: int, offset: Vector2) -> void:
+	var center: Vector2 = pad.global_position + pad.size * 0.5
+	var ev: InputEventScreenDrag = InputEventScreenDrag.new()
+	ev.index = index
+	ev.position = center + offset
+	ev.screen_relative = offset
+	get_root().push_input(ev)
+
+func _aim_pad_release(pad: TouchAimPad, index: int) -> void:
+	var center: Vector2 = pad.global_position + pad.size * 0.5
+	var ev: InputEventScreenTouch = InputEventScreenTouch.new()
+	ev.index = index
+	ev.pressed = false
+	ev.position = center
+	get_root().push_input(ev)
+
 func _button_press(btn: TouchActionButton, index: int) -> void:
 	var c: Vector2 = btn.global_position + btn.button_size * 0.5
 	var ev: InputEventScreenTouch = InputEventScreenTouch.new()
@@ -99,32 +133,59 @@ func _case_real_screen_touch_drives_move() -> void:
 	_expect(not stick.is_active(), "ScreenTouch up 释放左摇杆")
 	_expect(_pi.move_vector.is_zero_approx(), "释放后 move 归零")
 
-## 右摇杆：真实 touch -> aim + fire；release -> fire false，aim 保留。
+## 左摇杆 Move + 右 AimPad：真实 touch -> aim + fire；release -> aim ZERO，fire false。
 func _case_real_touch_multi_index() -> void:
 	var move_stick: VirtualStick = _tc.get_move_stick()
-	var aim_stick: VirtualStick = _tc.get_aim_stick()
+	var aim_pad: TouchAimPad = _tc.get_aim_pad()
 	_stick_press(move_stick, 0)
-	_stick_press(aim_stick, 1)
+	_aim_pad_press(aim_pad, 1)
 	await process_frame
 	_stick_drag(move_stick, 0, Vector2(70, 0))
-	_stick_drag(aim_stick, 1, Vector2(0, -70))
+	_aim_pad_drag(aim_pad, 1, Vector2(0, -70))
 	await process_frame
-	_expect(move_stick.is_active() and aim_stick.is_active(), "touch index 0/1 可并存")
+	_expect(move_stick.is_active() and aim_pad.is_active(), "touch index 0/1 可并存")
 	_expect(_pi.move_vector.x > 0.0, "左杆 index 0 移动")
-	_expect(_pi.aim_vector.y < 0.0, "右杆 index 1 瞄准")
-	_expect(_pi.fire_held, "右杆 active -> fire")
-	_stick_release(aim_stick, 1)
+	_expect(_pi.aim_vector.y < 0.0, "AimPad index 1 瞄准")
+	_expect(_pi.fire_held, "AimPad active -> fire")
+	_aim_pad_release(aim_pad, 1)
 	await process_frame
-	_expect(not _pi.fire_held, "右杆 release -> fire false")
-	_expect(not _pi.aim_vector.is_zero_approx(), "release 后保留最后 aim")
+	_expect(not _pi.fire_held, "AimPad release -> fire false")
+	_expect(_pi.aim_vector.is_zero_approx(), "AimPad release -> aim ZERO（回中心）")
 	_stick_release(move_stick, 0)
 	await process_frame
 	# index 2 独立第三指仍可激活
-	_stick_press(aim_stick, 2)
+	_aim_pad_press(aim_pad, 2)
 	await process_frame
-	_expect(aim_stick.is_active(), "touch index 2 可激活")
-	_stick_release(aim_stick, 2)
+	_expect(aim_pad.is_active(), "touch index 2 可激活")
+	_aim_pad_release(aim_pad, 2)
 	await process_frame
+
+## 真实原生 touch 下：小拖 / 大拖同向 -> 相同 aim 方向、相同固定准星距离。
+func _case_real_aim_pad_direction_only() -> void:
+	var aim_pad: TouchAimPad = _tc.get_aim_pad()
+	_aim_pad_press(aim_pad, 3)
+	await process_frame
+	_aim_pad_drag(aim_pad, 3, Vector2(20, 0))
+	await process_frame
+	_reticle._follow(0.0)
+	var small_dir: Vector2 = _pi.aim_vector
+	var small_reticle: Vector2 = _reticle.global_position
+	_aim_pad_drag(aim_pad, 3, Vector2(100, 0))
+	await process_frame
+	_reticle._follow(0.0)
+	var large_dir: Vector2 = _pi.aim_vector
+	var large_reticle: Vector2 = _reticle.global_position
+	_expect(small_dir.is_equal_approx(Vector2.RIGHT), "小拖 -> RIGHT")
+	_expect(large_dir.is_equal_approx(Vector2.RIGHT), "大拖 -> RIGHT")
+	_expect(small_dir.is_equal_approx(large_dir), "20px 与 100px 方向相同")
+	_expect(small_reticle.is_equal_approx(large_reticle), "20px 与 100px 准星距离相同")
+	_expect(_host.global_position.distance_to(small_reticle) > 100.0, "准星在固定距离上，不在玩家中心")
+	_expect(small_dir.length() > 0.99 and small_dir.length() < 1.01, "输出单位方向无 magnitude")
+	_aim_pad_release(aim_pad, 3)
+	await process_frame
+	_reticle._follow(0.0)
+	_expect(_pi.aim_vector.is_zero_approx(), "release -> aim ZERO")
+	_expect(_reticle.global_position.is_equal_approx(_host.global_position), "release -> 准星回玩家中心")
 
 ## 真实 Touch 边沿驱动 Dash / Weapon 按钮（经 TouchInput -> PlayerInput）。
 func _case_real_touch_button_edge() -> void:

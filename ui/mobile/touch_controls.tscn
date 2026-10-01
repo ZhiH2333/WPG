@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://touch_controls"]
+[gd_scene load_steps=8 format=3 uid="uid://touch_controls"]
 
 [ext_resource type="Script" path="res://ui/mobile/touch_controls.gd" id="1_touch_controls"]
 [ext_resource type="Script" path="res://ui/mobile/virtual_stick.gd" id="3_virtual_stick"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://ui/mobile/touch_input.gd" id="5_touch_input"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="6_theme"]
 [ext_resource type="Script" path="res://ui/mobile/safe_area_root.gd" id="7_safe_area"]
+[ext_resource type="Script" path="res://ui/mobile/touch_aim_pad.gd" id="8_touch_aim_pad"]
 
 [node name="TouchControls" type="CanvasLayer"]
 layer = 100
@@ -58,7 +59,7 @@ offset_bottom = 80.0
 mouse_filter = 2
 theme_type_variation = "TouchStickKnob"
 
-[node name="AimStick" type="Control" parent="Root/SafeAreaRoot"]
+[node name="AimPad" type="Control" parent="Root/SafeAreaRoot"]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -71,23 +72,23 @@ offset_right = 40.0
 offset_bottom = 40.0
 grow_horizontal = 0
 grow_vertical = 0
-script = ExtResource("3_virtual_stick")
-hit_padding = 40.0
+script = ExtResource("8_touch_aim_pad")
+hit_padding = 60.0
 base_size = 200.0
 
-[node name="Base" type="Panel" parent="Root/SafeAreaRoot/AimStick"]
+[node name="Base" type="Panel" parent="Root/SafeAreaRoot/AimPad"]
 layout_mode = 0
 offset_right = 200.0
 offset_bottom = 200.0
 mouse_filter = 2
 theme_type_variation = "TouchStickBase"
 
-[node name="Knob" type="Panel" parent="Root/SafeAreaRoot/AimStick"]
+[node name="Center" type="Panel" parent="Root/SafeAreaRoot/AimPad"]
 layout_mode = 0
-offset_right = 80.0
-offset_bottom = 80.0
+offset_right = 24.0
+offset_bottom = 24.0
 mouse_filter = 2
-theme_type_variation = "TouchStickKnob"
+theme_type_variation = "TouchAimCenter"
 
 [node name="WeaponCluster" type="Control" parent="Root/SafeAreaRoot"]
 layout_mode = 1
@@ -287,5 +288,5 @@ mouse_filter = 2
 [node name="TouchInput" type="Node" parent="Root"]
 script = ExtResource("5_touch_input")
 move_stick_path = NodePath("../SafeAreaRoot/MoveStick")
-aim_stick_path = NodePath("../SafeAreaRoot/AimStick")
+aim_stick_path = NodePath("../SafeAreaRoot/AimPad")
 dash_button_path = NodePath("../SafeAreaRoot/WeaponCluster/DashButton")

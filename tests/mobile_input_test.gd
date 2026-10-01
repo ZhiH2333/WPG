@@ -10,6 +10,9 @@ var _failures: PackedStringArray = PackedStringArray()
 var _just_pressed_count: int = 0
 
 func _initialize() -> void:
+	_run_all()
+
+func _run_all() -> void:
 	PlayerProfile.load_from_disk()
 
 	_case_virtual_stick_center_zero()
@@ -31,8 +34,15 @@ func _initialize() -> void:
 	_case_weapon_slot_each()
 	_case_pause_clears_touch()
 
+	_case_touch_aim_direction_only()
+	_case_touch_aim_small_vs_large_drag_same_direction()
+	_case_touch_aim_fixed_distance()
+	_case_touch_aim_release_centers_reticle()
+	_case_touch_aim_release_stops_fire()
+	_case_touch_aim_reticle_smoothing()
+
 	_case_touch_input_left_stick_to_move_vector()
-	_case_touch_input_right_stick_aim_and_fire()
+	_case_touch_input_aim_pad_aim_and_fire()
 	_case_touch_input_dash_single_frame()
 	_case_touch_input_weapon_slot()
 	_case_touch_input_manual_fire_mode()
@@ -40,6 +50,8 @@ func _initialize() -> void:
 	_case_touch_no_interference_gamepad()
 
 	_case_settings_touch_drag_classification()
+
+	await _case_touch_aim_camera_centers()
 
 	if _failures.is_empty():
 		print("MOBILE_INPUT_OK")
@@ -210,7 +222,7 @@ func _case_right_stick_release_fire_false() -> void:
 	pi.set_touch_aim_vector(Vector2.ZERO, false)
 	pi.update_input()
 	_expect(pi.fire_held == false, "右摇杆 release -> fire false")
-	_expect(not pi.aim_vector.is_zero_approx(), "release 后保留最后 aim")
+	_expect(pi.aim_vector.is_zero_approx(), "release 后 aim 归 ZERO（不回退最后方向）")
 	pi.queue_free()
 
 func _case_right_stick_deadzone_no_fire() -> void:
@@ -273,6 +285,160 @@ func _case_pause_clears_touch() -> void:
 	_expect(pi.take_pending_dash() == false, "pause 后 dash cleared")
 	pi.queue_free()
 
+# ---- Touch Aim：direction-only / fixed distance / release centers ----
+
+func _create_touch_aim_pad(hit_padding: float = 60.0) -> TouchAimPad:
+	var pad: TouchAimPad = TouchAimPad.new()
+	pad.size = Vector2(200, 200)
+	pad.base_size = 200.0
+	pad.hit_padding = hit_padding
+	pad.direction_deadzone = 12.0
+	root.add_child(pad)
+	pad._ready()
+	return pad
+
+func _pad_center(pad: TouchAimPad) -> Vector2:
+	return pad.size * 0.5
+
+## 准星/相机用的最小宿主：Node2D(host) -> PlayerInput。
+func _make_aim_host(position: Vector2) -> Node2D:
+	var host: Node2D = Node2D.new()
+	host.position = position
+	var pi: PlayerInput = PlayerInput.new()
+	pi.name = "PlayerInput"
+	host.add_child(pi)
+	root.add_child(host)
+	pi._enter_tree()
+	pi.set_touch_active(true)
+	return host
+
+func _host_input(host: Node2D) -> PlayerInput:
+	return host.get_node("PlayerInput") as PlayerInput
+
+## 只表达方向：20px 与 100px 同向必须输出相同单位向量，无 magnitude。
+func _case_touch_aim_direction_only() -> void:
+	var pad: TouchAimPad = _create_touch_aim_pad()
+	pad._activate(1)
+	pad._update_direction(_pad_center(pad) + Vector2(20, 0))
+	var a: Vector2 = pad.get_vector()
+	pad._update_direction(_pad_center(pad) + Vector2(100, 0))
+	var b: Vector2 = pad.get_vector()
+	_expect(a == b, "20px 与 100px 同向输出完全相同")
+	_expect(abs(a.length() - 1.0) < 0.001, "方向为单位向量，无 magnitude")
+	pad.queue_free()
+
+## 小拖 / 大拖同方向 -> aim_vector 相同且单位长度。
+func _case_touch_aim_small_vs_large_drag_same_direction() -> void:
+	var pad: TouchAimPad = _create_touch_aim_pad()
+	pad._activate(1)
+	pad._update_direction(_pad_center(pad) + Vector2(20, 0))
+	var small: Vector2 = pad.get_vector()
+	pad._update_direction(_pad_center(pad) + Vector2(100, 0))
+	var large: Vector2 = pad.get_vector()
+	_expect(small.is_equal_approx(Vector2.RIGHT), "小拖 -> RIGHT")
+	_expect(large.is_equal_approx(Vector2.RIGHT), "大拖 -> RIGHT")
+	_expect(small.is_equal_approx(large), "两种拖动距离方向一致")
+	pad.queue_free()
+
+## Touch 准星 = player + direction * 固定距离，与手指位移无关。
+func _case_touch_aim_fixed_distance() -> void:
+	var host: Node2D = _make_aim_host(Vector2(100, 100))
+	var pi: PlayerInput = _host_input(host)
+	var reticle: AimReticle = AimReticle.new()
+	root.add_child(reticle)
+	reticle.bind_player_input(pi)
+	pi.set_touch_aim_vector(Vector2.RIGHT, true)
+	pi.update_input()
+	reticle._follow(0.0)
+	var expected: Vector2 = host.global_position + Vector2.RIGHT * AimReticle.TOUCH_AIM_DISTANCE
+	_expect(reticle.global_position.is_equal_approx(expected), "active 准星在固定距离上")
+	reticle.queue_free()
+	host.queue_free()
+
+## 松手：aim 归 ZERO，准星回玩家中心。
+func _case_touch_aim_release_centers_reticle() -> void:
+	var host: Node2D = _make_aim_host(Vector2(50, 50))
+	var pi: PlayerInput = _host_input(host)
+	var reticle: AimReticle = AimReticle.new()
+	root.add_child(reticle)
+	reticle.bind_player_input(pi)
+	pi.set_touch_aim_vector(Vector2.UP, true)
+	pi.update_input()
+	pi.set_touch_aim_vector(Vector2.ZERO, false)
+	pi.update_input()
+	reticle._follow(0.0)
+	_expect(pi.aim_vector.is_zero_approx(), "release 后 aim ZERO")
+	_expect(reticle.global_position.is_equal_approx(host.global_position), "release 后准星回玩家中心")
+	reticle.queue_free()
+	host.queue_free()
+
+## 松手停止开火。
+func _case_touch_aim_release_stops_fire() -> void:
+	var pad: TouchAimPad = _create_touch_aim_pad()
+	var pi: PlayerInput = _make_test_player_input()
+	var ti: TouchInput = _make_test_touch_input(pi)
+	ti.bind_aim_pad(pad)
+	ti.set_active(true)
+	pad._activate(2)
+	pad._update_direction(_pad_center(pad) + Vector2(0, -80))
+	pi.update_input()
+	_expect(pi.fire_held, "AimPad active -> fire true")
+	pad._release()
+	pi.update_input()
+	_expect(not pi.fire_held, "AimPad release -> fire false")
+	pi.queue_free()
+	pad.queue_free()
+	ti.queue_free()
+
+## 准星平滑：小 delta 后位于起点与目标之间（非线性跟随），足够时间后收敛到位。
+func _case_touch_aim_reticle_smoothing() -> void:
+	var host: Node2D = _make_aim_host(Vector2(0, 0))
+	var pi: PlayerInput = _host_input(host)
+	var reticle: AimReticle = AimReticle.new()
+	root.add_child(reticle)
+	reticle.follow_speed = 18.0
+	## 先 inactive 绑定：aim 为 ZERO，准星 snap 到玩家中心。
+	pi.set_touch_aim_vector(Vector2.ZERO, false)
+	pi.update_input()
+	reticle.bind_player_input(pi)
+	## 再激活 RIGHT：目标变为 player + 140 * RIGHT，准星需平滑过渡。
+	pi.set_touch_aim_vector(Vector2.RIGHT, true)
+	pi.update_input()
+	var target: Vector2 = host.global_position + Vector2.RIGHT * AimReticle.TOUCH_AIM_DISTANCE
+	reticle._follow(0.016)
+	var after_one: Vector2 = reticle.global_position
+	_expect(after_one.distance_to(host.global_position) > 0.0, "小 delta 后准星已开始移动")
+	_expect(after_one.distance_to(target) > 0.5, "小 delta 后未瞬移到位（有过渡）")
+	_expect(after_one.distance_to(host.global_position) < after_one.distance_to(target), "准星朝目标推进")
+	for i: int in 60:
+		reticle._follow(0.016)
+	_expect(reticle.global_position.is_equal_approx(target), "足够时间后收敛到目标")
+	reticle.queue_free()
+	host.queue_free()
+
+## Camera：touch idle -> offset ZERO；active -> 沿 aim look ahead。
+## 用真实 player.tscn 保证 PlayerCamera 拿到合法 PlayerInput，不改 Camera 架构。
+func _case_touch_aim_camera_centers() -> void:
+	var scene: PackedScene = load("res://player/player.tscn")
+	var player: Player = scene.instantiate() as Player
+	player.position = Vector2(200, 200)
+	root.add_child(player)
+	await process_frame
+	var pi: PlayerInput = player.get_player_input()
+	var cam: PlayerCamera = PlayerCamera.new()
+	root.add_child(cam)
+	cam.bind_player(player)
+	pi.set_touch_active(true)
+	pi.set_touch_aim_vector(Vector2.RIGHT, true)
+	pi.update_input()
+	_expect(not cam.get_camera_offset().is_zero_approx(), "active -> camera look ahead")
+	_expect(cam.get_camera_offset().is_equal_approx(Vector2.RIGHT * cam.look_ahead), "offset = aim * look_ahead")
+	pi.set_touch_aim_vector(Vector2.ZERO, false)
+	pi.update_input()
+	_expect(cam.get_camera_offset().is_zero_approx(), "idle -> camera offset ZERO（居中）")
+	cam.queue_free()
+	player.queue_free()
+
 # ---- TouchInput -> PlayerInput 集成 ----
 
 func _make_test_touch_input(player_input: PlayerInput) -> TouchInput:
@@ -300,23 +466,24 @@ func _case_touch_input_left_stick_to_move_vector() -> void:
 	move_stick.queue_free()
 	ti.queue_free()
 
-func _case_touch_input_right_stick_aim_and_fire() -> void:
+func _case_touch_input_aim_pad_aim_and_fire() -> void:
 	var pi: PlayerInput = _make_test_player_input()
-	var aim_stick: VirtualStick = _create_virtual_stick(0.12, 80.0)
+	var aim_pad: TouchAimPad = _create_touch_aim_pad()
 	var ti: TouchInput = _make_test_touch_input(pi)
-	ti.bind_aim_stick(aim_stick)
+	ti.bind_aim_pad(aim_pad)
 	ti.set_active(true)
-	aim_stick._activate(2)
-	aim_stick._update_stick(_stick_center(aim_stick) + Vector2(0, -50))
+	aim_pad._activate(2)
+	aim_pad._update_direction(_pad_center(aim_pad) + Vector2(0, -50))
 	pi.update_input()
-	_expect(pi.aim_vector.y < 0.0, "右摇杆产生 aim")
+	_expect(pi.aim_vector.y < 0.0, "AimPad 产生 aim")
 	_expect(abs(pi.aim_vector.length() - 1.0) < 0.001, "aim 单位向量")
-	_expect(pi.fire_held == true, "右摇杆 active -> fire true")
-	aim_stick._release()
+	_expect(pi.fire_held == true, "AimPad active -> fire true")
+	aim_pad._release()
 	pi.update_input()
-	_expect(pi.fire_held == false, "右摇杆 release -> fire false")
+	_expect(pi.fire_held == false, "AimPad release -> fire false")
+	_expect(pi.aim_vector.is_zero_approx(), "AimPad release -> aim ZERO")
 	pi.queue_free()
-	aim_stick.queue_free()
+	aim_pad.queue_free()
 	ti.queue_free()
 
 func _case_touch_input_dash_single_frame() -> void:
@@ -355,21 +522,21 @@ func _case_touch_input_weapon_slot() -> void:
 
 func _case_touch_input_manual_fire_mode() -> void:
 	var pi: PlayerInput = _make_test_player_input()
-	var aim_stick: VirtualStick = _create_virtual_stick(0.12, 80.0)
+	var aim_pad: TouchAimPad = _create_touch_aim_pad()
 	var ti: TouchInput = _make_test_touch_input(pi)
-	ti.bind_aim_stick(aim_stick)
+	ti.bind_aim_pad(aim_pad)
 	ti.set_manual_fire_mode(true)
 	ti.set_active(true)
-	aim_stick._activate(2)
-	aim_stick._update_stick(_stick_center(aim_stick) + Vector2(0, -50))
+	aim_pad._activate(2)
+	aim_pad._update_direction(_pad_center(aim_pad) + Vector2(0, -50))
 	pi.update_input()
-	_expect(pi.aim_vector.y < 0.0, "Manual Fire：右摇杆仍瞄准")
-	_expect(pi.fire_held == false, "Manual Fire：右摇杆不开火")
+	_expect(pi.aim_vector.y < 0.0, "Manual Fire：AimPad 仍瞄准")
+	_expect(pi.fire_held == false, "Manual Fire：AimPad 不开火")
 	pi.set_touch_fire_held(true)
 	pi.update_input()
 	_expect(pi.fire_held == true, "Manual Fire：FIRE 按钮开火")
 	pi.queue_free()
-	aim_stick.queue_free()
+	aim_pad.queue_free()
 	ti.queue_free()
 
 # ---- 设备优先级 ----

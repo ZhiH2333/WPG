@@ -10,7 +10,7 @@ signal touch_visibility_changed(visible: bool)
 signal pause_requested
 
 @onready var _move_stick: VirtualStick = $Root/SafeAreaRoot/MoveStick
-@onready var _aim_stick: VirtualStick = $Root/SafeAreaRoot/AimStick
+@onready var _aim_pad: TouchAimPad = $Root/SafeAreaRoot/AimPad
 @onready var _dash_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/DashButton
 @onready var _weapon1_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Weapon1Button
 @onready var _weapon2_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Weapon2Button
@@ -141,8 +141,8 @@ func get_touch_input() -> TouchInput:
 func get_move_stick() -> VirtualStick:
 	return _move_stick
 
-func get_aim_stick() -> VirtualStick:
-	return _aim_stick
+func get_aim_pad() -> TouchAimPad:
+	return _aim_pad
 
 func get_dash_button() -> TouchActionButton:
 	return _dash_button

@@ -38,9 +38,10 @@ var _pending_weapon_slot: int = -1
 var _pending_dash: bool = false
 
 ## Touch source state：仅由 TouchControls 的正式 API 写入。
+## Touch Aim 只表达方向，不表达距离：active=false 时 aim_vector 归 ZERO，准星回玩家中心。
 var _touch_enabled: bool = false
 var _touch_move_vector: Vector2 = Vector2.ZERO
-var _touch_aim_vector: Vector2 = Vector2.RIGHT
+var _touch_aim_vector: Vector2 = Vector2.ZERO
 var _touch_aim_active: bool = false
 var _touch_fire_held: bool = false
 var _touch_manual_fire_held: bool = false
@@ -104,15 +105,27 @@ func set_touch_active(active: bool) -> void:
 func is_touch_active() -> bool:
 	return _touch_enabled
 
+## Touch AimPad 是否正在给出方向。false 时 aim_vector 归 ZERO，准星/相机回玩家中心。
+func is_touch_aim_active() -> bool:
+	return _touch_enabled and _touch_aim_active
+
 func set_touch_move_vector(value: Vector2) -> void:
 	_touch_move_vector = value
 
+## Touch Aim direction-only 正式 API：
+## active=true  -> 记录归一化方向（忽略 magnitude，Aim 距离由游戏常量固定）
+## active=false -> 清 active 并丢弃方向，下一帧 aim_vector 归 ZERO，准星回玩家中心
 func set_touch_aim_vector(value: Vector2, active: bool) -> void:
-	_touch_aim_active = active
-	if active:
-		_touch_aim_vector = value
-	elif _touch_aim_vector.is_zero_approx():
-		_touch_aim_vector = Vector2.RIGHT
+	if not active:
+		_touch_aim_active = false
+		_touch_aim_vector = Vector2.ZERO
+		return
+	if value.is_zero_approx():
+		_touch_aim_active = false
+		_touch_aim_vector = Vector2.ZERO
+		return
+	_touch_aim_active = true
+	_touch_aim_vector = value.normalized()
 
 func set_touch_fire_held(value: bool) -> void:
 	_touch_fire_held = value
@@ -141,7 +154,7 @@ func clear_touch_state() -> void:
 
 func _clear_touch_state() -> void:
 	_touch_move_vector = Vector2.ZERO
-	_touch_aim_vector = aim_vector if not aim_vector.is_zero_approx() else Vector2.RIGHT
+	_touch_aim_vector = Vector2.ZERO
 	_touch_aim_active = false
 	_touch_fire_held = false
 	_touch_manual_fire_held = false
@@ -209,10 +222,13 @@ func update_input(_delta: float = 0.0) -> void:
 	_update_fire_held()
 
 ## Touch source：Touch Active 时独占 move/aim/fire/dash/weapon，不再读键鼠/手柄。
+## Aim direction-only：AimPad 未按时 aim_vector 归 ZERO，准星与相机同时回玩家中心。
 func _update_from_touch() -> void:
 	move_vector = _touch_move_vector
 	if _touch_aim_active:
 		aim_vector = _touch_aim_vector
+	else:
+		aim_vector = Vector2.ZERO
 	var host: Node2D = get_parent() as Node2D
 	if host != null:
 		mouse_world_position = host.global_position + aim_vector * AIM_LEAD_PX

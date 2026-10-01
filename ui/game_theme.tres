@@ -589,6 +589,17 @@ corner_radius_top_right = 45
 corner_radius_bottom_right = 45
 corner_radius_bottom_left = 45
 
+[sub_resource type="StyleBoxFlat" id="sb_touch_aim_center"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.96, 0.93, 0.88, 0.4)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
 [resource]
 CheckBox/colors/font_color = Color(0.96, 0.93, 0.88, 1)
 CheckBox/colors/font_hover_color = Color(0.96, 0.93, 0.88, 1)
@@ -908,3 +919,6 @@ TouchStickBase/styles/normal = SubResource("sb_touch_stick_base")
 
 TouchStickKnob/base_type = &"Panel"
 TouchStickKnob/styles/normal = SubResource("sb_touch_stick_knob")
+
+TouchAimCenter/base_type = &"Panel"
+TouchAimCenter/styles/normal = SubResource("sb_touch_aim_center")
