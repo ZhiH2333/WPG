@@ -419,6 +419,9 @@ func _update_fire_held() -> void:
 	if _fire_suppressed:
 		fire_held = false
 		return
+	## Touch source active 时绝不读键鼠/模拟鼠标 fire；由 _update_from_touch 独占。
+	if _touch_enabled:
+		return
 	var pressed: bool = Input.is_action_pressed("fire")
 	if _need_fire_release:
 		if pressed:

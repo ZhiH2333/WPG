@@ -103,18 +103,26 @@ def run_cmd(
     cwd: Optional[Path] = None,
     env: Optional[Dict[str, str]] = None,
     log_path: Optional[Path] = None,
+    timeout: Optional[float] = None,
 ) -> subprocess.CompletedProcess:
     merged = os.environ.copy()
     if env:
         merged.update(env)
-    proc = subprocess.run(
-        list(args),
-        cwd=str(cwd or ROOT),
-        env=merged,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
+    try:
+        proc = subprocess.run(
+            list(args),
+            cwd=str(cwd or ROOT),
+            env=merged,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as expired:
+        output = expired.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", "replace")
+        proc = subprocess.CompletedProcess(list(args), 124, output)
     if log_path is not None:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_text(proc.stdout or "", encoding="utf-8")

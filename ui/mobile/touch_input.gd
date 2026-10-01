@@ -40,6 +40,9 @@ func is_touch_active() -> bool:
 		(_dash_button != null and _dash_button.is_held()) or \
 		_weapon_any_held()
 
+func get_player_input() -> PlayerInput:
+	return _player_input
+
 func _weapon_any_held() -> bool:
 	for btn: TouchActionButton in _weapon_buttons:
 		if btn != null and btn.is_held():

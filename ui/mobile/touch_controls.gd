@@ -23,15 +23,52 @@ signal pause_requested
 
 var _modal_blocked: bool = false
 var _active: bool = false
+var _debug_label: Label = null
+var _debug_enabled: bool = false
 
 func _ready() -> void:
 	_connect_buttons()
 	_sync_manual_fire_mode()
-	_update_visibility()
+	_setup_debug_status()
+	## 父节点 CombatSandbox._ready() 会 load_from_disk() 并 bind_player_input，
+	## 晚于子节点 _ready。首帧延后到父 ready 之后，避免用陈旧 settings 决定 active。
+	_update_visibility.call_deferred()
 
 func _process(_delta: float) -> void:
 	_sync_manual_fire_mode()
 	_update_visibility()
+	_update_debug_status()
+
+## 开发诊断：仅 debug build 且 Touch Controls 开启时显示输入链路状态，验证
+## ScreenTouch -> TouchControls -> TouchInput -> PlayerInput 在哪一级断掉。
+func _setup_debug_status() -> void:
+	_debug_enabled = OS.is_debug_build()
+	if not _debug_enabled:
+		return
+	_debug_label = Label.new()
+	_debug_label.name = "TouchDebugStatus"
+	_debug_label.theme = _root.theme
+	_debug_label.theme_type_variation = &"Caption"
+	_debug_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_debug_label.position = Vector2(16.0, 16.0)
+	_debug_label.visible = false
+	_root.add_child(_debug_label)
+
+func _update_debug_status() -> void:
+	if _debug_label == null:
+		return
+	var show_status: bool = _root.visible and GameSettings.is_touch_controls_enabled()
+	_debug_label.visible = show_status
+	if not show_status:
+		return
+	var source: String = "TOUCH" if _touch_input != null and _touch_input.is_touch_active() else "IDLE"
+	var pi: PlayerInput = _touch_input.get_player_input() if _touch_input != null else null
+	var move: Vector2 = pi.move_vector if pi != null else Vector2.ZERO
+	var aim: Vector2 = pi.aim_vector if pi != null else Vector2.ZERO
+	var fire: bool = pi.fire_held if pi != null else false
+	_debug_label.text = "Touch: ON  Source: %s\nMove: %.2f, %.2f  Aim: %.2f, %.2f  Fire: %s" % [
+		source, move.x, move.y, aim.x, aim.y, str(fire),
+	]
 
 func _sync_manual_fire_mode() -> void:
 	if _touch_input == null:

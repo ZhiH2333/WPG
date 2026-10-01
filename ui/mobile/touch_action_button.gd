@@ -40,6 +40,8 @@ var _selected: bool = false
 var _has_visuals: bool = false
 
 func _ready() -> void:
+	## 组件自身是输入 owner：STOP 让 _gui_input 拿到原生 Touch / 真实鼠标。
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	_has_visuals = is_instance_valid(_button) and is_instance_valid(_label)
 	if use_small_variant and variant == Variant.DEFAULT:
 		variant = Variant.SMALL
@@ -51,6 +53,9 @@ func _setup_button() -> void:
 	_button.size = button_size
 	_button.theme_type_variation = _variation_name()
 	_button.focus_mode = Control.FOCUS_NONE
+	## 内部 Button/Label 只负责画面，绝不能成为输入 owner，否则会抢走父节点 _gui_input。
+	_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	_label.text = button_text
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -86,8 +91,14 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		_handle_drag(event)
 	elif event is InputEventMouseButton:
+		## emulate_mouse_from_touch=true 时 Android 会同时产生 ScreenTouch + 模拟 MouseButton。
+		## 模拟鼠标只服务于标准 UI，绝不能二次驱动本组件。
+		if event.device == InputEvent.DEVICE_ID_EMULATION:
+			return
 		_handle_mouse_button(event)
 	elif event is InputEventMouseMotion:
+		if event.device == InputEvent.DEVICE_ID_EMULATION:
+			return
 		_handle_mouse_motion(event)
 
 func _handle_touch(event: InputEventScreenTouch) -> void:

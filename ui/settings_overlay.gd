@@ -27,7 +27,6 @@ var _scroll_current: float = 0.0
 var _scroll_target: float = 0.0
 var _distance_decay: float = DISTANCE_DECAY_SCROLL
 var _user_scrolling: bool = false
-var _hold_search_focus: bool = false
 var _clicked_section: SettingsSection = null
 var _current_section: SettingsSection = null
 var _close_on_up: bool = false
@@ -38,7 +37,6 @@ var _sfx_gate: Dictionary = {}
 const TOUCH_SLOP: float = 12.0
 var _touch_index: int = -1
 var _touch_origin: Vector2 = Vector2.ZERO
-var _touch_last_y: float = 0.0
 var _touch_dragging: bool = false
 
 @onready var _dimmer: ColorRect = %Dimmer
@@ -102,10 +100,6 @@ func _ready() -> void:
 	_display_nav.pressed.connect(_on_nav_pressed.bind(_display_section))
 	_controls_nav.pressed.connect(_on_nav_pressed.bind(_controls_section))
 	_data_nav.pressed.connect(_on_nav_pressed.bind(_data_section))
-	_audio_section.selected_requested.connect(_on_nav_pressed.bind(_audio_section))
-	_display_section.selected_requested.connect(_on_nav_pressed.bind(_display_section))
-	_controls_section.selected_requested.connect(_on_nav_pressed.bind(_controls_section))
-	_data_section.selected_requested.connect(_on_nav_pressed.bind(_data_section))
 	_dimmer.gui_input.connect(_on_dimmer_gui_input)
 	_search.text_changed.connect(_on_search_changed)
 	_volume_slider.value_changed.connect(_on_volume_changed)
@@ -129,9 +123,6 @@ func _ready() -> void:
 	_render_scale_slider.scrollable = false
 	_ui_scale_slider.scrollable = false
 	_search.focus_mode = Control.FOCUS_ALL
-	var viewport: Viewport = get_viewport()
-	if viewport != null:
-		viewport.gui_focus_changed.connect(_on_gui_focus_changed)
 	resized.connect(_apply_drawer_layout)
 	_apply_drawer_layout()
 	_fit_sections()
@@ -158,7 +149,6 @@ func open() -> void:
 	_status_label.text = ""
 	_clear_bind_status()
 	_open = true
-	_hold_search_focus = true
 	_distance_decay = DISTANCE_DECAY_JUMP
 	visible = true
 	modulate.a = 1.0
@@ -176,7 +166,6 @@ func open() -> void:
 	_layout_scroll()
 	_set_current(_audio_section)
 	_play_open_animation()
-	_search.grab_focus()
 
 func close() -> void:
 	if not _open:
@@ -185,7 +174,6 @@ func close() -> void:
 	if _credits != null and _credits.is_open():
 		_credits.close()
 	_open = false
-	_hold_search_focus = false
 	_close_on_up = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process_input(false)
@@ -271,23 +259,21 @@ func _handle_touch_scroll(event: InputEvent) -> bool:
 	var drag: InputEventScreenDrag = event as InputEventScreenDrag
 	if drag == null or drag.index != _touch_index:
 		return false
+	## screen_relative 是未受 Content Scale 影响的屏幕坐标增量，比 relative 更适合触控拖动。
 	if not _touch_dragging:
 		if absf(drag.position.y - _touch_origin.y) < TOUCH_SLOP:
 			return false
 		_touch_dragging = true
-		_touch_last_y = drag.position.y
 		return true
-	var delta_y: float = drag.position.y - _touch_last_y
-	_touch_last_y = drag.position.y
-	## 手指上移（delta_y < 0）内容上滚，与鼠标滚轮一致。
+	var delta_y: float = drag.screen_relative.y
+	## 触控直接拖内容：手指下移内容跟着下移（target 减小），手指上移内容上滚（target 增大）。
 	if not is_zero_approx(delta_y):
-		_scroll_by(delta_y, true)
+		_scroll_by(-delta_y, true)
 	return true
 
 func _begin_touch(index: int, position: Vector2) -> void:
 	_touch_index = index
 	_touch_origin = position
-	_touch_last_y = position.y
 	_touch_dragging = false
 
 func _reset_touch_tracking() -> void:
@@ -408,37 +394,8 @@ func _on_back_pressed() -> void:
 	_play_back()
 	if not _search.text.is_empty():
 		_search.text = ""
-		_search.grab_focus()
 		return
 	close()
-
-func _on_gui_focus_changed(control: Control) -> void:
-	if not _open or not _hold_search_focus:
-		return
-	if not _listening_action.is_empty():
-		return
-	if control == _search:
-		if not _search.text.is_empty():
-			_search.select_all()
-		return
-	if _should_keep_focus(control):
-		return
-	_search.grab_focus()
-
-func _should_keep_focus(control: Control) -> bool:
-	if control == null:
-		return false
-	if control is LineEdit or control is TextEdit:
-		return true
-	if control is HSlider or control is VSlider:
-		return true
-	if control is CheckBox or control is OptionButton:
-		return true
-	if control is SpinBox:
-		return true
-	if control is Button:
-		return true
-	return false
 
 func _fit_sections() -> void:
 	for section: SettingsSection in _sections:
@@ -849,7 +806,6 @@ func _handle_listen_event(event: InputEvent) -> void:
 		if _listening_joy:
 			if key_event.keycode == KEY_ESCAPE or event.is_action_pressed("ui_cancel"):
 				_cancel_listen()
-				_search.grab_focus()
 		else:
 			_handle_rebind_key(key_event)
 		get_viewport().set_input_as_handled()
@@ -865,13 +821,11 @@ func _handle_rebind_key(key_event: InputEventKey) -> void:
 	var button: Button = _listening_button
 	if key_event.keycode == KEY_ESCAPE:
 		_cancel_listen()
-		_search.grab_focus()
 		return
 	_listening_action = ""
 	_listening_button = null
 	_listening_joy = false
 	if button == null or not is_instance_valid(button):
-		_search.grab_focus()
 		return
 	var keycode: int = key_event.physical_keycode
 	var occupier: String = GameSettings.find_key_conflict(action, keycode)
@@ -880,7 +834,6 @@ func _handle_rebind_key(key_event: InputEventKey) -> void:
 		GameSettings.save_to_disk()
 		button.text = GameSettings.key_label_for_action(action)
 		_clear_bind_status()
-		_search.grab_focus()
 		return
 	_fail_bind(button, action, _key_conflict_text(keycode, occupier))
 
@@ -891,7 +844,6 @@ func _handle_rebind_joy(joy_event: InputEventJoypadButton) -> void:
 	_listening_button = null
 	_listening_joy = false
 	if button == null or not is_instance_valid(button):
-		_search.grab_focus()
 		return
 	var joy_button: int = joy_event.button_index
 	var conflict: String = GameSettings.find_joy_conflict(action, joy_button)
@@ -899,7 +851,6 @@ func _handle_rebind_joy(joy_event: InputEventJoypadButton) -> void:
 		GameSettings.save_to_disk()
 		button.text = GameSettings.joy_label_for_action(action)
 		_clear_bind_status()
-		_search.grab_focus()
 		return
 	_fail_bind(button, action, _joy_conflict_text(joy_button, conflict))
 
@@ -962,7 +913,6 @@ func _fail_bind(button: Button, action: String, status: String) -> void:
 	button.text = "IN USE"
 	_set_bind_status(status)
 	_play_error()
-	_search.grab_focus()
 	var tree: SceneTree = get_tree()
 	if tree == null:
 		return

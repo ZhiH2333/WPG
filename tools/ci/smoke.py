@@ -65,17 +65,28 @@ def main() -> int:
                 str(ROOT),
                 "--script",
                 str(test),
-                "--quit",
             ],
             log_path=test_log,
+            timeout=180,
         )
-        if test_proc.returncode != 0:
+        output = test_proc.stdout or ""
+        # 自管理退出的测试会打印 *_OK 标记；有标记时必须出现，避免 --quit 掩盖失败。
+        marker = _success_marker(output)
+        if test_proc.returncode != 0 or (marker is not None and marker not in output):
             failures.append(test.relative_to(ROOT).as_posix())
     if failures:
         emit("FAIL", "自动测试失败：%s" % ", ".join(failures))
         return 1
     emit("PASS", "automated tests：%d" % len(tests))
     return 0
+
+
+def _success_marker(output: str) -> str:
+    for line in output.splitlines():
+        token = line.strip()
+        if token.endswith("_OK") and token.replace("_", "").isalnum():
+            return token
+    return None
 
 
 if __name__ == "__main__":

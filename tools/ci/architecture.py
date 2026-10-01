@@ -68,14 +68,15 @@ def _strip_comments(text: str) -> str:
 
 
 def _mobile_input_guards() -> list:
-    """Touch 必须走 PlayerInput 正式 API；禁止 Touch 直连战斗/网络/暂停。"""
+    """Touch 必须走 PlayerInput 正式 API；禁止 Touch 直连战斗/网络/暂停。
+    UI 依赖 Touch -> emulated Mouse compatibility，Gameplay 隔离由 Touch source +
+    DEVICE_ID_EMULATION filter 负责，而不是全局关闭 Mouse emulation。"""
     failures = []
     project = read(ROOT / "project.godot")
-    if "pointing/emulate_mouse_from_touch=false" not in project:
-        failures.append("project.godot 必须关闭 pointing/emulate_mouse_from_touch")
-    allowed_touch_input_pi = [
-        "player_input.gd",
-    ]
+    if "pointing/emulate_mouse_from_touch=false" in project:
+        failures.append(
+            "project.godot 不得关闭 pointing/emulate_mouse_from_touch（标准 UI 依赖 Touch->Mouse）"
+        )
     forbidden_imports = [
         ("WeaponHost", "Touch 层不得直连 WeaponHost"),
         ("PauseOverlay", "Touch 层不得直连 PauseOverlay"),
@@ -116,6 +117,14 @@ def _mobile_input_guards() -> list:
     for api in ("set_touch_move_vector", "set_touch_aim_vector", "set_touch_fire_held", "queue_touch_dash", "queue_touch_weapon_slot"):
         if api not in pi_text:
             failures.append("PlayerInput 缺少正式 Touch API：%s" % api)
+    # gameplay fire 不得在 Touch source active 时读键鼠/模拟鼠标。
+    if "_touch_enabled" not in pi_text or "if _touch_enabled:" not in pi_text:
+        failures.append("PlayerInput 必须按 _touch_enabled 独占 Touch source")
+    # TouchActionButton / VirtualStick 必须过滤模拟鼠标，避免 ScreenTouch + emulated Mouse 双触发。
+    for rel, name in (("ui/mobile/touch_action_button.gd", "TouchActionButton"), ("ui/mobile/virtual_stick.gd", "VirtualStick")):
+        code = _strip_comments(read(ROOT / rel))
+        if "DEVICE_ID_EMULATION" not in code:
+            failures.append("%s 必须过滤 InputEvent.DEVICE_ID_EMULATION 模拟鼠标" % name)
     return failures
 
 
