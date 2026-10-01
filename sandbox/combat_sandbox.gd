@@ -123,6 +123,7 @@ func _process(delta: float) -> void:
 	if _leaving:
 		return
 	_sync_touch_modal()
+	_sync_touch_weapon_ui()
 	if _pause_overlay.is_open() and not _is_lan():
 		return
 	if _is_guest():
@@ -296,6 +297,8 @@ func _bind_runtime() -> void:
 	if _touch_controls != null:
 		if player_input != null:
 			_touch_controls.bind_player_input(player_input)
+		if not _touch_controls.pause_requested.is_connected(_on_touch_pause_requested):
+			_touch_controls.pause_requested.connect(_on_touch_pause_requested)
 		# Refresh visibility in case settings changed
 		_touch_controls.refresh_visibility()
 	_bind_party_hud()
@@ -701,6 +704,7 @@ func _set_offer_input_lock(locked: bool) -> void:
 	if locked:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_aim_reticle.visible = false
+		_block_touch_for_modal()
 		return
 	_sync_system_cursor()
 
@@ -744,6 +748,21 @@ func _sync_touch_modal() -> void:
 	var blocked: bool = _pause_overlay.is_open() or _winner_page.is_open() or \
 		_upgrade_offer.is_open() or _shop_offer.is_open()
 	_touch_controls.set_modal_blocked(blocked)
+
+## 场景树暂停时 _process 不再跑，modal 打开瞬间必须主动屏蔽并清空 touch held/pending。
+func _block_touch_for_modal() -> void:
+	if _touch_controls == null:
+		return
+	_touch_controls.set_modal_blocked(true)
+
+## Touch 武器按钮选中态跟随 WeaponHost 当前槽位，与 HUD 一致。
+func _sync_touch_weapon_ui() -> void:
+	if _touch_controls == null or _local_player == null:
+		return
+	var host: WeaponHost = _local_player.get_weapon_host()
+	if host == null:
+		return
+	_touch_controls.set_selected_weapon(host.get_current_index())
 
 func _sync_system_cursor() -> void:
 	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _winner_page.is_open() or _run_session.is_player_dead() or _run_session.is_cleared() or _is_local_battle_spectator():
@@ -820,6 +839,16 @@ func _is_pause_toggle(event: InputEvent) -> bool:
 		return true
 	return false
 
+## Touch Pause 按钮：只走既有 PauseOverlay 打开路径，与 Esc / Start 行为一致。
+func _on_touch_pause_requested() -> void:
+	if _leaving:
+		return
+	if _pause_overlay.is_open():
+		return
+	if _winner_page.is_open() or _upgrade_offer.is_open() or _shop_offer.is_open():
+		return
+	_on_pause_toggle()
+
 func _on_pause_toggle() -> void:
 	if _pause_overlay.is_open():
 		return
@@ -837,6 +866,7 @@ func _on_pause_toggle() -> void:
 		_set_lan_paused(true)
 		return
 	_set_offer_input_lock(true)
+	_block_touch_for_modal()
 	_pause_overlay.open()
 
 func _on_pause_resumed() -> void:

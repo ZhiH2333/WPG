@@ -13,7 +13,10 @@ const AIM_LEAD_PX: float = 140.0
 const MOUSE_STEAL_PX: float = 2.0
 const JOY_WEAPON_SLOT_COUNT: int = 4
 
-## 全项目唯一输入合同：键鼠或单把手柄（device_id）。只产出 move/aim/fire。切枪仍由 WeaponHost 另读 1/2/3/4 或该手柄当前绑定的枪钮。Dash 不进三量。
+## 全项目唯一输入合同。三个 source：Keyboard/Mouse、Gamepad、Touch。只产出 move/aim/fire。
+## 切枪仍由 WeaponHost 另读 1/2/3/4 或该手柄当前绑定的枪钮。Dash 不进三量。
+## Touch 通过正式 API 写入内部 _touch_* state，update_input() 依 source 优先级选一套输出，
+## 不再让 TouchInput 每帧抢写公开字段。
 var move_vector: Vector2 = Vector2.ZERO
 var aim_vector: Vector2 = Vector2.RIGHT
 var fire_held: bool = false
@@ -33,6 +36,18 @@ var _has_last_mouse: bool = false
 var _remote_driven: bool = false
 var _pending_weapon_slot: int = -1
 var _pending_dash: bool = false
+
+## Touch source state：仅由 TouchControls 的正式 API 写入。
+var _touch_enabled: bool = false
+var _touch_move_vector: Vector2 = Vector2.ZERO
+var _touch_aim_vector: Vector2 = Vector2.RIGHT
+var _touch_aim_active: bool = false
+var _touch_fire_held: bool = false
+var _touch_manual_fire_held: bool = false
+var _touch_dash_pending: bool = false
+var _touch_weapon_slot_pending: int = -1
+## Manual Fire ON 时右摇杆只瞄准，不自动开火，由 FIRE 按钮开火。
+var _touch_manual_fire_mode: bool = false
 
 func _enter_tree() -> void:
 	## 小于 0 更早处理，让同一帧的朝向、相机、准星读到本帧输入。
@@ -67,9 +82,71 @@ func set_remote_driven(enabled: bool) -> void:
 	move_vector = Vector2.ZERO
 	fire_held = false
 	dash_just_pressed = false
+	clear_touch_state()
 
 func is_remote_driven() -> bool:
 	return _remote_driven
+
+## ---- Touch source 正式运行时 API ----
+## 由 TouchControls / TouchInput 调用。不直接写公开输出字段，等 update_input() 统一合成。
+
+func set_touch_active(active: bool) -> void:
+	if _touch_enabled == active:
+		return
+	_touch_enabled = active
+	if not active:
+		_clear_touch_state()
+		return
+	## 接管瞬间清掉键鼠/手柄的 held，避免松开瞬间仍在开火。
+	fire_held = false
+	_need_fire_release = false
+
+func is_touch_active() -> bool:
+	return _touch_enabled
+
+func set_touch_move_vector(value: Vector2) -> void:
+	_touch_move_vector = value
+
+func set_touch_aim_vector(value: Vector2, active: bool) -> void:
+	_touch_aim_active = active
+	if active:
+		_touch_aim_vector = value
+	elif _touch_aim_vector.is_zero_approx():
+		_touch_aim_vector = Vector2.RIGHT
+
+func set_touch_fire_held(value: bool) -> void:
+	_touch_fire_held = value
+
+func set_touch_manual_fire_mode(enabled: bool) -> void:
+	_touch_manual_fire_mode = enabled
+	if not enabled:
+		_touch_manual_fire_held = false
+
+func is_touch_manual_fire_mode() -> bool:
+	return _touch_manual_fire_mode
+
+func queue_touch_dash() -> void:
+	_touch_dash_pending = true
+
+func queue_touch_weapon_slot(slot: int) -> void:
+	_touch_weapon_slot_pending = slot
+
+func take_touch_weapon_slot() -> int:
+	var slot: int = _touch_weapon_slot_pending
+	_touch_weapon_slot_pending = -1
+	return slot
+
+func clear_touch_state() -> void:
+	_clear_touch_state()
+
+func _clear_touch_state() -> void:
+	_touch_move_vector = Vector2.ZERO
+	_touch_aim_vector = aim_vector if not aim_vector.is_zero_approx() else Vector2.RIGHT
+	_touch_aim_active = false
+	_touch_fire_held = false
+	_touch_manual_fire_held = false
+	_touch_dash_pending = false
+	_touch_weapon_slot_pending = -1
 
 func apply_remote_frame(move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int) -> void:
 	move_vector = move
@@ -107,7 +184,11 @@ func update_input(_delta: float = 0.0) -> void:
 	if _remote_driven:
 		return
 	_weapon_slot_just_pressed = -1
+	## 键鼠 1/2/3/4 与手柄枪钮始终保留，但 Touch 切枪在下方单独出队，不互相覆盖。
 	_latch_weapon_keys()
+	if _touch_enabled:
+		_update_from_touch()
+		return
 	if not _device_pinned:
 		_claim_device()
 	if _device_id >= 0 and not _is_joy_connected(_device_id):
@@ -127,11 +208,35 @@ func update_input(_delta: float = 0.0) -> void:
 	_update_aim_vector()
 	_update_fire_held()
 
+## Touch source：Touch Active 时独占 move/aim/fire/dash/weapon，不再读键鼠/手柄。
+func _update_from_touch() -> void:
+	move_vector = _touch_move_vector
+	if _touch_aim_active:
+		aim_vector = _touch_aim_vector
+	var host: Node2D = get_parent() as Node2D
+	if host != null:
+		mouse_world_position = host.global_position + aim_vector * AIM_LEAD_PX
+	if _touch_weapon_slot_pending >= 0:
+		_weapon_slot_just_pressed = _touch_weapon_slot_pending
+		_pending_weapon_slot = _touch_weapon_slot_pending
+		_touch_weapon_slot_pending = -1
+	## Touch dash 由 _physics_process 的 _update_dash_pressed() 单帧消费，这里不处理。
+	## 右摇杆 active 即开火（Manual Fire OFF）；Manual Fire ON 只认 FIRE 按钮。
+	var want_fire: bool = _touch_fire_held
+	if not _touch_manual_fire_mode and _touch_aim_active:
+		want_fire = true
+	if _fire_suppressed:
+		fire_held = false
+		return
+	fire_held = want_fire
+
 func set_fire_suppressed(suppressed: bool) -> void:
 	_fire_suppressed = suppressed
 	if suppressed:
 		fire_held = false
 		_need_fire_release = true
+		return
+	if _touch_enabled:
 		return
 	if _device_id == DEVICE_KEYBOARD:
 		if Input.is_action_pressed("fire"):
@@ -147,6 +252,8 @@ func set_dash_suppressed(suppressed: bool) -> void:
 	if suppressed:
 		dash_just_pressed = false
 		_need_dash_release = true
+		return
+	if _touch_enabled:
 		return
 	if _is_dash_held():
 		_need_dash_release = true
@@ -329,6 +436,16 @@ func _is_dash_held() -> bool:
 	return Input.is_action_pressed("dash")
 
 func _update_dash_pressed() -> void:
+	if _touch_enabled:
+		var touch_edge: bool = _touch_dash_pending
+		_touch_dash_pending = false
+		if _dash_suppressed:
+			dash_just_pressed = false
+			return
+		dash_just_pressed = touch_edge
+		if touch_edge:
+			_pending_dash = true
+		return
 	var edge: bool = false
 	if _device_id >= 0:
 		var pressed: bool = Input.is_joy_button_pressed(_device_id, _get_dash_button())

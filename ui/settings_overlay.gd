@@ -34,6 +34,12 @@ var _close_on_up: bool = false
 var _sections: Array[SettingsSection] = []
 var _navs: Array[SettingsNavButton] = []
 var _sfx_gate: Dictionary = {}
+## Touch drag scroll：区分 tap / drag，只有越过 slop 才接管为滚动。
+const TOUCH_SLOP: float = 12.0
+var _touch_index: int = -1
+var _touch_origin: Vector2 = Vector2.ZERO
+var _touch_last_y: float = 0.0
+var _touch_dragging: bool = false
 
 @onready var _dimmer: ColorRect = %Dimmer
 @onready var _drawer: Control = %Drawer
@@ -222,6 +228,9 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not _open:
 		return
+	if _handle_touch_scroll(event):
+		get_viewport().set_input_as_handled()
+		return
 	if not _listening_action.is_empty():
 		_handle_listen_event(event)
 		return
@@ -243,6 +252,52 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _is_scroll_event(event) and _mouse_over_drawer() and _consume_scroll_event(event):
 		get_viewport().set_input_as_handled()
+
+## 真正的触屏滚动：InputEventScreenDrag 垂直位移 -> _scroll_target。
+## 低于 TOUCH_SLOP 视为 tap，交还给 Button/Slider/OptionButton；越过 slop 后吞掉本次事件。
+## 返回 true 表示事件已被本层消费，调用方应 set_input_as_handled()。
+func _handle_touch_scroll(event: InputEvent) -> bool:
+	var touch: InputEventScreenTouch = event as InputEventScreenTouch
+	if touch != null:
+		if touch.pressed:
+			if _point_over_content(touch.position):
+				_begin_touch(touch.index, touch.position)
+			return false
+		if touch.index != _touch_index:
+			return false
+		var was_dragging: bool = _touch_dragging
+		_reset_touch_tracking()
+		return was_dragging
+	var drag: InputEventScreenDrag = event as InputEventScreenDrag
+	if drag == null or drag.index != _touch_index:
+		return false
+	if not _touch_dragging:
+		if absf(drag.position.y - _touch_origin.y) < TOUCH_SLOP:
+			return false
+		_touch_dragging = true
+		_touch_last_y = drag.position.y
+		return true
+	var delta_y: float = drag.position.y - _touch_last_y
+	_touch_last_y = drag.position.y
+	## 手指上移（delta_y < 0）内容上滚，与鼠标滚轮一致。
+	if not is_zero_approx(delta_y):
+		_scroll_by(delta_y, true)
+	return true
+
+func _begin_touch(index: int, position: Vector2) -> void:
+	_touch_index = index
+	_touch_origin = position
+	_touch_last_y = position.y
+	_touch_dragging = false
+
+func _reset_touch_tracking() -> void:
+	_touch_index = -1
+	_touch_dragging = false
+
+func _point_over_content(position: Vector2) -> bool:
+	if _panel == null:
+		return false
+	return _panel.get_global_rect().has_point(position)
 
 func _on_dimmer_gui_input(event: InputEvent) -> void:
 	var mouse: InputEventMouseButton = event as InputEventMouseButton
@@ -614,6 +669,12 @@ func _on_touch_controls_selected(index: int) -> void:
 	GameSettings.apply()
 	GameSettings.save_to_disk()
 
+func _on_touch_manual_fire_selected(index: int) -> void:
+	_play_click()
+	GameSettings.set_touch_manual_fire(index == 1)
+	GameSettings.apply()
+	GameSettings.save_to_disk()
+
 func _on_delete_all_confirmed() -> void:
 	_play_click()
 	var dir: DirAccess = DirAccess.open("user://")
@@ -651,7 +712,29 @@ func _build_bind_rows() -> void:
 	touch_row.add_child(touch_label)
 	touch_row.add_child(touch_option)
 	body.add_child(touch_row)
-	
+
+	# Manual Fire Button（默认 OFF：右摇杆 = Aim + Fire）
+	var fire_row: HBoxContainer = HBoxContainer.new()
+	fire_row.set_meta("settings_search", "touch manual fire button aim stick")
+	fire_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	fire_row.add_theme_constant_override("separation", 12)
+	var fire_label: Label = Label.new()
+	fire_label.theme_type_variation = &"SettingsHeader"
+	fire_label.text = "Manual Fire Button"
+	fire_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fire_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var fire_option: OptionButton = OptionButton.new()
+	fire_option.theme_type_variation = ""
+	fire_option.custom_minimum_size = Vector2(160, 44)
+	fire_option.mouse_filter = Control.MOUSE_FILTER_STOP
+	fire_option.add_item("OFF")
+	fire_option.add_item("ON")
+	fire_option.select(1 if GameSettings.is_touch_manual_fire() else 0)
+	fire_option.item_selected.connect(_on_touch_manual_fire_selected)
+	fire_row.add_child(fire_label)
+	fire_row.add_child(fire_option)
+	body.add_child(fire_row)
+
 	var hint: Label = Label.new()
 	hint.theme_type_variation = &"RunSummaryHint"
 	

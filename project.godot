@@ -102,6 +102,7 @@ dash={
 
 [input_devices]
 
+pointing/emulate_mouse_from_touch=false
 virtual_controller/ios/enable_controller=false
 virtual_controller/ios/enable_left_thumbstick=true
 virtual_controller/ios/enable_right_thumbstick=true

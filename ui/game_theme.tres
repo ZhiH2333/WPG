@@ -891,6 +891,18 @@ TouchActionButtonPrimary/styles/hover = SubResource("sb_touch_action_primary_hov
 TouchActionButtonPrimary/styles/normal = SubResource("sb_touch_action_primary_normal")
 TouchActionButtonPrimary/styles/pressed = SubResource("sb_touch_action_primary_pressed")
 
+TouchActionButtonSelected/base_type = &"Button"
+TouchActionButtonSelected/colors/font_color = Color(0.1, 0.08, 0.12, 1)
+TouchActionButtonSelected/colors/font_outline_color = Color(0, 0, 0, 0)
+TouchActionButtonSelected/constants/outline_size = 0
+TouchActionButtonSelected/font_sizes/font_size = 20
+TouchActionButtonSelected/fonts/font = SubResource("font_bar_bold")
+TouchActionButtonSelected/styles/disabled = SubResource("sb_touch_action_primary_disabled")
+TouchActionButtonSelected/styles/focus = SubResource("sb_touch_action_focus")
+TouchActionButtonSelected/styles/hover = SubResource("sb_touch_action_primary_hover")
+TouchActionButtonSelected/styles/normal = SubResource("sb_touch_action_primary_normal")
+TouchActionButtonSelected/styles/pressed = SubResource("sb_touch_action_primary_pressed")
+
 TouchStickBase/base_type = &"Panel"
 TouchStickBase/styles/normal = SubResource("sb_touch_stick_base")
 

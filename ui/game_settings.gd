@@ -57,6 +57,8 @@ enum TouchControlsMode {
 }
 
 static var _touch_controls_mode: int = TouchControlsMode.AUTO
+## Manual Fire ON：右摇杆只瞄准，另需 FIRE 按钮开火。默认 OFF = 右摇杆自动开火。
+static var _touch_manual_fire: bool = false
 static var _volume: float = DEFAULT_VOLUME
 static var _music_volume: float = DEFAULT_VOLUME
 static var _sfx_volume: float = DEFAULT_VOLUME
@@ -78,6 +80,7 @@ static func load_from_disk() -> void:
 	_vsync_enabled = true
 	_msaa_index = 0
 	_touch_controls_mode = TouchControlsMode.AUTO
+	_touch_manual_fire = false
 	_key_overrides.clear()
 	_joy_overrides.clear()
 	if not FileAccess.file_exists(PATH):
@@ -94,6 +97,7 @@ static func load_from_disk() -> void:
 	_vsync_enabled = bool(cfg.get_value("display", "vsync", true))
 	_msaa_index = clampi(int(cfg.get_value("display", "msaa", 0)), 0, 3)
 	_touch_controls_mode = clampi(int(cfg.get_value("input", "touch_controls", int(TouchControlsMode.AUTO))), 0, 2)
+	_touch_manual_fire = bool(cfg.get_value("input", "touch_manual_fire", false))
 	for action: String in REBINDABLE_ACTIONS:
 		var default_key: int = int(DEFAULT_KEYS[action])
 		var stored: int = int(cfg.get_value("controls", action, default_key))
@@ -116,6 +120,7 @@ static func save_to_disk() -> void:
 	cfg.set_value("display", "vsync", _vsync_enabled)
 	cfg.set_value("display", "msaa", _msaa_index)
 	cfg.set_value("input", "touch_controls", int(_touch_controls_mode))
+	cfg.set_value("input", "touch_manual_fire", _touch_manual_fire)
 	for action: String in REBINDABLE_ACTIONS:
 		cfg.set_value("controls", action, get_key_for_action(action))
 	for action: String in REBINDABLE_JOY_ACTIONS:
@@ -214,6 +219,12 @@ static func get_touch_controls_mode() -> TouchControlsMode:
 
 static func set_touch_controls_mode(mode: TouchControlsMode) -> void:
 	_touch_controls_mode = mode
+
+static func is_touch_manual_fire() -> bool:
+	return _touch_manual_fire
+
+static func set_touch_manual_fire(enabled: bool) -> void:
+	_touch_manual_fire = enabled
 
 static func is_mobile_platform() -> bool:
 	return OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")

@@ -56,6 +56,69 @@ def _lobby_guards() -> list:
     return failures
 
 
+def _strip_comments(text: str) -> str:
+    """去掉 GDScript 行注释，避免注释里的词触发约束。"""
+    lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _mobile_input_guards() -> list:
+    """Touch 必须走 PlayerInput 正式 API；禁止 Touch 直连战斗/网络/暂停。"""
+    failures = []
+    project = read(ROOT / "project.godot")
+    if "pointing/emulate_mouse_from_touch=false" not in project:
+        failures.append("project.godot 必须关闭 pointing/emulate_mouse_from_touch")
+    allowed_touch_input_pi = [
+        "player_input.gd",
+    ]
+    forbidden_imports = [
+        ("WeaponHost", "Touch 层不得直连 WeaponHost"),
+        ("PauseOverlay", "Touch 层不得直连 PauseOverlay"),
+        ("NetSession", "Touch 层不得直连 NetSession"),
+        ("ENetMultiplayerPeer", "Touch 层不得直连 ENet"),
+    ]
+    forbidden_classnames = [
+        "TouchPlayer",
+        "TouchPlayerInput",
+        "TouchCombat",
+    ]
+    for path in ROOT.rglob("*.gd"):
+        rel = path.relative_to(ROOT).as_posix()
+        if rel.startswith(".godot/") or rel.startswith("tools/"):
+            continue
+        is_touch_layer = rel.startswith("ui/mobile/")
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for name in forbidden_classnames:
+            if ("class_name %s" % name) in text:
+                failures.append("%s 引入了禁止的 Touch 类名 %s" % (rel, name))
+        if not is_touch_layer:
+            continue
+        if rel.endswith("touch_action_button.gd") or rel.endswith("virtual_stick.gd"):
+            continue
+        code = _strip_comments(text)
+        for marker, why in forbidden_imports:
+            if marker in code:
+                failures.append("%s：%s" % (rel, why))
+    # 正式触屏场景不得保留默认 FIRE 大按钮。
+    scene = read(ROOT / "ui/mobile/touch_controls.tscn")
+    if "FireButton" in scene:
+        failures.append("touch_controls.tscn 不得保留默认 FIRE 按钮（右摇杆 = Aim + Fire）")
+    if "PauseButton" not in scene:
+        failures.append("touch_controls.tscn 缺少 PauseButton")
+    if "Weapon1Button" not in scene or "Weapon4Button" not in scene:
+        failures.append("touch_controls.tscn 缺少 Weapon 1~4 按钮")
+    pi_text = read(ROOT / "player/player_input.gd")
+    for api in ("set_touch_move_vector", "set_touch_aim_vector", "set_touch_fire_held", "queue_touch_dash", "queue_touch_weapon_slot"):
+        if api not in pi_text:
+            failures.append("PlayerInput 缺少正式 Touch API：%s" % api)
+    return failures
+
+
 def main() -> int:
     failures = []
     project = read(PROJECT_GODOT)
@@ -97,6 +160,7 @@ def main() -> int:
         if "class_name NetworkSession" in text or "class_name CombatSession" in text:
             failures.append("%s 引入了禁止的网络类名" % rel)
     failures.extend(_lobby_guards())
+    failures.extend(_mobile_input_guards())
     presets = read(EXPORT_PRESETS)
     for key, name in PRESETS.items():
         if ('name="%s"' % name) not in presets:
