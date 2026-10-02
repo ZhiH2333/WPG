@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://player/player_input.gd" id="2_input"]
@@ -17,6 +17,9 @@
 [ext_resource type="Texture2D" path="res://images/weapons/shotgun.png" id="15_shotgun_tex"]
 [ext_resource type="Texture2D" path="res://images/weapons/rifle.png" id="16_rifle_tex"]
 [ext_resource type="Texture2D" path="res://images/weapons/smg.png" id="17_smg_tex"]
+[ext_resource type="Script" path="res://ability/ability_controller.gd" id="18_ability"]
+[ext_resource type="Resource" path="res://data/abilities/ability_0.tres" id="19_ability0"]
+[ext_resource type="Resource" path="res://data/abilities/ability_1.tres" id="20_ability1"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 20.0
@@ -99,3 +102,8 @@ script = ExtResource("11_smg")
 
 [node name="FireFeedback" type="Node" parent="."]
 script = ExtResource("10_feedback")
+
+[node name="AbilityController" type="Node" parent="."]
+script = ExtResource("18_ability")
+ability_0 = ExtResource("19_ability0")
+ability_1 = ExtResource("20_ability1")

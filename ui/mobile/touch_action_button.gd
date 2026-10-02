@@ -85,6 +85,15 @@ func set_selected(selected: bool) -> void:
 func is_selected() -> bool:
 	return _selected
 
+## 运行时改按钮文字（例如技能按钮显示 READY / 冷却秒数）。
+## 只改画面，不改变输入语义。
+func set_label_text(text: String) -> void:
+	if button_text == text:
+		return
+	button_text = text
+	if _has_visuals:
+		_label.text = text
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		_handle_touch(event)

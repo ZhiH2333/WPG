@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BoostSpeedEffect" format=3]
+
+[ext_resource type="Script" path="res://ability/effects/boost_speed_effect.gd" id="1_effect"]
+
+[resource]
+script = ExtResource("1_effect")
+multiplier = 1.5

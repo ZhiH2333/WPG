@@ -8,6 +8,8 @@ const BAR_SMOOTHING: float = 10.0
 const ROSTER_MAX: int = 4
 const FILL_STYLE_NORMAL: StringName = &""
 const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
+## 桌面 HUD 的键位提示。只是显示，真实绑定在 InputMap（ability_0 / ability_1）。
+const ABILITY_KEY_HINTS := ["Q", "E"]
 
 var _player: Player
 var _rival: Player
@@ -29,6 +31,7 @@ var _roster_seats: PackedInt32Array = PackedInt32Array()
 @onready var _xp_label: Label = $Root/BottomLeft/XpRow/XpLabel
 @onready var _xp_row: HBoxContainer = $Root/BottomLeft/XpRow
 @onready var _weapon_label: Label = $Root/BottomLeft/WeaponLabel
+@onready var _ability_label: Label = $Root/BottomLeft/AbilityLabel
 @onready var _gold_label: Label = $Root/BottomLeft/GoldLabel
 @onready var _phrase_label: Label = $Root/PhraseLabel
 @onready var _rival_row: HBoxContainer = $Root/TopRight/RivalRow
@@ -109,6 +112,7 @@ func _process(delta: float) -> void:
 	_refresh_xp(delta)
 	_refresh_gold()
 	_refresh_weapon()
+	_refresh_abilities()
 	_refresh_phrase()
 	_refresh_rival(delta)
 	_refresh_roster(delta)
@@ -167,6 +171,36 @@ func _refresh_weapon() -> void:
 		_weapon_label.text = "-"
 		return
 	_weapon_label.text = weapon.get_display_name()
+
+## 桌面 HUD 只读 AbilityController 的状态，不自管第二套技能状态。
+## 键位名只是提示；真正的绑定在 InputMap（ability_0 / ability_1）。
+func _refresh_abilities() -> void:
+	if _ability_label == null:
+		return
+	if _player == null:
+		_ability_label.text = ""
+		return
+	var controller: AbilityController = _player.get_ability_controller()
+	if controller == null:
+		_ability_label.text = ""
+		return
+	var parts: PackedStringArray = PackedStringArray()
+	for slot: int in controller.get_slot_count():
+		var def: AbilityDef = controller.get_def(slot)
+		if def == null:
+			continue
+		parts.append("%s %s  %s" % [ABILITY_KEY_HINTS[slot], def.display_name.to_upper(), _ability_state_text(controller, slot)])
+	_ability_label.text = "   ".join(parts)
+
+func _ability_state_text(controller: AbilityController, slot: int) -> String:
+	match controller.get_state(slot):
+		AbilityState.READY:
+			return "READY"
+		AbilityState.ACTIVE:
+			return "ACT"
+		AbilityState.COOLDOWN:
+			return "%.1f" % maxf(controller.get_remaining_cooldown(slot), 0.0)
+	return "OFF"
 
 func _refresh_phrase() -> void:
 	if _is_battle:

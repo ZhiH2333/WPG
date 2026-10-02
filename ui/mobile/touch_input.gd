@@ -11,12 +11,15 @@ class_name TouchInput
 @export var aim_stick_path: NodePath = NodePath("../SafeAreaRoot/AimPad")
 @export var fire_button_path: NodePath = NodePath()
 @export var dash_button_path: NodePath = NodePath("../SafeAreaRoot/WeaponCluster/DashButton")
+@export var ability_0_button_path: NodePath = NodePath("../SafeAreaRoot/WeaponCluster/Ability0Button")
+@export var ability_1_button_path: NodePath = NodePath("../SafeAreaRoot/WeaponCluster/Ability1Button")
 
 var _player_input: PlayerInput
 var _move_stick: VirtualStick
 var _aim_pad: TouchAimPad
 var _fire_button: TouchActionButton
 var _dash_button: TouchActionButton
+var _ability_buttons: Array[TouchActionButton] = []
 var _weapon_buttons: Array[TouchActionButton] = []
 var _manual_fire_mode: bool = false
 var _active: bool = false
@@ -30,8 +33,13 @@ func _ready() -> void:
 	_aim_pad = get_node_or_null(aim_stick_path) as TouchAimPad
 	_fire_button = get_node_or_null(fire_button_path) as TouchActionButton
 	_dash_button = get_node_or_null(dash_button_path) as TouchActionButton
+	_ability_buttons = [
+		get_node_or_null(ability_0_button_path) as TouchActionButton,
+		get_node_or_null(ability_1_button_path) as TouchActionButton,
+	]
 
 	_connect_components()
+	_connect_ability_buttons()
 
 ## Touch 是否处于 gameplay 激活态（任一控件被按下）。
 func is_touch_active() -> bool:
@@ -39,6 +47,7 @@ func is_touch_active() -> bool:
 		(_aim_pad != null and _aim_pad.is_active()) or \
 		(_fire_button != null and _fire_button.is_held()) or \
 		(_dash_button != null and _dash_button.is_held()) or \
+		_ability_any_held() or \
 		_weapon_any_held()
 
 func get_player_input() -> PlayerInput:
@@ -46,6 +55,12 @@ func get_player_input() -> PlayerInput:
 
 func _weapon_any_held() -> bool:
 	for btn: TouchActionButton in _weapon_buttons:
+		if btn != null and btn.is_held():
+			return true
+	return false
+
+func _ability_any_held() -> bool:
+	for btn: TouchActionButton in _ability_buttons:
 		if btn != null and btn.is_held():
 			return true
 	return false
@@ -106,6 +121,21 @@ func bind_weapon_buttons(buttons: Array[TouchActionButton]) -> void:
 	_weapon_buttons = buttons
 	_connect_weapon_buttons()
 
+## 技能按钮（0..1）。数组顺序即槽位顺序。只把 tap 变成 PlayerInput 的输入边沿，
+## 绝不直接调用 AbilityController。
+func bind_ability_buttons(buttons: Array[TouchActionButton]) -> void:
+	_ability_buttons = buttons
+	_connect_ability_buttons()
+
+func _connect_ability_buttons() -> void:
+	for i: int in _ability_buttons.size():
+		var btn: TouchActionButton = _ability_buttons[i]
+		if btn == null:
+			continue
+		if btn.just_pressed.is_connected(_on_ability_just_pressed):
+			continue
+		btn.just_pressed.connect(_on_ability_just_pressed.bind(i))
+
 func _connect_weapon_buttons() -> void:
 	for i: int in _weapon_buttons.size():
 		var btn: TouchActionButton = _weapon_buttons[i]
@@ -165,6 +195,11 @@ func _on_weapon_just_pressed(slot: int) -> void:
 	if _player_input != null:
 		_player_input.queue_touch_weapon_slot(slot)
 
+## A0 / A1 -> PlayerInput 技能边沿。Touch 层到此为止，不认识 AbilityController。
+func _on_ability_just_pressed(slot: int) -> void:
+	if _player_input != null:
+		_player_input.queue_touch_ability(slot)
+
 func reset() -> void:
 	if _move_stick != null:
 		_move_stick.reset()
@@ -175,6 +210,9 @@ func reset() -> void:
 	if _dash_button != null:
 		_dash_button.reset()
 	for btn: TouchActionButton in _weapon_buttons:
+		if btn != null:
+			btn.reset()
+	for btn: TouchActionButton in _ability_buttons:
 		if btn != null:
 			btn.reset()
 	if _player_input != null:

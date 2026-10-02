@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ability/ability_def.gd" id="1_def"]
+[ext_resource type="Resource" path="res://data/abilities/effects/boost_speed.tres" id="2_effect"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"surge"
+display_name = "Surge"
+description = "短时间提升移动速度。"
+cooldown = 6.0
+duration = 3.0
+cost_type = 0
+cost_value = 0
+target_type = 0
+effect = ExtResource("2_effect")
+parameters = {}

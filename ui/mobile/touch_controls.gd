@@ -16,6 +16,8 @@ signal pause_requested
 @onready var _weapon2_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Weapon2Button
 @onready var _weapon3_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Weapon3Button
 @onready var _weapon4_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Weapon4Button
+@onready var _ability0_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Ability0Button
+@onready var _ability1_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Ability1Button
 @onready var _pause_button: TouchActionButton = $Root/SafeAreaRoot/SystemCluster/PauseButton
 @onready var _touch_input: TouchInput = $Root/TouchInput
 @onready var _root: Control = $Root
@@ -87,6 +89,8 @@ func _connect_buttons() -> void:
 	]
 	if _touch_input != null:
 		_touch_input.bind_weapon_buttons(weapon_buttons)
+		## A0 / A1 只往 PlayerInput 送边沿，不接 AbilityController。
+		_touch_input.bind_ability_buttons([_ability0_button, _ability1_button])
 
 func _should_show() -> bool:
 	return GameSettings.is_touch_controls_enabled() and not _modal_blocked
@@ -174,6 +178,33 @@ func get_weapon_button(slot: int) -> TouchActionButton:
 
 func get_pause_button() -> TouchActionButton:
 	return _pause_button
+
+## 技能按钮 (0 / 1)。与武器按钮同一套 TouchActionButton。
+func get_ability_button(index: int) -> TouchActionButton:
+	match index:
+		0:
+			return _ability0_button
+		1:
+			return _ability1_button
+	return null
+
+## UI 只读 AbilityController 的状态，自己绝不自管一份。
+## READY -> "A0 / READY"；COOLDOWN -> "A1 / 2.4"；ACTIVE -> "ACT"；DISABLED -> "OFF"。
+func set_ability_status(index: int, state: int, remaining_cooldown: float) -> void:
+	var button: TouchActionButton = get_ability_button(index)
+	if button == null:
+		return
+	button.set_label_text("A%d\n%s" % [index, _ability_status_text(state, remaining_cooldown)])
+
+func _ability_status_text(state: int, remaining_cooldown: float) -> String:
+	match state:
+		AbilityState.READY:
+			return "READY"
+		AbilityState.ACTIVE:
+			return "ACT"
+		AbilityState.COOLDOWN:
+			return "%.1f" % maxf(remaining_cooldown, 0.0)
+	return "OFF"
 
 ## 由 CombatSandbox 依据 WeaponHost.get_current_index() 同步选中态，与 HUD 一致。
 func set_selected_weapon(index: int) -> void:

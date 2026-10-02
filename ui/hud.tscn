@@ -39,6 +39,12 @@ mouse_filter = 2
 theme_type_variation = &"HudWeapon"
 text = "Pistol"
 
+[node name="AbilityLabel" type="Label" parent="Root/BottomLeft"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudWeapon"
+text = "Q SURGE   E PULSE"
+
 [node name="HpRow" type="HBoxContainer" parent="Root/BottomLeft"]
 layout_mode = 2
 mouse_filter = 2

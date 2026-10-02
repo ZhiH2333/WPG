@@ -246,6 +246,64 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="Ability0Button" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = -96.0
+offset_right = 88.0
+offset_bottom = -8.0
+mouse_filter = 0
+script = ExtResource("4_touch_button")
+variant = 2
+button_text = "A0"
+button_size = Vector2(88, 88)
+font_size = 14
+
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Ability0Button"]
+layout_mode = 0
+offset_right = 88.0
+offset_bottom = 88.0
+focus_mode = 0
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/WeaponCluster/Ability0Button/Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Ability1Button" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
+layout_mode = 0
+offset_left = 96.0
+offset_top = -96.0
+offset_right = 184.0
+offset_bottom = -8.0
+mouse_filter = 0
+script = ExtResource("4_touch_button")
+variant = 2
+button_text = "A1"
+button_size = Vector2(88, 88)
+font_size = 14
+
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Ability1Button"]
+layout_mode = 0
+offset_right = 88.0
+offset_bottom = 88.0
+focus_mode = 0
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/WeaponCluster/Ability1Button/Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
 [node name="SystemCluster" type="Control" parent="Root/SafeAreaRoot"]
 layout_mode = 1
 anchors_preset = 1

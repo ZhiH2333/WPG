@@ -124,6 +124,7 @@ func _process(delta: float) -> void:
 		return
 	_sync_touch_modal()
 	_sync_touch_weapon_ui()
+	_sync_touch_ability_ui()
 	_sync_touch_hud_reserve()
 	if _pause_overlay.is_open() and not _is_lan():
 		return
@@ -701,7 +702,13 @@ func _set_offer_input_lock(locked: bool) -> void:
 			continue
 		pawn.get_player_input().set_fire_suppressed(locked)
 		pawn.get_player_input().set_dash_suppressed(locked)
+		## Pause / Shop / Upgrade / Winner 打开时技能也不能放。
+		pawn.get_player_input().set_abilities_suppressed(locked)
 		pawn.get_weapon_host().set_switch_suppressed(locked)
+		## 双重保险：既清 PlayerInput 的边沿，也让 Controller 自己拒绝激活。
+		var ability_controller: AbilityController = pawn.get_ability_controller()
+		if ability_controller != null:
+			ability_controller.set_suppressed(locked)
 	if locked:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_aim_reticle.visible = false
@@ -764,6 +771,17 @@ func _sync_touch_weapon_ui() -> void:
 	if host == null:
 		return
 	_touch_controls.set_selected_weapon(host.get_current_index())
+
+## Touch A0/A1 显示 READY / 冷却秒数 / ACT / OFF。
+## UI 只读 AbilityController.get_state() + get_remaining_cooldown()，不自管一份技能状态。
+func _sync_touch_ability_ui() -> void:
+	if _touch_controls == null or _local_player == null:
+		return
+	var controller: AbilityController = _local_player.get_ability_controller()
+	if controller == null:
+		return
+	for slot: int in controller.get_slot_count():
+		_touch_controls.set_ability_status(slot, controller.get_state(slot), controller.get_remaining_cooldown(slot))
 
 ## 移动端 HUD 让位：Touch 开启时左下血条上移，避免被左摇杆遮挡。桌面传入 0。
 func _sync_touch_hud_reserve() -> void:

@@ -26,6 +26,7 @@ signal shot_fired(aim: Vector2, weapon: Weapon)
 @onready var _muzzle: Marker2D = $Visual/Guns/Muzzle
 @onready var _weapon_host: WeaponHost = $WeaponHost
 @onready var _fire_feedback: FireFeedback = $FireFeedback
+@onready var _ability_controller: AbilityController = $AbilityController
 @onready var _hurtbox: CollisionShape2D = $CollisionShape2D
 
 func _ready() -> void:
@@ -36,6 +37,9 @@ func _ready() -> void:
 	_setup_body_visual()
 	_weapon_host.bind_player_input(_player_input)
 	_player_dash.bind_player_input(_player_input)
+	## AbilityController 只拿输入合同与施法者引用，不接管输入设备。
+	_ability_controller.bind_input(_player_input)
+	_ability_controller.bind_actor(self)
 	_bind_hit_reaction()
 
 func _setup_body_visual() -> void:
@@ -58,6 +62,9 @@ func get_player_dash() -> PlayerDash:
 
 func get_weapon_host() -> WeaponHost:
 	return _weapon_host
+
+func get_ability_controller() -> AbilityController:
+	return _ability_controller
 
 func get_character_id() -> String:
 	return _character_id

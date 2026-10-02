@@ -12,6 +12,10 @@ const FIRE_TRIGGER: float = 0.45
 const AIM_LEAD_PX: float = 140.0
 const MOUSE_STEAL_PX: float = 2.0
 const JOY_WEAPON_SLOT_COUNT: int = 4
+## 技能槽位固定 2 个：ability_0 / ability_1。
+const ABILITY_SLOT_COUNT: int = 2
+## InputMap action 名。键鼠与手柄共用同一条 action，不按设备分叉。
+const ABILITY_ACTIONS := ["ability_0", "ability_1"]
 
 ## 全项目唯一输入合同。三个 source：Keyboard/Mouse、Gamepad、Touch。只产出 move/aim/fire。
 ## 切枪仍由 WeaponHost 另读 1/2/3/4 或该手柄当前绑定的枪钮。Dash 不进三量。
@@ -21,6 +25,9 @@ var move_vector: Vector2 = Vector2.ZERO
 var aim_vector: Vector2 = Vector2.RIGHT
 var fire_held: bool = false
 var dash_just_pressed: bool = false
+## 技能键边沿。与 dash 同为 edge：按下当帧 true，按住不重复，松开后才能再来一次。
+var ability_0_just_pressed: bool = false
+var ability_1_just_pressed: bool = false
 var mouse_world_position: Vector2 = Vector2.ZERO
 var _fire_suppressed: bool = false
 var _dash_suppressed: bool = false
@@ -36,6 +43,9 @@ var _has_last_mouse: bool = false
 var _remote_driven: bool = false
 var _pending_weapon_slot: int = -1
 var _pending_dash: bool = false
+var _abilities_suppressed: bool = false
+## Touch 技能边沿队列（每槽 0/1）：由 queue_touch_ability() 写入，_physics_process 消费。
+var _touch_ability_pending: PackedByteArray = PackedByteArray()
 
 ## Touch source state：仅由 TouchControls 的正式 API 写入。
 ## Touch Aim 只表达方向，不表达距离：active=false 时 aim_vector 归 ZERO，准星回玩家中心。
@@ -55,6 +65,7 @@ func _enter_tree() -> void:
 	process_priority = -100
 	process_physics_priority = -100
 	_joy_weapon_held.resize(JOY_WEAPON_SLOT_COUNT)
+	_ensure_ability_slots()
 
 func _process(_delta: float) -> void:
 	update_input()
@@ -64,6 +75,7 @@ func _physics_process(_delta: float) -> void:
 		return
 	dash_just_pressed = false
 	_update_dash_pressed()
+	_update_ability_edges()
 
 func get_device_id() -> int:
 	return _device_id
@@ -149,6 +161,36 @@ func take_touch_weapon_slot() -> int:
 	_touch_weapon_slot_pending = -1
 	return slot
 
+## ---- Ability source 正式运行时 API ----
+## Touch 只负责把「按了 A0 / A1」变成一次输入边沿（queue_touch_ability），
+## 绝不直接调用 AbilityController。AbilityController 只读本类的 ability_*_just_pressed。
+
+func queue_touch_ability(slot: int) -> void:
+	if slot < 0 or slot >= ABILITY_SLOT_COUNT:
+		return
+	_ensure_ability_slots()
+	_touch_ability_pending[slot] = 1
+
+## Pause / Modal：不产出技能边沿。已在冷却中的技能状态不受影响，只是不能再放。
+func set_abilities_suppressed(suppressed: bool) -> void:
+	_abilities_suppressed = suppressed
+	if suppressed:
+		ability_0_just_pressed = false
+		ability_1_just_pressed = false
+		_clear_touch_ability_pending()
+
+func is_abilities_suppressed() -> bool:
+	return _abilities_suppressed
+
+func _ensure_ability_slots() -> void:
+	if _touch_ability_pending.size() != ABILITY_SLOT_COUNT:
+		_touch_ability_pending.resize(ABILITY_SLOT_COUNT)
+
+func _clear_touch_ability_pending() -> void:
+	_ensure_ability_slots()
+	for slot: int in _touch_ability_pending.size():
+		_touch_ability_pending[slot] = 0
+
 func clear_touch_state() -> void:
 	_clear_touch_state()
 
@@ -160,6 +202,7 @@ func _clear_touch_state() -> void:
 	_touch_manual_fire_held = false
 	_touch_dash_pending = false
 	_touch_weapon_slot_pending = -1
+	_clear_touch_ability_pending()
 
 func apply_remote_frame(move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int) -> void:
 	move_vector = move
@@ -483,3 +526,29 @@ func _update_dash_pressed() -> void:
 	dash_just_pressed = edge
 	if edge:
 		_pending_dash = true
+
+## 技能键与 Dash 同为 edge：按下当帧出一次，按住不重复；松开后才能再次触发。
+## Touch Active 时走 pending 队列；否则键鼠与手柄共用 InputMap action。
+## 键鼠与手柄不做设备分叉：ability_0 的 action 里同时绑了 Q 与手柄钮，
+## 这样设备仲裁切换的当帧也不会丢边沿。
+func _update_ability_edges() -> void:
+	ability_0_just_pressed = false
+	ability_1_just_pressed = false
+	if _abilities_suppressed:
+		## Pause / Modal：清掉这一帧的边沿与 pending，解锁瞬间不会补放。
+		_clear_touch_ability_pending()
+		return
+	if _touch_enabled:
+		for slot: int in ABILITY_SLOT_COUNT:
+			var edge: bool = _touch_ability_pending[slot] != 0
+			_touch_ability_pending[slot] = 0
+			_set_ability_edge(slot, edge)
+		return
+	for slot: int in ABILITY_SLOT_COUNT:
+		_set_ability_edge(slot, Input.is_action_just_pressed(ABILITY_ACTIONS[slot]))
+
+func _set_ability_edge(slot: int, edge: bool) -> void:
+	if slot == 0:
+		ability_0_just_pressed = edge
+	elif slot == 1:
+		ability_1_just_pressed = edge

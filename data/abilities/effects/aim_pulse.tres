@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="AimPulseEffect" format=3]
+
+[ext_resource type="Script" path="res://ability/effects/aim_pulse_effect.gd" id="1_effect"]
+
+[resource]
+script = ExtResource("1_effect")
+distance = 130.0
+radius = 46.0
+lifetime = 0.35
