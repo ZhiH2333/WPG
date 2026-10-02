@@ -273,7 +273,7 @@ custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 mouse_filter = 0
 min_value = 80.0
-max_value = 130.0
+max_value = 200.0
 step = 5.0
 value = 100.0
 scrollable = false
@@ -452,3 +452,11 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[editable path="Drawer/Panel/Clip/Content/AudioSection"]
+
+[editable path="Drawer/Panel/Clip/Content/DisplaySection"]
+
+[editable path="Drawer/Panel/Clip/Content/ControlsSection"]
+
+[editable path="Drawer/Panel/Clip/Content/DataSection"]

@@ -4,7 +4,38 @@ class_name SettingsOverlay
 ## osu 式设置抽屉：左侧目录锚点，右侧一篇长文档。当前节可点，其它节压暗。
 const IN_USE_FLASH_SEC: float = 0.6
 const SIDEBAR_RATIO: float = 1.0 / 7.0
-const PANEL_OF_REMAINDER: float = 0.4
+## 面板占比：0.4 那一档在 200% UI Scale（逻辑 540）下只剩 ~187px，绑定行必然溢出。
+## 0.55 是「面板微宽」——但真正兜底的是下面的 PANEL_MIN_W，比例档只在宽屏上生效。
+const PANEL_OF_REMAINDER: float = 0.55
+## 面板最小宽度 = 一行绑定并排两个按钮所需的宽度 + Body 的左右缩进：
+##   按钮下限 88 × 2 + 按钮间距 12 + Body 缩进 52 = 240。
+## 200% UI Scale 下逻辑视口只剩 540，0.55 档是 0.55 × (540-190) ≈ 192px，
+## 不给下限就会算出容不下两个按钮的面板。取 240 后 540 下抽屉 = 190 + 240 = 430
+## （屏幕的 79.6%，右侧留出 110px 可见背景），不会像旧的 560 下限那样铺满整屏。
+## 240 同时是「零裁切」的下界：控制面板内宽 = 240 - 52 = 188，正好放下 Dash 那行的
+## 两个 chip（88 + 12 + 88）；Display 最宽的 Fullscreen 行要 178；折行后的长文案
+## 最长一行 <= 188。1920 宽下 0.55 档本来就是 905 (> 240)，所以这个下限不影响原设计。
+const PANEL_MIN_W: float = 240.0
+## 目录栏最小宽度。一个 tab = 左缩进 32 + 图标 32 + 间距 16 + 文案 + 右缩进 12，
+## 文案最宽是 "Controls"（22px 粗体实测 90px）→ 32+32+16+90+12 = 182。
+## 取 190 留一点余量，否则最宽的 tab 文案会被压掉。1920 宽下 1/7 本来就是 274，不受影响。
+const SIDEBAR_MIN_W: float = 190.0
+## 绑定按钮的最小宽度。旧的固定 160 在窄面板里会把行顶出去；改成 88 并配合
+## SIZE_EXPAND_FILL，按钮可以随面板收缩，"W" / "SPACE" 这类短标签仍然读得出来。
+const BIND_BTN_MIN_W: float = 88.0
+## 两个绑定按钮之间的间距（也是竖排时的行距）。
+const BIND_GAP: float = 12.0
+## SettingsSection.Body 的左右缩进（20 + 32），面板宽减去它才是绑定行的可用宽度。
+const BODY_INSET: float = 52.0
+## 手动折行时留的安全余量：Label 画字带 outline（SettingsHeader outline_size=2），
+## get_string_size() 不含 outline，所以按 可用宽度 - 这个余量 折行，避免折出来仍然超宽。
+const WRAP_SAFE_GAP: float = 8.0
+## 折行时宁可让这一行用满可用宽度、也不要让它落到下一行行首的短分隔符。
+const WRAP_TRAILING_TOKENS: PackedStringArray = ["/", "|", "-", "+"]
+## 下拉选择行：面板内宽比这个还宽时（100% UI Scale 的桌面），OptionButton 保持 160 宽；
+## 更窄时（200% 手机）让它占满自己那一行。
+const CHOICE_OPTION_W: float = 160.0
+const CHOICE_STACK_BELOW: float = 360.0
 # osu.Framework ScrollContainer: 80px per scroll unit.
 const SCROLL_DISTANCE: float = 80.0
 # DistanceDecayScroll = 0.01 / ms  ->  10 / s
@@ -32,6 +63,14 @@ var _current_section: SettingsSection = null
 var _close_on_up: bool = false
 var _sections: Array[SettingsSection] = []
 var _navs: Array[SettingsNavButton] = []
+## Controls 每个绑定行里的按钮网格（列数随面板宽度在 1 / 2 之间切）。
+var _bind_grids: Array[GridContainer] = []
+## 需要按可用宽度手动折行的 Label -> 不含换行的原文。
+## Godot 的 Label 最小宽度永远是整段文字的宽度（autowrap 也不会让它变小），
+## 窄面板下这些文案会把 SettingsSection.Body 撑宽、被 Panel.clip_contents 裁掉。
+var _wrapped_sources: Dictionary = {}
+## Touch Controls / Manual Fire 的 OptionButton（宽度随面板宽在「占满一行 / 固定 160」间切）。
+var _choice_options: Array[OptionButton] = []
 var _sfx_gate: Dictionary = {}
 ## Touch drag scroll：区分 tap / drag，只有越过 slop 才接管为滚动。
 const TOUCH_SLOP: float = 12.0
@@ -96,6 +135,7 @@ func _ready() -> void:
 	_navs = [_audio_nav, _display_nav, _controls_nav, _data_nav]
 	_tag_searchable()
 	_build_bind_rows()
+	_register_responsive_text()
 	_audio_nav.pressed.connect(_on_nav_pressed.bind(_audio_section))
 	_display_nav.pressed.connect(_on_nav_pressed.bind(_display_section))
 	_controls_nav.pressed.connect(_on_nav_pressed.bind(_controls_section))
@@ -311,13 +351,135 @@ func _screen_w() -> float:
 	return vp if vp > 1.0 else 1920.0
 
 func _sidebar_w() -> float:
-	return _screen_w() * SIDEBAR_RATIO
+	var screen_w: float = _screen_w()
+	return clampf(screen_w * SIDEBAR_RATIO, minf(SIDEBAR_MIN_W, screen_w), screen_w)
 
 func _panel_w() -> float:
-	return (_screen_w() - _sidebar_w()) * PANEL_OF_REMAINDER
+	var available: float = _screen_w() - _sidebar_w()
+	return clampf(available * PANEL_OF_REMAINDER, minf(PANEL_MIN_W, available), available)
 
 func _drawer_w() -> float:
 	return _sidebar_w() + _panel_w()
+
+## 绑定行真正能用的宽度：面板宽减去 SettingsSection.Body 的左右缩进。
+func _bind_body_w() -> float:
+	return maxf(0.0, _panel_w() - BODY_INSET)
+
+## 网格里所有按钮并排所需的宽度。不能只算 88 × 个数：Button 的最小宽度还包含文案
+## （"D-pad Down" 这类长标签比 88 宽），只按 custom_minimum_size 算会得出偏小的值，
+## 结果按钮被挤到容器外。这里按子节点真实最小宽度求和。
+func _bind_grid_w(grid: GridContainer) -> float:
+	if grid == null:
+		return 0.0
+	var sep: float = float(grid.get_theme_constant("h_separation"))
+	var total: float = 0.0
+	var count: int = 0
+	for child: Node in grid.get_children():
+		var item: Control = child as Control
+		if item == null:
+			continue
+		total += item.get_combined_minimum_size().x
+		count += 1
+	if count > 1:
+		total += sep * float(count - 1)
+	return total
+
+## 面板宽度变化后重排绑定行：两个按钮并排放得下就用 2 列，放不下（长手柄标签）就退回
+## 1 列竖排。两种情况下行的最小宽度都不会超过 body 可用宽度，所以不会被面板裁掉。
+func _apply_bind_columns() -> void:
+	var body_w: float = _bind_body_w()
+	for entry: Variant in _bind_grids:
+		var grid: GridContainer = entry as GridContainer
+		if grid == null or not is_instance_valid(grid):
+			continue
+		var columns: int = 2 if _bind_grid_w(grid) <= body_w + 0.5 else 1
+		if grid.columns != columns:
+			grid.columns = columns
+
+## 下拉选择行的 OptionButton：窄面板占满一行，宽面板收成 160 宽。
+func _apply_choice_options() -> void:
+	var body_w: float = _bind_body_w()
+	for entry: Variant in _choice_options:
+		var option: OptionButton = entry as OptionButton
+		if option == null or not is_instance_valid(option):
+			continue
+		if body_w >= CHOICE_STACK_BELOW:
+			option.custom_minimum_size = Vector2(CHOICE_OPTION_W, 44.0)
+			option.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		else:
+			option.custom_minimum_size = Vector2(0.0, 44.0)
+			option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+## 登记一个「窄面板时要折行」的 Label。原文存在 _wrapped_sources 里，宽度变化时重排。
+func _wrap_label(label: Label) -> void:
+	if label == null or _wrapped_sources.has(label):
+		return
+	_wrapped_sources[label] = label.text
+
+## 运行时改文案的折行 Label（UI Scale / Render Resolution 的读数）：更新原文后立即重排。
+func _set_wrapped_text(label: Label, text: String) -> void:
+	if _wrapped_sources.has(label):
+		_wrapped_sources[label] = text
+		_apply_wrapped_texts()
+		return
+	label.text = text
+
+## 按当前可用宽度重排所有折行文案。宽屏下原文本来就放得下一行，会原样还原。
+func _apply_wrapped_texts() -> void:
+	if _wrapped_sources.is_empty():
+		return
+	var width: float = maxf(1.0, _bind_body_w())
+	for entry: Variant in _wrapped_sources.keys():
+		var label: Label = entry as Label
+		if label == null or not is_instance_valid(label):
+			continue
+		label.text = _wrapped_text(label, str(_wrapped_sources[label]), width)
+
+## 贪心按空格折行，保证每行不超过 width（单个超长单词无法再拆，保持原样）。
+func _wrapped_text(label: Label, text: String, width: float) -> String:
+	var font: Font = label.get_theme_font("font")
+	if font == null or width <= 1.0 or text.is_empty():
+		return text
+	var font_size: int = label.get_theme_font_size("font_size")
+	if _line_w(font, text, font_size) <= width:
+		return text
+	var limit: float = maxf(1.0, width - WRAP_SAFE_GAP)
+	var out: String = ""
+	var line: String = ""
+	for word: String in text.split(" ", false):
+		if line.is_empty():
+			line = word
+			continue
+		var candidate: String = line + " " + word
+		var candidate_w: float = _line_w(font, candidate, font_size)
+		if candidate_w <= limit or (WRAP_TRAILING_TOKENS.has(word) and candidate_w <= width):
+			line = candidate
+			continue
+		out += line + "\n"
+		line = word
+	return out + line
+
+func _line_w(font: Font, text: String, font_size: int) -> float:
+	return font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+
+## 宽按钮（RESTORE DEFAULTS / HOLD TO DELETE ALL DATA）在窄面板里也必须能收缩：
+## Button 开了 autowrap 后最小宽度就只剩 stylebox 内边距，文字换成多行、按钮长高，
+## 不会再把 Body 撑出去，也不会像 clip_text 那样把字裁掉。
+func _make_wide_button_shrinkable(button: Button) -> void:
+	if button == null:
+		return
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.custom_minimum_size = Vector2(0.0, button.custom_minimum_size.y)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+## 把场景里固定宽度的长文案 / 宽按钮交给响应式处理（都在代码里做，避免和其它
+## 并发改动抢 settings_overlay.tscn）。MSAA 的 OptionButton（72px）本来就放得下。
+func _register_responsive_text() -> void:
+	_wrap_label(_render_scale_label)
+	_wrap_label(_ui_scale_label)
+	_wrap_label(_render_scale_slider.get_parent().get_node_or_null("RenderScaleHint") as Label)
+	_wrap_label(_data_section.body.get_node_or_null("Warning") as Label)
+	_make_wide_button_shrinkable(_delete_button)
 
 func _apply_split_layout() -> void:
 	var side: float = _sidebar_w()
@@ -326,9 +488,14 @@ func _apply_split_layout() -> void:
 	_sidebar.offset_right = side
 	_panel.offset_left = side
 	_panel.offset_right = total
+	_apply_bind_columns()
+	_apply_choice_options()
+	_apply_wrapped_texts()
 
 func _apply_drawer_layout() -> void:
 	_apply_split_layout()
+	## 折行后 section 的高度取决于当时宽度，宽度一变就必须重算高度（否则文案会叠在一起）。
+	_fit_sections()
 	var total: float = _drawer_w()
 	var tweening: bool = _anim_tween != null and is_instance_valid(_anim_tween) and _anim_tween.is_running()
 	if tweening:
@@ -648,49 +815,22 @@ func _build_bind_rows() -> void:
 	var body: VBoxContainer = _controls_section.body
 	
 	# Touch Controls Mode
-	var touch_row: HBoxContainer = HBoxContainer.new()
-	touch_row.set_meta("settings_search", "touch controls mobile on screen")
-	touch_row.mouse_filter = Control.MOUSE_FILTER_STOP
-	touch_row.add_theme_constant_override("separation", 12)
-	var touch_label: Label = Label.new()
-	touch_label.theme_type_variation = &"SettingsHeader"
-	touch_label.text = "Touch Controls"
-	touch_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	touch_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var touch_option: OptionButton = OptionButton.new()
-	touch_option.theme_type_variation = ""
-	touch_option.custom_minimum_size = Vector2(160, 44)
-	touch_option.mouse_filter = Control.MOUSE_FILTER_STOP
 	touch_option.add_item("AUTO")
 	touch_option.add_item("ON")
 	touch_option.add_item("OFF")
 	touch_option.select(int(GameSettings.get_touch_controls_mode()))
 	touch_option.item_selected.connect(_on_touch_controls_selected)
-	touch_row.add_child(touch_label)
-	touch_row.add_child(touch_option)
-	body.add_child(touch_row)
+	body.add_child(_build_choice_row("Touch Controls", "touch controls mobile on screen", touch_option))
 
 	# Manual Fire Button（默认 OFF：右摇杆 = Aim + Fire）
-	var fire_row: HBoxContainer = HBoxContainer.new()
-	fire_row.set_meta("settings_search", "touch manual fire button aim stick")
-	fire_row.mouse_filter = Control.MOUSE_FILTER_STOP
-	fire_row.add_theme_constant_override("separation", 12)
-	var fire_label: Label = Label.new()
-	fire_label.theme_type_variation = &"SettingsHeader"
-	fire_label.text = "Manual Fire Button"
-	fire_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	fire_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var fire_option: OptionButton = OptionButton.new()
-	fire_option.theme_type_variation = ""
-	fire_option.custom_minimum_size = Vector2(160, 44)
-	fire_option.mouse_filter = Control.MOUSE_FILTER_STOP
 	fire_option.add_item("OFF")
 	fire_option.add_item("ON")
 	fire_option.select(1 if GameSettings.is_touch_manual_fire() else 0)
 	fire_option.item_selected.connect(_on_touch_manual_fire_selected)
-	fire_row.add_child(fire_label)
-	fire_row.add_child(fire_option)
-	body.add_child(fire_row)
+	body.add_child(_build_choice_row(
+		"Manual Fire Button", "touch manual fire button aim stick", fire_option))
 
 	var hint: Label = Label.new()
 	hint.theme_type_variation = &"RunSummaryHint"
@@ -708,35 +848,37 @@ func _build_bind_rows() -> void:
 	bind_status.unique_name_in_owner = true
 	_bind_status = bind_status
 	for action: String in GameSettings.REBINDABLE_ACTIONS:
-		var row: HBoxContainer = HBoxContainer.new()
+		## 每个绑定 = 两行：第一行动作名，第二行键盘/手柄按钮（放得下就并排，放不下就竖排）。
+		var row: VBoxContainer = VBoxContainer.new()
 		row.set_meta("settings_search", GameSettings.action_display_name(action))
+		row.set_meta("settings_bind_row", true)
 		row.mouse_filter = Control.MOUSE_FILTER_STOP
-		row.add_theme_constant_override("separation", 12)
+		row.add_theme_constant_override("separation", 6)
 		var name_label: Label = Label.new()
 		name_label.theme_type_variation = &"SettingsHeader"
 		name_label.text = GameSettings.action_display_name(action)
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var button: Button = Button.new()
-		button.theme_type_variation = &"OfferButtonSmall"
-		button.custom_minimum_size = Vector2(160, 44)
-		button.mouse_filter = Control.MOUSE_FILTER_STOP
-		button.text = GameSettings.key_label_for_action(action)
+		var chips: GridContainer = GridContainer.new()
+		chips.name = "Chips"
+		chips.mouse_filter = Control.MOUSE_FILTER_STOP
+		chips.add_theme_constant_override("h_separation", int(BIND_GAP))
+		chips.add_theme_constant_override("v_separation", int(BIND_GAP))
+		var button: Button = _make_bind_button(GameSettings.key_label_for_action(action))
 		button.pressed.connect(_on_rebind_pressed.bind(button))
 		_action_by_button[button] = action
-		row.add_child(name_label)
-		row.add_child(button)
+		chips.add_child(button)
 		if GameSettings.REBINDABLE_JOY_ACTIONS.has(action):
-			var pad: Button = Button.new()
-			pad.theme_type_variation = &"OfferButtonSmall"
-			pad.custom_minimum_size = Vector2(160, 44)
-			pad.mouse_filter = Control.MOUSE_FILTER_STOP
-			pad.text = GameSettings.joy_label_for_action(action)
+			var pad: Button = _make_bind_button(GameSettings.joy_label_for_action(action))
 			pad.set_meta("settings_search", "gamepad joypad pad dash gun")
 			pad.pressed.connect(_on_rebind_joy_pressed.bind(pad))
 			_joy_button_by_action[pad] = action
-			row.add_child(pad)
+			chips.add_child(pad)
+		row.add_child(name_label)
+		row.add_child(chips)
+		_bind_grids.append(chips)
 		body.add_child(row)
+	_apply_bind_columns()
 	var restore: Button = Button.new()
 	restore.name = "RestoreButton"
 	restore.theme_type_variation = &"PillNeutral"
@@ -744,12 +886,45 @@ func _build_bind_rows() -> void:
 	restore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	restore.mouse_filter = Control.MOUSE_FILTER_STOP
 	restore.text = "RESTORE DEFAULTS"
+	restore.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	restore.set_meta("settings_search", "restore defaults reset keys gamepad")
 	restore.pressed.connect(_on_restore_pressed)
 	body.add_child(restore)
 	restore.owner = self
 	restore.unique_name_in_owner = true
 	_controls_section._fit()
+
+## 下拉选择行：标签一行、OptionButton 一行（占满宽度）。
+## 窄面板下 161/199 的标签 + 160 的 OptionButton 并排是放不下的（旧的 333/371），
+## 拆成两行后行的最小宽度 = max(标签, 控件)，再长也让标签自己折行。
+func _build_choice_row(text: String, search_meta: String, option: OptionButton) -> VBoxContainer:
+	var row: VBoxContainer = VBoxContainer.new()
+	row.set_meta("settings_search", search_meta)
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.add_theme_constant_override("separation", 6)
+	var label: Label = Label.new()
+	label.theme_type_variation = &"SettingsHeader"
+	label.text = text
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	option.theme_type_variation = ""
+	option.custom_minimum_size = Vector2(0, 44)
+	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	option.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.add_child(label)
+	row.add_child(option)
+	_choice_options.append(option)
+	_wrap_label(label)
+	return row
+
+func _make_bind_button(label: String) -> Button:
+	var button: Button = Button.new()
+	button.theme_type_variation = &"OfferButtonSmall"
+	button.custom_minimum_size = Vector2(BIND_BTN_MIN_W, 44)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.text = label
+	return button
 
 func _on_rebind_pressed(button: Button) -> void:
 	_play_click()
@@ -919,10 +1094,10 @@ func _fail_bind(button: Button, action: String, status: String) -> void:
 	tree.create_timer(IN_USE_FLASH_SEC).timeout.connect(_restore_bind_label.bind(button, action))
 
 func _sync_render_scale_label(slider_value: float) -> void:
-	_render_scale_label.text = "Render Resolution  %d%%" % int(slider_value)
+	_set_wrapped_text(_render_scale_label, "Render Resolution  %d%%" % int(slider_value))
 
 func _sync_ui_scale_label(slider_value: float) -> void:
-	_ui_scale_label.text = "UI Scale  %d%%" % int(slider_value)
+	_set_wrapped_text(_ui_scale_label, "UI Scale  %d%%" % int(slider_value))
 
 func _play_preview() -> void:
 	if _preview.stream == null:

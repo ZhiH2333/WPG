@@ -13,6 +13,9 @@ const BGM_FADE_SEC: float = 0.45
 const BLUR_MAX: float = 2.6
 const DIM_MAX: float = 0.35
 const FOCUS_SMOOTH: float = 9.0
+## 版心：1920 宽下内容列 1200px（旧设计）。窄视口按 UiFit 收缩，别再往场景里写死 672 缩进。
+const CONTENT_MARGIN: float = 48.0
+const CONTENT_MAX_WIDTH: float = 1200.0
 
 enum RecordOrigin { HOME, PLAY }
 
@@ -42,8 +45,11 @@ var _pending_page: StringName = &""
 var _switch_left: float = 0.0
 var _settings_return: Control = null
 var _sfx_gate: Dictionary = {}
+var _top_bar_full_min: float = 0.0
+var _top_bar_nav_min: float = 0.0
 
 @onready var _blur_layer: ColorRect = $BlurLayer
+@onready var _home: MarginContainer = $Home
 @onready var _stage: Control = $Home/Body/Stage
 @onready var _player_name: Label = $Home/Body/Name
 @onready var _player_status: Label = $Home/Body/Status
@@ -65,6 +71,7 @@ var _sfx_gate: Dictionary = {}
 @onready var _top_profile_button: Button = $TopBar/Row/ProfileButton
 @onready var _top_settings_button: Button = $TopBar/Row/SettingsButton
 @onready var _clock_label: Label = $TopBar/Row/TimeBox/Clock
+@onready var _time_box: HBoxContainer = $TopBar/Row/TimeBox
 @onready var _music: AudioStreamPlayer = $Music
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
@@ -89,6 +96,11 @@ func _ready() -> void:
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_start_music()
+	## 网页版没有「退出应用」：浏览器标签不归游戏管，`get_tree().quit()` 点了也没反应。
+	## 直接藏掉 Quit，别在货架上留一个按不动的按钮；暂停叠层里的 Quit 是回主菜单，不受影响。
+	if _quit_hidden_by_platform():
+		_quit_button.visible = false
+		_quit_button.focus_mode = Control.FOCUS_NONE
 	_brand_button.pressed.connect(_on_home_pressed)
 	_home_button.pressed.connect(_on_home_pressed)
 	_top_play_button.pressed.connect(_on_play_nav_pressed)
@@ -100,7 +112,8 @@ func _ready() -> void:
 	_multi_button.pressed.connect(_enter_multi_flow)
 	_best_button.pressed.connect(_on_profile_pressed)
 	_last_button.pressed.connect(_on_continue_pressed)
-	_quit_button.pressed.connect(_on_quit_pressed)
+	if _quit_button.visible:
+		_quit_button.pressed.connect(_on_quit_pressed)
 	_play_page.continue_pressed.connect(_on_continue_pressed)
 	_play_page.solo_pressed.connect(_on_play_solo_pressed)
 	_play_page.multi_pressed.connect(_enter_multi_flow)
@@ -117,6 +130,8 @@ func _ready() -> void:
 	_refresh_clock(true)
 	_refresh_player_labels()
 	_refresh_home_facts()
+	_sync_responsive()
+	UiFit.connect_refit(self, _sync_responsive)
 	_play_enter_animation()
 	_top_bar.move_to_front()
 
@@ -446,18 +461,20 @@ func _wire_home_focus() -> void:
 		slot.focus_neighbor_left = left.get_path()
 		slot.focus_neighbor_right = right.get_path()
 		slot.focus_neighbor_top = _home_button.get_path()
-		slot.focus_neighbor_bottom = below.get_path()
+		slot.focus_neighbor_bottom = (below if below != null else slot).get_path()
 	var after_rail: Control = _secondary_focus()
 	if _secondary.visible:
+		var bottom: Control = _quit_button if _quit_button.visible else _last_button
 		_best_button.focus_neighbor_top = slots[0].get_path()
-		_best_button.focus_neighbor_bottom = _quit_button.get_path()
+		_best_button.focus_neighbor_bottom = bottom.get_path()
 		_last_button.focus_neighbor_top = slots[0].get_path()
-		_last_button.focus_neighbor_bottom = _quit_button.get_path()
+		_last_button.focus_neighbor_bottom = bottom.get_path()
 		_best_button.focus_neighbor_right = _last_button.get_path() if _last_button.visible else _best_button.get_path()
 		_last_button.focus_neighbor_left = _best_button.get_path() if _best_button.visible else _last_button.get_path()
 		after_rail = _best_button if _best_button.visible else _last_button
-	_quit_button.focus_neighbor_top = after_rail.get_path()
-	_quit_button.focus_neighbor_bottom = _quit_button.get_path()
+	if _quit_button.visible:
+		_quit_button.focus_neighbor_top = after_rail.get_path()
+		_quit_button.focus_neighbor_bottom = _quit_button.get_path()
 	_set_horizontal(_home_button, _home_button, _top_play_button)
 	_set_horizontal(_top_play_button, _home_button, _top_multi_button)
 	_set_horizontal(_top_multi_button, _top_play_button, _top_profile_button)
@@ -466,21 +483,77 @@ func _wire_home_focus() -> void:
 	for nav: Button in [_home_button, _top_play_button, _top_multi_button, _top_profile_button, _top_settings_button]:
 		nav.focus_neighbor_bottom = slots[0].get_path()
 
+## Quit 是否被平台藏掉。网页版 `get_tree().quit()` 退不出标签页，所以整条按钮不出现。
+func _quit_hidden_by_platform() -> bool:
+	return OS.has_feature("web")
+
+## 没有 Quit（网页版）时返回 null：调用方必须自己兜底，不要把焦点指向隐藏控件。
 func _secondary_focus() -> Control:
 	if _best_button.visible:
 		return _best_button
 	if _last_button.visible:
 		return _last_button
-	return _quit_button
+	if _quit_button.visible:
+		return _quit_button
+	return null
 
 func _set_horizontal(control: Control, left: Control, right: Control) -> void:
 	control.focus_neighbor_left = left.get_path()
 	control.focus_neighbor_right = right.get_path()
 
 ## 顶栏 PROFILE 项显示 display_name（不再是 "best  0"，也没有第二处名字槽）。
+## 名字长度会改顶栏最小宽度，所以刷新完必须重新量一次、重算时钟放不放得下。
 func refresh_profile_label() -> void:
 	_top_profile_button.text = PlayerProfile.get_display_name()
 	_refresh_nav_marks()
+	_measure_top_bar()
+	sync_top_bar_for(_logical_viewport_width())
+
+## ---- UI Scale 响应式 ----
+## 200% UI Scale 会把 1920x1080 的逻辑视口压成 960x540。场景里写死的 margin_right=672
+## 编码的是「1920 下版心 1200px」，到 960 会把内容列压到 240px，容器装不下自己的最小宽度
+## 就整块居中溢出（左边 CONTINUE 被切掉一半、右边顶栏时钟被切）。这里按视口重算。
+
+func _sync_responsive() -> void:
+	sync_content_width_for(_logical_viewport_width())
+
+func _logical_viewport_width() -> float:
+	return get_viewport_rect().size.x
+
+## 参数化版本：测试要能强制 960（UI Scale 200%）这一档，不是碰运气。
+func sync_content_width_for(viewport_width: float) -> void:
+	if _home != null:
+		## MarginContainer 的 margin_right 等于「-offset_right」：1920 -> 672（旧值一字不变），
+		## 960 -> 48。margin 不能为负，所以取下限 CONTENT_MARGIN。
+		var offset_right: float = UiFit.content_offset_right(viewport_width, CONTENT_MARGIN, CONTENT_MAX_WIDTH)
+		_home.add_theme_constant_override("margin_right", int(maxf(CONTENT_MARGIN, -offset_right)))
+	sync_top_bar_for(viewport_width)
+
+## 顶栏整排放不下时先摘掉右端时钟：它只报时，不是导航。不摘就是整排居中溢出，
+## 左边 HOME 被切、右边时钟被切 —— 两个都看不见，比少个时钟更糟。
+## 名字越长 PROFILE 越宽，所以按实测最小宽度判，不写死 1084。
+func sync_top_bar_for(viewport_width: float) -> void:
+	if _time_box == null:
+		return
+	_time_box.visible = _top_bar_full_min <= viewport_width + 0.5
+
+## 量两档最小宽度：带时钟（full）与只留导航（nav）。容器的最小宽度缓存必须先标脏再读。
+func _measure_top_bar() -> void:
+	if _time_box == null or _top_bar == null:
+		return
+	_time_box.visible = true
+	_top_bar.update_minimum_size()
+	_top_bar_full_min = _top_bar.get_combined_minimum_size().x
+	_time_box.visible = false
+	_top_bar.update_minimum_size()
+	_top_bar_nav_min = _top_bar.get_combined_minimum_size().x
+	_time_box.visible = true
+
+func get_top_bar_full_min_width() -> float:
+	return _top_bar_full_min
+
+func get_top_bar_nav_min_width() -> float:
+	return _top_bar_nav_min
 
 func _refresh_nav_marks() -> void:
 	var current: Button = _home_button

@@ -11,6 +11,10 @@ var _sfx_gate: Dictionary = {}
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: Control = $Sheet
 @onready var _name_edit: LineEdit = $Sheet/Column/Name
+## 版心参数（与 winner_page 一致）：1920 宽下内容 1200px，窄了按视口收窄。
+const CONTENT_MARGIN: float = 48.0
+const CONTENT_MAX_WIDTH: float = 1200.0
+
 @onready var _avatar_button: Button = $Sheet/Column/Avatar
 @onready var _avatar_portrait: TextureRect = $Sheet/Column/Avatar/Portrait
 @onready var _boar_button: Button = $Sheet/Column/Characters/Boar
@@ -20,8 +24,8 @@ var _sfx_gate: Dictionary = {}
 @onready var _last_kills_label: Label = $Sheet/Column/Facts/LastKills
 @onready var _last_gold_label: Label = $Sheet/Column/Facts/LastGold
 @onready var _runs_value: Label = $Sheet/Column/Stats/RunsValue
-@onready var _owned_label: Label = $Sheet/Column/Facts/OwnedHint
 @onready var _records_rows: VBoxContainer = $Sheet/Column/Rows
+@onready var _sheet: Control = $Sheet
 @onready var _ranking_button: Button = $Sheet/Column/Header/Ranking
 @onready var _back_button: Button = $Sheet/Column/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
@@ -46,6 +50,23 @@ func _ready() -> void:
 		_wire_hover(row)
 		UiAnim.wire_row_feedback(self, row, UiType.INK)
 	_refresh_identity()
+	## 视口变化（窗口缩放 / UI Scale 改变）时重算版心宽度，200% 下不会把内容压扁。
+	_sheet.get_viewport().size_changed.connect(_sync_content_width)
+	_sync_content_width()
+
+## 同 winner_page：Sheet 是 ScrollContainer，也是宽度承载者。
+## offset_right = -672 是按 1920 算的，960 逻辑宽下会把内容列压到 240px。
+func _sync_content_width() -> void:
+	if _sheet == null:
+		return
+	sync_content_width_for(_sheet.get_viewport_rect().size.x)
+
+## 按给定逻辑视口宽度重算版心（参数化理由同 winner_page：测试要强制 960 这一档）。
+func sync_content_width_for(viewport_width: float) -> void:
+	if _sheet == null:
+		return
+	_sheet.offset_left = CONTENT_MARGIN
+	_sheet.offset_right = UiFit.content_offset_right(viewport_width, CONTENT_MARGIN, CONTENT_MAX_WIDTH)
 
 func focus_rank() -> void:
 	_ranking_button.grab_focus()
@@ -150,10 +171,7 @@ func _refresh_stats() -> void:
 	_last_kills_label.text = "Last kills  %d" % GameProgress.get_last_kills()
 	_last_gold_label.text = "Last gold  %d" % GameProgress.get_last_gold()
 	_runs_value.text = "%d" % GameProgress.get_runs_played()
-	var owned: String = GameProgress.get_last_owned()
-	if owned.is_empty():
-		owned = "-"
-	_owned_label.text = "last owned  %s" % owned
+	## 硬规定：profile 不显示本局 / 最近一局获得的升级、物品、状态清单。
 
 func _refresh_records() -> void:
 	GameRecords.load_from_disk()

@@ -6,6 +6,11 @@ const VERSION: String = "1.0.0"
 const PATH := "user://settings.cfg"
 const DEFAULT_VOLUME: float = 1.0
 const MUTE_THRESHOLD: float = 0.001
+## UI Scale（root.content_scale_factor）的范围，1.0 = 100%。
+## 改这里必须同步改 ui/settings_overlay.tscn 里 UiScaleSlider 的 min_value / max_value，
+## 否则滑杆量程和 clamp 会打架（滑杆给得出、clamp 收得掉）。
+const UI_SCALE_MIN: float = 0.8
+const UI_SCALE_MAX: float = 2.0
 const REBINDABLE_ACTIONS: PackedStringArray = [
 	"move_up",
 	"move_down",
@@ -93,7 +98,7 @@ static func load_from_disk() -> void:
 	_sfx_volume = clampf(float(cfg.get_value("audio", "sfx", DEFAULT_VOLUME)), 0.0, 1.0)
 	_fullscreen = bool(cfg.get_value("display", "fullscreen", false))
 	_render_scale = clampf(float(cfg.get_value("display", "render_scale", 1.0)), 0.1, 1.0)
-	_ui_scale = clampf(float(cfg.get_value("display", "ui_scale", 1.0)), 0.8, 1.3)
+	_ui_scale = clampf(float(cfg.get_value("display", "ui_scale", 1.0)), UI_SCALE_MIN, UI_SCALE_MAX)
 	_vsync_enabled = bool(cfg.get_value("display", "vsync", true))
 	_msaa_index = clampi(int(cfg.get_value("display", "msaa", 0)), 0, 3)
 	_touch_controls_mode = clampi(int(cfg.get_value("input", "touch_controls", int(TouchControlsMode.AUTO))), 0, 2)
@@ -200,7 +205,7 @@ static func get_ui_scale() -> float:
 	return _ui_scale
 
 static func set_ui_scale(value: float) -> void:
-	_ui_scale = clampf(value, 0.8, 1.3)
+	_ui_scale = clampf(value, UI_SCALE_MIN, UI_SCALE_MAX)
 
 static func is_vsync_enabled() -> bool:
 	return _vsync_enabled

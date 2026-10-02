@@ -121,3 +121,16 @@ static func connect_refit(host: Control, on_refit: Callable) -> void:
 	var vp: Viewport = host.get_viewport()
 	if vp != null and not vp.size_changed.is_connected(on_refit):
 		vp.size_changed.connect(on_refit)
+
+## FULL_RECT 锚点 + 写死的左右缩进，会把「设计宽度」编码进场景：1920 宽下版心 1200px 是对的，
+## 但 UI Scale 放大后逻辑视口变小（200% → 960），同一组缩进会把内容列压到 240px 宽 → 炸版。
+## 下面两个函数按当前视口算出版心宽度 / 对应的 offset_right，1920 下与旧版完全一致：
+##   vw=1920, margin=48, max=1200 -> 宽度 1200, offset_right -672（旧值）
+##   vw=960,  margin=48, max=1200 -> 宽度  864, offset_right  -48
+static func content_width_for(viewport_width: float, margin: float, max_width: float, min_width: float = 320.0) -> float:
+	var vw: float = viewport_width if viewport_width > 1.0 else DESIGN.x
+	return clampf(vw - margin * 2.0, min_width, max_width)
+
+static func content_offset_right(viewport_width: float, margin: float, max_width: float, min_width: float = 320.0) -> float:
+	var vw: float = viewport_width if viewport_width > 1.0 else DESIGN.x
+	return content_width_for(vw, margin, max_width, min_width) - vw + margin

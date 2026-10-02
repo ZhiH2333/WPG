@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://ui/winner_page.gd" id="1_winner"]
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://ui/hp_chart.gd" id="3_hpchart"]
 
 [node name="WinnerPage" type="CanvasLayer"]
 layer = 22
@@ -28,16 +29,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.5)
 
-[node name="Sheet" type="Control" parent="Root"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Column" type="VBoxContainer" parent="Root/Sheet"]
+[node name="Sheet" type="ScrollContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -48,6 +40,11 @@ offset_right = -672.0
 offset_bottom = -48.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
+
+[node name="Column" type="VBoxContainer" parent="Root/Sheet"]
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 24
 
@@ -186,8 +183,15 @@ text = "cleared  +5000"
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "loop  0    kills  0    gold  0    time  0.0s    owned  -"
+text = "loop  0    kills  0    gold  0    time  0.0s"
 autowrap_mode = 2
+
+[node name="HpChart" type="Control" parent="Root/Sheet/Column/Body/Left"]
+custom_minimum_size = Vector2(320, 120)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+script = ExtResource("3_hpchart")
 
 [node name="Right" type="VBoxContainer" parent="Root/Sheet/Column/Body"]
 custom_minimum_size = Vector2(420, 0)

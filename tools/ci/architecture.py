@@ -163,6 +163,45 @@ def _mobile_input_guards() -> list:
     return failures
 
 
+def _ui_display_guards() -> list:
+    """硬规定：任何界面都不显示「本局获得的技能 / 物品 / 状态」清单。
+
+    结算页（winner_page）与 profile 曾经把本局获得的升级 id 原样列出来（以及 shop 的
+    owned 列表），已全部移除。这条约束用 API 级别把关，避免换个写法又加回来：
+    UI 层不得读取本局获得的升级清单。
+    """
+    failures = []
+    forbidden = (
+        "get_owned_upgrade_ids",
+        "get_owned_count",
+    )
+    for path in sorted(ROOT.rglob("*.gd")):
+        rel = path.relative_to(ROOT).as_posix()
+        if rel.startswith(".godot/") or rel.startswith("tools/"):
+            continue
+        if not rel.startswith("ui/"):
+            continue
+        code = _strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+        for marker in forbidden:
+            if marker in code:
+                failures.append(
+                    "%s：UI 不得读取本局获得的升级清单（%s）——任何界面都不显示它" % (rel, marker)
+                )
+    # 结算页与 profile 里「owned」字样本身也必须消失，防止换个 API 再展示一次。
+    for rel in (
+        "ui/winner_page.gd",
+        "ui/winner_page.tscn",
+        "ui/profile_overlay.gd",
+        "ui/profile_overlay.tscn",
+        "ui/shop_offer.gd",
+        "ui/shop_offer.tscn",
+    ):
+        text = read(ROOT / rel)
+        if "owned" in text.lower():
+            failures.append("%s 不得再出现 owned 展示（硬规定：不显示本局获得的物品）" % rel)
+    return failures
+
+
 def main() -> int:
     failures = []
     project = read(PROJECT_GODOT)
@@ -205,6 +244,7 @@ def main() -> int:
             failures.append("%s 引入了禁止的网络类名" % rel)
     failures.extend(_lobby_guards())
     failures.extend(_mobile_input_guards())
+    failures.extend(_ui_display_guards())
     presets = read(EXPORT_PRESETS)
     for key, name in PRESETS.items():
         if ('name="%s"' % name) not in presets:

@@ -27,16 +27,7 @@ grow_vertical = 2
 mouse_filter = 0
 color = Color(0.07, 0.06, 0.05, 0.42)
 
-[node name="Sheet" type="Control" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Column" type="VBoxContainer" parent="Sheet"]
+[node name="Sheet" type="ScrollContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -47,6 +38,11 @@ offset_right = -672.0
 offset_bottom = -36.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
+
+[node name="Column" type="VBoxContainer" parent="Sheet"]
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 16
 
@@ -298,12 +294,6 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 text = "Last gold  0"
-
-[node name="OwnedHint" type="Label" parent="Sheet/Column/Facts"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"RunSummaryHint"
-text = "last owned  -"
 
 [node name="RecordsSection" type="Label" parent="Sheet/Column"]
 layout_mode = 2

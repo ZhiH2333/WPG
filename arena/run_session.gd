@@ -23,7 +23,8 @@ const SHOP_COSTS: Dictionary = {
 	"quick_peck": 30,
 }
 const SHOP_COST_FALLBACK: int = 30
-const COMPANION_CAP: int = 10
+## 一局最多这么多只「活着」的跟班。尸体留在 _companions 里但不占额度。
+const COMPANION_CAP: int = 30
 
 var _player: Player
 var _players: Array[Player] = []
@@ -223,6 +224,29 @@ func get_shop_cost(upgrade_id: StringName) -> int:
 		return SHOP_COST_FALLBACK
 	return int(SHOP_COSTS[key])
 
+## ---- 本局 HP 时间线（只服务结算页的 HP-时间图）----
+## 事件式采样：只有 HP 真的变化时才记一个点，长局也不会堆出上千个点。
+## 横轴 = 秒，纵轴 = hp/max_hp（0..1）。只在内存里，不落盘、不进网络。
+var _hp_timeline: PackedVector2Array = PackedVector2Array()
+var _hp_timeline_last_hp: int = -1
+
+## 由 gameplay 每帧喂当前 HP。HP 没变直接返回，不做任何分配。
+func record_hp(hp: int, max_hp: int) -> void:
+	if hp == _hp_timeline_last_hp:
+		return
+	_hp_timeline_last_hp = hp
+	var ratio: float = 1.0
+	if max_hp > 0:
+		ratio = clampf(float(hp) / float(max_hp), 0.0, 1.0)
+	_hp_timeline.append(Vector2(maxf(_elapsed_sec, 0.0), ratio))
+
+func get_hp_timeline() -> PackedVector2Array:
+	return _hp_timeline.duplicate()
+
+func clear_hp_timeline() -> void:
+	_hp_timeline = PackedVector2Array()
+	_hp_timeline_last_hp = -1
+
 func restart() -> void:
 	_outcome = Outcome.PLAYING
 	_elapsed_sec = 0.0
@@ -234,6 +258,7 @@ func restart() -> void:
 	_kill_count = 0
 	_gold = 0
 	_living_companion_count = 0
+	clear_hp_timeline()
 	_rng.randomize()
 
 func tick(delta: float) -> void:

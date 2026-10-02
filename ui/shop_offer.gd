@@ -68,7 +68,6 @@ var _last_bought_identity: StringName = &""
 @onready var _xp_bar: ProgressBar = $Root/Center/Panel/Column/Content/Body/Status/XpRow/XpBar
 @onready var _xp_label: Label = $Root/Center/Panel/Column/Content/Body/Status/XpRow/XpLabel
 @onready var _companion_label: Label = $Root/Center/Panel/Column/Content/Body/Status/CompanionLabel
-@onready var _owned_label: Label = $Root/Center/Panel/Column/Content/Body/Status/OwnedLabel
 @onready var _shelf_scroll: ScrollContainer = $Root/Center/Panel/Column/Content/Body/Scroll
 @onready var _grid: GridContainer = $Root/Center/Panel/Column/Content/Body/Scroll/Grid
 @onready var _gun_row: HBoxContainer = $Root/Center/Panel/Column/Content/Body/GunRow
@@ -394,7 +393,6 @@ func _refresh_status_text() -> void:
 	_xp_bar.max_value = float(need)
 	_xp_label.text = "Lv.%d  %d/%d" % [level, xp, need]
 	_companion_label.text = _format_companion()
-	_owned_label.text = _format_owned()
 
 func _snap_vitals() -> void:
 	var hp: int = _read_hp()
@@ -464,26 +462,6 @@ func _format_companion() -> String:
 			continue
 		alive += 1
 	return "Gunner %d/%d" % [alive, RunSession.COMPANION_CAP]
-
-func _format_owned() -> String:
-	if _session == null:
-		return "none"
-	var titles: PackedStringArray = PackedStringArray()
-	var seen: Dictionary = {}
-	var catalog: UpgradeCatalog = _session.get_catalog()
-	for upgrade_id: String in _session.get_owned_upgrade_ids():
-		var title: String = upgrade_id
-		if catalog != null:
-			var def: UpgradeDef = catalog.get_by_id(StringName(upgrade_id))
-			if def != null:
-				title = def.title
-		if seen.has(title):
-			continue
-		seen[title] = true
-		titles.append(title)
-	if titles.is_empty():
-		return "none"
-	return ", ".join(titles)
 
 func _sync_shelf(is_present: bool) -> void:
 	var gold: int = _read_gold()

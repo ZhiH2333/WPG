@@ -1573,6 +1573,69 @@ Battle Start 占用 2～5（与 Co-op 同一范围）。房间卡 Battle 满员�
 
 **当时不做：** 主动技能 / 技能栏 / 冷却 UI、虚拟摇杆、P2P、断线重连（102）、Host 迁移、房间浏览器再改、改协议 5、改 `SNAPSHOT_VERSION`、改 `rpc_begin` 签名、改 `SEAT_SPAWNS`、改战斗数字、把 5 人 HUD 改成分屏、把 FFA 做成积分制、给 Co-op 开友军伤害、把掉线改成重连、改 Multirun 默认窗口数、新 PNG、新 wav、新物理层、新 InputMap action、Autoload。gated 1～4、6～9 明确没修。
 
+## 平衡调整（已完成）：跟班上限 10 → 30
+
+一局最多 **30** 只活着的 Gunner。
+
+- **唯一来源**：`RunSession.COMPANION_CAP = 30`（`arena/run_session.gd`）。沙盒的 `_spawn_companion` / F8 `_debug_cycle_companion`、货架 `draft_shop_cards` / `list_shop_catalog` 的 Gunner 闸门、`set_living_companion_count` 的钳制、`ShopOffer` 的 `Gunner %d/%d` 与 debug overlay 全部只读这一个常量，没有第二处硬编码 10。
+- **语义不变**：额度只数「活着」的跟班，尸体仍留在 `_companions` 里不占额度；`can_buy_companion()` 在 29 只时为真、30 只时为假。
+- **不改的**：`COMPANION_FIRE_SEAT_BASE = 10`（那是 fire-fx 座位基址，不是数量上限，`u8` 够用）、`SNAPSHOT_VERSION` 仍 3、协议仍 5、Gunner 的 140/520/70 与四把枪数字、出生扇形 `_pick_companion_spawn` 的公式（槽位越大越靠后展开，撞墙仍有 fallback）。
+- **LAN 快照**：companions 块仍是 `u8 count`，上限从「0～10」变成「0～30」，30 条 × 26 字节不接近 MTU。
+- **已知残留**（本次没动）：`_write_companion_snapshot` 取 `mini(_companions.size(), COMPANION_CAP)`，而 `_companions` 里尸体不清，所以「活 + 尸」总数超过上限时，排在数组尾部的跟班不会被同步给 Guest。这个截断在旧的 10 上限下同样存在，只是 30 上限下单局更容易撞到；要真修得改 `_write_companion_snapshot` / `_align_companion_puppets` 的 count 语义，属独立一刀。
+- **验收证据**：`tests/companion_cap_test.gd` → `COMPANION_CAP_OK`（常量 = 30 / 计数钳制 / 29↔30 买闸边界 / 货架跟班卡在满员时消失）；`tools/ci` 的 validate（全仓脚本 parse 零错误）+ architecture + smoke 全过，automated tests 9 → 10。
+
+**当时不做：** 改 `COMPANION_FIRE_SEAT_BASE`、改 `SNAPSHOT_VERSION`（仍 3）、改协议（仍 5）、改 `_write_companion_snapshot` 的截断语义、改 Gunner 140/520/70、改出生扇形公式、给跟班加 HUD 血条、主动技能、虚拟摇杆 / 触屏。
+
+## 网页版修复（已完成）：藏 Quit + 设置菜单打不开
+
+### 1. 网页版藏掉主菜单 Quit
+
+网页版 `get_tree().quit()` 退不出标签页，按了没反应，所以整条按钮不出现。
+
+- `ui/main_menu.gd`：`_quit_hidden_by_platform()` = `OS.has_feature("web")`。`_ready()` 里判定为真就把 `_quit_button.visible = false`、`focus_mode = FOCUS_NONE`，并且**不接** `pressed`。
+- 焦点链跟着兜底：`_secondary_focus()` 在 Quit 隐藏时返回 `null`，`_wire_home_focus()` 不再把 `focus_neighbor_*` 指到隐藏控件（没有下层可去时指向自己）。
+- **暂停叠层里的 Quit 不动**：那是「退回主菜单」（`quit_pressed` 信号），网页版同样有意义。全仓只有 `ui/main_menu.gd:396` 一处真的调 `get_tree().quit()`。
+
+### 2. 设置菜单在导出版里打不开（根因不在 web）
+
+现象：编辑器里点 SETTINGS 正常，**任何导出包**（web / 桌面都一样）点 SETTINGS 毫无反应，控制台一串
+`ERROR: Node not found: "%VolumeSlider" (relative to "/root/MainMenu/SettingsOverlay")`，接着
+`SCRIPT ERROR: Cannot call method 'clear' on a null value.`。
+
+根因是上游 Godot 的已知 bug：[godotengine/godot#123208](https://github.com/godotengine/godot/issues/123208)（4.6.2 仍然复现，issue 仍 open）。
+`PackedScene.pack()` 会**静默丢掉**「放在**非 editable** 实例内部、比实例根更深」的外来节点；导出把 `.tscn` 转成二进制 `.scn` 走的正是 pack()，所以这些节点在包里直接不存在。编辑器直接从文本 `.tscn` 加载，所以当场看不出问题。
+
+- 中招的是 `ui/settings_overlay.tscn`：四个 `settings_section.tscn` 实例的 `Body/*` 下面挂了 30 个控件（三个音量滑杆、全屏/垂直同步勾选框、渲染缩放/UI 缩放滑杆、MSAA、Credits/Delete/Status…）。导出后 61 个节点只剩 32 个。
+- 后果：`SettingsOverlay._ready()` 在 `_msaa_option.clear()` 当场中断 → 后面的 `_build_bind_rows()` 与所有信号连接全没跑；`open()` 再撞 null 滑杆，抽屉根本不出现在屏幕上。
+- **修法**：给四个实例加 `[editable path="..."]`（`ui/settings_overlay.tscn` 末尾），深节点就不再被 pack() 丢掉。实测 `pack()` 后节点数 32 → 77，导出包里 `%VolumeSlider` 等全部解析得到。
+- **同类坑防线**：`tests/scene_pack_loss_test.gd` 不导出，只在本地复刻同一条路径——对全仓每个 `.tscn` 做 `instantiate()` → `PackedScene.pack()` → 对比节点路径集合，少一个就 FAIL。任何场景再往非 editable 实例里塞节点，CI 当场红。
+- **验收证据**：
+  - `tests/scene_pack_loss_test.gd` → `SCENE_PACK_OK`（41 个场景零丢失）。故意删掉 `[editable]` 四行会 FAIL 并点名 30 个节点。
+  - `tests/settings_overlay_test.gd` → `SETTINGS_OVERLAY_OK`：28 个 `%` 成员全部非 null（`_ready()` 跑到底）、`open()/close()` 真的翻转 `is_open()` 与 `visible`、桌面 Quit 仍可见。
+  - 导出包实跑：`Godot --headless --main-pack build/web/raw/index.pck` 不再有 `Node not found` / `SCRIPT ERROR`（修前 13 + 1 条）。
+  - 真浏览器（headless Chrome + CDP，1280×577 画布）：主菜单右下角无 Quit；点 SETTINGS 抽屉弹出，Master/Music/SFX 滑杆与 Display/Controls 全部在位。把 `_quit_hidden_by_platform()` 临时改成 `false` 再导出做 A/B，同一位置就出现 `Quit` 文字——藏 Quit 的确生效，不是布局把它挤出屏幕。
+
+**当时不做：** 不改暂停叠层的 Quit、不改 `_on_quit_pressed` 的 `get_tree().quit()`（桌面仍要能退）、不关「Convert Text Resources to Binary」导出选项（那是掩盖 bug）、不改 `settings_section.tscn` 结构与 `settings_overlay.gd` 的 `%Name` 用法、不给设置项加新功能。
+
+## 主菜单响应式（已完成）：UI Scale 200% 下 Home 与顶栏偏移
+
+200% 下 1920×1080 的逻辑视口只剩 **960×540**，主菜单整页错位：`CONTINUE` 被切成 `NUE`（整列往左跑），顶栏左边 `HOME` 被切、右端时钟被切。
+
+- **根因（Home）**：`Home` 是 FULL_RECT 的 MarginContainer，场景里写死 `margin_right = 672`。这个 672 编码的是「1920 下版心 1200px」：`1920 - 48 - 672 = 1200`。到 960 宽时容器最小宽度变成 `48 + 内容 508 + 672 = 1228 > 960`，装不下就按 `grow_horizontal = 2`（居中）溢出 —— 整列被推到 x = −134，左边被自身视口切掉。
+- **根因（顶栏）**：`TopBar/Row` 最小宽度 1084（六个钮 894 + 分隔 28 + 时钟 162）> 960，同样居中溢出，两头各切一截。
+- **修法**（`ui/main_menu.gd`，场景不动、初始值仍由运行时接管）：
+  - 新增 `CONTENT_MARGIN = 48` / `CONTENT_MAX_WIDTH = 1200`，`sync_content_width_for(viewport_width)` 把 `margin_right` 设成 `max(48, -UiFit.content_offset_right(vw, 48, 1200))`：**1920 → 672（旧设计一字不变），960 → 48**。`_ready()` 里先算一次，再用 `UiFit.connect_refit` 挂视口 `size_changed`。这跟 `play_page.gd` 的 `sync_content_width_for` 是同一套路，禁止再往场景里写死设计宽度。
+  - `sync_top_bar_for(viewport_width)`：`_measure_top_bar()` 量两档最小宽度 —— 带时钟 1084、只留导航 918。整排放不下就**先摘右端时钟**（它只报时、不是导航），换导航按钮一个都不被切。名字长度会改 PROFILE 宽度，所以 `refresh_profile_label()` 里重新量一次。
+- **实测**：`vw=1920` 版心 1200、时钟在；`vw=1280` 版心 1184、时钟在；`vw=960` 版心 **864**、`Home` 最小宽度 **604 ≤ 960**、顶栏最小 **918 ≤ 960**、时钟隐藏。
+- **当时的边界**（明确不做）：再窄下去顶栏还会裁（没有 icon-only 紧凑档），`vw < 604` 时 Home 还会裁（`Body` 最小 508 来自 BEST LOOP / LAST RUN 那行）。竖屏手机 540 是独立一刀。
+- **验收证据**：
+  - `tests/main_menu_fit_test.gd` → `MAIN_MENU_FIT_OK`：1920 下 `margin_right` 仍是 672、版心仍 1200px、时钟在；960 下 `margin_right` 48、`Home` 最小 ≤ 960、版心 ≥ Body 最小、Quit 不越界；时钟可见性 = 整排放得下；长名字后顶栏最小宽度被重新量到。把这套逻辑临时改回旧行为会 FAIL 5 条，报的正是 `margin_right 672 / Home 最小 1228 / 版心 240 < 508 / 顶栏 1084`。
+  - 真窗口渲染逐像素看：**1920×1080 @100%** 版心 48..1248 = 1200px、时钟在（原设计不变）；**@200%（960×540）** 无偏移、时钟隐藏、六个导航项全在。
+  - 网页版真浏览器（headless Chrome + CDP）把 `settings.cfg` 的 `ui_scale` 写成 2.0 后重载：主菜单不再偏移，顶栏（含时钟）完整。
+  - `tools/ci` 全过，automated tests 14 → 15。
+
+**当时不做：** 不做 icon-only 紧凑顶栏、不动 `TopBar` 各按钮的最小宽度与主题字号、不改 `Home` 的 `grow_horizontal`（窄视口裁哪一端维持现状）、不隐藏 BEST LOOP / LAST RUN 那行、不改 `play_page` 与各叠层（那是并行的 UI Scale 那一刀）、不改 `UiFit` 既有函数签名。
+
 ## Phase 1 收口（已完成）：背景压暗 + 粗体 + 细灰描边
 
 Phase 1 的 IA / 动效 / Play 页已落地，但 Home 与 Play 的 Label **把主题描边清零**（`main_menu.tscn` 13 处、`play_page.tscn` 7 处 `outline_size = 0`），14～15px 的次级文字直接压在 `images/mainmenu.png` 上。全屏实拍（1920×1080 窗口、`ui_scale=1.3`、无叠层、`BlurLayer` 未生效）逐元素实测：11 个元素里 6 个低于 WCAG AA，最差 `Play with friends` **1.05:1**、`Loop 20` 1.26:1、`BEST` 2.12:1、`19:11` 1.78:1。同一页同一令牌的 CR 从 1.05 到 16.9 —— 对比度完全由底图决定，不是设计决定。

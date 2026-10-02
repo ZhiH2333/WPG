@@ -12,8 +12,15 @@ const RAIL_HEIGHT: float = 88.0
 var _open: bool = false
 var _anim_tween: Tween
 
+## 版心参数（与 winner_page / profile_overlay 一致）：1920 宽下内容 1200px。
+## 原来写死的 offset_right = -672 是按 1920 算的；UI Scale 放大后逻辑视口变窄，
+## 同一组缩进会把内容列压扁，右侧控件被挤出画面。
+const CONTENT_MARGIN: float = 48.0
+const CONTENT_MAX_WIDTH: float = 1200.0
+
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _sheet: Control = $Sheet
+@onready var _column: VBoxContainer = $Sheet/Column
 @onready var _continue_button: Button = $Sheet/Column/Rail/Continue
 @onready var _solo_button: Button = $Sheet/Column/Rail/Solo
 @onready var _multi_button: Button = $Sheet/Column/Rail/Multi
@@ -33,6 +40,9 @@ func _ready() -> void:
 	_solo_button.pressed.connect(_on_solo_pressed)
 	_multi_button.pressed.connect(_on_multi_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
+	## 视口变化（窗口缩放 / UI Scale 改变）时重算版心宽度。
+	_column.get_viewport().size_changed.connect(_sync_content_width)
+	_sync_content_width()
 	for button: Button in [_continue_button, _solo_button, _multi_button, _back_button]:
 		_wire_hover(button)
 		UiAnim.wire_row_feedback(self, button, UiType.INK)
@@ -152,3 +162,16 @@ func _play_stream(player: AudioStreamPlayer) -> void:
 	if player == null or player.stream == null:
 		return
 	player.play()
+
+## 按当前视口重算版心宽度，避免窄视口把内容列压扁。
+func _sync_content_width() -> void:
+	if _column == null:
+		return
+	sync_content_width_for(_column.get_viewport_rect().size.x)
+
+## 参数化版本：测试要能强制 960（UI Scale 200%）这一档，而不是碰运气。
+func sync_content_width_for(viewport_width: float) -> void:
+	if _column == null:
+		return
+	_column.offset_left = CONTENT_MARGIN
+	_column.offset_right = UiFit.content_offset_right(viewport_width, CONTENT_MARGIN, CONTENT_MAX_WIDTH)

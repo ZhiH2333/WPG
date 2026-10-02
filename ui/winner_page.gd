@@ -29,6 +29,9 @@ var _final_kills: int = 0
 var _final_gold: int = 0
 var _final_time_sec: float = 0.0
 var _summary_text: String = ""
+## 版心参数：1920 宽下内容 1200px；UI Scale 放大导致逻辑视口变窄时按视口收窄（见 _sync_content_width）。
+const CONTENT_MARGIN: float = 48.0
+const CONTENT_MAX_WIDTH: float = 1200.0
 
 @onready var _root: Control = $Root
 @onready var _dimmer: ColorRect = $Root/Dimmer
@@ -48,6 +51,7 @@ var _summary_text: String = ""
 @onready var _time_value: Label = $Root/Sheet/Column/Body/Left/Breakdown/TimeRow/Value
 @onready var _cleared_bonus: Label = $Root/Sheet/Column/Body/Left/ClearedBonus
 @onready var _summary: Label = $Root/Sheet/Column/Body/Left/Summary
+@onready var _hp_chart: HpChart = $Root/Sheet/Column/Body/Left/HpChart
 @onready var _hist_list: VBoxContainer = $Root/Sheet/Column/Body/Right/Scroll/HistList
 @onready var _hist_empty: Label = $Root/Sheet/Column/Body/Right/HistEmpty
 @onready var _rank_label: Label = $Root/Sheet/Column/Body/Right/Rank
@@ -72,6 +76,25 @@ func _ready() -> void:
 	_menu_button.focus_entered.connect(_play_hover)
 	_build_hist_rows()
 	_set_interactive(false)
+	## 视口变化（窗口缩放 / UI Scale 改变）时重算版心宽度，200% 下不会把内容压扁。
+	_sheet.get_viewport().size_changed.connect(_sync_content_width)
+	_sync_content_width()
+
+## 200% UI Scale 下逻辑视口只有 960 宽。原来写死的 offset_right = -672 是按 1920 算的，
+## 在 960 下会把内容列压到 240px（内容需要 788px）→ 裁切。这里按视口重算。
+func _sync_content_width() -> void:
+	if _sheet == null:
+		return
+	sync_content_width_for(_sheet.get_viewport_rect().size.x)
+
+## 按给定逻辑视口宽度重算版心。Sheet 现在是 ScrollContainer，也是宽度承载者
+## （Column 交给容器排版，宽度跟着 Sheet 走）。参数化是为了让测试能强制 960 这一档，
+## 而不是只能在 headless 默认视口下碰运气。
+func sync_content_width_for(viewport_width: float) -> void:
+	if _sheet == null:
+		return
+	_sheet.offset_left = CONTENT_MARGIN
+	_sheet.offset_right = UiFit.content_offset_right(viewport_width, CONTENT_MARGIN, CONTENT_MAX_WIDTH)
 
 func is_open() -> bool:
 	return _open
@@ -105,7 +128,12 @@ func present(record_id: String, session: RunSession, previous_best: int, winner_
 	else:
 		_this_score = GameRecords.compute_score(loop_index, kills, gold, time_sec, outcome)
 	_this_timestamp = int(Time.get_unix_time_from_system())
-	_fill_left(record, session, outcome, loop_index, kills, gold, time_sec, previous_best, lan)
+	_fill_left(record, outcome, loop_index, kills, gold, time_sec, previous_best, lan)
+	## HP-时间图（横轴时间、纵轴血量）。数据是本局事件式采样的点，只读、不落盘。
+	## Battle 没有本局 HP 曲线，直接藏掉。
+	_hp_chart.visible = not battle
+	if not battle:
+		_hp_chart.set_series(session.get_hp_timeline(), time_sec)
 	if battle:
 		_apply_battle_result(winner_seat, local_seat)
 	if lan:
@@ -178,7 +206,7 @@ func _emit_menu() -> void:
 	_play_back()
 	menu_pressed.emit()
 
-func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, previous_best: int, lan: bool = false) -> void:
+func _fill_left(record: GameRecord, outcome: String, loop_index: int, kills: int, gold: int, time_sec: float, previous_best: int, lan: bool = false) -> void:
 	_is_lan = lan
 	_previous_best = previous_best
 	_final_loop = loop_index
@@ -200,12 +228,12 @@ func _fill_left(record: GameRecord, session: RunSession, outcome: String, loop_i
 		_record_name.text = "-"
 	_cleared_bonus.visible = outcome == "cleared"
 	_cleared_bonus.text = "cleared  +5000"
-	_summary_text = "loop  %d    kills  %d    gold  %d    time  %.1fs    owned  %s" % [
+	## 只报这一局的计分事实。硬规定：任何界面都不显示本局获得的升级 / 物品 / 状态清单。
+	_summary_text = "loop  %d    kills  %d    gold  %d    time  %.1fs" % [
 		loop_index,
 		kills,
 		gold,
 		time_sec,
-		_format_owned(session),
 	]
 	_summary.text = _summary_text
 	_write_break_texts(0, 0, 0, 0)
@@ -410,12 +438,6 @@ func _format_outcome(value: String) -> String:
 	if value == "dead":
 		return "DEAD"
 	return "QUIT"
-
-func _format_owned(session: RunSession) -> String:
-	var ids: PackedStringArray = session.get_owned_upgrade_ids()
-	if ids.is_empty():
-		return "-"
-	return ",".join(ids)
 
 func _build_hist_rows() -> void:
 	_hist_rows.clear()

@@ -126,6 +126,7 @@ func _process(delta: float) -> void:
 	_sync_touch_weapon_ui()
 	_sync_touch_ability_ui()
 	_sync_touch_hud_reserve()
+	_record_hp_timeline()
 	if _pause_overlay.is_open() and not _is_lan():
 		return
 	if _is_guest():
@@ -771,6 +772,16 @@ func _sync_touch_weapon_ui() -> void:
 	if host == null:
 		return
 	_touch_controls.set_selected_weapon(host.get_current_index())
+
+## 本局 HP 时间线（结算页的 HP-时间图用）。RunSession 内部只在 HP 变化时才记点，
+## 所以每帧调用也不会产生分配。Guest 也记自己那份：结算页是本地的。
+func _record_hp_timeline() -> void:
+	if _local_player == null or _run_session == null:
+		return
+	var health: PlayerHealth = _local_player.get_player_health()
+	if health == null:
+		return
+	_run_session.record_hp(health.get_hp(), health.get_max_hp())
 
 ## Touch A0/A1 显示 READY / 冷却秒数 / ACT / OFF。
 ## UI 只读 AbilityController.get_state() + get_remaining_cooldown()，不自管一份技能状态。

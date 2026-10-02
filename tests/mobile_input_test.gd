@@ -40,6 +40,7 @@ func _run_all() -> void:
 	_case_touch_aim_release_centers_reticle()
 	_case_touch_aim_release_stops_fire()
 	_case_touch_aim_reticle_smoothing()
+	_case_desktop_aim_reticle_no_smoothing()
 
 	_case_touch_input_left_stick_to_move_vector()
 	_case_touch_input_aim_pad_aim_and_fire()
@@ -413,6 +414,24 @@ func _case_touch_aim_reticle_smoothing() -> void:
 	for i: int in 60:
 		reticle._follow(0.016)
 	_expect(reticle.global_position.is_equal_approx(target), "足够时间后收敛到目标")
+	reticle.queue_free()
+	host.queue_free()
+
+## 桌面回归：Touch 未激活时准星必须当帧钉住鼠标世界坐标，绝不做平滑（旧版手感）。
+## 平滑只属于 Touch，电脑端加平滑会让准星落后鼠标，手感发黏。
+func _case_desktop_aim_reticle_no_smoothing() -> void:
+	var host: Node2D = _make_aim_host(Vector2(0, 0))
+	var pi: PlayerInput = _host_input(host)
+	pi.set_touch_active(false)
+	var reticle: AimReticle = AimReticle.new()
+	root.add_child(reticle)
+	reticle.bind_player_input(pi)
+	pi.mouse_world_position = Vector2(640, 360)
+	reticle._follow(0.016)
+	_expect(reticle.global_position.is_equal_approx(Vector2(640, 360)), "桌面准星当帧钉鼠标，无平滑")
+	pi.mouse_world_position = Vector2(-120, 75)
+	reticle._follow(0.001)
+	_expect(reticle.global_position.is_equal_approx(Vector2(-120, 75)), "极短 delta 也当帧到位，不落后")
 	reticle.queue_free()
 	host.queue_free()
 

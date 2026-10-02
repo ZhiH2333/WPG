@@ -11,7 +11,6 @@ static var _last_loop: int = 0
 static var _last_kills: int = 0
 static var _last_gold: int = 0
 static var _last_time_sec: float = 0.0
-static var _last_owned: String = ""
 
 static func load_from_disk() -> void:
 	_best_loop = 0
@@ -21,7 +20,6 @@ static func load_from_disk() -> void:
 	_last_kills = 0
 	_last_gold = 0
 	_last_time_sec = 0.0
-	_last_owned = ""
 	if not FileAccess.file_exists(PATH):
 		return
 	var cfg: ConfigFile = ConfigFile.new()
@@ -34,7 +32,6 @@ static func load_from_disk() -> void:
 	_last_kills = int(cfg.get_value("last", "kills", 0))
 	_last_gold = int(cfg.get_value("last", "gold", 0))
 	_last_time_sec = float(cfg.get_value("last", "time_sec", 0.0))
-	_last_owned = str(cfg.get_value("last", "owned", ""))
 
 static func save_to_disk() -> void:
 	var cfg: ConfigFile = ConfigFile.new()
@@ -45,7 +42,6 @@ static func save_to_disk() -> void:
 	cfg.set_value("last", "kills", _last_kills)
 	cfg.set_value("last", "gold", _last_gold)
 	cfg.set_value("last", "time_sec", _last_time_sec)
-	cfg.set_value("last", "owned", _last_owned)
 	cfg.save(PATH)
 
 static func record_run(session: RunSession) -> void:
@@ -61,11 +57,7 @@ static func record_run(session: RunSession) -> void:
 	_last_kills = kills
 	_last_gold = session.get_gold()
 	_last_time_sec = session.get_elapsed_sec()
-	var ids: PackedStringArray = session.get_owned_upgrade_ids()
-	if ids.is_empty():
-		_last_owned = ""
-	else:
-		_last_owned = ",".join(ids)
+	## 故意不记录本局获得的升级 / 物品清单：任何界面都不显示它（硬规定）。
 	save_to_disk()
 
 static func get_best_loop() -> int:
@@ -88,6 +80,3 @@ static func get_last_gold() -> int:
 
 static func get_last_time_sec() -> float:
 	return _last_time_sec
-
-static func get_last_owned() -> String:
-	return _last_owned
