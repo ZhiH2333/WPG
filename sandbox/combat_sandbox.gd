@@ -124,6 +124,7 @@ func _process(delta: float) -> void:
 		return
 	_sync_touch_modal()
 	_sync_touch_weapon_ui()
+	_sync_touch_hud_reserve()
 	if _pause_overlay.is_open() and not _is_lan():
 		return
 	if _is_guest():
@@ -763,6 +764,12 @@ func _sync_touch_weapon_ui() -> void:
 	if host == null:
 		return
 	_touch_controls.set_selected_weapon(host.get_current_index())
+
+## 移动端 HUD 让位：Touch 开启时左下血条上移，避免被左摇杆遮挡。桌面传入 0。
+func _sync_touch_hud_reserve() -> void:
+	if _hud == null or _touch_controls == null:
+		return
+	_hud.set_bottom_reserve(_touch_controls.get_hud_bottom_reserve())
 
 func _sync_system_cursor() -> void:
 	if _upgrade_offer.is_open() or _shop_offer.is_open() or _pause_overlay.is_open() or _winner_page.is_open() or _run_session.is_player_dead() or _run_session.is_cleared() or _is_local_battle_spectator():

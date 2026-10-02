@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://touch_controls"]
+[gd_scene load_steps=9 format=3 uid="uid://touch_controls"]
 
 [ext_resource type="Script" path="res://ui/mobile/touch_controls.gd" id="1_touch_controls"]
 [ext_resource type="Script" path="res://ui/mobile/virtual_stick.gd" id="3_virtual_stick"]
@@ -7,6 +7,7 @@
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="6_theme"]
 [ext_resource type="Script" path="res://ui/mobile/safe_area_root.gd" id="7_safe_area"]
 [ext_resource type="Script" path="res://ui/mobile/touch_aim_pad.gd" id="8_touch_aim_pad"]
+[ext_resource type="Script" path="res://ui/mobile/mobile_hud_scaler.gd" id="9_mobile_hud_scaler"]
 
 [node name="TouchControls" type="CanvasLayer"]
 layer = 100
@@ -290,3 +291,17 @@ script = ExtResource("5_touch_input")
 move_stick_path = NodePath("../SafeAreaRoot/MoveStick")
 aim_stick_path = NodePath("../SafeAreaRoot/AimPad")
 dash_button_path = NodePath("../SafeAreaRoot/WeaponCluster/DashButton")
+
+[node name="MobileHUDScaler" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("9_mobile_hud_scaler")
+move_stick_path = NodePath("../SafeAreaRoot/MoveStick")
+aim_pad_path = NodePath("../SafeAreaRoot/AimPad")
+weapon_cluster_path = NodePath("../SafeAreaRoot/WeaponCluster")
+system_cluster_path = NodePath("../SafeAreaRoot/SystemCluster")

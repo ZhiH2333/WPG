@@ -16,9 +16,13 @@ var _encounter: EncounterPhrases
 var _run_session: RunSession
 var _hp_is_low: bool = false
 var _is_battle: bool = false
+## Touch 开启时左摇杆占用的底部高度。左下块整体上移，避免被摇杆压住。
+## Desktop / Touch OFF 恒为 0，锚点与旧版完全一致。
+var _bottom_reserve: float = 0.0
 var _roster_pawns: Array[Player] = [] ## 非本地，已按 seat 升序，长度 0～4
 var _roster_seats: PackedInt32Array = PackedInt32Array()
 
+@onready var _bottom_left: VBoxContainer = $Root/BottomLeft
 @onready var _hp_bar: ProgressBar = $Root/BottomLeft/HpRow/HpBar
 @onready var _hp_label: Label = $Root/BottomLeft/HpRow/HpLabel
 @onready var _xp_bar: ProgressBar = $Root/BottomLeft/XpRow/XpBar
@@ -84,6 +88,21 @@ func set_battle(battle: bool) -> void:
 	if _gold_label != null:
 		_gold_label.visible = not battle
 	_sync_roster_visible()
+
+## Touch 开启时由 CombatSandbox 传入摇杆占用高度；0 表示桌面布局。
+## 只平移 BottomLeft 的 offset，不动锚点、不复制 HUD、不改条本身。
+func set_bottom_reserve(reserve: float) -> void:
+	var clamped: float = maxf(reserve, 0.0)
+	if is_equal_approx(clamped, _bottom_reserve):
+		return
+	_bottom_reserve = clamped
+	if _bottom_left == null:
+		return
+	_bottom_left.offset_top = -176.0 - _bottom_reserve
+	_bottom_left.offset_bottom = -32.0 - _bottom_reserve
+
+func get_bottom_reserve() -> float:
+	return _bottom_reserve
 
 func _process(delta: float) -> void:
 	_refresh_hp(delta)

@@ -20,6 +20,7 @@ signal pause_requested
 @onready var _touch_input: TouchInput = $Root/TouchInput
 @onready var _root: Control = $Root
 @onready var _safe_area: SafeAreaRoot = $Root/SafeAreaRoot
+@onready var _hud_scaler: MobileHUDScaler = $Root/MobileHUDScaler
 
 var _modal_blocked: bool = false
 var _active: bool = false
@@ -137,6 +138,18 @@ func bind_player_input(player_input: PlayerInput) -> void:
 
 func get_touch_input() -> TouchInput:
 	return _touch_input
+
+## Safe Area / 分辨率自适应后的 HUD 底部保留高度（逻辑像素）。
+## Touch 未启用时为 0，Hud 不需要让位。
+func get_hud_bottom_reserve() -> float:
+	if _hud_scaler == null or not _should_show():
+		return 0.0
+	return _hud_scaler.get_hud_bottom_reserve()
+
+func get_touch_scale() -> float:
+	if _hud_scaler == null:
+		return 1.0
+	return _hud_scaler.get_touch_scale()
 
 func get_move_stick() -> VirtualStick:
 	return _move_stick
