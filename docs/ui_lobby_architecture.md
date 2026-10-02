@@ -1,7 +1,7 @@
 # WPG UI / UX / Lobby Architecture Specification
 
-**版本:** 1.0-ui-lobby-arch
-**状态:** Phase 1（UI/UX 统一重构）、Phase 2（PlayerProfile）与 Phase 3（Lobby domain 离线 mock）**已落地**：§3.1–3.4 的 `PlayerProfile` / `LobbyPlayer` / `Room` 与 §4 的 `LobbyManager`（离线 mock，挂 MainMenu 下）已在 `ui/player_profile.gd`、`lobby/` 下实现；`LobbyNet` / `JoinInvite` / 门票握手 / P2P 预留仍未建立（旧编号 Phase 4 与 Phase 7–9 的目标）。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
+**版本:** 1.1-ui-lobby-arch
+**状态:** Phase 1（UI/UX 统一重构）、Phase 2（PlayerProfile）、Phase 3（Lobby domain 离线 mock）、表中 Phase 4/5（移动端输入抽象 + Vertical Slice）、Phase 7（`LobbyNet` + Ready 网络同步）与旧编号 Phase 5（Multiplayer UX：MULTIPLAYER 首页 / Lobby 核心页 / Starting / 断线提示）**已落地**（2026-10-02）：§3.1–3.6 的 `PlayerProfile` / `LobbyPlayer` / `Room` 在 `ui/player_profile.gd`、`lobby/` 下实现；§4 的 `LobbyManager` 是唯一状态机与命令入口，`LobbyNet` 独占 ENet 与大厅 `@rpc`，`ui/lan_overlay.gd` 已不再持有 `ENetMultiplayerPeer` / `@rpc`（由 `tools/ci/architecture.py` 守卫）。仍未建立：`JoinInvite` 的完整形态（当前只有 `LobbyNet.parse_address()` 这一刀的 LAN IPv4 解析）、门票握手、`ConnectionPath`、P2P 预留（表中原 Phase 8–9）。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
 **配套:** 根目录 [`roadmap.md`](../roadmap.md)（阶段 / 硬约束）· [`ui_screen_spec.md`](ui_screen_spec.md)（页面布局 / 动效 / 导航栈）
 
 布局、CTA 层级、wireframe、Back 栈以 `ui_screen_spec.md` 为准。本文件管领域模型、职责、网络与换场。冲突时 `roadmap.md` 最高。
@@ -25,8 +25,10 @@ MainMenu（F5 主场景；无 Autoload）
   +- ProfileOverlay         PROFILE Page（就地改昵称 / 头像 / 常用角色）
   +- RecordLeaderboardOverlay  RANKING Page
   +- SettingsOverlay        抽屉（叠在当前页上）
-  +- LanOverlay             MULTIPLAYER Page：PICK / HOST（含 5 行座位墙）/ JOIN
-  +- LobbyManager           Lobby domain 唯一入口（Node，不是 Autoload；只持有 Room + 假座位）
+  +- LanOverlay             MULTIPLAYER Page：HOME（Quick join / Create room / LAN rooms / Join invite / Recent）
+  |                          / PICK（借档）/ HOST（建房 + 隐私）/ JOIN（LAN 房间列表）/ INVITE / LOBBY（5 行座位 + Ready）
+  +- LobbyManager           Lobby domain 唯一入口（Node，不是 Autoload；命令入口 + Room 状态机）
+  +- LobbyNet               ENet 建连 / 关连 / 大厅 RPC / NetState（唯一允许碰 multiplayer 的大厅对象）
   +- CreditsOverlay / RoomNotice（战斗侧 Modal 的菜单内对应物）
   start_lan / selected_record
     -> GameLaunch 静态信封（take 一次）
@@ -74,9 +76,9 @@ UI 只做两件事：向 `LobbyManager` 发命令、读 `get_snapshot()` 画座�
 
 顶栏 PROFILE 项文案 = `PlayerProfile.display_name`（Phase 2 已落地，`MainMenu.refresh_profile_label()`）。
 
-仓库里**已有** `ui/player_profile.gd` + `user://profile.json`、`lobby/lobby_player.gd` / `lobby/room.gd` / `lobby/lobby_manager.gd`（MainMenu 下 `LobbyManager` 节点，离线 mock）、Ready / connection_state 枚举（`ready` 默认 true）。**没有** `LobbyNet`、`JoinInvite`、`ConnectionPath`、协议 6 的门票握手、邀请 URI / QR、Guest 侧 Room 同步、公网目录。
+仓库里**已有** `ui/player_profile.gd` + `user://profile.json`、`lobby/lobby_player.gd` / `lobby/room.gd` / `lobby/lobby_manager.gd`（MainMenu 下 `LobbyManager` 节点）、`lobby/lobby_net.gd`（`LobbyNet`：ENet 与大厅 `@rpc` 的唯一归属）、Ready / connection_state 枚举（Host 恒 `HOST`，Guest 进房默认 NOT READY）。**没有** `JoinInvite` 的完整形态（只有 `LobbyNet.parse_address()`）、`ConnectionPath`、协议 6 的门票握手、邀请 URI / QR 真连接、公网目录。
 
-`NetSession` **不建连**。`LanOverlay._create_server` / `create_client` 把 `ENetMultiplayerPeer` 挂到 `SceneTree.multiplayer`；进沙盒后 overlay 销毁，peer 还在。这是正确的换场合同，拆大厅时必须保留。
+`NetSession` **不建连**。`LobbyNet.host_listen()` / `client_connect()` 把 `ENetMultiplayerPeer` 挂到 `SceneTree.multiplayer`；进沙盒后大厅对象销毁，peer 还在。这是正确的换场合同，拆大厅时必须保留。
 
 协议现状：`NET_PROTOCOL = 5`，快照 v3，座位 1–5，满 5 才踢，号不前挪。LAN 不写档。Handshake = `rpc_hello(protocol)` 后 `rpc_hello_ok`，**peer_connected 立刻占座**。
 
@@ -334,29 +336,29 @@ wpg://join?v=6&t=TOKEN&lan=...&lp=17777&wan=...&wp=49152&ip6=...
 | `PlayerProfile` | `ui/player_profile.gd`，static `Object` | 本机身份（`user://profile.json`）；`get_public_profile()` 只发公开四字段 | 不负责 Network；不能当 Autoload；不写 progress / records / settings |
 | `LobbyPlayer` | `RefCounted`（大厅域对象） | 房间内实例：`profile_id / display_name / avatar_id / peer_id / seat / selected_character_id / ready / connection_state / is_host / path / rtt_ms` | 不落盘；不持有 ENet 对象 |
 | `Room` | `RefCounted`（大厅域对象） | 房间身份与状态：seats 1–5（Host = seat 1）、room lifecycle、模式 / 地图 / `loop_goal` 种子 | Room **不是** IP；不直接处理 socket |
-| `LobbyManager` | `Node`，挂在 MainMenu 下 | 大厅唯一状态机 + 唯一命令入口（create / join / leave / ready / start / invite）；决定状态 | **不是 Autoload**；不碰 ENet API |
-| `LobbyNet` | `Node`（Phase 7 建立） | 建连 / 关连 / 大厅 RPC：`host_listen` / `client_connect` / `disconnect` / `hello` / `roster` / `ready` / `start` / `invite` / connection state | 不决定 UI 状态；不承担战斗流量 |
-| `JoinInvite` | static（Phase 8 建立） | `create()` / `parse()` 连接信息（LAN IPv4 / IPv6 / WAN IPv4）；UI 只调这两个 | UI 禁止自己拼 IP / Port / Token |
+| `LobbyManager` | `Node`，挂在 MainMenu 下 | 大厅唯一状态机 + 唯一命令入口（create / join / leave / ready / start / invite / privacy）；决定状态 | **不是 Autoload**；不碰 ENet API |
+| `LobbyNet` | `Node`（已建立，2026-10-02） | 建连 / 关连 / 大厅 RPC：`host_listen` / `client_connect` / `close` / `hello` / `roster` / `ready` / `start` / connection state；`parse_address()` 是 JoinInvite 的第一刀 | 不决定 UI 状态；不承担战斗流量 |
+| `JoinInvite` | static（表中原 Phase 8 建立；当前只有 `LobbyNet.parse_address()`） | `create()` / `parse()` 连接信息（LAN IPv4 / IPv6 / WAN IPv4）；UI 只调这两个 | UI 禁止自己拼 IP / Port / Token |
 | `NetSession` | `arena/net_session.gd`（已存在） | 战斗内同步（输入 / 快照 v3 / 局内事件）；复用具 SceneTree 上的 peer | **职责不改**：不建连、不管大厅、不做发现 |
 | `LanBeacon` | `arena/lan_beacon.gd`（已存在） | 同网发现（17778 UDP）；进战斗停信标 | 不扫网段；不做游戏流量 |
 | `GameLaunch` | static 信封 | 换场一次性交接（`take` 一次） | 不进 Autoload；不长期持有大厅对象 |
 
 ### 4.1 硬规则（每条都有历史教训）
 
-1. UI 不直接操作 ENet：`ENetMultiplayerPeer.new()` 只允许出现在 `LobbyNet`。当前唯一越界点是 `ui/lan_overlay.gd`（Phase 7 迁走）。
+1. UI 不直接操作 ENet：`ENetMultiplayerPeer.new()` 与大厅 `@rpc` 只允许出现在 `LobbyNet`。`ui/lan_overlay.gd` 的越界点已于 2026-10-02 迁走，并由 `tools/ci/architecture.py` 固化守卫（`lan_overlay.gd` 不得出现 `ENetMultiplayerPeer` / `@rpc`；`lobby_manager.gd` 不得出现 `multiplayer.`）。
 2. Feature 阶段不允许两套 `multiplayer_peer` 同时工作；SceneTree 同一时间一个 peer。
-3. 协议因门票握手只 bump 一次 5 → 6；不要为显示名 / 房间名单独 bump。
-4. 席位 1–5 保持，Host = 1，号不前挪，满员才踢；`ready` 第一刀默认 `true`。
+3. 协议因门票握手只 bump 一次 5 → 6；不要为显示名 / 房间名单独 bump。**Ready 同步不走协议 bump**：它是独立可靠 RPC（`rpc_ready` / `rpc_apply_ready`），roster 包格式逐字节不变。
+4. 席位 1–5 保持，Host = 1，号不前挪，满员才踢。`ready` 是状态语义不是裸 bool：Host 恒显示 `HOST`（不参与 Start 判定），Guest 进房默认 **NOT READY**（握手完成必须自己按 READY）；Guest 改角色、Host 改 Mode/Arena/Goal 都会让旧的 READY 失效退回 WAITING；Starting 期间冻结 Ready / 角色 / 房间规则。
 5. LAN 不写档；Host 借档只把种子写进 `Room`，不广播 `records.json`，`progress.cfg` 同理。
 6. 战斗掉线沿用现有 `peer_lost`；1.0 不做重连与 Host 迁移。
 7. 无 Autoload：`LobbyManager` 是 MainMenu 子节点；大厅对象随主菜单场景销毁，进沙盒后只剩 `GameLaunch` 快照。
 8. 每一刀都必须能 F5 进现有 Solo；拆大厅中途若不能开房，这一刀不算完成。
 
-## 5. 换场与连接信息（Phase 3 / 7 / 8 的目标态）
+## 5. 换场与连接信息（Phase 3 / 7 已落地；表中原 Phase 8 待做）
 
-- 离线 mock（Phase 3）：`LobbyManager` 自己维护 `Room` + 假 `LobbyPlayer` 进出，`Start` 直接写 `GameLaunch`，可不 bind 17777。
-- 接网（Phase 7）：`LobbyManager` 发命令 → `LobbyNet` 执行 ENet 与大厅 RPC；pending peer 不进 `Room.players`，认证失败 disconnect 且 occupied 不变。
-- WAN / P2P 预留（Phase 8）：`JoinInvite.create()` / `parse()` 是 UI 的唯一入口；`ConnectionPath` 枚举 `LAN_IPV4 / IPV6 / WAN_IPV4`；协议 bump 5 → 6 与门票握手同一天落地。
-- P2P（Phase 9）：Host / Guest 各自与 rendezvous 交换连接信息后走 Direct UDP，rendezvous 不承担游戏流量；必须定义连接超时、打洞超时、直连失败与手动连接文案，且**不承诺**所有 NAT 都能直连。
+- 离线 mock（Phase 3，已落地）：`LobbyManager` 自己维护 `Room` + 假 `LobbyPlayer` 进出，`Start` 直接写 `GameLaunch`，可不 bind 17777。
+- 接网（Phase 7，已落地 2026-10-02）：UI 发命令 → `LobbyManager` → `LobbyNet` 执行 ENet 与大厅 RPC；pending peer 不进 `Room.players`，认证失败 disconnect 且 occupied 不变；Ready / 房间设置 / 座位快照全部走 Host 权威广播，Guest 只读投影。
+- WAN / P2P 预留（表中原 Phase 8）：`JoinInvite.create()` / `parse()` 是 UI 的唯一入口；`ConnectionPath` 枚举 `LAN_IPV4 / IPV6 / WAN_IPV4`；协议 bump 5 → 6 与门票握手同一天落地。当前只有 `LobbyNet.parse_address()`（LAN IPv4）+ Invite shell（Copy invite / Show QR 占位，不做真连接）。
+- P2P（表中原 Phase 9）：Host / Guest 各自与 rendezvous 交换连接信息后走 Direct UDP，rendezvous 不承担游戏流量；必须定义连接超时、打洞超时、直连失败与手动连接文案，且**不承诺**所有 NAT 都能直连。
 
 [Showing lines 1-300 of 578. Use :301 to continue]

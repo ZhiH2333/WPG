@@ -571,6 +571,21 @@ func _settings_change_allowed() -> bool:
 		return false
 	return true
 
+## 房间隐私：只有 Host 能改。LAN_VISIBLE 才允许对外广播信标（Beacon 起停归 Host 侧 UI）。
+## 隐私不是房间规则，所以不动 Guest 的 Ready。
+func set_privacy(privacy: Room.Privacy) -> bool:
+	if _room == null or _role != Role.HOST:
+		return false
+	if _room.room_state != Room.RoomState.FORMING:
+		return false
+	if not _room.set_privacy(privacy):
+		return false
+	room_changed.emit()
+	return true
+
+func get_privacy() -> int:
+	return int(_room.privacy) if _room != null else int(Room.Privacy.LAN_VISIBLE)
+
 # ---- pending peer（LanOverlay 转发 ENet 事件；Phase 7 归 LobbyNet） ----
 
 ## peer_connected：立刻占座，但还不是 players 成员。返回 0 = 满员 / 无房，调用方应断开该 peer。

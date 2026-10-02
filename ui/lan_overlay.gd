@@ -1,10 +1,11 @@
 extends Control
 class_name LanOverlay
 
-## 主菜单局域网叠层：JOIN 房间列表 / PICK / HOST。Multi 直接进发现。Create a room 开房。Host 可借已有档预填角色、loop_goal 和地图，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。座位 1～5，第三人进房不踢，满 5 才踢。大厅 Host 听 17778，Guest 探针。
+## 主菜单局域网叠层。MULTIPLAYER 首页：Quick join / Create room / LAN rooms / Join invite / Recent。
+## 大厅 Host 听 17778，Guest 探针；座位 1～5，第三人进房不踢，满 5 才踢。禁止 Autoload，禁止 AcceptDialog。
 signal start_lan
 
-enum View { HOME, PICK, HOST, JOIN, LOBBY }
+enum View { HOME, PICK, HOST, JOIN, INVITE, LOBBY }
 
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
@@ -12,6 +13,8 @@ const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
 const DEFAULT_LOOP_GOAL: int = 20
 const SEAT_ROW_HEIGHT: float = 24.0
+## Recent 只保留本机最近几个房间（内存里的一次会话记录，不落盘、不上服务器）。
+const RECENT_LIMIT: int = 5
 
 var _open: bool = false
 var _view: View = View.HOME
@@ -22,6 +25,9 @@ var _host_started: bool = false
 var _picked_record_id: String = ""
 var _selected_arena_id: String = "yard"
 var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
+var _privacy: Room.Privacy = Room.Privacy.LAN_VISIBLE
+## 最近房间（本机内存，见 RECENT_LIMIT）。元素：address / arena_id / net_play / loop_goal / occupied / max_seats。
+var _recent_rooms: Array[Dictionary] = []
 var _beacon: LanBeacon
 ## Lobby domain 的唯一入口，由 MainMenu 注入（不是 Autoload）。座位 / ready / 网络状态全归它。
 var _lobby: LobbyManager = null
@@ -40,8 +46,12 @@ var _lobby_notice_playing: bool = false
 @onready var _host_root: Control = $Sheet/Column/Content/HostRoot
 @onready var _join_root: Control = $Sheet/Column/Content/JoinRoot
 @onready var _lobby_root: Control = $Sheet/Column/Content/LobbyRoot
-@onready var _host_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/Host
-@onready var _join_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/Join
+@onready var _quick_join_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/QuickJoin
+@onready var _new_room_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/CreateRoom
+@onready var _lan_rooms_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/LanRooms
+@onready var _join_invite_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/JoinInvite
+@onready var _recent_title: Label = $Sheet/Column/Content/HomeRoot/Center/Column/RecentTitle
+@onready var _recent_list: VBoxContainer = $Sheet/Column/Content/HomeRoot/Center/Column/Recent
 @onready var _pick_scroll: ScrollContainer = $Sheet/Column/Content/PickRoot/Scroll
 @onready var _pick_cards: GridContainer = $Sheet/Column/Content/PickRoot/Scroll/Cards
 @onready var _custom_button: Button = $Sheet/Column/Content/PickRoot/Scroll/Cards/Custom
@@ -60,6 +70,13 @@ var _lobby_notice_playing: bool = false
 @onready var _loop_label: Label = $Sheet/Column/Content/HostRoot/Body/Right/LoopRow/LoopLabel
 @onready var _start_button: Button = $Sheet/Column/Content/HostRoot/Body/Right/Start
 @onready var _host_invite: Button = $Sheet/Column/Content/HostRoot/Body/Right/Invite
+@onready var _host_lan_visible: Button = $Sheet/Column/Content/HostRoot/Body/Right/Privacy/LanVisible
+@onready var _host_invite_only: Button = $Sheet/Column/Content/HostRoot/Body/Right/Privacy/InviteOnly
+@onready var _join_form: VBoxContainer = $Sheet/Column/Content/JoinRoot/Row/Form
+@onready var _join_browse: VBoxContainer = $Sheet/Column/Content/JoinRoot/Row/Browse
+@onready var _copy_invite_button: Button = $Sheet/Column/Content/JoinRoot/Row/Form/InviteShell/CopyInvite
+@onready var _show_qr_button: Button = $Sheet/Column/Content/JoinRoot/Row/Form/InviteShell/ShowQr
+@onready var _invite_notice: Label = $Sheet/Column/Content/JoinRoot/Row/Form/InviteNotice
 @onready var _join_search: LineEdit = $Sheet/Column/Content/JoinRoot/Row/Browse/Search
 @onready var _create_room_button: Button = $Sheet/Column/Content/JoinRoot/Row/Browse/CreateRoom
 @onready var _join_empty: Label = $Sheet/Column/Content/JoinRoot/Row/Browse/EmptyHint
@@ -100,8 +117,14 @@ func _ready() -> void:
 	_fill_character(_host_chicken, CHAR_CHICKEN)
 	_fill_character(_join_boar, CHAR_BOAR)
 	_fill_character(_join_chicken, CHAR_CHICKEN)
-	_host_button.pressed.connect(_on_home_host_pressed)
-	_join_button.pressed.connect(_on_home_join_pressed)
+	_quick_join_button.pressed.connect(_on_quick_join_pressed)
+	_new_room_button.pressed.connect(_on_home_host_pressed)
+	_lan_rooms_button.pressed.connect(_on_home_join_pressed)
+	_join_invite_button.pressed.connect(_on_home_invite_pressed)
+	_host_lan_visible.pressed.connect(_on_privacy_pressed.bind(Room.Privacy.LAN_VISIBLE))
+	_host_invite_only.pressed.connect(_on_privacy_pressed.bind(Room.Privacy.INVITE_ONLY))
+	_copy_invite_button.pressed.connect(_on_copy_invite_pressed)
+	_show_qr_button.pressed.connect(_on_show_qr_pressed)
 	_create_room_button.pressed.connect(_on_home_host_pressed)
 	_custom_button.pressed.connect(_on_custom_pressed)
 	_host_boar.pressed.connect(_on_character_pressed.bind(CHAR_BOAR))
@@ -122,15 +145,16 @@ func _ready() -> void:
 	_start_button.pressed.connect(_on_start_pressed)
 	_connect_button.pressed.connect(_on_connect_pressed)
 	_back_button.pressed.connect(_handle_back)
-	for button: Button in [_host_button, _join_button, _create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _lobby_boar, _lobby_chicken, _lobby_ready, _lobby_invite, _host_invite, _back_button]:
+	for button: Button in [_quick_join_button, _new_room_button, _lan_rooms_button, _join_invite_button, _create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _host_lan_visible, _host_invite_only, _start_button, _connect_button, _copy_invite_button, _show_qr_button, _join_boar, _join_chicken, _lobby_boar, _lobby_chicken, _lobby_ready, _lobby_invite, _host_invite, _back_button]:
 		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
 	_content.resized.connect(_on_content_resized)
 	_build_seat_rows()
 	_build_guest_seat_rows()
+	_build_borrow_record_button()
 	_ensure_beacon()
 	_join_search.text_changed.connect(_on_join_search_changed)
-	_enter_join()
+	_enter_multiplayer()
 
 func _exit_tree() -> void:
 	_stop_beacon()
@@ -149,7 +173,37 @@ func bind_lobby(manager: LobbyManager) -> void:
 		_lobby.room_closed.connect(_on_lobby_closed)
 	if not _lobby.player_left.is_connected(_on_lobby_player_left):
 		_lobby.player_left.connect(_on_lobby_player_left)
+	if not _lobby.network_failed.is_connected(_on_lobby_network_failed):
+		_lobby.network_failed.connect(_on_lobby_network_failed)
+	if not _lobby.joined_lobby.is_connected(_on_lobby_joined):
+		_lobby.joined_lobby.connect(_on_lobby_joined)
 	_refresh_lobby_view()
+
+## Guest 握手完成（座位已分配 + 本地投影建好）→ 进 Lobby 核心页。
+## 之前 _enter_lobby() 没有任何调用点，Guest 的 Lobby 页在真机上永远看不到。
+func _on_lobby_joined() -> void:
+	if _open:
+		_enter_lobby()
+
+## 连接失败 / 协议不符 / Host 关闭：就在当前页的状态行写明原因，不再开第二个大面板。
+## 已进 Lobby 的失败（Host closed）退回邀请页，1.0 不做 reconnect。
+func _on_lobby_network_failed(reason: String) -> void:
+	if not _open:
+		return
+	if _view == View.HOST:
+		_host_status.text = reason
+		_play_error()
+		return
+	if _view == View.JOIN or _view == View.INVITE:
+		_join_status.text = reason
+		_connect_button.disabled = false
+		_play_error()
+		return
+	if _view == View.LOBBY:
+		# 先切页再写文案：_enter_invite() 会清空状态行。
+		_enter_invite()
+		_join_status.text = reason
+		_play_error()
 
 func _on_lobby_changed() -> void:
 	if not _open:
@@ -270,10 +324,14 @@ func _refresh_guest_lobby(snapshot: Dictionary) -> void:
 	_lobby_mode_tag.text = _mode_name(int(snapshot.get("net_play", 0))).to_upper()
 	_lobby_room_facts.text = _room_facts(snapshot)
 	var networked: bool = bool(snapshot.get("networked", false))
-	_lobby_connection.text = "%s  ·  %s" % ["LAN" if networked else "OFFLINE", _connection_word(snapshot)]
+	var starting: bool = int(snapshot.get("room_state", Room.RoomState.FORMING)) == int(Room.RoomState.STARTING)
+	_lobby_connection.text = "STARTING  ·  ALL PLAYERS READY  ·  LAUNCHING..." if starting else "%s  ·  %s" % ["LAN" if networked else "OFFLINE", _connection_word(snapshot)]
 	_sync_lobby_character_buttons()
 	var local_ready: bool = bool(snapshot.get("local_ready", false))
-	_lobby_ready.text = "NOT READY" if local_ready else "READY"
+	_lobby_ready.disabled = starting
+	_lobby_boar.disabled = starting
+	_lobby_chicken.disabled = starting
+	_lobby_ready.text = "STARTING" if starting else ("NOT READY" if local_ready else "READY")
 	var local_host: bool = bool(snapshot.get("local_is_host", false))
 	_lobby_ready.visible = not local_host
 	_lobby_boar.visible = not local_host
@@ -343,6 +401,8 @@ func _seat_state_text(seat_data: Dictionary) -> String:
 func _lobby_status_text(snapshot: Dictionary) -> String:
 	if not bool(snapshot.get("has_room", false)):
 		return "waiting"
+	if int(snapshot.get("room_state", Room.RoomState.FORMING)) == int(Room.RoomState.STARTING):
+		return "starting · launching"
 	if bool(snapshot.get("networked", false)):
 		var occupied: int = int(snapshot.get("occupied_count", 0))
 		if occupied <= 1:
@@ -359,10 +419,10 @@ func open(direction: int = 0) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_picked_record_id = ""
 	_reset_play_mode()
-	_enter_join()
+	_enter_multiplayer()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
-	_create_room_button.grab_focus()
+	_quick_join_button.grab_focus()
 
 func close(direction: int = 0) -> void:
 	if not _open:
@@ -405,7 +465,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if _is_host_locked():
 		return
-	if _view == View.JOIN and (_join_edit.has_focus() or _join_search.has_focus()):
+	if (_view == View.JOIN or _view == View.INVITE) and (_join_edit.has_focus() or _join_search.has_focus()):
 		return
 	if event.is_action_pressed("weapon_pistol"):
 		get_viewport().set_input_as_handled()
@@ -450,27 +510,29 @@ func _handle_lobby_debug_key(event: InputEvent) -> bool:
 			return true
 	return false
 
+## Back 栈：Lobby / Create room / LAN rooms / Join invite → MULTIPLAYER 首页；首页 → 关叠层。
+## 已联网先离房 + 关网络（Guest 断线离房，Host 离房即关房；1.0 不做 reconnect / Host 迁移）。
+## 已开战（_host_started）交给换场，这时不再动房间。
 func _handle_back() -> void:
 	_play_back()
-	if _view == View.HOST or _view == View.JOIN:
-		_leave_lobby_room()
-	# Guest 已进 Lobby：Back = 断线离房回多人大厅（1.0 无 reconnect）。
+	if _view == View.PICK:
+		_enter_host()
+		return
+	if _view == View.HOME:
+		close(-1)
+		return
+	if _view == View.LOBBY and _host_started:
+		close(-1)
+		return
 	if _view == View.LOBBY:
+		# Guest 已进 Lobby：Back = 断线离房 + 淡出，再回多人大厅。
 		_leave_lobby_room()
 		_clear_peer()
-		close(-1)
+		_exit_lobby()
 		return
-	if _view == View.HOME or _view == View.JOIN:
-		close(-1)
-		return
-	if _view == View.PICK:
-		_enter_join()
-		return
+	_leave_lobby_room()
 	_clear_peer()
-	if _view == View.HOST and not _picked_record_id.is_empty():
-		_enter_pick()
-		return
-	_enter_join()
+	_enter_multiplayer()
 
 ## 离开 HOST 视图 / 关页 = 离房。Host 离房即关房（1.0 不做 Host 迁移）。
 ## 已开战（_host_started）时不碰房间，交给换场。
@@ -482,19 +544,30 @@ func _leave_lobby_room() -> void:
 func _show_home(_animate: bool) -> void:
 	_picked_record_id = ""
 	_reset_play_mode()
-	_enter_join()
+	_enter_multiplayer()
 
+## MULTIPLAYER 首页：Quick join / Create room / LAN rooms / Join invite / Recent。
+## Quick join 只基于已有 LAN discovery —— 本版本没有 matchmaking server，也不引入公网房间目录。
+func _enter_multiplayer() -> void:
+	_view = View.HOME
+	_home_root.visible = true
+	_pick_root.visible = false
+	_host_root.visible = false
+	_join_root.visible = false
+	_lobby_root.visible = false
+	_refresh_recent()
+	_start_guest_beacon()
+	if _open:
+		_quick_join_button.grab_focus()
+
+## CREATE ROOM：借档改成页内显式入口，不再挡在建房前面。
 func _on_home_host_pressed() -> void:
 	if not _open:
 		return
-	if _view != View.JOIN and _view != View.HOME and _view != View.PICK:
+	if _view != View.HOME and _view != View.JOIN and _view != View.PICK:
 		return
 	_play_click()
-	GameRecords.load_from_disk()
-	if GameRecords.list_records().is_empty():
-		_enter_host()
-		return
-	_enter_pick()
+	_enter_host()
 
 func _on_custom_pressed() -> void:
 	if not _open or _view != View.PICK:
@@ -559,6 +632,10 @@ func _begin_host() -> void:
 		_play_error()
 		return
 	_lobby.set_local_character(_selected_character_id)
+	_host_lan_visible.button_pressed = _privacy == Room.Privacy.LAN_VISIBLE
+	_host_invite_only.button_pressed = _privacy == Room.Privacy.INVITE_ONLY
+	_lobby.set_privacy(_privacy)
+	_remember_room(_primary_address(), _selected_arena_id, int(_net_play), _host_loop_goal(), _occupied(), GameLaunch.NET_MAX_SEATS)
 	_start_host_beacon()
 	_refresh_host_status()
 	if _picked_record_id.is_empty():
@@ -574,12 +651,37 @@ func _enter_lobby() -> void:
 	_host_root.visible = false
 	_join_root.visible = false
 	_lobby_root.visible = true
+	_lobby_root.modulate.a = 1.0
 	_refresh_lobby_view()
+	# 进 Lobby 用行级错峰淡入（与 PICK 的卡片入场同一套意图）。
+	var tween: Tween = UiAnim.enter_stagger_fade(self, _guest_seat_rows)
+	if tween != null:
+		## 淡入结束再按快照重画一次：空位行 0.5 的暗度不会被 tween 抹平成 1.0。
+		tween.finished.connect(_restore_seat_row_tone)
 	if not _is_lobby_frozen():
 		_lobby_ready.grab_focus()
 
+func _restore_seat_row_tone() -> void:
+	if _open and _view == View.LOBBY and not _lobby_notice_playing:
+		_refresh_lobby_view()
+
+## 退 Lobby：先把 Lobby 页淡掉，再回 MULTIPLAYER 首页（与进入的错峰淡入对称）。
+func _exit_lobby() -> void:
+	var tween: Tween = UiAnim.fade_modulate(self, _lobby_root, 0.0, 0.15, true)
+	if tween == null:
+		_finish_lobby_exit()
+		return
+	tween.finished.connect(_finish_lobby_exit)
+
+func _finish_lobby_exit() -> void:
+	if not _open:
+		return
+	_lobby_root.modulate.a = 1.0
+	_enter_multiplayer()
+
 ## 建房先于 bind：房间是领域状态，有没有 ENet peer 只是它的一种形态（离线 mock / 真 LAN）。
 ## 命令与网络执行都归 LobbyManager / LobbyNet，UI 不碰 ENet。
+## LAN ROOMS：只画同网段广播出来的房间（紧凑行，JOIN / FULL）。手动表单归 JOIN INVITE。
 func _enter_join() -> void:
 	_view = View.JOIN
 	_home_root.visible = false
@@ -587,28 +689,203 @@ func _enter_join() -> void:
 	_host_root.visible = false
 	_lobby_root.visible = false
 	_join_root.visible = true
+	_join_browse.visible = true
+	_join_form.visible = false
 	_reset_character()
-	_join_edit.text = GameLaunch.DEFAULT_JOIN_ADDRESS
 	_join_status.text = ""
 	_hide_join_session_labels()
 	_connect_button.disabled = false
 	if not _open:
 		return
 	_start_guest_beacon()
-	_create_room_button.grab_focus()
+	_join_search.grab_focus()
 
-func _on_connect_pressed() -> void:
-	if _view != View.JOIN:
+## JOIN INVITE：手打 / 粘贴邀请文本 + 选角。Invite shell 只有复制与 QR 占位，不做真连接。
+func _enter_invite() -> void:
+	_view = View.INVITE
+	_home_root.visible = false
+	_pick_root.visible = false
+	_host_root.visible = false
+	_lobby_root.visible = false
+	_join_root.visible = true
+	_join_browse.visible = false
+	_join_form.visible = true
+	_reset_character()
+	_join_edit.text = GameLaunch.DEFAULT_JOIN_ADDRESS
+	_join_status.text = ""
+	_invite_notice.text = ""
+	_hide_join_session_labels()
+	_connect_button.disabled = false
+	if _open:
+		_join_edit.grab_focus()
+
+func _on_home_invite_pressed() -> void:
+	_play_click()
+	_enter_invite()
+
+## Quick join：加入当前可用的 LAN 房间（第一个不满的）。只基于已有 LAN discovery。
+func _on_quick_join_pressed() -> void:
+	if not _open:
 		return
 	_play_click()
-	_start_guest_beacon()
+	_ensure_beacon()
+	if _beacon != null:
+		for room: Dictionary in _beacon.get_rooms():
+			if _is_room_full(room):
+				continue
+			_connect_to_room(room)
+			return
+	_enter_join()
+	_join_status.text = "searching"
+	_play_error()
+
+## 从 LAN 房间行 / Quick join 进房：地址与房间事实都来自发现包，顺便记进 RECENT。
+func _connect_to_room(room: Dictionary) -> void:
+	_join_edit.text = str(room["address"])
+	_remember_room(
+		str(room["address"]),
+		str(room["arena_id"]),
+		int(room["net_play"]),
+		int(room["loop_goal"]),
+		int(room["occupied"]),
+		int(room["max_seats"])
+	)
+	_enter_join()
+	_on_connect_pressed()
+
+## 隐私只决定「要不要对外广播 LAN 信标」：INVITE ONLY 一律停掉信标（架构规则 8）。
+func _on_privacy_pressed(privacy: Room.Privacy) -> void:
+	_play_click()
+	_privacy = privacy
+	_host_lan_visible.button_pressed = privacy == Room.Privacy.LAN_VISIBLE
+	_host_invite_only.button_pressed = privacy == Room.Privacy.INVITE_ONLY
+	if _lobby != null:
+		_lobby.set_privacy(privacy)
+	_sync_host_beacon()
+
+## Copy invite：复制本机 LAN 地址（shell，不生成 token / 不做 WAN）。
+func _on_copy_invite_pressed() -> void:
+	_play_click()
+	DisplayServer.clipboard_set(_format_addresses())
+	_invite_notice.text = "invite copied"
+
+## Show QR：本阶段只有 shell —— JoinInvite / token 落地前不画真二维码。
+func _on_show_qr_pressed() -> void:
+	_play_click()
+	_invite_notice.text = "QR shell · 协议 8 再接"
+
+## 粘贴进来的邀请文本可能带前缀 / 端口：先按 IPv4 解析，解析不到再当主机名原样用。
+func _resolve_join_address(raw: String) -> String:
+	var parsed: String = LobbyNet.parse_address(raw)
+	if not parsed.is_empty():
+		return parsed
+	return raw.strip_edges()
+
+func _on_connect_pressed() -> void:
+	if _view != View.JOIN and _view != View.INVITE:
+		return
+	_play_click()
+	var address: String = _resolve_join_address(_join_edit.text)
+	_join_edit.text = address
+	if address.is_empty():
+		_join_status.text = "no address"
+		_play_error()
+		return
+	if _view == View.JOIN:
+		_start_guest_beacon()
 	_join_status.text = "connecting"
 	_hide_join_session_labels()
 	_connect_button.disabled = true
 	# 连接执行归 LobbyNet（经 LobbyManager 命令），UI 不建 peer。
-	if _lobby == null or not _lobby.join_room_address(_join_edit.text):
+	if _lobby == null or not _lobby.join_room_address(address):
 		_join_status.text = "refused"
 		_connect_button.disabled = false
+		_play_error()
+
+## CREATE ROOM 页内的借档入口（新 IA 不再让选档挡在建房前面）。
+func _build_borrow_record_button() -> void:
+	var left: VBoxContainer = $Sheet/Column/Content/HostRoot/Body/Left
+	if left.has_node("BorrowRecord"):
+		return
+	var button: Button = Button.new()
+	button.name = "BorrowRecord"
+	button.custom_minimum_size = Vector2(0, 40)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.theme_type_variation = &"PillNeutral"
+	button.text = "Use a record"
+	button.pressed.connect(_on_borrow_record_pressed)
+	left.add_child(button)
+	left.move_child(button, mini(2, left.get_child_count() - 1))
+	_wire_hover(button)
+
+## 借档 = 用已有档当种子开房（Phase 3 的 DoD），仍然只种子 Room，不上网、不写档。
+func _on_borrow_record_pressed() -> void:
+	if _view != View.HOST:
+		return
+	_play_click()
+	GameRecords.load_from_disk()
+	if GameRecords.list_records().is_empty():
+		_play_error()
+		return
+	_enter_pick()
+
+# ---- RECENT（本机内存，不上服务器、不落盘）----
+
+func _remember_room(address: String, arena_id: String, net_play: int, loop_goal: int, occupied: int, max_seats: int) -> void:
+	var addr: String = address.strip_edges()
+	if addr.is_empty():
+		return
+	var entry: Dictionary = {
+		"address": addr,
+		"arena_id": GameLaunch._sanitize_arena_id(arena_id),
+		"net_play": net_play,
+		"loop_goal": maxi(loop_goal, 0),
+		"occupied": maxi(occupied, 1),
+		"max_seats": maxi(max_seats, GameLaunch.NET_MAX_SEATS),
+	}
+	for index: int in _recent_rooms.size():
+		var existing: Dictionary = _recent_rooms[index]
+		if str(existing.get("address", "")) == addr and int(existing.get("net_play", 0)) == net_play:
+			_recent_rooms.remove_at(index)
+			break
+	_recent_rooms.push_front(entry)
+	while _recent_rooms.size() > RECENT_LIMIT:
+		_recent_rooms.pop_back()
+	_refresh_recent()
+
+func _refresh_recent() -> void:
+	if _recent_list == null or _recent_title == null:
+		return
+	for child: Node in _recent_list.get_children():
+		_recent_list.remove_child(child)
+		child.queue_free()
+	var has_any: bool = not _recent_rooms.is_empty()
+	_recent_title.visible = has_any
+	_recent_list.visible = has_any
+	if not has_any:
+		return
+	for entry: Dictionary in _recent_rooms:
+		_recent_list.add_child(_make_recent_row(entry))
+
+func _make_recent_row(entry: Dictionary) -> Button:
+	var button: Button = Button.new()
+	button.custom_minimum_size = Vector2(0, 40)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.theme_type_variation = &"PillNeutral"
+	button.text = "%s  ·  %s  ·  %s" % [
+		str(entry["address"]),
+		RecordCard.format_arena_name(str(entry["arena_id"])),
+		_mode_name(int(entry["net_play"])),
+	]
+	button.pressed.connect(_on_recent_pressed.bind(str(entry["address"])))
+	_wire_hover(button)
+	return button
+
+func _on_recent_pressed(address: String) -> void:
+	_play_click()
+	_enter_invite()
+	_join_edit.text = address
+	_on_connect_pressed()
 
 func _on_start_pressed() -> void:
 	if not _can_start():
@@ -703,6 +980,8 @@ func _start_button_text() -> String:
 	match _lobby.start_block_reason():
 		"":
 			return "START"
+		"started":
+			return "STARTING..."
 		"need 2":
 			return "NEED 2 PLAYERS"
 		"not ready":
@@ -817,6 +1096,11 @@ func _format_addresses() -> String:
 		return "127.0.0.1"
 	return "\n".join(lines)
 
+## 本机对外地址的第一条（RECENT 里只记一个，不记整张地址表）。
+func _primary_address() -> String:
+	var lines: PackedStringArray = _format_addresses().split("\n", false)
+	return lines[0] if not lines.is_empty() else "127.0.0.1"
+
 func _fill_character(button: Button, character_id: String) -> void:
 	var def: CharacterDef = CATALOG.get_by_id(StringName(character_id))
 	var portrait: TextureRect = button.get_node("VBox/Portrait") as TextureRect
@@ -903,6 +1187,8 @@ func _on_invite_pressed() -> void:
 	_play_click()
 	# Invite 是 shell：本阶段只复制地址，不实现 WAN / token / QR 真连接。
 	DisplayServer.clipboard_set(_format_addresses())
+	if _view == View.INVITE:
+		_invite_notice.text = "invite copied"
 
 ## Starting 冻结：已点 Start 之后不允许再改角色 / Ready / 房间设置。
 func _is_lobby_frozen() -> bool:
@@ -991,22 +1277,30 @@ func _stop_beacon() -> void:
 	_clear_room_cards()
 
 func _start_host_beacon() -> void:
-	if _view != View.HOST or _host_started:
+	if _view != View.HOST or _host_started or _privacy != Room.Privacy.LAN_VISIBLE:
 		return
 	_ensure_beacon()
 	_beacon.start_host(_occupied(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
 
+## INVITE ONLY = 不发信标（房间还在，只是同网段发现不到）。
 func _sync_host_beacon() -> void:
-	if _view != View.HOST or _host_started or _beacon == null:
+	if _host_started or _view != View.HOST:
+		return
+	if _privacy != Room.Privacy.LAN_VISIBLE:
+		_stop_beacon()
+		return
+	if _beacon == null:
 		return
 	_beacon.update_host(_occupied(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
 
+## Guest 探针在 MULTIPLAYER 首页 / LAN ROOMS / JOIN INVITE 都跑（Quick join 要靠它）。
 func _start_guest_beacon() -> void:
-	if _view != View.JOIN or not _open:
+	if not _open or _view == View.HOST or _view == View.PICK:
 		return
 	_ensure_beacon()
 	_beacon.start_guest()
-	_rebuild_room_cards()
+	if _view == View.JOIN:
+		_rebuild_room_cards()
 
 func _host_loop_goal() -> int:
 	return maxi(roundi(_loop_slider.value), 0)
@@ -1063,7 +1357,7 @@ func _make_room_card(room: Dictionary) -> Button:
 	if full:
 		button.gui_input.connect(_on_full_room_gui_input)
 	else:
-		button.pressed.connect(_on_room_card_pressed.bind(str(room["address"])))
+		button.pressed.connect(_on_room_card_pressed.bind(room))
 	_wire_hover(button)
 	return button
 
@@ -1086,25 +1380,50 @@ func _make_room_row(room: Dictionary) -> HBoxContainer:
 	row.offset_bottom = -6.0
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 16)
-	row.add_child(_make_room_title_label(str(room["address"])))
+	row.add_child(_make_room_title_label(room))
+	row.add_child(_make_room_address_label(str(room["address"])))
 	row.add_child(_make_room_meta_label(room))
 	row.add_child(_make_room_badge_label(room))
+	row.add_child(_make_room_action_label(room))
 	return row
 
-func _make_room_title_label(address: String) -> Label:
+## 主标题：协议 5 的发现包不带 Host 显示名，先写房间；地址放次级 caption。
+func _make_room_title_label(_room: Dictionary) -> Label:
 	var label: Label = Label.new()
 	label.name = "Title"
 	label.theme_type_variation = &"OfferTitle"
+	label.text = "ROOM"
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+func _make_room_address_label(address: String) -> Label:
+	var label: Label = Label.new()
+	label.name = "Address"
+	label.theme_type_variation = &"Caption"
 	label.text = address
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 
+## 行尾动作：JOIN / FULL（满员的房间按钮本身 disabled，这里再给一次明确文案）。
+func _make_room_action_label(room: Dictionary) -> Label:
+	var label: Label = Label.new()
+	label.name = "Action"
+	label.theme_type_variation = &"StatValue"
+	label.custom_minimum_size = Vector2(72, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.text = "FULL" if _is_room_full(room) else "JOIN"
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
 func _make_room_meta_label(room: Dictionary) -> Label:
 	var label: Label = Label.new()
-	label.name = "Caption"
-	label.theme_type_variation = &"Caption"
+	label.name = "Meta"
+	label.theme_type_variation = &"OfferDesc"
 	label.text = _format_room_meta(room)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1149,11 +1468,10 @@ func _matches_room_query(room: Dictionary, query: String) -> bool:
 			return true
 	return false
 
-func _on_room_card_pressed(address: String) -> void:
+func _on_room_card_pressed(room: Dictionary) -> void:
 	if _view != View.JOIN:
 		return
-	_join_edit.text = address
-	_on_connect_pressed()
+	_connect_to_room(room)
 
 func _on_full_room_gui_input(event: InputEvent) -> void:
 	if _view != View.JOIN:

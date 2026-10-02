@@ -244,6 +244,14 @@ func set_net_play(value: GameLaunch.NetPlay) -> void:
 	net_play = value
 	_invalidate_guest_ready()
 
+## 房间隐私（LAN_VISIBLE / INVITE_ONLY）。隐私不是房间规则：不参与 Ready 失效判定。
+## 它只决定要不要对外广播 LAN 信标，所以由 Host 侧 UI 据此起停 Beacon。
+func set_privacy(value: Privacy) -> bool:
+	if value == privacy:
+		return false
+	privacy = value
+	return true
+
 ## Host 改房间规则 = 所有 Guest 的 READY 失效（Host 自己不参与 Start 判定，保持不变）。
 func _invalidate_guest_ready() -> void:
 	for player: LobbyPlayer in _players:

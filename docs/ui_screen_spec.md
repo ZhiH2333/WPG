@@ -1,7 +1,15 @@
 # WPG UI Screen Specification
 
-**版本:** 1.1-ui-screen-spec
-**状态:** §5–§8、§17、§19、§22 所描述的 Main Menu / Play / Profile / Records / Ranking / Settings / Pause / Winner / Shop / Upgrade / Credits / Loading **已落地**（Phase 1 UI/UX 统一重构 + Phase 2 PlayerProfile，2026-09-26）；§9–§18（Multiplayer 簇 / Lobby / Create / Join / Connecting）是 **Phase 5 目标，尚未建立**，当前 MULTIPLAYER tab 打开的是现存 `LanOverlay`（PICK / HOST / JOIN）。
+**版本:** 1.2-ui-screen-spec
+**状态:** §5–§8、§17、§19、§22 所描述的 Main Menu / Play / Profile / Records / Ranking / Settings / Pause / Winner / Shop / Upgrade / Credits / Loading **已落地**（Phase 1 UI/UX 统一重构 + Phase 2 PlayerProfile，2026-09-26）；**§9–§18（Multiplayer 簇 / Create / Join / Connecting / Failed / Version Mismatch / Lobby / Host Closed）已于 2026-10-02 落地**：宿主仍是 `ui/lan_overlay.tscn`，但 ENet 与大厅 `@rpc` 已全部迁到 `lobby/lobby_net.gd`（`ui/lan_overlay.gd` 不再持有 `ENetMultiplayerPeer` / `@rpc`，由 `tools/ci/architecture.py` 守卫）。
+
+**§9–§18 落地差异（以代码为准，2026-10-02）：**
+- §9 MULTIPLAYER 首页 = Quick join / Create room / LAN rooms / Join invite 四条紧凑入口 + RECENT（本机内存里的最近房间，不上服务器、不落盘）。Quick join 只基于已有 LAN discovery —— 本版本没有 matchmaking server，也不引入公网房间目录。
+- §10 LAN Rooms：紧凑行 = 房间主标题 + 地址 caption + Mode/Arena/Goal + n/5 + JOIN/FULL。协议 5 的发现包不带 Host 显示名，主标题暂写 `ROOM`，等发现包扩包后再填名字。
+- §11/§12 Create Room：落在同一页（Mode / Arena / Goal / Privacy / Start）。隐私 `LAN VISIBLE / INVITE ONLY` 决定要不要对外广播 17778 信标；借档（Phase 3 的 DoD）改成建房页内的 `Use a record` 入口，不再挡在建房前面。
+- §13 Join Room：`JOIN INVITE` 页 = 手打 / 粘贴邀请文本（`LobbyNet.parse_address()` 取 LAN IPv4，解析不到按主机名原样用）+ 选角；`Invite` = Copy invite / Show QR **shell**，不做 token / QR 真连接。
+- §14/§15/§16/§18 Connecting / Connection Failed / Version Mismatch / Host Closed：状态与文案已落地，但形态是**当前页的状态行**（不新开第二个大面板）；Host closed 会把 Guest 退回邀请页写明原因，1.0 无 reconnect。
+- §17 Lobby：5 行固定座位 + 状态列恒有文字（`HOST / READY / WAITING / CONNECTING / LOST`）。实现上分成两个宿主页：**Guest 的 Lobby 页 = `LobbyRoot`**（`CHARACTER / READY`，Host 不参与 Start 判定；握手完成 `joined_lobby` 自动进入），**Host 的房间页 = Create Room 的 `HostRoot`**（同一套 5 行座位 + `MODE / ARENA / GOAL / PRIVACY / INVITE / START`，因为主机建完房就停在那一页按 Start）。`Starting` 冻结 Ready / 角色 / 房间设置，顶行显示 `STARTING · ALL PLAYERS READY · LAUNCHING...`；掉线先播 `PLAYERxx LEFT`（该行淡出）再画回 `EMPTY SEAT`。
 
 **与本文档最初稿的已落地差异（以代码为准，2026-09-26）：**
 - 顶栏：五项各自带图标（`ui/icons/{home,play,multi,profile,gear}.png`）+ 最左 WPG App 图标；**右端只有时钟**，头像 + 名字槽已整槽移除；PROFILE 项文案 = `PlayerProfile.display_name`。

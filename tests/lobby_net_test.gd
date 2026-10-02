@@ -38,6 +38,8 @@ func _run_all() -> void:
 	_case_begin_match()
 	_case_peer_disconnect()
 	_case_server_disconnect()
+	_case_privacy_switch()
+	_case_invite_address_parse()
 	if _failures.is_empty():
 		print("LOBBY_NET_OK")
 		quit(0)
@@ -433,6 +435,53 @@ func _case_server_disconnect() -> void:
 	_expect(failed.has("Version mismatch"), "版本不符给出 Version mismatch 文案")
 	manager.queue_free()
 	net.queue_free()
+
+# ---- 17. 房间隐私（LAN_VISIBLE / INVITE_ONLY）----
+
+func _case_privacy_switch() -> void:
+	var host: LobbyManager = LobbyManager.new()
+	root.add_child(host)
+	host.create_room("yard", GameLaunch.NetPlay.COOP, 20)
+	_expect(host.get_privacy() == int(Room.Privacy.LAN_VISIBLE), "默认房间是 LAN VISIBLE")
+	var changes: Array = [0]
+	host.room_changed.connect(func() -> void: changes[0] += 1)
+	_expect(host.set_privacy(Room.Privacy.INVITE_ONLY), "Host 可切到 INVITE ONLY")
+	_expect(host.get_privacy() == int(Room.Privacy.INVITE_ONLY), "隐私落到 Room")
+	_expect(host.get_room().privacy == Room.Privacy.INVITE_ONLY, "Room.privacy 与 Manager 一致")
+	_expect(int(changes[0]) > 0, "隐私变化派发 room_changed（UI 据此起停 Beacon）")
+	_expect(host.set_privacy(Room.Privacy.INVITE_ONLY) == false, "同值重复设置返回 false")
+	host.set_ready("nobody", true)
+	# 隐私不是房间规则：不该让 Guest 的 Ready 失效
+	host.note_peer_connecting(7)
+	host.confirm_peer(7)
+	var guest_player: LobbyPlayer = host.get_room().get_player_by_peer(7)
+	host.set_ready(guest_player.profile_id, true)
+	host.set_privacy(Room.Privacy.LAN_VISIBLE)
+	_expect(guest_player.ready, "切隐私不清 Guest 的 Ready（只有 Mode/Arena/Goal 才清）")
+	# Guest 无权改隐私
+	var guest: LobbyManager = LobbyManager.new()
+	root.add_child(guest)
+	guest.join_remote("roomid", "HOST", "yard", GameLaunch.NetPlay.COOP, 20, 2)
+	_expect(guest.set_privacy(Room.Privacy.INVITE_ONLY) == false, "联网 Guest 不能改房间隐私")
+	# Starting 冻结
+	host.set_ready(guest_player.profile_id, true)
+	_expect(host.start_match(), "隐私用例里也能正常开局")
+	_expect(host.set_privacy(Room.Privacy.INVITE_ONLY) == false, "STARTING 期间不能改隐私")
+	_expect(host.get_privacy() == int(Room.Privacy.LAN_VISIBLE), "冻结期间隐私保持原值")
+	host.queue_free()
+	guest.queue_free()
+
+# ---- 18. JoinInvite 地址解析（纯函数）----
+
+func _case_invite_address_parse() -> void:
+	_expect(LobbyNet.parse_address("192.168.1.5") == "192.168.1.5", "纯 IPv4 原样解析")
+	_expect(LobbyNet.parse_address("  192.168.1.5  ") == "192.168.1.5", "首尾空白被裁掉")
+	_expect(LobbyNet.parse_address("192.168.1.5:17777") == "192.168.1.5", "带端口只取地址（端口固定 17777）")
+	_expect(LobbyNet.parse_address("join 10.0.0.7 now") == "10.0.0.7", "从粘贴文本里取出地址")
+	_expect(LobbyNet.parse_address("wpg://172.16.0.3") == "172.16.0.3", "带 scheme 前缀也能解析")
+	_expect(LobbyNet.parse_address("300.1.1.1").is_empty(), "非法 IPv4 段解析失败")
+	_expect(LobbyNet.parse_address("localhost").is_empty(), "主机名不是 IPv4，解析失败")
+	_expect(LobbyNet.parse_address("").is_empty(), "空串解析失败")
 
 func _expect(condition: bool, label: String) -> void:
 	if not condition:

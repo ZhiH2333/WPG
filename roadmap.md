@@ -40,6 +40,10 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 | 本地存档三分 | `progress.cfg` / `records.json` / `settings.cfg` |
 | 本机身份 | `ui/player_profile.gd` + `user://profile.json`（Phase 2）；顶栏 PROFILE 项文案 = `display_name` |
 | Lobby domain（离线 mock） | `lobby/lobby_player.gd` / `lobby/room.gd` / `lobby/lobby_manager.gd`；MainMenu 下 `LobbyManager` 节点；LanOverlay 座位墙读 Room 快照 |
+| `LobbyNet`（大厅网络层） | `lobby/lobby_net.gd`：唯一持有 `ENetMultiplayerPeer` 与大厅 `@rpc` 的文件；`NetState` 状态机、座位缓存、roster 编解码、`parse_address()` |
+| Ready 状态机 | Host 恒 `HOST`（不参与 Start）；Guest 进房默认 NOT READY；改角色 / 改 Mode·Arena·Goal → 旧 READY 失效；Ready 走独立 RPC（`rpc_ready` / `rpc_apply_ready`，协议仍 5） |
+| MULTIPLAYER 首页 + Lobby 核心页 | `LanOverlay` 的 HOME / LAN Rooms / Join invite / Create Room（含隐私）/ Lobby；Starting 冻结；掉线先播 `PLAYERxx LEFT` 再画回 EMPTY SEAT |
+| 移动端触控输入 | `ui/mobile/`（`virtual_stick` / `touch_aim_pad` / `touch_action_button` / `touch_input` / `safe_area_root` / `mobile_hud_scaler`）+ Touch API（`PlayerInput.set_touch_*` / `queue_touch_*`） |
 | ENet 多人、Host 权威、5 座、协议 5、快照 v3 | `GameLaunch.NET_*`、`LanOverlay`、`NetSession` |
 | 游戏口 17777、发现口 17778 | `LanBeacon` Guest 探针 / Host 应答 |
 | LAN 房间列表 + 搜索 + 手打 IP | Day 81 |
@@ -51,12 +55,15 @@ Player Profile  →  Main Menu  →  Play  →  Solo / Multiplayer  →  Lobby  
 
 明确**还没有**：
 
-- `LobbyNet` / `JoinInvite` / `ConnectionPath`
-- Ready 状态机只是 domain 落地（`ready` 默认 true）；Lobby UI 还没有 Ready 钮，真房间仍以握手完成即满足 Start
-- 邀请 URI / QR / token / UPnP / IPv6 fallback
-- Guest 侧 Room 同步（协议 5 不回传 profile_id / 昵称，Guest 仍走旧 Overlay RPC）
+- `JoinInvite` 的完整形态（当前只有 `LobbyNet.parse_address()` 这一刀的 LAN IPv4 解析）与邀请 URI / QR 真连接 / token
+- 协议 6 的门票握手（协议仍 5，`rpc_hello` 只带协议号）
+- Guest 侧看到别人的身份：协议 5 的 roster 包只带座位角色，不带 profile_id / 昵称（Guest 的 Lobby 投影只有 Host + 自己）
+- `ConnectionPath`（IPv6 / WAN 直连）、UPnP、P2P 打洞
+- 断线重连、Host 迁移（1.0 明确不做）
+- 移动端 P2P 与 Android 真机发布链路（表中原 Phase 5 只做 Vertical Slice 的桌面验证）
+- `AbilityDef` / `AbilityController` 主动技能框架（表中原 Phase 6）
 - Playpen Sans 尚未进 `game_theme.tres`（仓库无任何 `.ttf/.otf`，主题仍是 system 回落 Inter/Segoe UI/Noto Sans/Arial）
-- 战斗侧 4 个 overlay 仍用 `enter_overlay/exit_overlay`（`pause_overlay` / `shop_offer` / `upgrade_offer` / `room_notice`），归 Phase 6
+- 战斗侧 4 个 overlay 仍用 `enter_overlay/exit_overlay`（`pause_overlay` / `shop_offer` / `upgrade_offer` / `room_notice`），归最终 polish
 - 无 Warning / Success 语义令牌
 
 README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指针。**
@@ -73,15 +80,17 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 | 1 | 文档同步 | 已完成 | 四份文档与 dev 代码一致；删掉「UI 尚未实现 / 顶栏 best 0」类旧状态 | 不为文档同步改游戏逻辑 |
 | 2 | PlayerProfile | 已完成 | `ui/player_profile.gd` + `user://profile.json`；Profile 页就地改名/头像/常用角色；顶栏 PROFILE 项 = `display_name` | 不进 progress/records/settings；`profile_id` 不当 token / seat / peer_id；无 Autoload |
 | 3 | Lobby domain（离线 mock） | 已完成 (2026-09-27) | `LobbyPlayer` / `Room` / `LobbyManager`（挂 MainMenu 下）；Create → Lobby → 假座位进出 → Ready → Start → `GameLaunch` | 不碰 `NetSession`；不做 WAN / P2P；不 bump 协议 |
-| 4 | 移动端输入抽象 | 待开始 | `VirtualStick` / `TouchActionButton` / 轻量 TouchInput 适配层；左摇杆移动、右摇杆瞄准、主射击、Dash、技能预留按钮 | 不写 `TouchPlayerInput` / `TouchPlayer` / `TouchCombat`；不复制战斗逻辑 |
-| 5 | 移动端 Vertical Slice | 待开始 | Android → MainMenu → Solo → Combat → Pause → Winner；export preset、renderer 可行性、Safe Area / UiFit / 触控命中 / 性能 | 移动端 P2P；直接套用 Desktop Forward+ 假设 |
+| 4 | 移动端输入抽象 | 已完成 (2026-10-01) | `VirtualStick` / `TouchActionButton` / 轻量 TouchInput 适配层；左摇杆移动、右摇杆瞄准、主射击、Dash、技能预留按钮 | 不写 `TouchPlayerInput` / `TouchPlayer` / `TouchCombat`；不复制战斗逻辑 |
+| 5 | 移动端 Vertical Slice | 已完成 (2026-10-02) | Android → MainMenu → Solo → Combat → Pause → Winner；export preset、renderer 可行性、Safe Area / UiFit / 触控命中 / 性能 | 移动端 P2P；直接套用 Desktop Forward+ 假设 |
 | 6 | Ability Framework | 待开始 | `AbilityDef` / `AbilityController` / `AbilityState` / `AbilityEffect` + cooldown / duration / cost；输入只给 `ability_0/1` → `try_activate(index)` | 不绑键盘/鼠标/Pad/触屏按键；不先堆技能数量 |
-| 7 | LobbyNet | 待开始 | `LobbyNet`（host_listen / client_connect / hello / roster / ready / start / invite / connection state）；`LanOverlay` 最终只发 Manager 命令 | UI 不得建 `ENetMultiplayerPeer`；`NetSession` 职责不变 |
+| 7 | LobbyNet | 已完成 (2026-10-02) | `LobbyNet`（host_listen / client_connect / hello / roster / ready / start / connection state）；`LanOverlay` 最终只发 Manager 命令 | UI 不得建 `ENetMultiplayerPeer`；`NetSession` 职责不变 |
 | 8 | WAN / P2P 预留 | 待开始 | `JoinInvite` + `ConnectionPath`（LAN IPv4 / IPv6 / WAN IPv4）；协议 5→6 只 bump 一次 | UI 不拼 IP / Port / Token；不直接做复杂打洞 |
 | 9 | P2P | 待开始 | Direct UDP：Host/Guest 各自与 rendezvous 交换连接信息 → NAT 穿透 → 直连 ENet；定义连接/打洞超时与失败文案 | 不写死公网 IP；不做第二套战斗 Session；不同时两个 peer；不承诺所有 NAT 都能直连 |
 | 10 | 最终集成 | 待开始 | Desktop Solo/LAN/WAN + Android Solo/LAN/WAN；再做 Skill multiplayer、多人 UX、reconnect、timeout、profiling、release | 不为 P2P 改战斗快照结构（除非规格明确要求） |
 
 阶段 3 起每阶的硬性验收（沿用 Architecture Rules）：能 F5 进 Solo、无 Autoload、`NetSession` 只服务战斗、Lobby 网络全归 `LobbyNet`、UI 不碰 ENet、Touch 不复制 Combat、Skill 不绑设备、四份存档继续分离、LAN 不写档、每阶完成同步 roadmap / README。
+
+**已完成的阶段与旧编号的对应**：旧编号 `Phase 4 — Network Integration` = 表中阶段 7（2026-10-02 完成）；旧编号 `Phase 5 — Multiplayer UX` = 表中阶段 5 之外的 Multiplayer 簇（MULTIPLAYER 首页 / Create / LAN Rooms / Join invite / Lobby 核心页 / Starting），同样 2026-10-02 完成。表中原阶段 4/5（移动端）已于 2026-10-01 / 10-02 完成，文档同步落后过一轮，本次补齐。
 
 
 ---
@@ -177,7 +186,9 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 
 ---
 
-## Phase 4 — Network Integration
+## Phase 4（已完成 2026-10-02）— Network Integration
+
+**状态：已完成（2026-10-02）。** 落地：`lobby/lobby_net.gd`（唯一 `ENetMultiplayerPeer` / 大厅 `@rpc` 归属）+ `LobbyManager` 网络命令与信号接线 + `LanOverlay` 去除 ENet / RPC + `tests/lobby_net_test.gd` + `tools/ci/architecture.py` 守卫固化。协议仍 **5**（Ready 同步是独立可靠 RPC，不动 roster 包、不 bump 协议）；`NetSession` 未改职责。未做（留给表中原阶段 8/9）：`JoinInvite.create()` 完整形态、`ConnectionPath`、IPv6/WAN 顺序 fallback、UPnP。
 
 目标：UI 不再直接操作 ENet。大厅 RPC 从 Overlay 迁到 `LobbyNet`。战斗 `NetSession` 零改职责。
 
@@ -206,7 +217,9 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 
 ---
 
-## Phase 5 — Multiplayer UX
+## Phase 5（已完成 2026-10-02）— Multiplayer UX
+
+**状态：已完成（2026-10-02）。** 落地：MULTIPLAYER 首页（Quick join / Create room / LAN rooms / Join invite / RECENT）+ Create Room 同页（Mode / Arena / Goal / Privacy）+ LAN Rooms 紧凑行（JOIN / FULL）+ JOIN INVITE（`LobbyNet.parse_address()` + Copy invite / Show QR shell）+ Lobby 核心页（5 行座位 / Ready / Starting 冻结 / `PLAYERxx LEFT`）+ 连接失败 · 协议不符 · Host closed 的页内状态文案；`tests/multiplayer_page_test.gd` 固化 UI 契约。未做（留给表中原阶段 8/9 与后续 polish）：真 QR / token、房间卡主标题用 Host 显示名（发现包未扩）、reconnect / timeout UX（1.0 默认不支持）。
 
 目标：玩家看见人、座位、Ready、房间状态，而不是看见 IP。
 
@@ -305,9 +318,9 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 Phase 1  IA + Design System + Motion 意图     网络零改   ← 已完成 2026-09-26
 Phase 2  PlayerProfile + 顶栏真名                  ← 已完成 2026-09-26
 Phase 3  Lobby domain + 离线 mock              ← 已完成 2026-09-27
-Phase 4  LobbyNet 接入现有 ENet / 大厅 RPC
-Phase 5  Create / Join / Lobby UX + Invite
-Phase 6  动效 / 音效 / 焦点 polish
+Phase 4  LobbyNet 接入现有 ENet / 大厅 RPC      ← 已完成 2026-10-02（含 Ready 网络同步）
+Phase 5  Create / Join / Lobby UX + Invite     ← 已完成 2026-10-02（RECENT / 隐私 / Starting / 断线提示）
+Phase 6  动效 / 音效 / 焦点 polish              ← 下一步
 ```
 
 不要先把所有 UI 做完再接 Network。也不要先继续写 UPnP。

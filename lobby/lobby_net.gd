@@ -98,6 +98,24 @@ func is_active() -> bool:
 func is_server() -> bool:
 	return multiplayer.multiplayer_peer != null and multiplayer.is_server()
 
+## 从粘贴文本里取出可连接的地址（JoinInvite 解析的第一刀：只认 LAN IPv4，端口固定 17777）。
+## "192.168.1.5" / "192.168.1.5:17777" / "join 192.168.1.5 wpg" / "wpg://192.168.1.5" 都能取出；
+## 取不到（含非法 IPv4 段）返回 ""，调用方再决定是报错还是把原文当主机名。
+static func parse_address(raw: String) -> String:
+	var text: String = raw.strip_edges()
+	if text.is_empty():
+		return ""
+	var regex: RegEx = RegEx.new()
+	regex.compile("(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})")
+	var found: RegExMatch = regex.search(text)
+	if found == null:
+		return ""
+	for index: int in range(1, 5):
+		var part: int = int(found.get_string(index))
+		if part > 255:
+			return ""
+	return found.get_string(0)
+
 # ---- 建 / 关 ----
 
 ## Host 监听。成功返回 true，失败 false（调用方显示 bind failed）。
