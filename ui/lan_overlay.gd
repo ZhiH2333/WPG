@@ -187,7 +187,25 @@ func bind_lobby(manager: LobbyManager) -> void:
 		_lobby.network_failed.connect(_on_lobby_network_failed)
 	if not _lobby.joined_lobby.is_connected(_on_lobby_joined):
 		_lobby.joined_lobby.connect(_on_lobby_joined)
+	if not _lobby.match_started.is_connected(_on_lobby_match_started):
+		_lobby.match_started.connect(_on_lobby_match_started)
 	_refresh_lobby_view()
+
+## Guest 侧的开局换场：Host 的 begin 到达后 LobbyManager 进 STARTING 并 emit match_started，
+## 但 Guest 没有「Start 按钮」可点，必须由这里把它翻译成 start_lan，
+## 再交给 MainMenu 既有的 _enter_lan() -> _leave_to_sandbox() 合同。
+## Host 不走这条：Host 的 _on_start_pressed() 已经 emit 过 start_lan，
+## 而 start_match() 内部同步 emit match_started 时 _host_started 还没赋值，
+## 所以这里必须用 _lobby.is_host() 判权限，不能用 _host_started 判重。
+func _on_lobby_match_started() -> void:
+	if not _open or _view != View.LOBBY:
+		return
+	if _lobby == null or _lobby.is_host():
+		return
+
+	_host_started = true
+	_stop_beacon()
+	start_lan.emit()
 
 ## Guest 握手完成（座位已分配 + 本地投影建好）→ 进 Lobby 核心页。
 ## 之前 _enter_lobby() 没有任何调用点，Guest 的 Lobby 页在真机上永远看不到。
