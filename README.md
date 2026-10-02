@@ -1636,6 +1636,41 @@ Battle Start 占用 2～5（与 Co-op 同一范围）。房间卡 Battle 满员�
 
 **当时不做：** 不做 icon-only 紧凑顶栏、不动 `TopBar` 各按钮的最小宽度与主题字号、不改 `Home` 的 `grow_horizontal`（窄视口裁哪一端维持现状）、不隐藏 BEST LOOP / LAST RUN 那行、不改 `play_page` 与各叠层（那是并行的 UI Scale 那一刀）、不改 `UiFit` 既有函数签名。
 
+## 手机 200% 适配 + 全站滑动（已完成）：RECORDS / 建房页 / 商店
+
+真机横屏 200%（逻辑 **1140×540**）下的四件事：档位页与建档页全宽可滑、`+ New Record` 挪到右上角、多人建房页不再横向溢出、商店货架能拖着滚。
+
+### 新的公共件：`ui/drag_scroll.gd`（`class_name DragScroll`）
+
+`project.godot` 开着 `pointing/emulate_mouse_from_touch`（架构守卫要求保留），触摸会先变成鼠标事件被 Button 吃掉 —— **`ScrollContainer` 自带的触控拖动永远走不到**，列表只能靠滚轮/滚动条。所以把 settings 那套手感抽成公共件：`_input` 里接管原生 `InputEventScreenTouch/Drag`，低于 `TOUCH_SLOP=12` 当 tap 交还给按钮，越过才吞事件；位置用 `1 - exp(-decay*delta)` 指数平滑逼近目标，收敛后把控制权还给 `ScrollContainer`（滚轮/滚动条照旧）。
+
+- API：`DragScroll.attach(scroll, area)` / `handle_event(event)`（`_input` 里调，true 就 `set_input_as_handled()`）/ `step(delta)`（`_process` 里调）/ `reset()`（开页回到顶部）/ `is_dragging()`。
+- 已接入：RECORDS 列表与建档表单、多人建房页与多人首页与选图页、商店货架。
+
+### RECORDS（solo 档位页）
+
+- **全宽**：`Sheet/Column` 的 `offset_right` 从写死的 `-672`（= 1920 下版心 1200）改成 `-48`，并按视口重算；卡片列数 `UiFit.card_columns_for(content_w, 3)` —— 1920 三列、1140 两列、540 一列。
+- **`+ New Record` 移到 Header 右上角**（`PillPink` 小 CTA，放在 Back 左边）；建档态自动收起，不再和下面的 Confirm 抢注意力。列表里那张大卡片删掉。
+- **建档表单重做**：`CenterContainer` + `520` 窄列 → `ScrollContainer` + 版心列（`UiFit.content_width_for(vw, 48, 1200)`，540 下自动收到 444），分段标题 `CHARACTER / ARENA / LOOP GOAL / NAME (OPTIONAL)`；角色卡从 240×200 竖排改成 **96 高横排**（左 64px 头像 + 右名字/描述），一屏能同时看到角色与场地，剩下的滚动可达。
+- 叠层的 `_ready()` 早于 `MainMenu._ready()` 里的 `GameSettings.apply()`，拿到的还是旧 UI Scale —— 所以 `open()` / `_enter_editor()` 里各按当前视口重算一次。
+
+### 多人建房页（create room）
+
+- `HostRoot/Body` 与 `HomeRoot/Column` 各套一层 `ScrollContainer` + `DragScroll`（原来没有滚动，540 高下 Invite / CHARACTER 直接被切）。
+- **踩坑（已修 + 已加守卫）**：`ScrollContainer` 只把带 `SIZE_EXPAND` 的子节点沿「禁用滚动的那一轴」拉伸。新建的 `Column` 若还是 `layout_mode = 1` 的老 anchors，宽度会被排成 **0**：行照样画得出来（文字溢出一个零宽矩形），但**没有任何可点区域 —— 整个多人首页点不动，鼠标/触摸/手柄都不行**。所以这两个容器必须是 `layout_mode = 2` + `size_flags_horizontal = 3`。`tests/ui_layout_scroll_test.gd` 现在直接断言「首页 Column 与 CREATE ROOM 行的宽度 > 200」：把它改回 anchors 会立刻 FAIL 并报出「实际 0」。
+- 把两列的最小宽度压回可并排：`AddressList` 420→240、角色卡 →150、`Right` 560→380、Yard/Pit/Keep 200→150、Co-op/Battle/LAN visible/Invite only 200→170（并让它们均分列宽），列间距 48→32。实测 1140 下 `Body` 最小宽度 **968 ≤ 1044**，不再横向溢出。
+- 结构没动：左栏是「怎么连、谁在场、选谁」，右栏是「这一局怎么打」，`Start` 与 `Invite` 收在右栏底部。
+
+### 商店
+
+`ShopOffer` 的货架 `Scroll` 接上同一套 `DragScroll`（`_input` 优先于货卡按钮，越过 slop 才吞）。
+
+- **验收证据**：`tests/ui_layout_scroll_test.gd` → `UI_LAYOUT_OK`（DragScroll 手势语义：>slop 才滚、tap 不滚、顶部不为负、抬手结束；RECORDS 左右缩进 = ±48、`New Record` 在 Header、建档态收起、表单最小宽度 ≤ 版心、540 下跟着收；建房页 `Body` 最小宽度 ≤ 可用宽且挂了 DragScroll；商店 `_shelf_drag` 非空）。全量 CI 过，automated tests 15 → 16。
+- 真窗口渲染逐档看过（`--resolution` + `content_scale_factor`）：**2280×1080 @200%（1140×540 横屏）** 档位页两列 + 右上角 CTA + 滚动条，建档页角色/场地一屏可见，建房页两列不再被裁；**1920×1080 @100%** 档位页三列全宽。
+- **已知边界**：建房页两列最小宽度 968，逻辑宽 **< 968**（如竖屏 960、540）仍会轻微横向溢出，要彻底解决得在窄视口把两列改成上下堆叠（`HBox` 不能运行时换型，需要第二套容器或重排）。
+
+**当时不做：** 不改 `UiFit` 既有尺寸阶梯与函数签名、不把列表卡片改成自适应高度、不动句读三选一 / 商店面板 / 结算页的既有版心（那是并行的 UI Scale 那一刀）、不给滚轮加惯性甩动（settings 也没有）、不做竖屏手机的双列→单列重排。
+
 ## Phase 1 收口（已完成）：背景压暗 + 粗体 + 细灰描边
 
 Phase 1 的 IA / 动效 / Play 页已落地，但 Home 与 Play 的 Label **把主题描边清零**（`main_menu.tscn` 13 处、`play_page.tscn` 7 处 `outline_size = 0`），14～15px 的次级文字直接压在 `images/mainmenu.png` 上。全屏实拍（1920×1080 窗口、`ui_scale=1.3`、无叠层、`BlurLayer` 未生效）逐元素实测：11 个元素里 6 个低于 WCAG AA，最差 `Play with friends` **1.05:1**、`Loop 20` 1.26:1、`BEST` 2.12:1、`19:11` 1.78:1。同一页同一令牌的 CR 从 1.05 到 16.9 —— 对比度完全由底图决定，不是设计决定。
@@ -1760,6 +1795,30 @@ Lobby UI（LanOverlay 座位墙 / 状态行 / Start）
 - `tools/ci/architecture.py` / `tools/ci/validate.py` / `tools/ci/smoke.py` 全过；Godot import + 93 个脚本 parse 零错误；Autoload 仍 0。
 
 **当时不做：** `LobbyNet`、抽 `@rpc`、`JoinInvite` / `ConnectionPath`、WAN / P2P / STUN / TURN / UPnP / IPv6、协议 5 → 6、Guest 侧 Room 同步（协议 5 不回传 `profile_id` / 昵称，Guest 仍是旧 Overlay RPC）、Lobby 的 Ready 钮与 Invite 面板、房间卡改名、`NetSession` 任何改动、战斗数字、主动技能、虚拟摇杆 / 触屏、Autoload。
+
+## 触屏虚拟按键（已完成）：Manual Fire 修复 + 样式重做
+
+三件事一起做：Manual Fire 开关的行可见性、FIRE 按钮根本不存在、以及全部虚拟按键的视觉重做。
+
+### 修的三条
+
+1. **Manual Fire 行只在 Touch Controls = AUTO / ON 时出现。** 规则收在 `GameSettings.is_touch_controls_option_visible()`（`mode != OFF`），`SettingsOverlay` 只读它：`_sync_touch_choice_visibility()` 切行 + 提示的 `visible`，`_search_row_allowed()` 保证 Touch = OFF 时搜索 "manual fire" 也翻不出这行，`_on_touch_controls_selected()` 当场重排（`_apply_search` + `_fit_sections` + `_layout_scroll`）。`_sync_from_settings()` 顺带把两个下拉的选中值对齐 settings（`OptionButton.select()` 不发 `item_selected`，不会反向写回）。
+2. **Manual Fire ON 时真的画出 FIRE 按钮。** 场景里以前**根本没有** FireButton（`TouchInput.fire_button_path` 是空 `NodePath`），所以打开 Manual Fire 后没有任何开火入口。现在 `touch_controls.tscn` 有 `WeaponCluster/FireButton`（Primary token + 准星 icon），**默认 `visible = false`**（默认合同仍是右摇杆 = Aim + Fire），`TouchControls._sync_manual_fire_mode()` 按 `GameSettings.is_touch_manual_fire()` 每帧同步可见性并复位 held；`architecture.py` 的守卫从「场景里不许出现 FireButton」改成「必须有 FireButton 且默认隐藏 + `fire_button_path` 必须绑上 + 可见性必须读 `is_touch_manual_fire()`」。
+3. **切回 OFF 不能一直开火。** FIRE 按钮被隐藏 / 复位后 `released` 不再来，`PlayerInput.set_touch_manual_fire_mode(false)` 现在自己清 `_touch_fire_held`（顺手删掉从头到尾没人读的 `_touch_manual_fire_held`）；`TouchInput.set_manual_fire_mode(false)` 也先 `_fire_button.reset()`。
+
+### 样式重做（token 全在 `ui/game_theme.tres`，脚本仍不建 `StyleBoxFlat.new()`）
+
+- **glass / accent / held / selected 四态**：常态 = 半透明玻璃盘（bg α0.42 + 2px 骨白描边 + 软投影），按下 = 更亮的 held token，选中（当前武器）= 粉色描边环，Dash / Fire = 半透明粉 accent。`TouchActionButton` 按下只切 `theme_type_variation`（`TouchActionButtonHeld` / `TouchActionButtonPrimaryHeld` / `TouchActionButtonSelectedHeld`）并给内层 Button 一个 0.07s 的 0.93 缩放回弹，命中区不变。
+- **矢量 icon 由 `ui/mobile/touch_icon.gd` 现画**：`PISTOL` / `SHOTGUN` / `RIFLE` / `SMG` / `DASH`（双箭头）/ `FIRE`（准星）/ `PAUSE` / `CROSSHAIR` / `STICK_TICKS`，全部在 `_draw()` 里按归一化坐标画多边形、折线、圆环，颜色读 theme 的 `TouchIcon/colors/icon_color|icon_active_color|icon_accent_color`。不引 PNG / SVG，不新增 import 资产。
+- **摇杆与瞄准盘**：底座 = 弱化圆环 + 四向刻度（`Decor` 装饰层），knob 按下换 `TouchStickKnobActive`，Aim Pad 中心改成 `CROSSHAIR` 矢量准星并在按住时提亮。
+- **顺手修掉一个一直没生效的 bug**：`TouchStickBase` / `TouchStickKnob` / `TouchAimCenter` 这几个 `Panel` 变体写的是 `styles/normal`，而 `Panel` 读的 stylebox 名是 `panel` → 主题一直 fallback 到 Godot 默认 Panel（深灰圆角 3 的方块），双摇杆从来不是设计里的半透明圆盘。改成 `styles/panel` 后样式才真的生效。
+
+### 验收证据
+
+- `tests/touch_event_integration_test.gd` → `TOUCH_EVENT_INTEGRATION_OK`：FIRE 按钮默认隐藏 / ON 时出现 / icon 非空 / 按下切 held token / Manual Fire ON 时 AimPad 只瞄准不开火而 FIRE 开火 / 按住 FIRE 时切回 OFF 必须释放（这条在修 #3 之前是 FAIL）。
+- `tests/settings_overlay_test.gd` → `SETTINGS_OVERLAY_OK`：Touch OFF 隐藏 Manual Fire 行与提示、AUTO / ON 显示、Touch OFF 时搜索 "manual fire" 不出现、`_sync_from_settings()` 后两个下拉与 settings 对齐。
+- `tests/mobile_input_test.gd` → `MOBILE_INPUT_OK`：新增按钮四态 token 断言 + 「切回 OFF 清 `_touch_fire_held`」单元用例。
+- 15 个 automated tests 全过；`tools/ci/validate.py`（import + 129 脚本 parse）、`architecture.py`、`smoke.py` 全过。预览实拍（`artifacts/dev/touch_preview.gd`，需要真实窗口，产物在 `artifacts/dev/`，均已 gitignore）：Manual Fire OFF / ON、Settings Touch AUTO / OFF。
 
 ## 剩余表
 

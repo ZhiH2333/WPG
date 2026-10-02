@@ -225,6 +225,11 @@ static func get_touch_controls_mode() -> TouchControlsMode:
 static func set_touch_controls_mode(mode: TouchControlsMode) -> void:
 	_touch_controls_mode = mode
 
+## 触控相关子选项（Manual Fire Button）只在 Touch Controls = AUTO / ON 时有意义：
+## OFF 时虚拟按键整层不出现，Manual Fire 这行必须一起隐藏。
+static func is_touch_controls_option_visible() -> bool:
+	return _touch_controls_mode != TouchControlsMode.OFF
+
 static func is_touch_manual_fire() -> bool:
 	return _touch_manual_fire
 

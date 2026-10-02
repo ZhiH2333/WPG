@@ -54,7 +54,6 @@ var _touch_move_vector: Vector2 = Vector2.ZERO
 var _touch_aim_vector: Vector2 = Vector2.ZERO
 var _touch_aim_active: bool = false
 var _touch_fire_held: bool = false
-var _touch_manual_fire_held: bool = false
 var _touch_dash_pending: bool = false
 var _touch_weapon_slot_pending: int = -1
 ## Manual Fire ON 时右摇杆只瞄准，不自动开火，由 FIRE 按钮开火。
@@ -145,7 +144,9 @@ func set_touch_fire_held(value: bool) -> void:
 func set_touch_manual_fire_mode(enabled: bool) -> void:
 	_touch_manual_fire_mode = enabled
 	if not enabled:
-		_touch_manual_fire_held = false
+		## 关掉 Manual Fire 时 FIRE 按钮被隐藏 / 复位，released 不会再来：
+		## 必须在这里丢掉 held，否则下一帧 _update_from_touch() 会一直开火。
+		_touch_fire_held = false
 
 func is_touch_manual_fire_mode() -> bool:
 	return _touch_manual_fire_mode
@@ -199,7 +200,6 @@ func _clear_touch_state() -> void:
 	_touch_aim_vector = Vector2.ZERO
 	_touch_aim_active = false
 	_touch_fire_held = false
-	_touch_manual_fire_held = false
 	_touch_dash_pending = false
 	_touch_weapon_slot_pending = -1
 	_clear_touch_ability_pending()

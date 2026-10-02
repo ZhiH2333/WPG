@@ -102,6 +102,16 @@ def _strip_comments(text: str) -> str:
     return "\n".join(lines)
 
 
+def _node_block(text: str, name: str) -> str:
+    """取 .tscn 里某个 [node name="X" ...] 段落（到下一个 [node ...] 为止）。"""
+    marker = '[node name="%s"' % name
+    start = text.find(marker)
+    if start < 0:
+        return ""
+    end = text.find("[node ", start + len(marker))
+    return text[start:end if end >= 0 else len(text)]
+
+
 def _mobile_input_guards() -> list:
     """Touch 必须走 PlayerInput 正式 API；禁止 Touch 直连战斗/网络/暂停。
     UI 依赖 Touch -> emulated Mouse compatibility，Gameplay 隔离由 Touch source +
@@ -140,14 +150,22 @@ def _mobile_input_guards() -> list:
         for marker, why in forbidden_imports:
             if marker in code:
                 failures.append("%s：%s" % (rel, why))
-    # 正式触屏场景不得保留默认 FIRE 大按钮。
+    # 默认合同仍是「右摇杆 = Aim + Fire」：FIRE 按钮可以存在（Manual Fire ON 用），
+    # 但必须默认隐藏，且可见性只由 GameSettings.is_touch_manual_fire() 决定。
     scene = read(ROOT / "ui/mobile/touch_controls.tscn")
-    if "FireButton" in scene:
-        failures.append("touch_controls.tscn 不得保留默认 FIRE 按钮（右摇杆 = Aim + Fire）")
+    if "FireButton" not in scene:
+        failures.append("touch_controls.tscn 缺少 FireButton（Manual Fire ON 需要）")
+    elif "visible = false" not in _node_block(scene, "FireButton"):
+        failures.append("touch_controls.tscn 的 FireButton 必须默认隐藏（默认右摇杆 = Aim + Fire）")
+    if "fire_button_path" not in scene:
+        failures.append("touch_controls.tscn 必须把 TouchInput.fire_button_path 绑到 FireButton")
     if "PauseButton" not in scene:
         failures.append("touch_controls.tscn 缺少 PauseButton")
     if "Weapon1Button" not in scene or "Weapon4Button" not in scene:
         failures.append("touch_controls.tscn 缺少 Weapon 1~4 按钮")
+    controls = _strip_comments(read(ROOT / "ui/mobile/touch_controls.gd"))
+    if "is_touch_manual_fire" not in controls:
+        failures.append("TouchControls 必须按 GameSettings.is_touch_manual_fire() 同步 FIRE 按钮可见性")
     pi_text = read(ROOT / "player/player_input.gd")
     for api in ("set_touch_move_vector", "set_touch_aim_vector", "set_touch_fire_held", "queue_touch_dash", "queue_touch_weapon_slot"):
         if api not in pi_text:

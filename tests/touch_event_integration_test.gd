@@ -46,6 +46,8 @@ func _run() -> void:
 	await _case_emulated_mouse_ignored()
 	await _case_real_mouse_works()
 	await _case_world_touch_no_fire()
+	await _case_manual_fire_button()
+	await _case_pressed_visuals()
 
 	if _failures.is_empty():
 		print("TOUCH_EVENT_INTEGRATION_OK")
@@ -268,6 +270,87 @@ func _case_world_touch_no_fire() -> void:
 	await process_frame
 	_expect(not _pi.fire_held, "触摸世界普通位置 -> fire false")
 	_expect(_pi.fire_held == before, "世界触摸不改变 fire 状态")
+
+## Manual Fire Button：默认隐藏（右摇杆 = Aim + Fire）；ON 时出现，且只有它能开火。
+## 覆盖三个回归点：FIRE 按钮在场景里真的存在、可见性跟 GameSettings 走、
+## 按住 FIRE 时把开关切回 OFF 必须清掉 held（不能停不下来）。
+func _case_manual_fire_button() -> void:
+	var fire: TouchActionButton = _tc.get_fire_button()
+	_expect(fire != null, "TouchControls 暴露 FIRE 按钮")
+	if fire == null:
+		return
+	_expect(not fire.visible, "Manual Fire OFF：FIRE 按钮默认隐藏")
+	_expect(fire.get_icon_node() != null, "FIRE 按钮带矢量 icon")
+	_expect(fire.get_visual_variation() == "TouchActionButtonPrimary", "FIRE 按钮用 Primary token")
+
+	GameSettings.set_touch_manual_fire(true)
+	await process_frame
+	await process_frame
+	_expect(fire.visible, "Manual Fire ON：FIRE 按钮出现")
+
+	var aim: TouchAimPad = _tc.get_aim_pad()
+	_aim_pad_press(aim, 11, Vector2(0, -80))
+	await process_frame
+	_expect(aim.is_active(), "Manual Fire：AimPad 仍可按住")
+	_expect(_pi.aim_vector.y < 0.0, "Manual Fire：AimPad 仍瞄准")
+	_expect(not _pi.fire_held, "Manual Fire：AimPad 不再自动开火")
+
+	_button_press(fire, 12)
+	await process_frame
+	_expect(fire.is_held(), "FIRE 按钮可按下")
+	_expect(fire.get_visual_variation() == "TouchActionButtonPrimaryHeld", "FIRE 按下切到 held token")
+	_expect(_pi.fire_held, "Manual Fire：FIRE 按钮开火")
+	_button_release(fire, 12)
+	await process_frame
+	_expect(not _pi.fire_held, "FIRE 松开 -> 停火")
+
+	## 按住 FIRE 的同时关掉开关：FIRE 的 held 必须一起清掉（否则 fire 停不下来）。
+	## 先把右摇杆松开，避免命中「Manual Fire OFF + 右摇杆 active = 自动开火」这条正常合同。
+	_aim_pad_release(aim, 11)
+	await process_frame
+	_button_press(fire, 13)
+	await process_frame
+	_expect(_pi.fire_held, "关掉开关前 FIRE 开火")
+	GameSettings.set_touch_manual_fire(false)
+	await process_frame
+	await process_frame
+	_expect(not fire.visible, "Manual Fire OFF：FIRE 按钮重新隐藏")
+	_expect(not _pi.fire_held, "切回 OFF -> FIRE 的 held 释放，无残留")
+	_button_release(fire, 13)
+	await process_frame
+	_expect(not _pi.fire_held, "FIRE 按钮隐藏后松手仍无残留")
+
+## 按下反馈 + stylebox 名字合同：
+## Panel 读的是 "panel"（不是 "normal"），写错会静默 fallback 到 Godot 默认 Panel（圆角 3 的深灰方块）。
+func _case_pressed_visuals() -> void:
+	var stick: VirtualStick = _tc.get_move_stick()
+	var knob: Panel = stick.get_node_or_null("Knob") as Panel
+	_expect(knob != null, "左摇杆有 Knob")
+	if knob != null:
+		var sb: StyleBoxFlat = knob.get_theme_stylebox("panel") as StyleBoxFlat
+		_expect(sb != null, "Knob 从 theme 拿到 panel stylebox")
+		_expect(sb == null or sb.corner_radius_top_left >= 100.0,
+			"Knob 是圆盘 token（styles/panel 生效，不是默认 Panel 的圆角 3）")
+		_expect(knob.theme_type_variation == "TouchStickKnob", "Knob 常态用 TouchStickKnob")
+		_stick_press(stick, 21, Vector2(60, 0))
+		await process_frame
+		_expect(knob.theme_type_variation == "TouchStickKnobActive", "摇杆按住 -> Knob 切 active token")
+		_stick_release(stick, 21)
+		await process_frame
+		_expect(knob.theme_type_variation == "TouchStickKnob", "摇杆松开 -> Knob 回常态 token")
+
+	var aim: TouchAimPad = _tc.get_aim_pad()
+	var center: TouchIcon = aim.get_node_or_null("Center") as TouchIcon
+	_expect(center != null, "AimPad 中心是矢量准星（TouchIcon）")
+	if center != null:
+		_expect(center.get_glyph() == TouchIcon.Glyph.CROSSHAIR, "AimPad 中心 glyph = CROSSHAIR")
+		_expect(not center.is_active_state(), "AimPad 未按时准星是常态")
+		_aim_pad_press(aim, 22, Vector2(0, -70))
+		await process_frame
+		_expect(center.is_active_state(), "AimPad 按住 -> 中心准星提亮")
+		_aim_pad_release(aim, 22)
+		await process_frame
+		_expect(not center.is_active_state(), "AimPad 松开 -> 中心准星回常态")
 
 func _expect(condition: bool, label: String) -> void:
 	if not condition:

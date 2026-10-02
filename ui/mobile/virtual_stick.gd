@@ -22,6 +22,8 @@ var _current_vector: Vector2 = Vector2.ZERO
 
 @onready var _base: Panel = $Base
 @onready var _knob: Panel = $Knob
+## 可选装饰层（刻度）：只画在 Base 之上、Knob 之下，不参与输入。
+@onready var _decor: Control = get_node_or_null("Decor")
 var _has_visuals: bool = false
 
 func _ready() -> void:
@@ -38,8 +40,16 @@ func _setup_visuals() -> void:
 	## 视觉层只负责画面，不抢占输入。
 	_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _decor != null:
+		_decor.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_centre_knob()
 	_apply_rest_visual()
+
+## 按住时 knob 换成更亮的 token（按下手感），只切 theme_type_variation。
+func _apply_active_visual(active: bool) -> void:
+	if not _has_visuals:
+		return
+	_knob.theme_type_variation = "TouchStickKnobActive" if active else "TouchStickKnob"
 
 ## 摇杆常驻正方形，尺寸由自身 size 决定（布局 / SafeArea 负责定位）。
 func _get_stick_center() -> Vector2:
@@ -59,6 +69,9 @@ func _ensure_sizes() -> void:
 	_base.size = Vector2(side, side)
 	_knob.size = Vector2(knob_size, knob_size)
 	_base.position = _get_stick_center() - Vector2(side, side) * 0.5
+	if _decor != null:
+		_decor.size = Vector2(side, side)
+		_decor.position = _base.position
 
 func _centre_knob() -> void:
 	if not _has_visuals:
@@ -128,6 +141,7 @@ func _activate(touch_id: int, initial_pos: Vector2 = Vector2.INF) -> void:
 	_touch_id = touch_id
 	if _has_visuals:
 		_knob.visible = true
+	_apply_active_visual(true)
 	## 手指落在 base 外缘的 padding 区时，第一次就用真实位置算出向量，而不是先归零。
 	if initial_pos == Vector2.INF:
 		_update_stick(_get_stick_center())
@@ -161,6 +175,7 @@ func _release() -> void:
 	_current_vector = Vector2.ZERO
 	if _has_visuals:
 		_centre_knob()
+	_apply_active_visual(false)
 	stick_moved.emit(Vector2.ZERO)
 	stick_released.emit()
 
@@ -172,6 +187,7 @@ func reset() -> void:
 		_ensure_sizes()
 		_centre_knob()
 		_apply_rest_visual()
+	_apply_active_visual(false)
 
 func get_vector() -> Vector2:
 	return _current_vector

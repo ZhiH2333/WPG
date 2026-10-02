@@ -121,9 +121,11 @@ func _wire_focus() -> void:
 		slot.focus_neighbor_left = left.get_path()
 		slot.focus_neighbor_right = right.get_path()
 		slot.focus_neighbor_top = top
-		slot.focus_neighbor_bottom = _back_button.get_path()
-	_back_button.focus_neighbor_top = slots[0].get_path()
-	_back_button.focus_neighbor_bottom = _back_button.get_path()
+		## Back 已从舞台撤掉（PLAY 是顶栏 page）：焦点链不要再指向隐藏控件，没有下一行就指回自己。
+		slot.focus_neighbor_bottom = _back_button.get_path() if _back_button.visible else slot.get_path()
+	if _back_button.visible:
+		_back_button.focus_neighbor_top = slots[0].get_path()
+		_back_button.focus_neighbor_bottom = _back_button.get_path()
 
 func _on_continue_pressed() -> void:
 	_play_click()

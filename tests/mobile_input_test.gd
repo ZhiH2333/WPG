@@ -23,6 +23,7 @@ func _run_all() -> void:
 
 	_case_touch_action_button_edge_semantics()
 	_case_touch_action_button_drag_not_click()
+	_case_touch_action_button_visual_states()
 
 	_case_touch_idle_no_fire()
 	_case_touch_arbitrary_screen_position_no_fire()
@@ -47,6 +48,7 @@ func _run_all() -> void:
 	_case_touch_input_dash_single_frame()
 	_case_touch_input_weapon_slot()
 	_case_touch_input_manual_fire_mode()
+	_case_touch_manual_fire_off_clears_held()
 	_case_touch_no_interference_keyboard()
 	_case_touch_no_interference_gamepad()
 
@@ -153,6 +155,49 @@ func _case_touch_action_button_edge_semantics() -> void:
 	btn._trigger_just_pressed_for_test()
 	_expect(btn.is_just_pressed() == false, "_trigger_just_pressed_for_test 后复位")
 	btn.queue_free()
+
+## 新样式合同：按下 / 选中只切 theme token（视觉全在 ui/game_theme.tres，不建 StyleBoxFlat）。
+## 每个变体都要有独立的 held token，否则按下没有反馈。
+func _case_touch_action_button_visual_states() -> void:
+	var btn: TouchActionButton = _make_visual_touch_button(TouchActionButton.Variant.SMALL, TouchIcon.Glyph.RIFLE)
+	_expect(btn.get_visual_variation() == "TouchActionButtonSmall", "默认 token = TouchActionButtonSmall")
+	_expect(btn.get_icon_node() != null, "icon 按钮建出 TouchIcon")
+	_expect(btn.get_icon_node().get_glyph() == TouchIcon.Glyph.RIFLE, "icon glyph 透传")
+	btn._held = true
+	_expect(btn.get_visual_variation() == "TouchActionButtonHeld", "按下 token = TouchActionButtonHeld")
+	btn._held = false
+	btn.set_selected(true)
+	_expect(btn.get_visual_variation() == "TouchActionButtonSelected", "选中 token = TouchActionButtonSelected")
+	btn._held = true
+	_expect(btn.get_visual_variation() == "TouchActionButtonSelectedHeld",
+		"选中 + 按下 token = TouchActionButtonSelectedHeld")
+	btn.set_selected(false)
+	btn._held = false
+	btn.queue_free()
+
+	var primary: TouchActionButton = _make_visual_touch_button(TouchActionButton.Variant.PRIMARY, TouchIcon.Glyph.FIRE)
+	_expect(primary.get_visual_variation() == "TouchActionButtonPrimary", "Primary token = TouchActionButtonPrimary")
+	primary._held = true
+	_expect(primary.get_visual_variation() == "TouchActionButtonPrimaryHeld",
+		"Primary 按下 token = TouchActionButtonPrimaryHeld")
+	primary._held = false
+	primary.queue_free()
+
+## 造一个「有 Button/Label 子节点」的按钮，让 _has_visuals 成立（真实场景结构）。
+func _make_visual_touch_button(variant: TouchActionButton.Variant, glyph: TouchIcon.Glyph) -> TouchActionButton:
+	var btn: TouchActionButton = TouchActionButton.new()
+	btn.variant = variant
+	btn.button_size = Vector2(72, 72)
+	btn.icon = glyph
+	var inner: Button = Button.new()
+	inner.name = "Button"
+	var label: Label = Label.new()
+	label.name = "Label"
+	inner.add_child(label)
+	btn.add_child(inner)
+	root.add_child(btn)
+	btn._ready()
+	return btn
 
 ## 触摸拖动超过 slop 不能算 click（drag != click）。
 func _case_touch_action_button_drag_not_click() -> void:
@@ -557,6 +602,21 @@ func _case_touch_input_manual_fire_mode() -> void:
 	pi.queue_free()
 	aim_pad.queue_free()
 	ti.queue_free()
+
+## 关掉 Manual Fire：FIRE 按钮会被隐藏 / 复位，released 事件不会再来，
+## PlayerInput 必须自己丢掉 _touch_fire_held，否则下一帧还在开火。
+func _case_touch_manual_fire_off_clears_held() -> void:
+	var pi: PlayerInput = _make_test_player_input()
+	pi.set_touch_active(true)
+	pi.set_touch_manual_fire_mode(true)
+	pi.set_touch_fire_held(true)
+	pi.update_input()
+	_expect(pi.fire_held, "Manual Fire ON：FIRE held -> fire")
+	pi.set_touch_manual_fire_mode(false)
+	pi.update_input()
+	_expect(not pi._touch_fire_held, "切回 OFF：_touch_fire_held 被清掉")
+	_expect(not pi.fire_held, "切回 OFF：fire 释放，无残留")
+	pi.queue_free()
 
 # ---- 设备优先级 ----
 

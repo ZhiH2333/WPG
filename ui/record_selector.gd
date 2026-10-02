@@ -10,7 +10,12 @@ const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const DELETE_SIZE := Vector2(40, 40)
 const DELETE_MARGIN: float = 12.0
 const CARD_RIGHT_RESERVE: float = DELETE_SIZE.x + DELETE_MARGIN * 2.0
-const PAGE_MARGIN_X: float = 720.0
+## 列表全宽：左右各留 48。别再写死 720/672 这种「1920 设计稿」的数字。
+const CONTENT_MARGIN: float = 48.0
+## 建档表单不跟着铺满 4K：版心最宽 1200，窄视口按视口宽收缩。
+const CONTENT_MAX_WIDTH: float = 1200.0
+## 列表最多铺几列卡片。1920 全宽下 4 列，窄视口自动降列。
+const LIST_MAX_COLUMNS: int = 3
 const SUBTITLE_LIST := "Pick a save, or brand a new one"
 const SUBTITLE_EDITOR := "Brand a new save"
 const DEFAULT_LOOP_GOAL: int = 20
@@ -25,25 +30,32 @@ var _sfx_gate: Dictionary = {}
 var _pending_delete_id: String = ""
 var _selected_character_id: String = CHAR_BOAR
 var _selected_arena_id: String = "yard"
+var _list_drag: DragScroll
+var _editor_drag: DragScroll
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _sheet: Control = $Sheet
+@onready var _column: VBoxContainer = $Sheet/Column
 @onready var _subtitle: Label = $Sheet/Column/Subtitle
 @onready var _content: Control = $Sheet/Column/Content
 @onready var _list_root: Control = $Sheet/Column/Content/ListRoot
 @onready var _scroll: ScrollContainer = $Sheet/Column/Content/ListRoot/Scroll
 @onready var _cards: GridContainer = $Sheet/Column/Content/ListRoot/Scroll/Cards
-@onready var _new_button: Button = $Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord
+## New Record 现在是 Header 右上角的 CTA，不再挂在列表末尾。
+@onready var _new_button: Button = $Sheet/Column/Header/NewRecord
 @onready var _editor_root: Control = $Sheet/Column/Content/EditorRoot
-@onready var _boar_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar
-@onready var _chicken_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken
-@onready var _yard_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Arenas/Yard
-@onready var _pit_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Arenas/Pit
-@onready var _keep_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Arenas/Keep
-@onready var _loop_slider: HSlider = $Sheet/Column/Content/EditorRoot/Center/Column/LoopRow/Slider
-@onready var _loop_label: Label = $Sheet/Column/Content/EditorRoot/Center/Column/LoopRow/LoopLabel
-@onready var _name_edit: LineEdit = $Sheet/Column/Content/EditorRoot/Center/Column/NameEdit
-@onready var _confirm_button: Button = $Sheet/Column/Content/EditorRoot/Center/Column/Confirm
+@onready var _editor_scroll: ScrollContainer = $Sheet/Column/Content/EditorRoot/Scroll
+@onready var _editor_column: VBoxContainer = $Sheet/Column/Content/EditorRoot/Scroll/Column
+@onready var _boar_button: Button = $Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Boar
+@onready var _chicken_button: Button = $Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Chicken
+@onready var _yard_button: Button = $Sheet/Column/Content/EditorRoot/Scroll/Column/Arenas/Yard
+@onready var _pit_button: Button = $Sheet/Column/Content/EditorRoot/Scroll/Column/Arenas/Pit
+@onready var _keep_button: Button = $Sheet/Column/Content/EditorRoot/Scroll/Column/Arenas/Keep
+@onready var _loop_slider: HSlider = $Sheet/Column/Content/EditorRoot/Scroll/Column/LoopRow/Slider
+@onready var _loop_label: Label = $Sheet/Column/Content/EditorRoot/Scroll/Column/LoopRow/LoopLabel
+@onready var _name_edit: LineEdit = $Sheet/Column/Content/EditorRoot/Scroll/Column/NameEdit
+## Confirm 也在 Header 右上角（和 + New Record 同一个槽位，按视图切换）
+@onready var _confirm_button: Button = $Sheet/Column/Header/Confirm
 @onready var _delete_dimmer: ColorRect = $DeleteDimmer
 @onready var _delete_center: CenterContainer = $DeleteCenter
 @onready var _delete_panel: PanelContainer = $DeleteCenter/DeletePanel
@@ -78,8 +90,11 @@ func _ready() -> void:
 	for button: Button in [_new_button, _boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _delete_yes, _delete_no, _back_button]:
 		_wire_hover(button)
 		UiAnim.wire_row_feedback(self, button, UiType.INK)
+	_list_drag = DragScroll.attach(_scroll, _list_root)
+	_editor_drag = DragScroll.attach(_editor_scroll, _editor_root)
 	UiFit.connect_refit(self, _on_host_resized)
 	_content.resized.connect(_on_content_resized)
+	sync_content_width_for(_logical_viewport_width())
 	_show_list_nodes()
 
 func is_open() -> bool:
@@ -93,8 +108,13 @@ func open(direction: int = 0) -> void:
 	_pending_delete_id = ""
 	_reset_delete_modal()
 	_show_list_nodes()
+	## 叠层的 _ready 早于 MainMenu._ready 的 GameSettings.apply()，拿到的还是旧 UI Scale；
+	## 打开这一刻按当前逻辑视口重算一遍版心 / 建档表单宽度。
+	sync_content_width_for(_logical_viewport_width())
 	_fit_cards()
 	_refresh_list()
+	if _list_drag != null:
+		_list_drag.reset()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
 	UiAnim.enter_cards(self, _collect_list_cards())
@@ -122,8 +142,23 @@ func _finish_close() -> void:
 	visible = false
 	modulate.a = 1.0
 
+func _process(delta: float) -> void:
+	if not _open:
+		return
+	if _list_drag != null:
+		_list_drag.step(delta)
+	if _editor_drag != null:
+		_editor_drag.step(delta)
+
 func _input(event: InputEvent) -> void:
 	if not _open:
+		return
+	## 触屏拖动滚动优先于按钮：越过 TOUCH_SLOP 才吞事件，tap 照旧落到卡片上。
+	## 见 ui/drag_scroll.gd 顶部注释：emulate_mouse_from_touch 让 ScrollContainer 自带的
+	## 触控拖动失效，只能在这里接管原生触摸事件。
+	var drag: DragScroll = _editor_drag if _view == View.EDITOR else _list_drag
+	if drag != null and drag.handle_event(event):
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
@@ -242,6 +277,8 @@ func _on_confirm_pressed() -> void:
 func _enter_list(refresh: bool) -> void:
 	_view = View.LIST
 	_show_list_nodes()
+	if _list_drag != null:
+		_list_drag.reset()
 	if refresh:
 		_refresh_list()
 	_play_card_enter(_collect_list_cards())
@@ -251,15 +288,23 @@ func _enter_editor() -> void:
 	_pending_delete_id = ""
 	_list_root.visible = false
 	_editor_root.visible = true
+	## 右上角同一个槽位：建档态换成 Create，列表态是 + New Record。
+	_new_button.visible = false
+	_confirm_button.visible = true
 	_subtitle.text = SUBTITLE_EDITOR
 	_hide_delete_modal()
+	sync_content_width_for(_logical_viewport_width())
 	_reset_editor()
+	if _editor_drag != null:
+		_editor_drag.reset()
 	_play_card_enter([_boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _back_button])
 
 func _show_list_nodes() -> void:
 	_view = View.LIST
 	_list_root.visible = true
 	_editor_root.visible = false
+	_new_button.visible = true
+	_confirm_button.visible = false
 	_subtitle.text = SUBTITLE_LIST
 	_hide_delete_modal()
 
@@ -317,11 +362,8 @@ func _refresh_loop_label() -> void:
 func _refresh_list() -> void:
 	GameRecords.load_from_disk()
 	_clear_record_rows()
-	var card: Vector2 = _fit_card_size()
-	_new_button.custom_minimum_size = card
 	for record: GameRecord in GameRecords.list_records():
 		_cards.add_child(_make_record_row(record))
-	_cards.move_child(_new_button, -1)
 	_update_new_button()
 	_fit_scroll()
 	_scroll.scroll_vertical = 0
@@ -365,6 +407,8 @@ func _list_focus_target() -> Array:
 		var button: Button = child as Button
 		if button != null and UiFocus.is_focusable(button):
 			return [button]
+	if UiFocus.is_focusable(_new_button):
+		return [_new_button]
 	return [_back_button]
 
 func _collect_list_cards() -> Array:
@@ -373,6 +417,7 @@ func _collect_list_cards() -> Array:
 		var button: Button = child as Button
 		if button != null:
 			cards.append(button)
+	cards.append(_new_button)
 	cards.append(_back_button)
 	return cards
 
@@ -409,7 +454,7 @@ func _make_delete_button(record_id: String) -> Button:
 
 func _fit_card_size() -> Vector2:
 	var content_w: float = _content_width()
-	var columns: int = UiFit.card_columns(content_w)
+	var columns: int = UiFit.card_columns_for(content_w, LIST_MAX_COLUMNS)
 	_cards.columns = columns
 	return UiFit.card_size(content_w, columns)
 
@@ -417,7 +462,7 @@ func _content_width() -> float:
 	var width: float = _content.size.x
 	if width > 1.0:
 		return width
-	return maxf(UiFit.visible_size(self).x - PAGE_MARGIN_X, 320.0)
+	return maxf(UiFit.visible_size(self).x - CONTENT_MARGIN * 2.0, 320.0)
 
 func _make_main_card(record: GameRecord) -> Button:
 	var card: Vector2 = _fit_card_size()
@@ -429,9 +474,9 @@ func _make_main_card(record: GameRecord) -> Button:
 
 func _fill_editor_character(button: Button, character_id: String) -> void:
 	var def: CharacterDef = CATALOG.get_by_id(StringName(character_id))
-	var portrait: TextureRect = button.get_node("VBox/Portrait") as TextureRect
-	var title: Label = button.get_node("VBox/Title") as Label
-	var desc: Label = button.get_node("VBox/Desc") as Label
+	var portrait: TextureRect = button.get_node("Card/Portrait") as TextureRect
+	var title: Label = button.get_node("Card/Text/Title") as Label
+	var desc: Label = button.get_node("Card/Text/Desc") as Label
 	if portrait != null:
 		portrait.texture = RecordCard.resolve_body_texture(character_id)
 	if title != null:
@@ -442,7 +487,21 @@ func _fill_editor_character(button: Button, character_id: String) -> void:
 func _on_host_resized() -> void:
 	if not _open:
 		return
+	sync_content_width_for(_logical_viewport_width())
 	_fit_cards.call_deferred()
+
+## 参数化版本：测试要能强制 1140 / 960 / 540（手机 200%）这几档。
+func sync_content_width_for(viewport_width: float) -> void:
+	var vw: float = viewport_width if viewport_width > 1.0 else UiFit.DESIGN.x
+	if _column != null:
+		_column.offset_left = CONTENT_MARGIN
+		_column.offset_right = -CONTENT_MARGIN
+	if _editor_column != null:
+		_editor_column.custom_minimum_size.x = UiFit.content_width_for(vw, CONTENT_MARGIN, CONTENT_MAX_WIDTH)
+	_fit_cards()
+
+func _logical_viewport_width() -> float:
+	return get_viewport_rect().size.x
 
 ## Content 是 Page 里唯一随窗口变宽的那一段；它的 resized 带新宽度，比 host.resized 早一步可用。
 func _on_content_resized() -> void:
@@ -455,7 +514,6 @@ func _fit_cards() -> void:
 		return
 	var card: Vector2 = _fit_card_size()
 	var portrait: float = UiFit.portrait_px(card)
-	_new_button.custom_minimum_size = card
 	for child: Node in _cards.get_children():
 		var button: Button = child as Button
 		if button == null:

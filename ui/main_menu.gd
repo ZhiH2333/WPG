@@ -250,7 +250,10 @@ func _enter_leaderboard() -> void:
 	_switch_page(PAGE_RANKING)
 
 func _on_settings_pressed() -> void:
-	if _overlay.is_open() or _overlay.is_credits_open():
+	## 顶栏 SETTINGS 是开关键：抽屉开着再点一次就关掉（Credits 开着时先不动，交给它自己的 Esc/Back）。
+	if _overlay.is_open():
+		if not _overlay.is_credits_open():
+			_overlay.close()
 		return
 	_settings_return = get_viewport().gui_get_focus_owner() as Control
 	_overlay.open()

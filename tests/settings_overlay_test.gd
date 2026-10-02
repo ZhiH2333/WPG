@@ -39,6 +39,7 @@ func _run_all() -> void:
 
 	_case_unique_names_resolve(overlay)
 	_case_open_and_close(overlay)
+	_case_touch_options_gate(overlay)
 	_case_quit_button_visibility(menu)
 
 	overlay.close()
@@ -97,6 +98,67 @@ func _case_quit_button_visibility(menu: MainMenu) -> void:
 	var expected_visible: bool = not OS.has_feature("web")
 	_expect(menu._quit_button.visible == expected_visible,
 		"Quit 可见性 = %s（web 应藏，桌面应留；实际 %s）" % [expected_visible, menu._quit_button.visible])
+
+## Manual Fire Button 只在 Touch Controls = AUTO / ON 时出现：
+## OFF 时虚拟按键整层不显示，这行既不该可见，也不该被搜索翻出来。
+func _case_touch_options_gate(overlay: SettingsOverlay) -> void:
+	overlay.open()
+	_expect(overlay.is_open(), "抽屉可再次打开以验证 Controls 开关")
+	_expect(overlay._manual_fire_row != null, "Manual Fire 行已建出")
+	if overlay._manual_fire_row == null:
+		return
+	_expect(overlay._manual_fire_row.get_parent() == overlay._controls_section.body,
+		"Manual Fire 行挂在 Controls 区里")
+
+	GameSettings.set_touch_controls_mode(GameSettings.TouchControlsMode.OFF)
+	overlay.call("_sync_touch_choice_visibility")
+	_expect(not overlay._manual_fire_row.visible, "Touch OFF -> Manual Fire 行隐藏")
+	_expect(not overlay._touch_hint.visible, "Touch OFF -> 提示也隐藏")
+
+	GameSettings.set_touch_controls_mode(GameSettings.TouchControlsMode.AUTO)
+	overlay.call("_sync_touch_choice_visibility")
+	_expect(overlay._manual_fire_row.visible, "Touch AUTO -> Manual Fire 行显示")
+	_expect(overlay._touch_hint.visible, "Touch AUTO -> 提示显示")
+
+	GameSettings.set_touch_controls_mode(GameSettings.TouchControlsMode.ON)
+	overlay.call("_sync_touch_choice_visibility")
+	_expect(overlay._manual_fire_row.visible, "Touch ON -> Manual Fire 行显示")
+
+	## open() / _sync_from_settings() 时两个下拉要与 GameSettings 对齐（不显示旧值）。
+	GameSettings.set_touch_controls_mode(GameSettings.TouchControlsMode.OFF)
+	overlay.call("_sync_from_settings")
+	_expect(overlay._touch_mode_option.get_selected() == int(GameSettings.TouchControlsMode.OFF),
+		"_sync_from_settings 后 Touch 下拉 = OFF")
+	_expect(not overlay._manual_fire_row.visible, "_sync_from_settings 后 Manual Fire 行隐藏")
+	GameSettings.set_touch_manual_fire(true)
+	overlay.call("_sync_from_settings")
+	_expect(overlay._manual_fire_option.get_selected() == 1, "_sync_from_settings 后 Manual Fire 下拉 = ON")
+	GameSettings.set_touch_manual_fire(false)
+
+	## 搜索必须守同一条闸：OFF 时 "manual fire" 不能把行翻出来。
+	GameSettings.set_touch_controls_mode(GameSettings.TouchControlsMode.OFF)
+	overlay.call("_apply_search", "manual fire")
+	_expect(not overlay._manual_fire_row.visible, "Touch OFF：搜索 manual fire 也不显示该行")
+	GameSettings.set_touch_controls_mode(GameSettings.TouchControlsMode.AUTO)
+	overlay.call("_apply_search", "manual fire")
+	_expect(overlay._manual_fire_row.visible, "Touch AUTO：搜索 manual fire 命中该行")
+	overlay.call("_apply_search", "")
+	_expect(overlay._manual_fire_row.visible, "清空搜索后该行仍在")
+
+	## 选项值本身也要能落回 GameSettings（点击 ON 档）。
+	## handler 会写盘，所以先把 Touch 模式还原成测试前的值，最后再把 Manual Fire 写回去。
+	var original_mode: GameSettings.TouchControlsMode = GameSettings.get_touch_controls_mode()
+	var original_manual: bool = GameSettings.is_touch_manual_fire()
+	GameSettings.set_touch_controls_mode(original_mode)
+	overlay.call("_sync_touch_choice_visibility")
+	overlay.call("_on_touch_manual_fire_selected", 1)
+	_expect(GameSettings.is_touch_manual_fire(), "Manual Fire 选 ON -> 写进 GameSettings")
+	overlay.call("_on_touch_manual_fire_selected", 0)
+	_expect(not GameSettings.is_touch_manual_fire(), "Manual Fire 选 OFF -> 写回 GameSettings")
+	GameSettings.set_touch_manual_fire(original_manual)
+	GameSettings.set_touch_controls_mode(original_mode)
+	GameSettings.save_to_disk()
+	overlay.close()
 
 func _finish() -> void:
 	if _failures.is_empty():

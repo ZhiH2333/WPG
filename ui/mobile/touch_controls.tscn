@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://touch_controls"]
+[gd_scene load_steps=10 format=3 uid="uid://touch_controls"]
 
 [ext_resource type="Script" path="res://ui/mobile/touch_controls.gd" id="1_touch_controls"]
 [ext_resource type="Script" path="res://ui/mobile/virtual_stick.gd" id="3_virtual_stick"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://ui/mobile/safe_area_root.gd" id="7_safe_area"]
 [ext_resource type="Script" path="res://ui/mobile/touch_aim_pad.gd" id="8_touch_aim_pad"]
 [ext_resource type="Script" path="res://ui/mobile/mobile_hud_scaler.gd" id="9_mobile_hud_scaler"]
+[ext_resource type="Script" path="res://ui/mobile/touch_icon.gd" id="10_touch_icon"]
 
 [node name="TouchControls" type="CanvasLayer"]
 layer = 100
@@ -53,6 +54,15 @@ offset_bottom = 200.0
 mouse_filter = 2
 theme_type_variation = "TouchStickBase"
 
+[node name="Decor" type="Control" parent="Root/SafeAreaRoot/MoveStick"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 200.0
+mouse_filter = 2
+script = ExtResource("10_touch_icon")
+glyph = 9
+opacity = 0.5
+
 [node name="Knob" type="Panel" parent="Root/SafeAreaRoot/MoveStick"]
 layout_mode = 0
 offset_right = 80.0
@@ -84,12 +94,14 @@ offset_bottom = 200.0
 mouse_filter = 2
 theme_type_variation = "TouchStickBase"
 
-[node name="Center" type="Panel" parent="Root/SafeAreaRoot/AimPad"]
+[node name="Center" type="Control" parent="Root/SafeAreaRoot/AimPad"]
 layout_mode = 0
-offset_right = 24.0
-offset_bottom = 24.0
+offset_right = 40.0
+offset_bottom = 40.0
 mouse_filter = 2
-theme_type_variation = "TouchAimCenter"
+script = ExtResource("10_touch_icon")
+glyph = 8
+fill = 0.74
 
 [node name="WeaponCluster" type="Control" parent="Root/SafeAreaRoot"]
 layout_mode = 1
@@ -106,6 +118,64 @@ grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
 
+[node name="Ability0Button" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = -84.0
+offset_right = 72.0
+offset_bottom = -12.0
+mouse_filter = 0
+script = ExtResource("4_touch_button")
+variant = 2
+button_text = "A0"
+button_size = Vector2(72, 72)
+font_size = 13
+
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Ability0Button"]
+layout_mode = 0
+offset_right = 72.0
+offset_bottom = 72.0
+focus_mode = 0
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/WeaponCluster/Ability0Button/Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Ability1Button" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
+layout_mode = 0
+offset_left = 80.0
+offset_top = -84.0
+offset_right = 152.0
+offset_bottom = -12.0
+mouse_filter = 0
+script = ExtResource("4_touch_button")
+variant = 2
+button_text = "A1"
+button_size = Vector2(72, 72)
+font_size = 13
+
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Ability1Button"]
+layout_mode = 0
+offset_right = 72.0
+offset_bottom = 72.0
+focus_mode = 0
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/WeaponCluster/Ability1Button/Button"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
 [node name="Weapon1Button" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
 layout_mode = 0
 offset_left = 0.0
@@ -115,8 +185,9 @@ offset_bottom = 72.0
 mouse_filter = 0
 script = ExtResource("4_touch_button")
 variant = 2
-button_text = "P"
+button_text = ""
 button_size = Vector2(72, 72)
+icon = 1
 
 [node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Weapon1Button"]
 layout_mode = 0
@@ -143,8 +214,9 @@ offset_bottom = 72.0
 mouse_filter = 0
 script = ExtResource("4_touch_button")
 variant = 2
-button_text = "SG"
+button_text = ""
 button_size = Vector2(72, 72)
+icon = 2
 
 [node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Weapon2Button"]
 layout_mode = 0
@@ -171,8 +243,9 @@ offset_bottom = 72.0
 mouse_filter = 0
 script = ExtResource("4_touch_button")
 variant = 2
-button_text = "RF"
+button_text = ""
 button_size = Vector2(72, 72)
+icon = 3
 
 [node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Weapon3Button"]
 layout_mode = 0
@@ -199,8 +272,9 @@ offset_bottom = 72.0
 mouse_filter = 0
 script = ExtResource("4_touch_button")
 variant = 2
-button_text = "SMG"
+button_text = ""
 button_size = Vector2(72, 72)
+icon = 4
 
 [node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Weapon4Button"]
 layout_mode = 0
@@ -220,20 +294,22 @@ mouse_filter = 2
 
 [node name="DashButton" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
 layout_mode = 0
-offset_left = 80.0
+offset_left = 108.0
 offset_top = 88.0
-offset_right = 224.0
-offset_bottom = 232.0
+offset_right = 204.0
+offset_bottom = 184.0
 mouse_filter = 0
 script = ExtResource("4_touch_button")
-variant = 1
-button_text = "DASH"
-button_size = Vector2(144, 144)
+variant = 0
+button_text = ""
+button_size = Vector2(96, 96)
+icon = 5
+icon_fill = 0.58
 
 [node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/DashButton"]
 layout_mode = 0
-offset_right = 144.0
-offset_bottom = 144.0
+offset_right = 96.0
+offset_bottom = 96.0
 focus_mode = 0
 mouse_filter = 2
 
@@ -246,56 +322,29 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Ability0Button" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
+[node name="FireButton" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
+visible = false
 layout_mode = 0
-offset_left = 0.0
-offset_top = -96.0
-offset_right = 88.0
-offset_bottom = -8.0
+offset_left = 216.0
+offset_top = 88.0
+offset_right = 312.0
+offset_bottom = 184.0
 mouse_filter = 0
 script = ExtResource("4_touch_button")
-variant = 2
-button_text = "A0"
-button_size = Vector2(88, 88)
-font_size = 14
+variant = 0
+button_text = ""
+button_size = Vector2(96, 96)
+icon = 6
+icon_fill = 0.58
 
-[node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Ability0Button"]
+[node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/FireButton"]
 layout_mode = 0
-offset_right = 88.0
-offset_bottom = 88.0
+offset_right = 96.0
+offset_bottom = 96.0
 focus_mode = 0
 mouse_filter = 2
 
-[node name="Label" type="Label" parent="Root/SafeAreaRoot/WeaponCluster/Ability0Button/Button"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Ability1Button" type="Control" parent="Root/SafeAreaRoot/WeaponCluster"]
-layout_mode = 0
-offset_left = 96.0
-offset_top = -96.0
-offset_right = 184.0
-offset_bottom = -8.0
-mouse_filter = 0
-script = ExtResource("4_touch_button")
-variant = 2
-button_text = "A1"
-button_size = Vector2(88, 88)
-font_size = 14
-
-[node name="Button" type="Button" parent="Root/SafeAreaRoot/WeaponCluster/Ability1Button"]
-layout_mode = 0
-offset_right = 88.0
-offset_bottom = 88.0
-focus_mode = 0
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="Root/SafeAreaRoot/WeaponCluster/Ability1Button/Button"]
+[node name="Label" type="Label" parent="Root/SafeAreaRoot/WeaponCluster/FireButton/Button"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -325,8 +374,10 @@ offset_bottom = 72.0
 mouse_filter = 0
 script = ExtResource("4_touch_button")
 variant = 2
-button_text = "II"
+button_text = ""
 button_size = Vector2(72, 72)
+icon = 7
+icon_fill = 0.52
 
 [node name="Button" type="Button" parent="Root/SafeAreaRoot/SystemCluster/PauseButton"]
 layout_mode = 0
@@ -348,6 +399,7 @@ mouse_filter = 2
 script = ExtResource("5_touch_input")
 move_stick_path = NodePath("../SafeAreaRoot/MoveStick")
 aim_stick_path = NodePath("../SafeAreaRoot/AimPad")
+fire_button_path = NodePath("../SafeAreaRoot/WeaponCluster/FireButton")
 dash_button_path = NodePath("../SafeAreaRoot/WeaponCluster/DashButton")
 
 [node name="MobileHUDScaler" type="Control" parent="Root"]

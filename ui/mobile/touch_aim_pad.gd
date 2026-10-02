@@ -24,6 +24,7 @@ var _direction: Vector2 = Vector2.ZERO
 
 @onready var _base: Panel = $Base
 @onready var _center: Control = $Center
+var _center_icon: TouchIcon = null
 var _has_visuals: bool = false
 
 func _ready() -> void:
@@ -36,11 +37,16 @@ func _ready() -> void:
 
 func _setup_visuals() -> void:
 	_base.theme_type_variation = "TouchStickBase"
-	_center.theme_type_variation = "TouchAimCenter"
 	## 视觉层只负责画面，不抢占输入。
 	_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_center_icon = _center as TouchIcon
 	_apply_rest_visual()
+
+## 按下时中心准星提亮（只切 TouchIcon 的 state，颜色仍来自 theme token）。
+func _apply_active_visual(active: bool) -> void:
+	if _center_icon != null:
+		_center_icon.set_state(active)
 
 func _get_center() -> Vector2:
 	return size * 0.5
@@ -56,7 +62,7 @@ func _ensure_sizes() -> void:
 	_base.custom_minimum_size = Vector2(side, side)
 	_base.size = Vector2(side, side)
 	_base.position = _get_center() - Vector2(side, side) * 0.5
-	_center.size = Vector2(24.0, 24.0)
+	_center.size = Vector2(40.0, 40.0)
 	_center.position = _get_center() - _center.size * 0.5
 
 func _apply_rest_visual() -> void:
@@ -117,6 +123,7 @@ func _handle_mouse_motion(event: InputEventMouseMotion) -> void:
 func _activate(touch_id: int, initial_pos: Vector2 = Vector2.INF) -> void:
 	_active = true
 	_touch_id = touch_id
+	_apply_active_visual(true)
 	if initial_pos == Vector2.INF:
 		_update_direction(_get_center())
 	else:
@@ -137,6 +144,7 @@ func _release() -> void:
 	_active = false
 	_touch_id = -1
 	_direction = Vector2.ZERO
+	_apply_active_visual(false)
 	stick_moved.emit(Vector2.ZERO)
 	stick_released.emit()
 
@@ -147,6 +155,7 @@ func reset() -> void:
 	if _has_visuals:
 		_ensure_sizes()
 		_apply_rest_visual()
+	_apply_active_visual(false)
 
 func get_vector() -> Vector2:
 	return _direction

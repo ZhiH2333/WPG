@@ -1,9 +1,10 @@
 extends CanvasLayer
 class_name TouchControls
 
-## Touch Controls 容器：固定双摇杆 + 武器/Dash Cluster + 右上 Pause。
+## Touch Controls 容器：固定双摇杆 + 武器/Dash/Fire Cluster + 右上 Pause。
 ## 屏幕空间常驻，不随 world/camera 移动。视觉来自 ui/game_theme.tres。
 ## 由 GameSettings.is_touch_controls_enabled() 决定整体显示，并支持临时 modal 屏蔽。
+## FIRE 按钮只在 GameSettings.is_touch_manual_fire() 时出现：默认右摇杆 = Aim + Fire。
 ## 不包含战斗逻辑：输入经 TouchInput -> PlayerInput，Pause 只发信号给 CombatSandbox。
 
 signal touch_visibility_changed(visible: bool)
@@ -12,6 +13,7 @@ signal pause_requested
 @onready var _move_stick: VirtualStick = $Root/SafeAreaRoot/MoveStick
 @onready var _aim_pad: TouchAimPad = $Root/SafeAreaRoot/AimPad
 @onready var _dash_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/DashButton
+@onready var _fire_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/FireButton
 @onready var _weapon1_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Weapon1Button
 @onready var _weapon2_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Weapon2Button
 @onready var _weapon3_button: TouchActionButton = $Root/SafeAreaRoot/WeaponCluster/Weapon3Button
@@ -73,10 +75,21 @@ func _update_debug_status() -> void:
 		source, move.x, move.y, aim.x, aim.y, str(fire),
 	]
 
+## Manual Fire 同步：OFF = 右摇杆 Aim + Fire（FIRE 按钮隐藏）；
+## ON = 右摇杆只瞄准，右侧显示 FIRE 按钮。切换瞬间必须清掉按钮 held，
+## 否则关掉开关时 PlayerInput 还留着上一次的 _touch_fire_held（会一直开火）。
 func _sync_manual_fire_mode() -> void:
 	if _touch_input == null:
 		return
-	_touch_input.set_manual_fire_mode(GameSettings.is_touch_manual_fire())
+	var manual: bool = GameSettings.is_touch_manual_fire()
+	_touch_input.set_manual_fire_mode(manual)
+	if _fire_button == null:
+		return
+	if _fire_button.visible == manual:
+		return
+	if not manual:
+		_fire_button.reset()
+	_fire_button.visible = manual
 
 func _connect_buttons() -> void:
 	## Move/Aim/Fire/Dash/Weapon 全部由 TouchInput 通过 NodePath/slot 连接。
@@ -88,6 +101,7 @@ func _connect_buttons() -> void:
 		_weapon1_button, _weapon2_button, _weapon3_button, _weapon4_button,
 	]
 	if _touch_input != null:
+		_touch_input.bind_fire_button(_fire_button)
 		_touch_input.bind_weapon_buttons(weapon_buttons)
 		## A0 / A1 只往 PlayerInput 送边沿，不接 AbilityController。
 		_touch_input.bind_ability_buttons([_ability0_button, _ability1_button])
@@ -163,6 +177,10 @@ func get_aim_pad() -> TouchAimPad:
 
 func get_dash_button() -> TouchActionButton:
 	return _dash_button
+
+## Manual Fire ON 才可见的 FIRE 按钮（默认 OFF = 右摇杆自动开火）。
+func get_fire_button() -> TouchActionButton:
+	return _fire_button
 
 func get_weapon_button(slot: int) -> TouchActionButton:
 	match slot:

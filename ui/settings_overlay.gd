@@ -71,6 +71,12 @@ var _bind_grids: Array[GridContainer] = []
 var _wrapped_sources: Dictionary = {}
 ## Touch Controls / Manual Fire 的 OptionButton（宽度随面板宽在「占满一行 / 固定 160」间切）。
 var _choice_options: Array[OptionButton] = []
+## Manual Fire 行只在 Touch Controls = AUTO / ON 时出现：OFF 时虚拟按键整层不存在，
+## 这行既不该显示，也不该被搜索命中。_touch_hint 跟随同一开关。
+var _manual_fire_row: VBoxContainer = null
+var _touch_hint: Label = null
+var _touch_mode_option: OptionButton = null
+var _manual_fire_option: OptionButton = null
 var _sfx_gate: Dictionary = {}
 ## Touch drag scroll：区分 tap / drag，只有越过 slop 才接管为滚动。
 const TOUCH_SLOP: float = 12.0
@@ -479,6 +485,7 @@ func _register_responsive_text() -> void:
 	_wrap_label(_ui_scale_label)
 	_wrap_label(_render_scale_slider.get_parent().get_node_or_null("RenderScaleHint") as Label)
 	_wrap_label(_data_section.body.get_node_or_null("Warning") as Label)
+	_wrap_label(_touch_hint)
 	_make_wide_button_shrinkable(_delete_button)
 
 func _apply_split_layout() -> void:
@@ -673,7 +680,7 @@ func _apply_search(text: String) -> void:
 			var item: CanvasItem = child as CanvasItem
 			if item == null:
 				continue
-			var show: bool = header_hit or _matches(child, query)
+			var show: bool = (header_hit or _matches(child, query)) and _search_row_allowed(child)
 			item.visible = show
 			if show:
 				any_item = true
@@ -681,6 +688,12 @@ func _apply_search(text: String) -> void:
 		section._fit()
 	for i: int in _sections.size():
 		_navs[i].modulate.a = 1.0 if _sections[i].visible else 0.28
+
+## 被 Touch Controls 开关挡住的行不显示、也不参与搜索命中。
+func _search_row_allowed(node: Node) -> bool:
+	if node == _manual_fire_row or node == _touch_hint:
+		return GameSettings.is_touch_controls_option_visible()
+	return true
 
 func _matches(node: Node, query: String) -> bool:
 	if query.is_empty():
@@ -725,6 +738,13 @@ func _sync_from_settings() -> void:
 	_sync_ui_scale_label(ui_percent)
 	_vsync_check.set_pressed_no_signal(GameSettings.is_vsync_enabled())
 	_msaa_option.select(GameSettings.get_msaa_index())
+	## Touch 两个下拉的选中值也要跟当前 settings 对齐（open() 时重进抽屉不会显示旧值）。
+	## OptionButton.select() 不发 item_selected，不会反向写回。
+	if _touch_mode_option != null:
+		_touch_mode_option.select(int(GameSettings.get_touch_controls_mode()))
+	if _manual_fire_option != null:
+		_manual_fire_option.select(1 if GameSettings.is_touch_manual_fire() else 0)
+	_sync_touch_choice_visibility()
 
 func _on_volume_changed(value: float) -> void:
 	GameSettings.set_volume(value)
@@ -792,12 +812,31 @@ func _on_touch_controls_selected(index: int) -> void:
 	GameSettings.set_touch_controls_mode(index)
 	GameSettings.apply()
 	GameSettings.save_to_disk()
+	## 开关本身决定 Manual Fire 行是否出现：立刻按新状态重排（搜索态一起刷新）。
+	if _touch_mode_option != null:
+		_touch_mode_option.select(index)
+	_sync_touch_choice_visibility()
+	_apply_search(_search.text)
+	_fit_sections()
+	_layout_scroll()
 
 func _on_touch_manual_fire_selected(index: int) -> void:
 	_play_click()
 	GameSettings.set_touch_manual_fire(index == 1)
 	GameSettings.apply()
 	GameSettings.save_to_disk()
+
+## Manual Fire 行 + 提示只在 Touch Controls = AUTO / ON 时出现。
+## 只切 visible，不删节点：OptionButton 的选中值与宽度档位原样保留。
+func _sync_touch_choice_visibility() -> void:
+	var enabled: bool = GameSettings.is_touch_controls_option_visible()
+	if _manual_fire_row != null:
+		_manual_fire_row.visible = enabled
+	if _touch_hint != null:
+		_touch_hint.visible = enabled
+		_set_wrapped_text(
+			_touch_hint,
+			"ON adds a FIRE button; the right pad then only aims." if enabled else "")
 
 func _on_delete_all_confirmed() -> void:
 	_play_click()
@@ -821,23 +860,28 @@ func _build_bind_rows() -> void:
 	touch_option.add_item("OFF")
 	touch_option.select(int(GameSettings.get_touch_controls_mode()))
 	touch_option.item_selected.connect(_on_touch_controls_selected)
+	_touch_mode_option = touch_option
 	body.add_child(_build_choice_row("Touch Controls", "touch controls mobile on screen", touch_option))
 
-	# Manual Fire Button（默认 OFF：右摇杆 = Aim + Fire）
+	# Manual Fire Button（默认 OFF：右摇杆 = Aim + Fire）。
+	# 只有 Touch Controls = AUTO / ON 才显示这一行：OFF 时整层虚拟按键都不存在。
 	var fire_option: OptionButton = OptionButton.new()
 	fire_option.add_item("OFF")
 	fire_option.add_item("ON")
 	fire_option.select(1 if GameSettings.is_touch_manual_fire() else 0)
 	fire_option.item_selected.connect(_on_touch_manual_fire_selected)
-	body.add_child(_build_choice_row(
-		"Manual Fire Button", "touch manual fire button aim stick", fire_option))
+	_manual_fire_option = fire_option
+	_manual_fire_row = _build_choice_row(
+		"Manual Fire Button", "touch manual fire button aim stick", fire_option)
+	body.add_child(_manual_fire_row)
 
 	var hint: Label = Label.new()
 	hint.theme_type_variation = &"RunSummaryHint"
-	
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_touch_hint = hint
 	body.add_child(hint)
-	
+	_sync_touch_choice_visibility()
+
 	var bind_status: Label = Label.new()
 	bind_status.name = "BindStatus"
 	bind_status.theme_type_variation = &"Caption"

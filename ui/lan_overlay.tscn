@@ -75,6 +75,16 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
+[node name="Start" type="Button" parent="Sheet/Column/Header"]
+visible = false
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "START"
+
 [node name="Back" type="Button" parent="Sheet/Column/Header"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
@@ -110,29 +120,36 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Column" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot"]
+[node name="Scroll" type="ScrollContainer" parent="Sheet/Column/Content/HomeRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="Column" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 0
 
-[node name="Nav" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Column"]
+[node name="Nav" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="RecentTitle" type="Label" parent="Sheet/Column/Content/HomeRoot/Column"]
+[node name="RecentTitle" type="Label" parent="Sheet/Column/Content/HomeRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
 text = "RECENT"
 
-[node name="Recent" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Column"]
+[node name="Recent" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
@@ -217,17 +234,24 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Body" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot"]
+[node name="Scroll" type="ScrollContainer" parent="Sheet/Column/Content/HostRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 48
+mouse_filter = 0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
 
-[node name="Left" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body"]
+[node name="Body" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 32
+
+[node name="Left" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -235,26 +259,26 @@ mouse_filter = 2
 theme_override_constants/separation = 10
 alignment = 0
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
 text = "HOST"
 
-[node name="RecordHint" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+[node name="RecordHint" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 
-[node name="PortLabel" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+[node name="PortLabel" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "port  17777"
 
-[node name="AddressList" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
-custom_minimum_size = Vector2(420, 0)
+[node name="AddressList" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
+custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
@@ -262,37 +286,37 @@ theme_type_variation = &"OfferDesc"
 text = "127.0.0.1"
 autowrap_mode = 2
 
-[node name="Status" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+[node name="Status" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "waiting"
 
-[node name="PlayersTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+[node name="PlayersTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
 text = "PLAYERS"
 
-[node name="Seats" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+[node name="Seats" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="CharacterTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+[node name="CharacterTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
 text = "CHARACTER"
 
-[node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+[node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 0
 
-[node name="Boar" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters"]
-custom_minimum_size = Vector2(0, 72)
+[node name="Boar" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters"]
+custom_minimum_size = Vector2(150, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -302,7 +326,7 @@ button_group = SubResource("group_host_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar"]
+[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Boar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -315,35 +339,35 @@ mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/Card"]
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Boar/Card"]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/Card"]
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Boar/Card"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/Card/Text"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 text = "Boar"
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/Card/Text"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Tanky."
 clip_text = true
 
-[node name="Chicken" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters"]
-custom_minimum_size = Vector2(0, 72)
+[node name="Chicken" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters"]
+custom_minimum_size = Vector2(150, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -352,7 +376,7 @@ button_group = SubResource("group_host_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken"]
+[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Chicken"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -365,35 +389,35 @@ mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/Card"]
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Chicken/Card"]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/Card"]
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Chicken/Card"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/Card/Text"]
+[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 text = "Chicken"
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/Card/Text"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Hard to hit."
 clip_text = true
 
-[node name="Right" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body"]
-custom_minimum_size = Vector2(560, 0)
+[node name="Right" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body"]
+custom_minimum_size = Vector2(380, 0)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 3
@@ -401,18 +425,18 @@ mouse_filter = 2
 theme_override_constants/separation = 14
 alignment = 0
 
-[node name="SettingsTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+[node name="SettingsTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
 text = "ROOM SETTINGS"
 
-[node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+[node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 
-[node name="Slider" type="HSlider" parent="Sheet/Column/Content/HostRoot/Body/Right/LoopRow"]
+[node name="Slider" type="HSlider" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/LoopRow"]
 custom_minimum_size = Vector2(280, 28)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -423,7 +447,7 @@ step = 5.0
 value = 20.0
 rounded = true
 
-[node name="LoopLabel" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Right/LoopRow"]
+[node name="LoopLabel" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/LoopRow"]
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 mouse_filter = 2
@@ -431,14 +455,14 @@ theme_type_variation = &"OfferDesc"
 text = "20 loops"
 horizontal_alignment = 2
 
-[node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+[node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Yard" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Arenas"]
-custom_minimum_size = Vector2(200, 44)
+[node name="Yard" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Arenas"]
+custom_minimum_size = Vector2(128, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -449,8 +473,8 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Yard"
 
-[node name="Pit" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Arenas"]
-custom_minimum_size = Vector2(200, 44)
+[node name="Pit" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Arenas"]
+custom_minimum_size = Vector2(128, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -460,8 +484,8 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Pit"
 
-[node name="Keep" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Arenas"]
-custom_minimum_size = Vector2(200, 44)
+[node name="Keep" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Arenas"]
+custom_minimum_size = Vector2(128, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -471,14 +495,14 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Keep"
 
-[node name="Modes" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+[node name="Modes" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Coop" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Modes"]
-custom_minimum_size = Vector2(200, 44)
+[node name="Coop" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Modes"]
+custom_minimum_size = Vector2(170, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -489,8 +513,8 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Co-op"
 
-[node name="Battle" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Modes"]
-custom_minimum_size = Vector2(200, 44)
+[node name="Battle" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Modes"]
+custom_minimum_size = Vector2(170, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -500,14 +524,14 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Battle"
 
-[node name="Privacy" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+[node name="Privacy" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="LanVisible" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Privacy"]
-custom_minimum_size = Vector2(200, 44)
+[node name="LanVisible" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Privacy"]
+custom_minimum_size = Vector2(170, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -518,8 +542,8 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "LAN visible"
 
-[node name="InviteOnly" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right/Privacy"]
-custom_minimum_size = Vector2(200, 44)
+[node name="InviteOnly" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Privacy"]
+custom_minimum_size = Vector2(170, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -529,16 +553,7 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Invite only"
 
-[node name="Start" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right"]
-custom_minimum_size = Vector2(200, 48)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 0
-theme_type_variation = &"PillPink"
-disabled = true
-text = "Start"
-
-[node name="Invite" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+[node name="Invite" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 size_flags_horizontal = 3

@@ -146,6 +146,10 @@ func _connect_weapon_buttons() -> void:
 		btn.just_pressed.connect(_on_weapon_just_pressed.bind(i))
 
 func set_manual_fire_mode(enabled: bool) -> void:
+	## 从 ON 切回 OFF：FIRE 按钮会被隐藏，released 事件不会再来，
+	## 这里先复位按钮，再由 PlayerInput 清掉 touch fire held。
+	if not enabled and _manual_fire_mode and _fire_button != null:
+		_fire_button.reset()
 	_manual_fire_mode = enabled
 	if _player_input != null:
 		_player_input.set_touch_manual_fire_mode(enabled)

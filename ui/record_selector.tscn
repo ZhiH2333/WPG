@@ -45,7 +45,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 48.0
 offset_top = 24.0
-offset_right = -672.0
+offset_right = -48.0
 offset_bottom = -36.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -68,6 +68,25 @@ text = "RECORDS"
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
+
+[node name="NewRecord" type="Button" parent="Sheet/Column/Header"]
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "+ New Record"
+
+[node name="Confirm" type="Button" parent="Sheet/Column/Header"]
+visible = false
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "Create"
 
 [node name="Back" type="Button" parent="Sheet/Column/Header"]
 custom_minimum_size = Vector2(120, 44)
@@ -138,54 +157,6 @@ theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 16
 columns = 2
 
-[node name="NewRecord" type="Button" parent="Sheet/Column/Content/ListRoot/Scroll/Cards"]
-custom_minimum_size = Vector2(540, 116)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"OfferButton"
-
-[node name="Mark" type="ColorRect" parent="Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord"]
-visible = false
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -2.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-color = Color(0.96, 0.93, 0.88, 1)
-
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 16.0
-offset_right = -20.0
-offset_bottom = -16.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Title" type="Label" parent="Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferTitle"
-text = "+ New Record"
-autowrap_mode = 2
-
-[node name="Desc" type="Label" parent="Sheet/Column/Content/ListRoot/Scroll/Cards/NewRecord/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"OfferDesc"
-text = "Brand a save"
-autowrap_mode = 2
-
 [node name="EditorRoot" type="Control" parent="Sheet/Column/Content"]
 visible = false
 layout_mode = 1
@@ -196,31 +167,39 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Center" type="CenterContainer" parent="Sheet/Column/Content/EditorRoot"]
+[node name="Scroll" type="ScrollContainer" parent="Sheet/Column/Content/EditorRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
+mouse_filter = 0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
 
-[node name="Column" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center"]
+[node name="Column" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll"]
 custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="CharacterLabel" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "CHARACTER"
+
+[node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
-alignment = 1
 
-[node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
+[node name="Boar" type="Button" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters"]
+custom_minimum_size = Vector2(0, 96)
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
-
-[node name="Boar" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters"]
-custom_minimum_size = Vector2(240, 200)
-layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 button_pressed = true
 action_mode = 0
@@ -228,100 +207,113 @@ button_group = SubResource("group_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar"]
+[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Boar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
+offset_left = 18.0
+offset_top = 12.0
+offset_right = -18.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
-alignment = 1
+theme_override_constants/separation = 14
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Boar/Card"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Boar/Card"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 text = "Boar"
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Boar/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Tanky."
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Chicken" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters"]
-custom_minimum_size = Vector2(240, 200)
+[node name="Chicken" type="Button" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters"]
+custom_minimum_size = Vector2(0, 96)
 layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken"]
+[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Chicken"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
+offset_left = 18.0
+offset_top = 12.0
+offset_right = -18.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
-alignment = 1
+theme_override_constants/separation = 14
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Chicken/Card"]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Chicken/Card"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 text = "Chicken"
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/Characters/Chicken/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Hard to hit."
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
+[node name="ArenaLabel" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
+theme_type_variation = &"RailTitle"
+text = "ARENA"
 
-[node name="Yard" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 48)
+[node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Yard" type="Button" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Arenas"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 button_pressed = true
 action_mode = 0
@@ -330,9 +322,10 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Yard"
 
-[node name="Pit" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 48)
+[node name="Pit" type="Button" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Arenas"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_arena")
@@ -340,9 +333,10 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Pit"
 
-[node name="Keep" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column/Arenas"]
-custom_minimum_size = Vector2(200, 48)
+[node name="Keep" type="Button" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Arenas"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
 toggle_mode = true
 action_mode = 0
 button_group = SubResource("group_arena")
@@ -350,14 +344,19 @@ mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
 text = "Keep"
 
-[node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
+[node name="LoopTitle" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "LOOP GOAL"
+
+[node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
-alignment = 1
 
-[node name="Slider" type="HSlider" parent="Sheet/Column/Content/EditorRoot/Center/Column/LoopRow"]
-custom_minimum_size = Vector2(280, 28)
+[node name="Slider" type="HSlider" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/LoopRow"]
+custom_minimum_size = Vector2(200, 28)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
@@ -367,7 +366,7 @@ step = 5.0
 value = 20.0
 rounded = true
 
-[node name="LoopLabel" type="Label" parent="Sheet/Column/Content/EditorRoot/Center/Column/LoopRow"]
+[node name="LoopLabel" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/LoopRow"]
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 mouse_filter = 2
@@ -375,20 +374,23 @@ theme_type_variation = &"OfferDesc"
 text = "20 loops"
 horizontal_alignment = 2
 
-[node name="NameEdit" type="LineEdit" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
-custom_minimum_size = Vector2(520, 44)
+[node name="NameTitle" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RailTitle"
+text = "NAME (OPTIONAL)"
+
+[node name="NameEdit" type="LineEdit" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 mouse_filter = 0
 placeholder_text = "Name (optional)"
 caret_blink = true
 
-[node name="Confirm" type="Button" parent="Sheet/Column/Content/EditorRoot/Center/Column"]
-custom_minimum_size = Vector2(200, 48)
+[node name="BottomPad" type="Control" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
+custom_minimum_size = Vector2(0, 240)
 layout_mode = 2
-size_flags_horizontal = 4
-mouse_filter = 0
-theme_type_variation = &"PillPink"
-text = "Confirm"
+mouse_filter = 2
 
 [node name="BottomLine" type="ColorRect" parent="Sheet/Column"]
 custom_minimum_size = Vector2(0, 1)

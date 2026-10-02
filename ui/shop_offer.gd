@@ -35,6 +35,8 @@ const META_RETIRING: StringName = &"shop_retiring"
 
 var _cards_data: Array[ShopCard] = []
 var _open: bool = false
+## 货架触屏拖动（见 ui/drag_scroll.gd）。emulate_mouse_from_touch 下 ScrollContainer 自带拖动失效。
+var _shelf_drag: DragScroll
 var _view: View = View.BROWSE
 var _pending_companion: CompanionDef
 var _cards: Array[Button] = []
@@ -82,6 +84,7 @@ func _ready() -> void:
 	visible = false
 	layer = 20
 	_stack_shelf_and_guns()
+	_shelf_drag = DragScroll.attach(_shelf_scroll)
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
@@ -148,6 +151,8 @@ func present(cards: Array[ShopCard], gold: int, stim_bought: bool = false) -> vo
 	_snap_vitals()
 	_show_browse_view()
 	_sync_shelf(true)
+	if _shelf_drag != null:
+		_shelf_drag.reset()
 	_fit_panel()
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [], true)
 
@@ -212,6 +217,8 @@ func _fit_panel() -> void:
 func _process(delta: float) -> void:
 	if not _open:
 		return
+	if _shelf_drag != null:
+		_shelf_drag.step(delta)
 	_tick_vitals(delta)
 	if _view != View.PICK_GUN or _player_input == null:
 		return
@@ -221,6 +228,10 @@ func _process(delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	if not _open:
+		return
+	## 触屏拖动货架优先于货卡按钮：越过 slop 才吞事件，tap 照旧是点卡。
+	if _shelf_drag != null and _shelf_drag.handle_event(event):
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_pressed():
 		GameAudio.unlock_driver(self)

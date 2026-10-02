@@ -19,6 +19,9 @@ const RECENT_LIMIT: int = 3
 const HOME_ROW_HEIGHT: float = 54.0
 
 var _open: bool = false
+var _host_drag: DragScroll
+var _home_drag: DragScroll
+var _pick_drag: DragScroll
 var _view: View = View.HOME
 var _anim_tween: Tween
 var _sfx_gate: Dictionary = {}
@@ -47,6 +50,9 @@ var _lobby_notice_playing: bool = false
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _sheet: Control = $Sheet
+@onready var _host_scroll: ScrollContainer = $Sheet/Column/Content/HostRoot/Scroll
+@onready var _home_scroll: ScrollContainer = $Sheet/Column/Content/HomeRoot/Scroll
+@onready var _pick_scroll: ScrollContainer = $Sheet/Column/Content/PickRoot/Scroll
 @onready var _column: VBoxContainer = $Sheet/Column
 @onready var _content: Control = $Sheet/Column/Content
 @onready var _home_root: Control = $Sheet/Column/Content/HomeRoot
@@ -54,29 +60,28 @@ var _lobby_notice_playing: bool = false
 @onready var _host_root: Control = $Sheet/Column/Content/HostRoot
 @onready var _join_root: Control = $Sheet/Column/Content/JoinRoot
 @onready var _lobby_root: Control = $Sheet/Column/Content/LobbyRoot
-@onready var _home_nav: VBoxContainer = $Sheet/Column/Content/HomeRoot/Column/Nav
-@onready var _recent_title: Label = $Sheet/Column/Content/HomeRoot/Column/RecentTitle
-@onready var _recent_list: VBoxContainer = $Sheet/Column/Content/HomeRoot/Column/Recent
-@onready var _pick_scroll: ScrollContainer = $Sheet/Column/Content/PickRoot/Scroll
+@onready var _home_nav: VBoxContainer = $Sheet/Column/Content/HomeRoot/Scroll/Column/Nav
+@onready var _recent_title: Label = $Sheet/Column/Content/HomeRoot/Scroll/Column/RecentTitle
+@onready var _recent_list: VBoxContainer = $Sheet/Column/Content/HomeRoot/Scroll/Column/Recent
 @onready var _pick_cards: GridContainer = $Sheet/Column/Content/PickRoot/Scroll/Cards
 @onready var _custom_button: Button = $Sheet/Column/Content/PickRoot/Scroll/Cards/Custom
-@onready var _host_address: Label = $Sheet/Column/Content/HostRoot/Body/Left/AddressList
-@onready var _host_status: Label = $Sheet/Column/Content/HostRoot/Body/Left/Status
-@onready var _seats: VBoxContainer = $Sheet/Column/Content/HostRoot/Body/Left/Seats
-@onready var _record_hint: Label = $Sheet/Column/Content/HostRoot/Body/Left/RecordHint
-@onready var _host_boar: Button = $Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar
-@onready var _host_chicken: Button = $Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken
-@onready var _host_yard: Button = $Sheet/Column/Content/HostRoot/Body/Right/Arenas/Yard
-@onready var _host_pit: Button = $Sheet/Column/Content/HostRoot/Body/Right/Arenas/Pit
-@onready var _host_keep: Button = $Sheet/Column/Content/HostRoot/Body/Right/Arenas/Keep
-@onready var _host_coop: Button = $Sheet/Column/Content/HostRoot/Body/Right/Modes/Coop
-@onready var _host_battle: Button = $Sheet/Column/Content/HostRoot/Body/Right/Modes/Battle
-@onready var _loop_slider: HSlider = $Sheet/Column/Content/HostRoot/Body/Right/LoopRow/Slider
-@onready var _loop_label: Label = $Sheet/Column/Content/HostRoot/Body/Right/LoopRow/LoopLabel
-@onready var _start_button: Button = $Sheet/Column/Content/HostRoot/Body/Right/Start
-@onready var _host_invite: Button = $Sheet/Column/Content/HostRoot/Body/Right/Invite
-@onready var _host_lan_visible: Button = $Sheet/Column/Content/HostRoot/Body/Right/Privacy/LanVisible
-@onready var _host_invite_only: Button = $Sheet/Column/Content/HostRoot/Body/Right/Privacy/InviteOnly
+@onready var _host_address: Label = $Sheet/Column/Content/HostRoot/Scroll/Body/Left/AddressList
+@onready var _host_status: Label = $Sheet/Column/Content/HostRoot/Scroll/Body/Left/Status
+@onready var _seats: VBoxContainer = $Sheet/Column/Content/HostRoot/Scroll/Body/Left/Seats
+@onready var _record_hint: Label = $Sheet/Column/Content/HostRoot/Scroll/Body/Left/RecordHint
+@onready var _host_boar: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Boar
+@onready var _host_chicken: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Chicken
+@onready var _host_yard: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/Arenas/Yard
+@onready var _host_pit: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/Arenas/Pit
+@onready var _host_keep: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/Arenas/Keep
+@onready var _host_coop: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/Modes/Coop
+@onready var _host_battle: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/Modes/Battle
+@onready var _loop_slider: HSlider = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/LoopRow/Slider
+@onready var _loop_label: Label = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/LoopRow/LoopLabel
+@onready var _start_button: Button = $Sheet/Column/Header/Start
+@onready var _host_invite: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/Invite
+@onready var _host_lan_visible: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/Privacy/LanVisible
+@onready var _host_invite_only: Button = $Sheet/Column/Content/HostRoot/Scroll/Body/Right/Privacy/InviteOnly
 @onready var _join_form: VBoxContainer = $Sheet/Column/Content/JoinRoot/Row/Form
 @onready var _join_browse: VBoxContainer = $Sheet/Column/Content/JoinRoot/Row/Browse
 @onready var _copy_invite_button: Button = $Sheet/Column/Content/JoinRoot/Row/Form/InviteShell/CopyInvite
@@ -148,6 +153,9 @@ func _ready() -> void:
 	_back_button.pressed.connect(_handle_back)
 	for button: Button in [_create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _host_lan_visible, _host_invite_only, _start_button, _connect_button, _copy_invite_button, _show_qr_button, _join_boar, _join_chicken, _lobby_boar, _lobby_chicken, _lobby_ready, _lobby_invite, _host_invite, _back_button]:
 		_wire_hover(button)
+	_host_drag = DragScroll.attach(_host_scroll, _host_root)
+	_home_drag = DragScroll.attach(_home_scroll, _home_root)
+	_pick_drag = DragScroll.attach(_pick_scroll, _pick_root)
 	UiFit.connect_refit(self, _on_host_resized)
 	_content.resized.connect(_on_content_resized)
 	_build_seat_rows()
@@ -267,9 +275,9 @@ func _build_rows_into(container: VBoxContainer, store: Array[HBoxContainer]) -> 
 		row.custom_minimum_size = Vector2(0, SEAT_ROW_HEIGHT)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_theme_constant_override("separation", 16)
-		row.add_child(_make_seat_label("Name", &"OfferTitle", 200.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
-		row.add_child(_make_seat_label("Character", &"OfferDesc", 110.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
-		row.add_child(_make_seat_label("State", &"StatValue", 96.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+		row.add_child(_make_seat_label("Name", &"OfferTitle", 150.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+		row.add_child(_make_seat_label("Character", &"OfferDesc", 90.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+		row.add_child(_make_seat_label("State", &"StatValue", 80.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
 		container.add_child(row)
 		store.append(row)
 
@@ -280,7 +288,7 @@ func _make_seat_header() -> HBoxContainer:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.modulate.a = 0.5
 	row.add_theme_constant_override("separation", 16)
-	row.add_child(_make_seat_label("Name", &"Caption", 200.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+	row.add_child(_make_seat_label("Name", &"Caption", 150.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
 	row.add_child(_make_seat_label("Character", &"Caption", 110.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
 	row.add_child(_make_seat_label("State", &"Caption", 96.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
 	(row.get_node("Name") as Label).text = "PLAYER"
@@ -429,6 +437,25 @@ func _lobby_status_text(snapshot: Dictionary) -> String:
 		return "offline mock"
 	return "offline mock · %d seats" % int(snapshot.get("player_count", 0))
 
+func _process(delta: float) -> void:
+	if not _open:
+		return
+	for drag: DragScroll in _active_drags():
+		drag.step(delta)
+
+## 当前视图对应的滚动条；不在列表里的视图不参与拖动。
+func _active_drags() -> Array[DragScroll]:
+	var out: Array[DragScroll] = []
+	if _view == View.HOST:
+		if _host_drag != null:
+			out.append(_host_drag)
+	elif _view == View.PICK:
+		if _pick_drag != null:
+			out.append(_pick_drag)
+	elif _home_drag != null:
+		out.append(_home_drag)
+	return out
+
 func open(direction: int = 0) -> void:
 	_open = true
 	visible = true
@@ -436,6 +463,9 @@ func open(direction: int = 0) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_picked_record_id = ""
 	_reset_play_mode()
+	for drag: DragScroll in [_host_drag, _home_drag, _pick_drag]:
+		if drag != null:
+			drag.reset()
 	_enter_multiplayer()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
@@ -464,6 +494,11 @@ func _finish_close() -> void:
 func _input(event: InputEvent) -> void:
 	if not _open:
 		return
+	## 触屏拖动滚动优先于按钮（见 ui/drag_scroll.gd）：越过 TOUCH_SLOP 才吞事件，tap 照旧落到按钮上。
+	for drag: DragScroll in _active_drags():
+		if drag.handle_event(event):
+			get_viewport().set_input_as_handled()
+			return
 	## 打开界面时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才建立焦点。
 	if UiFocus.handle_first_pad_input(self, event, _first_focus_target()):
 		get_viewport().set_input_as_handled()
@@ -570,6 +605,9 @@ func _show_home(_animate: bool) -> void:
 ## screen spec §9：三条同级导航是**行**不是大卡，行间一条分隔线，右侧一句 caption + 箭头；
 ## Recent 最多 3 行，没有就整段不出现。Quick join 只基于已有 LAN discovery。
 func _enter_multiplayer() -> void:
+	## MULTIPLAYER 是顶栏直接可达的 page：不再需要 Back（子视图仍然有），Start 也不属于这一页。
+	_back_button.visible = false
+	_start_button.visible = false
 	_view = View.HOME
 	_home_root.visible = true
 	_pick_root.visible = false
@@ -686,7 +724,13 @@ func _on_pick_record_pressed(record_id: String) -> void:
 	_picked_record_id = record.id
 	_enter_host_from_record(record)
 
+## 子视图统一把 Back 打开（HOME 是顶栏页，不带 Back）。
+func _show_page_chrome(show_back: bool) -> void:
+	_back_button.visible = show_back
+	_start_button.visible = false
+
 func _enter_pick() -> void:
+	_show_page_chrome(true)
 	_stop_beacon()
 	_view = View.PICK
 	_home_root.visible = false
@@ -698,6 +742,7 @@ func _enter_pick() -> void:
 	_play_pick_enter()
 
 func _enter_host() -> void:
+	_show_page_chrome(true)
 	_picked_record_id = ""
 	_reset_character()
 	_reset_play_mode()
@@ -720,6 +765,8 @@ func _enter_host_from_record(record: GameRecord) -> void:
 
 func _begin_host() -> void:
 	_view = View.HOST
+	_back_button.visible = true
+	_start_button.visible = true
 	_home_root.visible = false
 	_pick_root.visible = false
 	_join_root.visible = false
@@ -896,7 +943,7 @@ func _on_connect_pressed() -> void:
 ## CREATE ROOM 页内的借档入口：放进 ROOM SETTINGS 那一竖列（与其它房间设置同一列宽），
 ## 排在 START 之前，不再挡在建房前面。
 func _build_borrow_record_button() -> void:
-	var right: VBoxContainer = $Sheet/Column/Content/HostRoot/Body/Right
+	var right: VBoxContainer = $Sheet/Column/Content/HostRoot/Scroll/Body/Right
 	if right.has_node("BorrowRecord"):
 		return
 	var button: Button = Button.new()
