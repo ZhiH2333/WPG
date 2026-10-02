@@ -84,7 +84,15 @@ func _play_modal_enter() -> void:
 	_fit_panel()
 	UiAnim.kill_tween(_modal_tween)
 	_modal_tween = UiAnim.enter_overlay(self, _dimmer, _modal_panel, [], true)
-	_ok_button.grab_focus()
+
+## 弹窗打开时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才落到 OK 上。
+## 本脚本挂在 CanvasLayer 上，所以 host 传 Root 这个 Control；toast 态不该抢焦点，用 _modal_open 挡掉。
+func _input(event: InputEvent) -> void:
+	if not _modal_open:
+		return
+	if UiFocus.handle_first_pad_input(_root, event, [_ok_button]):
+		get_viewport().set_input_as_handled()
+		return
 
 func _on_refit() -> void:
 	_pin_root(_modal_open)

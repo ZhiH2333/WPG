@@ -98,7 +98,6 @@ func open(direction: int = 0) -> void:
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
 	UiAnim.enter_cards(self, _collect_list_cards())
-	_focus_list()
 
 func close(direction: int = 0) -> void:
 	if not _open:
@@ -136,6 +135,11 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			_handle_back()
 			return
+	## 打开界面时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才建立焦点。
+	## 放在 Esc / START 分支之后，避免这两键被当成「第一次导航输入」而改变返回行为。
+	if UiFocus.handle_first_pad_input(self, event, _first_focus_target()):
+		get_viewport().set_input_as_handled()
+		return
 	if _view != View.EDITOR or _is_deleting():
 		return
 	if _name_edit.has_focus():
@@ -184,7 +188,6 @@ func _on_delete_pressed(record_id: String) -> void:
 	_play_click()
 	_pending_delete_id = record_id
 	_show_delete_modal()
-	_delete_no.grab_focus()
 
 func _on_delete_yes_pressed() -> void:
 	_play_click()
@@ -242,7 +245,6 @@ func _enter_list(refresh: bool) -> void:
 	if refresh:
 		_refresh_list()
 	_play_card_enter(_collect_list_cards())
-	_focus_list()
 
 func _enter_editor() -> void:
 	_view = View.EDITOR
@@ -253,7 +255,6 @@ func _enter_editor() -> void:
 	_hide_delete_modal()
 	_reset_editor()
 	_play_card_enter([_boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _back_button])
-	_boar_button.grab_focus()
 
 func _show_list_nodes() -> void:
 	_view = View.LIST
@@ -342,22 +343,29 @@ func _update_new_button() -> void:
 func _fit_scroll() -> void:
 	_scroll.scroll_vertical = 0
 
-func _focus_list() -> void:
-	if _cards.get_child_count() <= 0:
-		_back_button.grab_focus()
-		return
-	if _new_button.disabled == false and _cards.get_child_count() <= 1:
-		_new_button.grab_focus()
-		return
-	var first: Node = _cards.get_child(0)
-	if first == _new_button:
-		_new_button.grab_focus()
-		return
-	var main: Button = first as Button
-	if main == null:
-		_back_button.grab_focus()
-		return
-	main.grab_focus()
+## 当前状态的首选焦点：只在玩家第一次按键盘 / 手柄导航键时用（界面打开时不自动聚焦）。
+## 删除确认的「取消」必须排在「删除」前面，保住原来的安全默认。
+func _first_focus_target() -> Array:
+	if _is_deleting():
+		return [_delete_no, _delete_yes]
+	if _view == View.EDITOR:
+		return _editor_focus_target()
+	return _list_focus_target()
+
+func _editor_focus_target() -> Array:
+	for button: Button in [_boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _back_button]:
+		if UiFocus.is_focusable(button):
+			return [button]
+	return [_back_button]
+
+## LIST 状态的首选焦点沿用旧 _focus_list 的优先级：第一张档位卡 → New → Back。
+func _list_focus_target() -> Array:
+	_fit_cards()
+	for child: Node in _cards.get_children():
+		var button: Button = child as Button
+		if button != null and UiFocus.is_focusable(button):
+			return [button]
+	return [_back_button]
 
 func _collect_list_cards() -> Array:
 	var cards: Array = []

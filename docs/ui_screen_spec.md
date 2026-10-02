@@ -338,6 +338,16 @@ HOME                              基底场景，不销毁
 
 MP 簇（Home / Create 1 / Create 2 / Join / LAN Rooms / Connecting / Failed / Mismatch / Lobby）是 **同一个 Page Overlay 的内部视图**。簇内切换只换内容，不叠第二个 Overlay。
 
+### 2.0 焦点策略（2026-10-02 起，全界面）
+
+**任何界面打开时都不自动聚焦。** 以前每个界面一打开就 `grab_focus()` 某个按钮，导致屏幕上永远有一个按钮停在 focus 观感（骨白下划线 + caption 提亮）——鼠标玩家看起来就是「一直 hover 着」。现在：
+
+- 打开 / 换页 / 关页都不调用 `grab_focus()`；换页时靠 Godot 在控件隐藏时自动释放焦点。
+- 键盘 / 手柄玩家**第一次按导航键**（方向键 / Tab / 回车 / 空格 / 手柄方向键 / 摇杆）时，`UiFocus.handle_first_pad_input()` 才把焦点交给当前视图的首选控件（各界面自己在 `_input` 里给出候选表）；鼠标事件永不建立焦点。
+- 焦点事件在 `_input` 里被吃掉（`set_input_as_handled()`），避免同一下按既建立焦点又立刻移动焦点。
+- 确认类弹窗把**安全项**放在候选表最前（删除确认先聚焦「取消」），保留原来的安全默认。
+- 实现见 `ui/ui_focus.gd`；「打开界面没有任何控件占着焦点」由 `tests/multiplayer_page_test.gd` 盯住。
+
 ### 2.1 Back
 
 | 当前 | Esc / Back / 点空白 | 之后焦点 |

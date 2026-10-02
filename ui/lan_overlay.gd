@@ -439,8 +439,6 @@ func open(direction: int = 0) -> void:
 	_enter_multiplayer()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
-	if _row_create != null:
-		_row_create.grab_focus()
 
 func close(direction: int = 0) -> void:
 	if not _open:
@@ -465,6 +463,10 @@ func _finish_close() -> void:
 
 func _input(event: InputEvent) -> void:
 	if not _open:
+		return
+	## 打开界面时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才建立焦点。
+	if UiFocus.handle_first_pad_input(self, event, _first_focus_target()):
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
@@ -577,8 +579,6 @@ func _enter_multiplayer() -> void:
 	_refresh_recent()
 	_start_guest_beacon()
 	_refresh_home_captions()
-	if _open and _row_create != null:
-		_row_create.grab_focus()
 
 ## 建首页四行导航（行内容在代码里生成：右侧 caption 要跟着 Beacon 结果变）。
 func _build_home_nav() -> void:
@@ -696,7 +696,6 @@ func _enter_pick() -> void:
 	_pick_root.visible = true
 	_refresh_pick()
 	_play_pick_enter()
-	_focus_pick()
 
 func _enter_host() -> void:
 	_picked_record_id = ""
@@ -739,10 +738,6 @@ func _begin_host() -> void:
 	_remember_room(_primary_address(), _selected_arena_id, int(_net_play), _host_loop_goal(), _occupied(), GameLaunch.NET_MAX_SEATS)
 	_start_host_beacon()
 	_refresh_host_status()
-	if _picked_record_id.is_empty():
-		_host_boar.grab_focus()
-		return
-	_back_button.grab_focus()
 
 ## Guest 的 Lobby 视图：握手成功后进入，只画 Room 快照 + Ready / Character。
 func _enter_lobby() -> void:
@@ -759,8 +754,6 @@ func _enter_lobby() -> void:
 	if tween != null:
 		## 淡入结束再按快照重画一次：空位行 0.5 的暗度不会被 tween 抹平成 1.0。
 		tween.finished.connect(_restore_seat_row_tone)
-	if not _is_lobby_frozen():
-		_lobby_ready.grab_focus()
 
 func _restore_seat_row_tone() -> void:
 	if _open and _view == View.LOBBY and not _lobby_notice_playing:
@@ -799,7 +792,6 @@ func _enter_join() -> void:
 	if not _open:
 		return
 	_start_guest_beacon()
-	_join_search.grab_focus()
 
 ## JOIN INVITE：手打 / 粘贴邀请文本 + 选角。Invite shell 只有复制与 QR 占位，不做真连接。
 func _enter_invite() -> void:
@@ -817,8 +809,6 @@ func _enter_invite() -> void:
 	_invite_notice.text = ""
 	_hide_join_session_labels()
 	_connect_button.disabled = false
-	if _open:
-		_join_edit.grab_focus()
 
 func _on_home_invite_pressed() -> void:
 	_play_click()
@@ -1174,16 +1164,32 @@ func _play_pick_enter() -> void:
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_cards(self, _collect_pick_cards())
 
-func _focus_pick() -> void:
+## 各视图的首选焦点：只在玩家第一次按键盘 / 手柄导航键时用（界面打开时不自动聚焦）。
+func _first_focus_target() -> Array:
+	match _view:
+		View.HOME:
+			return [_row_create, _row_join_invite]
+		View.PICK:
+			return _pick_focus_target()
+		View.HOST:
+			return [_host_boar, _host_yard, _loop_slider]
+		View.JOIN:
+			return [_join_search, _create_room_button]
+		View.INVITE:
+			return [_join_edit, _join_boar, _copy_invite_button]
+		View.LOBBY:
+			return [_lobby_ready, _lobby_boar, _lobby_invite]
+	return []
+
+## PICK 页的首选焦点（借档卡片里的第一张）。只给「第一次导航输入」用，不再自动聚焦。
+func _pick_focus_target() -> Array:
 	var first: Node = _pick_cards.get_child(0)
 	if first == _custom_button:
-		_custom_button.grab_focus()
-		return
+		return [_custom_button]
 	var button: Button = first as Button
 	if button != null:
-		button.grab_focus()
-		return
-	_back_button.grab_focus()
+		return [button]
+	return [_custom_button]
 
 func _format_addresses() -> String:
 	var lines: PackedStringArray = PackedStringArray()

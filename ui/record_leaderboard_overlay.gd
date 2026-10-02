@@ -37,7 +37,6 @@ func open(direction: int = 0) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
-	_back_button.grab_focus()
 
 func close(direction: int = 0) -> void:
 	if not _open:
@@ -65,6 +64,10 @@ func _finish_close() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _open:
+		return
+	## 打开界面时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才建立焦点。
+	if UiFocus.handle_first_pad_input(self, event, [_back_button]):
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()

@@ -119,7 +119,6 @@ func _ready() -> void:
 	_refresh_home_facts()
 	_play_enter_animation()
 	_top_bar.move_to_front()
-	_focus_home_default()
 
 func _process(delta: float) -> void:
 	if _switch_left > 0.0:
@@ -151,17 +150,23 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		get_viewport().set_input_as_handled()
 		_first_rail().pressed.emit()
+		return
+	## 打开界面时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才建立焦点。
+	## ui_accept 已在上面的分支里映射成「按 Home 首选 Rail」，所以钩子只处理方向键 / Tab。
+	if UiFocus.handle_first_pad_input(self, event, [_first_rail()]):
+		get_viewport().set_input_as_handled()
+		return
 
 func latest_record() -> GameRecord:
 	return _find_last_record()
 
 func restore_after_settings() -> void:
+	# 关掉 Settings 不再把焦点抢回 Rail：交给 UiFocus，第一次按导航键才建立焦点。
 	if _can_focus(_settings_return):
 		_settings_return.grab_focus()
 		return
 	if _play_page.is_open():
 		return
-	_focus_home_default()
 
 func on_record_selector_closed() -> void:
 	if _suppress_return:
@@ -242,7 +247,6 @@ func _on_home_pressed() -> void:
 		_overlay.close()
 	_switch_page(PAGE_HOME)
 	_refresh_home_facts()
-	_focus_home_default()
 
 ## 唯一的页面切换入口：旧页与新页同帧反向滑动，方向由 PAGE_ORDER 决定。
 func _switch_page(target: StringName) -> void:
@@ -423,9 +427,6 @@ func _first_rail() -> Button:
 	if _continue_button.visible:
 		return _continue_button
 	return _solo_button
-
-func _focus_home_default() -> void:
-	_first_rail().grab_focus()
 
 func _focus_control(control: Control) -> void:
 	if _can_focus(control):

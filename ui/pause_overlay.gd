@@ -116,7 +116,6 @@ func open(freeze_tree: bool = true) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_overlay(self, _dimmer, _panel, [_continue_button, _retry_button, _quit_button], true)
-	_continue_button.grab_focus()
 
 func close(emit_resumed: bool = true) -> void:
 	if not _open:
@@ -158,6 +157,11 @@ func _input(event: InputEvent) -> void:
 	if event.is_pressed():
 		GameAudio.unlock_driver(self)
 	if _overlay.is_open():
+		return
+	## 打开界面时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才建立焦点。
+	## 本脚本挂在 CanvasLayer 上，所以 host 传 Root 这个 Control（它的可见性跟着叠层走）。
+	if UiFocus.handle_first_pad_input(_root, event, [_continue_button]):
+		get_viewport().set_input_as_handled()
 		return
 	if not _is_pause_toggle(event):
 		return
@@ -204,7 +208,6 @@ func _on_settings_pressed() -> void:
 	_play_click()
 	if _overlay.is_open():
 		_overlay.close()
-		_continue_button.grab_focus()
 		return
 	_overlay.open()
 	_overlay.move_to_front()

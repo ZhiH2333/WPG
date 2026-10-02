@@ -37,6 +37,7 @@ func _run_all() -> void:
 	overlay.open()
 
 	_case_multiplayer_home(overlay)
+	_case_no_auto_focus(overlay)
 	_case_create_room_and_back(overlay, manager)
 	_case_lan_rooms(overlay)
 	_case_lobby_navigation(overlay, manager)
@@ -84,6 +85,27 @@ func _case_multiplayer_home(overlay: LanOverlay) -> void:
 	_expect(not overlay._recent_title.visible, "还没有最近房间时不显示 RECENT")
 	_expect(overlay._home_nav.get_child_count() == overlay._home_rows.size() + overlay._home_rows.size() - 1, "导航行之间各一条分隔线")
 	_expect(overlay._row_create.get_node_or_null("Text/Arrow") != null, "导航行右侧有箭头")
+
+## 焦点策略：任何界面打开都不自动聚焦（否则永远有一个按钮停在 focus/hover 观感）；
+## 只有键盘 / 手柄第一次按导航键才把焦点交给当前视图的首选控件，鼠标事件不建立焦点。
+func _case_no_auto_focus(overlay: LanOverlay) -> void:
+	_expect(overlay.get_viewport().gui_get_focus_owner() == null, "打开叠层后没有任何控件占着焦点")
+	var press: InputEventKey = InputEventKey.new()
+	press.physical_keycode = KEY_DOWN
+	press.pressed = true
+	_expect(UiFocus.handle_first_pad_input(overlay, press, overlay._first_focus_target()), "第一次按方向键才建立焦点")
+	_expect(overlay.get_viewport().gui_get_focus_owner() == overlay._row_create, "焦点落在当前视图的首选控件")
+	UiFocus.release(overlay)
+	_expect(overlay.get_viewport().gui_get_focus_owner() == null, "可以显式放掉焦点")
+	var click: InputEventMouseButton = InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	_expect(not UiFocus.wants_focus(click), "鼠标按下不建立焦点")
+	overlay._row_create.pressed.emit()
+	_expect(overlay.get_viewport().gui_get_focus_owner() == null, "进 CREATE ROOM 也不自动聚焦")
+	overlay._enter_lobby()
+	_expect(overlay.get_viewport().gui_get_focus_owner() == null, "进 LOBBY 也不自动聚焦")
+	overlay._enter_multiplayer()
 
 func _case_create_room_and_back(overlay: LanOverlay, manager: LobbyManager) -> void:
 	overlay._row_create.pressed.emit()

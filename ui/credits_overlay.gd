@@ -49,7 +49,6 @@ func open() -> void:
 	move_to_front()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_modal(self, _dimmer, _panel, true)
-	_back_button.grab_focus()
 
 func close() -> void:
 	if not _open:
@@ -75,6 +74,10 @@ func _finish_close() -> void:
 
 func _input(event: InputEvent) -> void:
 	if not _open:
+		return
+	## 打开界面时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才建立焦点。
+	if UiFocus.handle_first_pad_input(self, event, [_back_button]):
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()

@@ -121,7 +121,6 @@ func present(record_id: String, session: RunSession, previous_best: int, winner_
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet)
 	_play_score_roll()
-	_retry_button.grab_focus()
 
 func close() -> void:
 	if not _open:
@@ -142,6 +141,12 @@ func _finish_close() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _open:
+		return
+	## 打开界面时不自动聚焦（见 UiFocus）：键盘 / 手柄第一次按导航键才建立焦点。
+	## 本脚本挂在 CanvasLayer 上，所以 host 传 Root 这个 Control（它的可见性跟着叠层走）。
+	## LAN 对局禁用 Retry 时由 UiFocus 自己跳过它，焦点落到 Menu。
+	if UiFocus.handle_first_pad_input(_root, event, [_retry_button, _menu_button]):
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()

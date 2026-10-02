@@ -254,6 +254,7 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 - 按 Phase 1 意图把旧 Overlay 逐个换动效（顺手换皮，不强制一天全换）
 - 音效：Ready / 进房 / 掉线 与 hover/click 分层
 - 焦点环完整：Lobby 座位、Create 步骤、Invite 面板
+- 焦点策略：**任何界面打开都不自动聚焦**（2026-10-02 起全界面生效，见 `ui/ui_focus.gd` 与 screen spec §2.0）；键盘 / 手柄第一次按导航键才建立焦点，鼠标玩家全程无焦点环。禁止再写「打开就 `grab_focus()`」
 - 控制器导航（完整手柄仍后置；本 Phase 只保证现有 Focus 合同不回退）
 - `UiFit` 覆盖新页面；禁止 `size * ui_scale`
 - 视觉一致性：新页面使用同一套 Playpen Sans 字级和 FlatBold 语法
