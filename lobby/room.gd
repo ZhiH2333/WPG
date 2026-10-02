@@ -203,11 +203,14 @@ func set_ready(profile_id: String, ready: bool) -> bool:
 	player.ready = ready
 	return true
 
+## 改角色后必须重新确认：Guest 的 READY → WAITING。Host 不参与 Start 判定，保持原值。
 func set_character(profile_id: String, character_id: String) -> bool:
 	var player: LobbyPlayer = get_player(profile_id)
 	if player == null:
 		return false
 	player.selected_character_id = PlayerProfile.sanitize_character_id(character_id)
+	if not player.is_host:
+		player.ready = false
 	return true
 
 ## Host 标记重设（快照同步用；1.0 不做 Host 迁移，真正的换主在 Phase 7 之后）。
@@ -221,10 +224,32 @@ func set_host(profile_id: String) -> bool:
 	return true
 
 func set_arena_id(value: String) -> void:
-	arena_id = ARENA_CATALOG.sanitize(value)
+	var next: String = ARENA_CATALOG.sanitize(value)
+	if next == arena_id:
+		return
+	arena_id = next
+	_invalidate_guest_ready()
 
 func set_loop_goal(value: int) -> void:
-	loop_goal = maxi(value, 0)
+	var next: int = maxi(value, 0)
+	if next == loop_goal:
+		return
+	loop_goal = next
+	_invalidate_guest_ready()
+
+## 房间规则（mode / arena / goal）变化后，之前 Guest 的 Ready 不再有效：全部退回 WAITING。
+func set_net_play(value: GameLaunch.NetPlay) -> void:
+	if value == net_play:
+		return
+	net_play = value
+	_invalidate_guest_ready()
+
+## Host 改房间规则 = 所有 Guest 的 READY 失效（Host 自己不参与 Start 判定，保持不变）。
+func _invalidate_guest_ready() -> void:
+	for player: LobbyPlayer in _players:
+		if player.is_host:
+			continue
+		player.ready = false
 
 ## pending peer 占位：peer_connected 立刻占座（Day 78），握手完成才进 players。
 func reserve_seat(peer_id: int) -> int:

@@ -499,6 +499,14 @@ theme_type_variation = &"PillPink"
 disabled = true
 text = "Start"
 
+[node name="Invite" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "Invite"
+
 [node name="JoinRoot" type="Control" parent="Sheet/Column/Content"]
 layout_mode = 1
 anchors_preset = 15
@@ -739,6 +747,124 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 8
+
+[node name="LobbyRoot" type="Control" parent="Sheet/Column/Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Body" type="VBoxContainer" parent="Sheet/Column/Content/LobbyRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="RoomHeader" type="HBoxContainer" parent="Sheet/Column/Content/LobbyRoot/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="RoomName" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body/RoomHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"OfferTitle"
+text = "ROOM"
+
+[node name="ModeTag" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body/RoomHeader"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "CO-OP"
+horizontal_alignment = 2
+
+[node name="RoomFacts" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "CO-OP  ·  YARD  ·  GOAL 20"
+
+[node name="PlayersTitle" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "PLAYERS"
+
+[node name="Seats" type="VBoxContainer" parent="Sheet/Column/Content/LobbyRoot/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Spacer" type="Control" parent="Sheet/Column/Content/LobbyRoot/Body"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Connection" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "LAN  ·  CONNECTED"
+
+[node name="Actions" type="HBoxContainer" parent="Sheet/Column/Content/LobbyRoot/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+
+[node name="CharactersTitle" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "CHARACTER"
+
+[node name="Boar" type="Button" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+action_mode = 0
+mouse_filter = 0
+theme_type_variation = &"OfferButtonSmall"
+text = "Boar"
+
+[node name="Chicken" type="Button" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+toggle_mode = true
+action_mode = 0
+mouse_filter = 0
+theme_type_variation = &"OfferButtonSmall"
+text = "Chicken"
+
+[node name="ActionSpacer" type="Control" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Invite" type="Button" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "Invite"
+
+[node name="Ready" type="Button" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
+custom_minimum_size = Vector2(180, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "Ready"
 
 [node name="BottomLine" type="ColorRect" parent="Sheet/Column"]
 custom_minimum_size = Vector2(0, 1)

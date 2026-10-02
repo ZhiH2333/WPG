@@ -236,6 +236,20 @@ def godot_candidates() -> List[Path]:
     return unique
 
 
+def godot_log_args(log_path: Path) -> List[str]:
+    """把 Godot 自己的日志显式指到仓库内。
+
+    Godot 默认把日志写到 user://logs（macOS 是 ~/Library/Application Support/Godot/
+    app_userdata/<project>/logs）。在只允许写工作区的受限沙箱 / CI 容器里，日志轮转
+    会因为无法建文件而崩溃（RotatedFileLogger::rotate_file 后 signal 11），表现为
+    所有脚本 check 都失败但没有任何 parse error。显式指定日志路径避免这个假失败。
+    必须用绝对路径：Godot 会把相对路径当作 user:// 下的路径。
+    """
+    resolved = log_path.resolve()
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    return ["--log-file", str(resolved)]
+
+
 def find_godot() -> Optional[Path]:
     for path in godot_candidates():
         if path.is_file() and os.access(path, os.X_OK):

@@ -26,12 +26,14 @@ def read(path: Path) -> str:
 
 
 def _lobby_guards() -> list:
-    """Phase 3 硬约束：Lobby 域对象存在、不碰 ENet、UI 只发命令。"""
+    """Phase 3 + Phase 7 硬约束：Lobby 域对象存在、不碰 ENet、UI 只发命令；
+    建连与大厅 @rpc 只允许出现在 lobby/lobby_net.gd。"""
     failures = []
     expected = {
         "lobby/lobby_player.gd": "class_name LobbyPlayer",
         "lobby/room.gd": "class_name Room",
         "lobby/lobby_manager.gd": "class_name LobbyManager",
+        "lobby/lobby_net.gd": "class_name LobbyNet",
     }
     for rel, marker in expected.items():
         text = read(ROOT / rel)
@@ -40,19 +42,52 @@ def _lobby_guards() -> list:
             continue
         if marker not in text:
             failures.append("%s 缺少 %s" % (rel, marker))
-        if "ENetMultiplayerPeer" in text or "multiplayer." in text:
+    # 域对象与 Manager 不碰 ENet / 大厅 RPC：建连、关连、@rpc 全归 LobbyNet。
+    for rel in ("lobby/lobby_player.gd", "lobby/room.gd", "lobby/lobby_manager.gd"):
+        code = _strip_comments(read(ROOT / rel))
+        if "ENetMultiplayerPeer" in code or "multiplayer." in code:
             failures.append("%s 不允许出现 ENet / multiplayer（建连归 LobbyNet）" % rel)
+        if "@rpc" in code:
+            failures.append("%s 不允许出现大厅 @rpc（只允许 lobby/lobby_net.gd）" % rel)
     room = read(ROOT / "lobby/room.gd")
     if "const MAX_PLAYERS: int = GameLaunch.NET_MAX_SEATS" not in room:
         failures.append("Room 上限必须取自 GameLaunch.NET_MAX_SEATS（= 5）")
     manager = read(ROOT / "lobby/lobby_manager.gd")
     if "func start_match() -> bool" not in manager:
         failures.append("LobbyManager 缺少 start_match()：信封必须由 domain 写")
-    overlay = read(ROOT / "ui/lan_overlay.gd")
+    # UI 不碰 ENet / @rpc，建连只发 LobbyManager 命令。
+    overlay = _strip_comments(read(ROOT / "ui/lan_overlay.gd"))
     if "_lobby.start_match()" not in overlay:
         failures.append("LanOverlay 的 Start 必须走 LobbyManager.start_match()")
-    if "note_peer_connecting" not in overlay:
-        failures.append("LanOverlay 未把 peer 事件转给 LobbyManager")
+    if "_lobby.host_room(" not in overlay and "_lobby.join_room_address(" not in overlay:
+        failures.append("LanOverlay 建房 / 连房必须走 LobbyManager 命令（host_room / join_room_address）")
+    if "ENetMultiplayerPeer" in overlay or "@rpc" in overlay:
+        failures.append("ui/lan_overlay.gd 不允许出现 ENet / @rpc（建连归 lobby/lobby_net.gd）")
+    # 全仓库：new ENetMultiplayerPeer 只允许 LobbyNet。
+    for path in ROOT.rglob("*.gd"):
+        rel = path.relative_to(ROOT).as_posix()
+        if rel.startswith(".godot/") or rel.startswith("tools/"):
+            continue
+        code = _strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+        if "ENetMultiplayerPeer.new()" in code and rel != "lobby/lobby_net.gd":
+            failures.append("%s 不允许 new ENetMultiplayerPeer（只允许 lobby/lobby_net.gd）" % rel)
+    # 战斗 NetSession 不得混进大厅 RPC。
+    net = read(ROOT / "arena/net_session.gd")
+    for marker in (
+        "rpc_hello",
+        "rpc_hello_ok",
+        "rpc_assign_seat",
+        "rpc_roster",
+        "rpc_begin",
+        "rpc_ready",
+        "rpc_apply_ready",
+    ):
+        if marker in net:
+            failures.append("arena/net_session.gd 不允许出现大厅 RPC：%s" % marker)
+    # GameLaunch 是换场信封，不是长期 Lobby 单例。
+    launch = read(ROOT / "ui/game_launch.gd")
+    if "LobbyManager" in launch or "LobbyNet" in launch or "LobbyPlayer" in launch:
+        failures.append("ui/game_launch.gd 不得依赖 Lobby 对象（信封不是长期 Lobby 单例）")
     return failures
 
 

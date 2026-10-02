@@ -4,7 +4,7 @@ class_name LanOverlay
 ## 主菜单局域网叠层：JOIN 房间列表 / PICK / HOST。Multi 直接进发现。Create a room 开房。Host 可借已有档预填角色、loop_goal 和地图，联机仍不写档。禁止 Autoload，禁止 AcceptDialog。座位 1～5，第三人进房不踢，满 5 才踢。大厅 Host 听 17778，Guest 探针。
 signal start_lan
 
-enum View { HOME, PICK, HOST, JOIN }
+enum View { HOME, PICK, HOST, JOIN, LOBBY }
 
 const CATALOG: CharacterCatalog = preload("res://data/character_catalog.tres")
 const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
@@ -22,14 +22,14 @@ var _host_started: bool = false
 var _picked_record_id: String = ""
 var _selected_arena_id: String = "yard"
 var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
-var _seat_peer_ids: PackedInt32Array = PackedInt32Array()
-var _seat_character_ids: PackedStringArray = PackedStringArray()
-var _seat_handshake: PackedByteArray = PackedByteArray()
-var _roster_character_ids: PackedStringArray = PackedStringArray()
 var _beacon: LanBeacon
-## Lobby domain 的唯一入口，由 MainMenu 注入（不是 Autoload）。座位分配 / ready / start 条件全归它。
+## Lobby domain 的唯一入口，由 MainMenu 注入（不是 Autoload）。座位 / ready / 网络状态全归它。
 var _lobby: LobbyManager = null
 var _seat_rows: Array[HBoxContainer] = []
+## Guest 的 Lobby 视图座位行（与 Host 视图分开维护）。
+var _guest_seat_rows: Array[HBoxContainer] = []
+## 掉线提示播放中：期间不接受 room_changed 的整体刷新，先把 PLAYERxx LEFT 播完。
+var _lobby_notice_playing: bool = false
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _sheet: Control = $Sheet
@@ -39,6 +39,7 @@ var _seat_rows: Array[HBoxContainer] = []
 @onready var _pick_root: Control = $Sheet/Column/Content/PickRoot
 @onready var _host_root: Control = $Sheet/Column/Content/HostRoot
 @onready var _join_root: Control = $Sheet/Column/Content/JoinRoot
+@onready var _lobby_root: Control = $Sheet/Column/Content/LobbyRoot
 @onready var _host_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/Host
 @onready var _join_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/Join
 @onready var _pick_scroll: ScrollContainer = $Sheet/Column/Content/PickRoot/Scroll
@@ -58,6 +59,7 @@ var _seat_rows: Array[HBoxContainer] = []
 @onready var _loop_slider: HSlider = $Sheet/Column/Content/HostRoot/Body/Right/LoopRow/Slider
 @onready var _loop_label: Label = $Sheet/Column/Content/HostRoot/Body/Right/LoopRow/LoopLabel
 @onready var _start_button: Button = $Sheet/Column/Content/HostRoot/Body/Right/Start
+@onready var _host_invite: Button = $Sheet/Column/Content/HostRoot/Body/Right/Invite
 @onready var _join_search: LineEdit = $Sheet/Column/Content/JoinRoot/Row/Browse/Search
 @onready var _create_room_button: Button = $Sheet/Column/Content/JoinRoot/Row/Browse/CreateRoom
 @onready var _join_empty: Label = $Sheet/Column/Content/JoinRoot/Row/Browse/EmptyHint
@@ -73,6 +75,15 @@ var _seat_rows: Array[HBoxContainer] = []
 @onready var _join_seat: Label = $Sheet/Column/Content/JoinRoot/Row/Form/SeatLabel
 @onready var _join_wait: Label = $Sheet/Column/Content/JoinRoot/Row/Form/WaitingLabel
 @onready var _back_button: Button = $Sheet/Column/Header/Back
+@onready var _lobby_room_name: Label = $Sheet/Column/Content/LobbyRoot/Body/RoomHeader/RoomName
+@onready var _lobby_mode_tag: Label = $Sheet/Column/Content/LobbyRoot/Body/RoomHeader/ModeTag
+@onready var _lobby_room_facts: Label = $Sheet/Column/Content/LobbyRoot/Body/RoomFacts
+@onready var _lobby_seats: VBoxContainer = $Sheet/Column/Content/LobbyRoot/Body/Seats
+@onready var _lobby_connection: Label = $Sheet/Column/Content/LobbyRoot/Body/Connection
+@onready var _lobby_boar: Button = $Sheet/Column/Content/LobbyRoot/Body/Actions/Boar
+@onready var _lobby_chicken: Button = $Sheet/Column/Content/LobbyRoot/Body/Actions/Chicken
+@onready var _lobby_invite: Button = $Sheet/Column/Content/LobbyRoot/Body/Actions/Invite
+@onready var _lobby_ready: Button = $Sheet/Column/Content/LobbyRoot/Body/Actions/Ready
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
@@ -102,23 +113,27 @@ func _ready() -> void:
 	_host_battle.pressed.connect(_on_mode_pressed.bind(GameLaunch.NetPlay.BATTLE))
 	_join_boar.pressed.connect(_on_character_pressed.bind(CHAR_BOAR))
 	_join_chicken.pressed.connect(_on_character_pressed.bind(CHAR_CHICKEN))
+	_lobby_boar.pressed.connect(_on_lobby_character_pressed.bind(CHAR_BOAR))
+	_lobby_chicken.pressed.connect(_on_lobby_character_pressed.bind(CHAR_CHICKEN))
+	_lobby_ready.pressed.connect(_on_lobby_ready_pressed)
+	_lobby_invite.pressed.connect(_on_invite_pressed)
+	_host_invite.pressed.connect(_on_invite_pressed)
 	_loop_slider.value_changed.connect(_on_loop_changed)
 	_start_button.pressed.connect(_on_start_pressed)
 	_connect_button.pressed.connect(_on_connect_pressed)
 	_back_button.pressed.connect(_handle_back)
-	for button: Button in [_host_button, _join_button, _create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _back_button]:
+	for button: Button in [_host_button, _join_button, _create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _start_button, _connect_button, _join_boar, _join_chicken, _lobby_boar, _lobby_chicken, _lobby_ready, _lobby_invite, _host_invite, _back_button]:
 		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
 	_content.resized.connect(_on_content_resized)
 	_build_seat_rows()
-	_reset_seats()
+	_build_guest_seat_rows()
 	_ensure_beacon()
 	_join_search.text_changed.connect(_on_join_search_changed)
 	_enter_join()
 
 func _exit_tree() -> void:
 	_stop_beacon()
-	_unwire_multiplayer()
 
 func is_open() -> bool:
 	return _open
@@ -132,12 +147,46 @@ func bind_lobby(manager: LobbyManager) -> void:
 		_lobby.room_changed.connect(_on_lobby_changed)
 	if not _lobby.room_closed.is_connected(_on_lobby_closed):
 		_lobby.room_closed.connect(_on_lobby_closed)
+	if not _lobby.player_left.is_connected(_on_lobby_player_left):
+		_lobby.player_left.connect(_on_lobby_player_left)
 	_refresh_lobby_view()
 
 func _on_lobby_changed() -> void:
 	if not _open:
 		return
+	# 掉线提示播放期间按兵不动：座位墙要先把 PLAYERxx LEFT 播完，再画回 EMPTY SEAT。
+	# 座位本身在 domain 侧已经立刻释放（Room 里已经没有这个人），这里只是把过程播给玩家看。
+	if _lobby_notice_playing:
+		return
 	_refresh_lobby_view()
+
+## 掉线 / 离房提示：该行淡出 + 盖一条 PLAYERxx LEFT，1.5s 后才重画座位墙。
+func _on_lobby_player_left(display_name: String, seat: int) -> void:
+	if not _open or _view != View.LOBBY:
+		return
+	var row: HBoxContainer = _lobby_seat_row(seat)
+	if row != null:
+		UiAnim.fade_modulate(self, row, 0.0, 0.18, true)
+	var who: String = display_name.strip_edges().to_upper()
+	if who.is_empty():
+		who = "PLAYER %02d" % seat
+	_lobby_connection.text = "%s LEFT" % who
+	UiAnim.flash_error(self, _lobby_connection)
+	_play_error()
+	_lobby_notice_playing = true
+	var timer: SceneTreeTimer = get_tree().create_timer(1.5)
+	timer.timeout.connect(_finish_lobby_left_notice)
+
+func _finish_lobby_left_notice() -> void:
+	_lobby_notice_playing = false
+	if _open and _view == View.LOBBY:
+		_refresh_lobby_view()
+
+## 座位号 -> Lobby 视图的固定座位行（Lobby 只有 LobbyRoot 可见，Host 视图另有 _seat_rows）。
+func _lobby_seat_row(seat: int) -> HBoxContainer:
+	if seat < Room.HOST_SEAT or seat > _guest_seat_rows.size():
+		return null
+	return _guest_seat_rows[seat - 1]
 
 func _on_lobby_closed() -> void:
 	if not _open:
@@ -146,6 +195,13 @@ func _on_lobby_closed() -> void:
 
 ## 座位墙：5 行固定结构，只按 Room 快照改字，不重建节点。
 func _build_seat_rows() -> void:
+	_build_rows_into(_seats, _seat_rows)
+
+func _build_guest_seat_rows() -> void:
+	_build_rows_into(_lobby_seats, _guest_seat_rows)
+
+func _build_rows_into(container: VBoxContainer, store: Array[HBoxContainer]) -> void:
+	store.clear()
 	for seat: int in range(1, GameLaunch.NET_MAX_SEATS + 1):
 		var row: HBoxContainer = HBoxContainer.new()
 		row.name = "Seat%d" % seat
@@ -156,8 +212,8 @@ func _build_seat_rows() -> void:
 		row.add_child(_make_seat_label("Tag", &"Caption", 72.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_LEFT))
 		row.add_child(_make_seat_label("Character", &"OfferDesc", 96.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_LEFT))
 		row.add_child(_make_seat_label("State", &"StatValue", 104.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_RIGHT))
-		_seats.add_child(row)
-		_seat_rows.append(row)
+		container.add_child(row)
+		store.append(row)
 
 func _make_seat_label(node_name: String, variation: StringName, min_width: float, size_flags: int, align: int) -> Label:
 	var label: Label = Label.new()
@@ -172,18 +228,22 @@ func _make_seat_label(node_name: String, variation: StringName, min_width: float
 	return label
 
 func _refresh_lobby_view() -> void:
-	if _lobby == null or _seat_rows.is_empty():
+	if _lobby == null:
 		return
 	var snapshot: Dictionary = _lobby.get_snapshot()
 	var seats: Array = snapshot.get("seats", [])
 	for index: int in _seat_rows.size():
 		var seat_data: Dictionary = seats[index] if index < seats.size() else {"occupied": false}
-		_apply_seat_row(index, seat_data)
+		_apply_seat_row(_seat_rows, index, seat_data)
+	for index: int in _guest_seat_rows.size():
+		var seat_data: Dictionary = seats[index] if index < seats.size() else {"occupied": false}
+		_apply_seat_row(_guest_seat_rows, index, seat_data)
 	_host_status.text = _lobby_status_text(snapshot)
 	_refresh_host_start()
+	_refresh_guest_lobby(snapshot)
 
-func _apply_seat_row(index: int, seat_data: Dictionary) -> void:
-	var row: HBoxContainer = _seat_rows[index]
+func _apply_seat_row(rows: Array[HBoxContainer], index: int, seat_data: Dictionary) -> void:
+	var row: HBoxContainer = rows[index]
 	var name_label: Label = row.get_node("Name") as Label
 	var tag_label: Label = row.get_node("Tag") as Label
 	var character_label: Label = row.get_node("Character") as Label
@@ -202,6 +262,65 @@ func _apply_seat_row(index: int, seat_data: Dictionary) -> void:
 	character_label.text = _seat_character_text(str(seat_data.get("selected_character_id", "")))
 	state_label.text = _seat_state_text(seat_data)
 
+## Guest Lobby 视图：房间事实、连接句、角色选择、Ready 文案。
+func _refresh_guest_lobby(snapshot: Dictionary) -> void:
+	if not bool(snapshot.get("has_room", false)):
+		return
+	_lobby_room_name.text = _room_title(snapshot).to_upper()
+	_lobby_mode_tag.text = _mode_name(int(snapshot.get("net_play", 0))).to_upper()
+	_lobby_room_facts.text = _room_facts(snapshot)
+	var networked: bool = bool(snapshot.get("networked", false))
+	_lobby_connection.text = "%s  ·  %s" % ["LAN" if networked else "OFFLINE", _connection_word(snapshot)]
+	_sync_lobby_character_buttons()
+	var local_ready: bool = bool(snapshot.get("local_ready", false))
+	_lobby_ready.text = "NOT READY" if local_ready else "READY"
+	var local_host: bool = bool(snapshot.get("local_is_host", false))
+	_lobby_ready.visible = not local_host
+	_lobby_boar.visible = not local_host
+	_lobby_chicken.visible = not local_host
+
+func _room_title(snapshot: Dictionary) -> String:
+	var host_name: String = str(snapshot.get("host_display_name", ""))
+	if host_name.is_empty():
+		return "ROOM"
+	return "%s'S ROOM" % host_name
+
+func _room_facts(snapshot: Dictionary) -> String:
+	var arena: String = RecordCard.format_arena_name(str(snapshot.get("arena_id", "yard")))
+	var mode: String = _mode_name(int(snapshot.get("net_play", 0)))
+	var goal: String = _goal_text(snapshot)
+	return "%s  ·  %s  ·  %s" % [mode, arena, goal]
+
+func _goal_text(snapshot: Dictionary) -> String:
+	if int(snapshot.get("net_play", 0)) == int(GameLaunch.NetPlay.BATTLE):
+		return "BATTLE"
+	return RecordCard.format_loop_badge(int(snapshot.get("loop_goal", 0)))
+
+func _mode_name(net_play: int) -> String:
+	return "BATTLE" if net_play == int(GameLaunch.NetPlay.BATTLE) else "CO-OP"
+
+func _connection_word(snapshot: Dictionary) -> String:
+	var occupied: int = int(snapshot.get("occupied_count", 0))
+	var max_players: int = int(snapshot.get("max_players", GameLaunch.NET_MAX_SEATS))
+	if occupied <= 1:
+		return "WAITING"
+	return "CONNECTED  %d/%d" % [occupied, max_players]
+
+func _sync_lobby_character_buttons() -> void:
+	var local: LobbyPlayer = _lobby.get_local_player() if _lobby != null else null
+	var character_id: String = local.selected_character_id if local != null else _selected_character_id
+	_lobby_boar.button_pressed = character_id == CHAR_BOAR
+	_lobby_chicken.button_pressed = character_id == CHAR_CHICKEN
+
+## 本地玩家在 Guest Lobby 的座位行（用于行级 ready 反馈）。
+func _local_lobby_row() -> HBoxContainer:
+	if _lobby == null:
+		return null
+	var seat: int = _lobby.get_local_seat()
+	if seat < Room.HOST_SEAT or seat > _guest_seat_rows.size():
+		return null
+	return _guest_seat_rows[seat - 1]
+
 func _seat_character_text(character_id: String) -> String:
 	if character_id.is_empty():
 		return ""
@@ -211,6 +330,9 @@ func _seat_character_text(character_id: String) -> String:
 func _seat_state_text(seat_data: Dictionary) -> String:
 	if bool(seat_data.get("pending", false)):
 		return "CONNECTING"
+	## Host 恒显示 HOST：它不参与 Start 判定，不该被画成 READY / WAITING。
+	if bool(seat_data.get("is_host", false)):
+		return "HOST"
 	match int(seat_data.get("connection_state", LobbyPlayer.ConnectionState.CONNECTED)):
 		LobbyPlayer.ConnectionState.CONNECTING:
 			return "CONNECTING"
@@ -318,7 +440,7 @@ func _handle_lobby_debug_key(event: InputEvent) -> bool:
 			_play_back()
 			return true
 		KEY_F12:
-			if _occupied_count() > 1 or _lobby.has_pending():
+			if _occupied() > 1 or _lobby.has_pending():
 				_play_error()
 				return true
 			_play_click()
@@ -332,6 +454,12 @@ func _handle_back() -> void:
 	_play_back()
 	if _view == View.HOST or _view == View.JOIN:
 		_leave_lobby_room()
+	# Guest 已进 Lobby：Back = 断线离房回多人大厅（1.0 无 reconnect）。
+	if _view == View.LOBBY:
+		_leave_lobby_room()
+		_clear_peer()
+		close(-1)
+		return
 	if _view == View.HOME or _view == View.JOIN:
 		close(-1)
 		return
@@ -390,6 +518,7 @@ func _enter_pick() -> void:
 	_home_root.visible = false
 	_host_root.visible = false
 	_join_root.visible = false
+	_lobby_root.visible = false
 	_pick_root.visible = true
 	_refresh_pick()
 	_play_pick_enter()
@@ -421,17 +550,15 @@ func _begin_host() -> void:
 	_home_root.visible = false
 	_pick_root.visible = false
 	_join_root.visible = false
+	_lobby_root.visible = false
 	_host_root.visible = true
 	_host_address.text = _format_addresses()
-	_reset_seats()
-	_begin_host_room()
-	if not _create_server():
+	if not _lobby.host_room(_selected_arena_id, _net_play, _host_loop_goal(), _picked_record_id):
 		_refresh_host_start()
 		_host_status.text = "bind failed"
 		_play_error()
 		return
-	_lobby_mark_networked()
-	_wire_multiplayer()
+	_lobby.set_local_character(_selected_character_id)
 	_start_host_beacon()
 	_refresh_host_status()
 	if _picked_record_id.is_empty():
@@ -439,22 +566,26 @@ func _begin_host() -> void:
 		return
 	_back_button.grab_focus()
 
+## Guest 的 Lobby 视图：握手成功后进入，只画 Room 快照 + Ready / Character。
+func _enter_lobby() -> void:
+	_view = View.LOBBY
+	_home_root.visible = false
+	_pick_root.visible = false
+	_host_root.visible = false
+	_join_root.visible = false
+	_lobby_root.visible = true
+	_refresh_lobby_view()
+	if not _is_lobby_frozen():
+		_lobby_ready.grab_focus()
+
 ## 建房先于 bind：房间是领域状态，有没有 ENet peer 只是它的一种形态（离线 mock / 真 LAN）。
-func _begin_host_room() -> void:
-	if _lobby == null:
-		return
-	_lobby.create_room(_selected_arena_id, _net_play, _host_loop_goal(), _picked_record_id)
-	_lobby.set_local_character(_selected_character_id)
-
-func _lobby_mark_networked() -> void:
-	if _lobby != null:
-		_lobby.mark_networked()
-
+## 命令与网络执行都归 LobbyManager / LobbyNet，UI 不碰 ENet。
 func _enter_join() -> void:
 	_view = View.JOIN
 	_home_root.visible = false
 	_pick_root.visible = false
 	_host_root.visible = false
+	_lobby_root.visible = false
 	_join_root.visible = true
 	_reset_character()
 	_join_edit.text = GameLaunch.DEFAULT_JOIN_ADDRESS
@@ -463,229 +594,39 @@ func _enter_join() -> void:
 	_connect_button.disabled = false
 	if not _open:
 		return
-	_wire_multiplayer()
 	_start_guest_beacon()
 	_create_room_button.grab_focus()
-
-func _create_server() -> bool:
-	_clear_peer()
-	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
-	var err: Error = peer.create_server(GameLaunch.NET_PORT, GameLaunch.NET_MAX_SEATS - 1)
-	if err != OK:
-		return false
-	multiplayer.multiplayer_peer = peer
-	_reset_seats()
-	return true
 
 func _on_connect_pressed() -> void:
 	if _view != View.JOIN:
 		return
 	_play_click()
-	_clear_peer()
 	_start_guest_beacon()
 	_join_status.text = "connecting"
 	_hide_join_session_labels()
 	_connect_button.disabled = true
-	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
-	var err: Error = peer.create_client(_join_edit.text.strip_edges(), GameLaunch.NET_PORT)
-	if err != OK:
+	# 连接执行归 LobbyNet（经 LobbyManager 命令），UI 不建 peer。
+	if _lobby == null or not _lobby.join_room_address(_join_edit.text):
 		_join_status.text = "refused"
 		_connect_button.disabled = false
-		return
-	multiplayer.multiplayer_peer = peer
-	_wire_multiplayer()
-
-func _wire_multiplayer() -> void:
-	if not multiplayer.peer_connected.is_connected(_on_peer_connected):
-		multiplayer.peer_connected.connect(_on_peer_connected)
-	if not multiplayer.peer_disconnected.is_connected(_on_peer_disconnected):
-		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-	if not multiplayer.connected_to_server.is_connected(_on_connected_to_server):
-		multiplayer.connected_to_server.connect(_on_connected_to_server)
-	if not multiplayer.connection_failed.is_connected(_on_connection_failed):
-		multiplayer.connection_failed.connect(_on_connection_failed)
-	if not multiplayer.server_disconnected.is_connected(_on_server_disconnected):
-		multiplayer.server_disconnected.connect(_on_server_disconnected)
-
-func _unwire_multiplayer() -> void:
-	if multiplayer.peer_connected.is_connected(_on_peer_connected):
-		multiplayer.peer_connected.disconnect(_on_peer_connected)
-	if multiplayer.peer_disconnected.is_connected(_on_peer_disconnected):
-		multiplayer.peer_disconnected.disconnect(_on_peer_disconnected)
-	if multiplayer.connected_to_server.is_connected(_on_connected_to_server):
-		multiplayer.connected_to_server.disconnect(_on_connected_to_server)
-	if multiplayer.connection_failed.is_connected(_on_connection_failed):
-		multiplayer.connection_failed.disconnect(_on_connection_failed)
-	if multiplayer.server_disconnected.is_connected(_on_server_disconnected):
-		multiplayer.server_disconnected.disconnect(_on_server_disconnected)
-
-func _on_peer_connected(id: int) -> void:
-	if not multiplayer.is_server():
-		return
-	# 占座归 Room：peer_connected 立刻占位（pending），握手完成才进 players。
-	var seat: int = _lobby.note_peer_connecting(id) if _lobby != null and _lobby.has_room() else 0
-	if seat < 2:
-		if _lobby == null or not _lobby.has_room():
-			push_error("lobby: peer %d connected without a room" % id)
-		multiplayer.multiplayer_peer.disconnect_peer(id)
-		return
-	_seat_peer_ids[seat - 1] = id
-	_seat_character_ids[seat - 1] = CHAR_BOAR
-	_seat_handshake[seat - 1] = 0
-	_refresh_host_status()
-	_refresh_host_start()
-	rpc_hello.rpc_id(id, GameLaunch.NET_PROTOCOL)
-
-func _on_peer_disconnected(id: int) -> void:
-	if not multiplayer.is_server():
-		return
-	if _seat_for_peer(id) < 2:
-		return
-	_clear_seat_of_peer(id)
-	if _lobby != null:
-		_lobby.drop_peer(id)
-	_refresh_host_status()
-	_refresh_host_start()
-	_broadcast_roster()
-
-func _on_connected_to_server() -> void:
-	if _view != View.JOIN:
-		return
-	_join_status.text = "connected"
-	rpc_guest_character.rpc_id(1, _selected_character_id)
-
-func _on_connection_failed() -> void:
-	_join_status.text = "refused"
-	_connect_button.disabled = false
-	_hide_join_session_labels()
-	_clear_peer()
-	_start_guest_beacon()
-
-func _on_server_disconnected() -> void:
-	if _host_started:
-		return
-	if _join_status.text != "Version mismatch":
-		_join_status.text = "refused"
-	_connect_button.disabled = false
-	_hide_join_session_labels()
-	_clear_peer()
-	_start_guest_beacon()
-
-@rpc("authority", "call_remote", "reliable")
-func rpc_hello(protocol: int) -> void:
-	if protocol != GameLaunch.NET_PROTOCOL:
-		_join_status.text = "Version mismatch"
-		_connect_button.disabled = false
-		_clear_peer()
-		_start_guest_beacon()
-		return
-	rpc_hello_ok.rpc_id(1)
-	_join_status.text = "connected"
-	_join_wait.visible = true
-	_join_wait.text = "waiting for host"
-	rpc_guest_character.rpc_id(1, _selected_character_id)
-
-@rpc("any_peer", "call_remote", "reliable")
-func rpc_hello_ok() -> void:
-	if not multiplayer.is_server():
-		return
-	var sender: int = multiplayer.get_remote_sender_id()
-	var seat: int = _seat_for_peer(sender)
-	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
-		return
-	_seat_handshake[seat - 1] = 1
-	if _lobby != null:
-		_lobby.confirm_peer(sender)
-	_refresh_host_status()
-	_refresh_host_start()
-	rpc_assign_seat.rpc_id(sender, seat)
-	_push_session_to_peer(sender)
-	_broadcast_roster()
-
-@rpc("any_peer", "call_remote", "reliable")
-func rpc_guest_character(character_id: String) -> void:
-	if not multiplayer.is_server():
-		return
-	var sender: int = multiplayer.get_remote_sender_id()
-	var seat: int = _seat_for_peer(sender)
-	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
-		return
-	_seat_character_ids[seat - 1] = GameLaunch._sanitize_character_id(character_id)
-	if _lobby != null:
-		_lobby.set_peer_character(sender, _seat_character_ids[seat - 1])
-	_broadcast_roster()
-
-@rpc("authority", "call_remote", "reliable")
-func rpc_assign_seat(seat: int) -> void:
-	var clamped: int = clampi(seat, 1, GameLaunch.NET_MAX_SEATS)
-	GameLaunch.set_local_seat(clamped)
-	_join_seat.visible = true
-	_join_seat.text = "seat  %d" % clamped
-
-@rpc("authority", "call_remote", "reliable")
-func rpc_roster(data: PackedByteArray) -> void:
-	_roster_character_ids = _decode_roster(data)
-	GameLaunch.set_lan_roster(_roster_character_ids, _empty_peer_ids(), 0)
-
-@rpc("authority", "call_remote", "reliable")
-func rpc_begin(loop_goal: int, arena_id: String, net_play: int) -> void:
-	_host_started = true
-	GameLaunch.set_lan_roster(_roster_character_ids, _empty_peer_ids(), loop_goal)
-	GameLaunch.set_net_role(GameLaunch.NetRole.GUEST)
-	GameLaunch.set_join_address(_join_edit.text)
-	GameLaunch.set_arena_id(arena_id)
-	GameLaunch.set_net_play(_play_from_net(net_play))
-	start_lan.emit()
-
-@rpc("authority", "call_remote", "reliable")
-func rpc_goal(loop_goal: int) -> void:
-	_join_goal.visible = true
-	if loop_goal > 0:
-		_join_goal.text = "goal  %d" % loop_goal
-		return
-	_join_goal.text = "goal  Inf"
-
-@rpc("authority", "call_remote", "reliable")
-func rpc_arena(arena_id: String) -> void:
-	var id: String = GameLaunch._sanitize_arena_id(arena_id)
-	_join_map.visible = true
-	_join_map.text = "map  %s" % RecordCard.format_arena_name(id)
-
-@rpc("authority", "call_remote", "reliable")
-func rpc_play_mode(net_play: int) -> void:
-	_join_mode.visible = true
-	if net_play == int(GameLaunch.NetPlay.BATTLE):
-		_join_mode.text = "mode  Battle"
-		return
-	_join_mode.text = "mode  Co-op"
 
 func _on_start_pressed() -> void:
 	if not _can_start():
 		_play_error()
 		return
 	_play_click()
-	# 信封只由 LobbyManager 写：UI 不再自己拼 GameLaunch 字段。
+	# 信封与 begin 广播都由 LobbyManager / LobbyNet 负责：UI 不拼 GameLaunch、不发 RPC。
 	if _lobby == null or not _lobby.start_match():
 		_play_error()
 		return
 	_host_started = true
 	_stop_beacon()
-	var loop_goal: int = _host_loop_goal()
-	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
-	var packed: PackedByteArray = _encode_roster()
-	for peer: int in _handshake_guest_peers():
-		rpc_roster.rpc_id(peer, packed)
-		rpc_goal.rpc_id(peer, loop_goal)
-		rpc_arena.rpc_id(peer, arena_id)
-		rpc_play_mode.rpc_id(peer, int(_net_play))
-		rpc_begin.rpc_id(peer, loop_goal, arena_id, int(_net_play))
 	start_lan.emit()
 
 func _on_loop_changed(_value: float) -> void:
 	_refresh_loop_label()
 	if _lobby != null:
 		_lobby.set_loop_goal(_host_loop_goal())
-	_broadcast_goal()
 	_sync_host_beacon()
 
 func _select_character(character_id: String) -> void:
@@ -694,13 +635,8 @@ func _select_character(character_id: String) -> void:
 	_host_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
 	_join_boar.button_pressed = _selected_character_id == CHAR_BOAR
 	_join_chicken.button_pressed = _selected_character_id == CHAR_CHICKEN
-	if _view == View.HOST:
-		_seat_character_ids[0] = _selected_character_id
-		if _lobby != null:
-			_lobby.set_local_character(_selected_character_id)
-		_broadcast_roster()
-	if _view == View.JOIN and multiplayer.multiplayer_peer != null:
-		rpc_guest_character.rpc_id(1, _selected_character_id)
+	if _lobby != null and _lobby.has_room():
+		_lobby.set_local_character(_selected_character_id)
 
 func _select_arena(arena_id: String) -> void:
 	_selected_arena_id = GameLaunch._sanitize_arena_id(arena_id)
@@ -709,19 +645,14 @@ func _select_arena(arena_id: String) -> void:
 	_host_keep.button_pressed = _selected_arena_id == "keep"
 	if _lobby != null:
 		_lobby.set_arena_id(_selected_arena_id)
-	_broadcast_arena()
 	_sync_host_beacon()
 
-func _push_session_to_peer(peer: int) -> void:
-	if peer <= 1:
-		return
-	rpc_roster.rpc_id(peer, _encode_roster())
-	rpc_goal.rpc_id(peer, maxi(roundi(_loop_slider.value), 0))
-	rpc_arena.rpc_id(peer, GameLaunch._sanitize_arena_id(_selected_arena_id))
-	rpc_play_mode.rpc_id(peer, int(_net_play))
-
 func _reset_character() -> void:
-	_select_character(CHAR_BOAR)
+	_selected_character_id = CHAR_BOAR
+	_host_boar.button_pressed = true
+	_host_chicken.button_pressed = false
+	_join_boar.button_pressed = true
+	_join_chicken.button_pressed = false
 
 func _reset_play_mode() -> void:
 	_select_net_play(GameLaunch.NetPlay.COOP)
@@ -743,7 +674,6 @@ func _select_net_play(play: GameLaunch.NetPlay) -> void:
 		_lobby.set_net_play(play)
 	_refresh_mode_ui()
 	_refresh_host_start()
-	_broadcast_play_mode()
 	_sync_host_beacon()
 
 func _refresh_mode_ui() -> void:
@@ -764,6 +694,25 @@ func _refresh_host_start() -> void:
 	var can_start: bool = _can_start()
 	_start_button.disabled = not can_start
 	_start_button.focus_mode = Control.FOCUS_ALL if can_start else Control.FOCUS_NONE
+	_start_button.text = _start_button_text()
+
+## Start 按钮文案由 LobbyManager 的条件驱动，UI 不自己猜。
+func _start_button_text() -> String:
+	if _lobby == null:
+		return "START"
+	match _lobby.start_block_reason():
+		"":
+			return "START"
+		"need 2":
+			return "NEED 2 PLAYERS"
+		"not ready":
+			return "WAITING FOR PLAYERS"
+		"connecting", "no peer":
+			return "CONNECTING..."
+		"pending":
+			return "CONNECTING..."
+		_:
+			return "START"
 
 func _is_host_locked() -> bool:
 	return _view == View.HOST and not _picked_record_id.is_empty()
@@ -882,17 +831,11 @@ func _fill_character(button: Button, character_id: String) -> void:
 	if desc != null:
 		desc.text = def.description if def != null else ""
 
+## 关网络：执行归 LobbyManager / LobbyNet，UI 只发命令 + 停自己的 Beacon。
 func _clear_peer() -> void:
 	_stop_beacon()
-	_unwire_multiplayer()
-	if not _host_started:
-		_reset_seats()
-	if _host_started:
-		return
-	var peer: MultiplayerPeer = multiplayer.multiplayer_peer
-	if peer != null:
-		peer.close()
-	multiplayer.multiplayer_peer = null
+	if _lobby != null:
+		_lobby.close_network()
 
 func _on_host_resized() -> void:
 	if not _open:
@@ -927,6 +870,54 @@ func _on_home_join_pressed() -> void:
 func _on_character_pressed(character_id: String) -> void:
 	_play_click()
 	_select_character(character_id)
+
+func _on_lobby_character_pressed(character_id: String) -> void:
+	if _is_lobby_frozen():
+		_play_error()
+		return
+	_play_click()
+	_selected_character_id = GameLaunch._sanitize_character_id(character_id)
+	if _lobby != null:
+		_lobby.set_local_character(_selected_character_id)
+	_sync_lobby_character_buttons()
+
+## Guest 的 Ready / Not Ready。按钮文案与真实状态都由 LobbyManager 快照驱动。
+func _on_lobby_ready_pressed() -> void:
+	if _is_lobby_frozen():
+		_play_error()
+		return
+	if _lobby == null:
+		return
+	var was_ready: bool = _lobby.get_local_ready()
+	var now_ready: bool = _lobby.toggle_local_ready()
+	if now_ready:
+		_play_click()
+		_flash_lobby_ready()
+	else:
+		_play_back()
+	_refresh_lobby_view()
+	if was_ready == now_ready:
+		_play_error()
+
+func _on_invite_pressed() -> void:
+	_play_click()
+	# Invite 是 shell：本阶段只复制地址，不实现 WAN / token / QR 真连接。
+	DisplayServer.clipboard_set(_format_addresses())
+
+## Starting 冻结：已点 Start 之后不允许再改角色 / Ready / 房间设置。
+func _is_lobby_frozen() -> bool:
+	if _lobby == null:
+		return true
+	if _host_started:
+		return true
+	var snapshot: Dictionary = _lobby.get_snapshot()
+	return int(snapshot.get("room_state", Room.RoomState.FORMING)) != int(Room.RoomState.FORMING)
+
+func _flash_lobby_ready() -> void:
+	var row: HBoxContainer = _local_lobby_row()
+	if row == null:
+		return
+	UiAnim.flash_ready(self, row)
 
 func _on_arena_pressed(arena_id: String) -> void:
 	_play_click()
@@ -965,126 +956,19 @@ func _play_stream(player: AudioStreamPlayer, key: StringName) -> void:
 	_sfx_gate[key] = frame
 	player.play()
 
-func _reset_seats() -> void:
-	_seat_peer_ids = PackedInt32Array()
-	_seat_peer_ids.resize(GameLaunch.NET_MAX_SEATS)
-	_seat_peer_ids.fill(0)
-	_seat_peer_ids[0] = 1
-	_seat_character_ids = PackedStringArray()
-	_seat_character_ids.resize(GameLaunch.NET_MAX_SEATS)
-	_seat_character_ids.fill("")
-	_seat_character_ids[0] = _selected_character_id
-	_seat_handshake = PackedByteArray()
-	_seat_handshake.resize(GameLaunch.NET_MAX_SEATS)
-	_seat_handshake.fill(0)
-	_seat_handshake[0] = 1
-	_roster_character_ids = PackedStringArray()
-	_roster_character_ids.resize(GameLaunch.NET_MAX_SEATS)
-
-func _clear_seat_of_peer(peer_id: int) -> void:
-	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
-		if _seat_peer_ids[seat - 1] != peer_id:
-			continue
-		_seat_peer_ids[seat - 1] = 0
-		_seat_character_ids[seat - 1] = ""
-		_seat_handshake[seat - 1] = 0
-		return
-
-func _seat_for_peer(peer_id: int) -> int:
-	if peer_id <= 0:
-		return 0
-	for i: int in _seat_peer_ids.size():
-		if _seat_peer_ids[i] == peer_id:
-			return i + 1
-	return 0
-
-func _occupied_count() -> int:
-	var n: int = 0
-	for i: int in _seat_peer_ids.size():
-		if _seat_peer_ids[i] != 0:
-			n += 1
-	return n
-
 ## Start 合同归 LobbyManager（Room 的 can_start + 有没有真实 peer 背书），UI 只读结果。
 func _can_start() -> bool:
 	return _lobby != null and _lobby.can_start()
 
-func _handshake_guest_peers() -> PackedInt32Array:
-	var peers: PackedInt32Array = PackedInt32Array()
-	for seat: int in range(2, GameLaunch.NET_MAX_SEATS + 1):
-		if _seat_peer_ids[seat - 1] == 0 or _seat_handshake[seat - 1] == 0:
-			continue
-		peers.append(_seat_peer_ids[seat - 1])
-	return peers
+## 占位人数（含 pending）：只读 LobbyManager 快照，UI 不维护第二份座位缓存。
+func _occupied() -> int:
+	if _lobby == null:
+		return 0
+	return int(_lobby.get_snapshot().get("occupied_count", 0))
 
 func _refresh_host_status() -> void:
 	_refresh_lobby_view()
 	_sync_host_beacon()
-
-func _encode_roster() -> PackedByteArray:
-	_seat_character_ids[0] = _selected_character_id
-	var buf: StreamPeerBuffer = StreamPeerBuffer.new()
-	var n: int = _occupied_count()
-	buf.put_u8(n)
-	for seat: int in range(1, GameLaunch.NET_MAX_SEATS + 1):
-		if _seat_peer_ids[seat - 1] == 0:
-			continue
-		buf.put_u8(seat)
-		buf.put_utf8_string(_seat_character_ids[seat - 1])
-	return buf.data_array
-
-func _decode_roster(data: PackedByteArray) -> PackedStringArray:
-	var ids: PackedStringArray = PackedStringArray()
-	ids.resize(GameLaunch.NET_MAX_SEATS)
-	if data.is_empty():
-		return ids
-	var buf: StreamPeerBuffer = StreamPeerBuffer.new()
-	buf.data_array = data
-	buf.seek(0)
-	var n: int = buf.get_u8()
-	for _i: int in n:
-		var seat: int = buf.get_u8()
-		var character_id: String = buf.get_utf8_string()
-		if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:
-			continue
-		if character_id.is_empty():
-			ids[seat - 1] = ""
-			continue
-		ids[seat - 1] = GameLaunch._sanitize_character_id(character_id)
-	return ids
-
-func _empty_peer_ids() -> PackedInt32Array:
-	var peers: PackedInt32Array = PackedInt32Array()
-	peers.resize(GameLaunch.NET_MAX_SEATS)
-	peers.fill(0)
-	return peers
-
-func _broadcast_roster() -> void:
-	if not multiplayer.is_server():
-		return
-	var packed: PackedByteArray = _encode_roster()
-	for peer: int in _handshake_guest_peers():
-		rpc_roster.rpc_id(peer, packed)
-
-func _broadcast_goal() -> void:
-	if not multiplayer.is_server():
-		return
-	var loop_goal: int = maxi(roundi(_loop_slider.value), 0)
-	for peer: int in _handshake_guest_peers():
-		rpc_goal.rpc_id(peer, loop_goal)
-
-func _broadcast_arena() -> void:
-	if not multiplayer.is_server():
-		return
-	var arena_id: String = GameLaunch._sanitize_arena_id(_selected_arena_id)
-	for peer: int in _handshake_guest_peers():
-		rpc_arena.rpc_id(peer, arena_id)
-
-func _broadcast_play_mode() -> void:
-	if not multiplayer.is_server():
-		return
-	for peer: int in _handshake_guest_peers():
-		rpc_play_mode.rpc_id(peer, int(_net_play))
 
 func _hide_join_session_labels() -> void:
 	_join_wait.visible = false
@@ -1110,12 +994,12 @@ func _start_host_beacon() -> void:
 	if _view != View.HOST or _host_started:
 		return
 	_ensure_beacon()
-	_beacon.start_host(_occupied_count(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
+	_beacon.start_host(_occupied(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
 
 func _sync_host_beacon() -> void:
 	if _view != View.HOST or _host_started or _beacon == null:
 		return
-	_beacon.update_host(_occupied_count(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
+	_beacon.update_host(_occupied(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
 
 func _start_guest_beacon() -> void:
 	if _view != View.JOIN or not _open:

@@ -8,7 +8,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from wpg_common import LOG_DIR, ROOT, emit, emit_outcome, find_godot, run_cmd, Outcome  # noqa: E402
+from wpg_common import (  # noqa: E402
+    LOG_DIR,
+    ROOT,
+    emit,
+    emit_outcome,
+    find_godot,
+    godot_log_args,
+    run_cmd,
+    Outcome,
+)
 
 
 def automated_tests() -> list:
@@ -28,7 +37,15 @@ def import_project(godot: Path) -> int:
     smoke 是独立 job，不能依赖 validate job 的 import 产物。"""
     log_path = LOG_DIR / "smoke-import.log"
     proc = run_cmd(
-        [str(godot), "--headless", "--path", str(ROOT), "--import", "--quit"],
+        [
+            str(godot),
+            "--headless",
+            "--path",
+            str(ROOT),
+            *godot_log_args(LOG_DIR / "godot-smoke-import.log"),
+            "--import",
+            "--quit",
+        ],
         log_path=log_path,
     )
     output = proc.stdout or ""
@@ -57,6 +74,7 @@ def main() -> int:
             "--headless",
             "--path",
             str(ROOT),
+            *godot_log_args(LOG_DIR / "godot-smoke.log"),
             "--script",
             str(script),
             "--quit",
@@ -85,6 +103,7 @@ def main() -> int:
                 "--headless",
                 "--path",
                 str(ROOT),
+                *godot_log_args(LOG_DIR / ("godot-test-%s.log" % test.stem)),
                 "--script",
                 str(test),
             ],

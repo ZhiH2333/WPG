@@ -14,6 +14,7 @@ from wpg_common import (  # noqa: E402
     emit,
     emit_outcome,
     find_godot,
+    godot_log_args,
     godot_version_line,
     godot_version_ok,
     run_cmd,
@@ -43,7 +44,15 @@ def main() -> int:
     emit("INFO", "Godot %s" % version_line)
     log_path = LOG_DIR / "validate-import.log"
     proc = run_cmd(
-        [str(godot), "--headless", "--path", str(ROOT), "--import", "--quit"],
+        [
+            str(godot),
+            "--headless",
+            "--path",
+            str(ROOT),
+            *godot_log_args(LOG_DIR / "godot-validate-import.log"),
+            "--import",
+            "--quit",
+        ],
         log_path=log_path,
     )
     output = proc.stdout or ""
@@ -63,6 +72,7 @@ def main() -> int:
                 "--headless",
                 "--path",
                 str(ROOT),
+                *godot_log_args(LOG_DIR / "godot-validate-check.log"),
                 "--check-only",
                 "--script",
                 str(script),
