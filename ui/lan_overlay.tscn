@@ -110,7 +110,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Center" type="CenterContainer" parent="Sheet/Column/Content/HomeRoot"]
+[node name="Column" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -118,60 +118,24 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 0
 
-[node name="Column" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Center"]
+[node name="Nav" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 16
-alignment = 1
+theme_override_constants/separation = 0
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HomeRoot/Center/Column"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"SectionLabel"
-text = "MULTIPLAYER"
-horizontal_alignment = 1
-
-[node name="QuickJoin" type="Button" parent="Sheet/Column/Content/HomeRoot/Center/Column"]
-custom_minimum_size = Vector2(260, 44)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"PillPink"
-text = "Quick join"
-
-[node name="CreateRoom" type="Button" parent="Sheet/Column/Content/HomeRoot/Center/Column"]
-custom_minimum_size = Vector2(260, 44)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"PillNeutral"
-text = "Create room"
-
-[node name="LanRooms" type="Button" parent="Sheet/Column/Content/HomeRoot/Center/Column"]
-custom_minimum_size = Vector2(260, 44)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"PillNeutral"
-text = "LAN rooms"
-
-[node name="JoinInvite" type="Button" parent="Sheet/Column/Content/HomeRoot/Center/Column"]
-custom_minimum_size = Vector2(260, 44)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"PillNeutral"
-text = "Join invite"
-
-[node name="RecentTitle" type="Label" parent="Sheet/Column/Content/HomeRoot/Center/Column"]
+[node name="RecentTitle" type="Label" parent="Sheet/Column/Content/HomeRoot/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
 text = "RECENT"
-horizontal_alignment = 1
 
-[node name="Recent" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Center/Column"]
-custom_minimum_size = Vector2(360, 0)
+[node name="Recent" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 0
 
 [node name="PickRoot" type="VBoxContainer" parent="Sheet/Column/Content"]
 visible = false

@@ -4,7 +4,7 @@
 **状态:** §5–§8、§17、§19、§22 所描述的 Main Menu / Play / Profile / Records / Ranking / Settings / Pause / Winner / Shop / Upgrade / Credits / Loading **已落地**（Phase 1 UI/UX 统一重构 + Phase 2 PlayerProfile，2026-09-26）；**§9–§18（Multiplayer 簇 / Create / Join / Connecting / Failed / Version Mismatch / Lobby / Host Closed）已于 2026-10-02 落地**：宿主仍是 `ui/lan_overlay.tscn`，但 ENet 与大厅 `@rpc` 已全部迁到 `lobby/lobby_net.gd`（`ui/lan_overlay.gd` 不再持有 `ENetMultiplayerPeer` / `@rpc`，由 `tools/ci/architecture.py` 守卫）。
 
 **§9–§18 落地差异（以代码为准，2026-10-02）：**
-- §9 MULTIPLAYER 首页 = Quick join / Create room / LAN rooms / Join invite 四条紧凑入口 + RECENT（本机内存里的最近房间，不上服务器、不落盘）。Quick join 只基于已有 LAN discovery —— 本版本没有 matchmaking server，也不引入公网房间目录。
+- §9 MULTIPLAYER 首页 = 本节的**行式导航**（不是大胶囊、不是卡片）：`CREATE ROOM` / `JOIN INVITE` / `LAN ROOMS` / `QUICK JOIN` 四行，左标题 + 右 caption + `→`，行间一条 `UiType.STRUCTURE` 细线；焦点顺序 = 行顺序，打开时落 `CREATE ROOM`（本节规定的主操作）。右侧 caption 是活数据：`LAN ROOMS` 报 `N ON THIS LAN`（发现口绑定失败时报 `DISCOVER BIND FAILED`），`QUICK JOIN` 报 `FIRST OPEN ROOM / NO OPEN ROOM`。`RECENT` 最多 3 行，没有则整段不出现；Recent 行与导航行同一版式（左地址、右 `n/5 · Mode · Arena`），因为协议 5 的发现包不带房主名。Quick join 只基于已有 LAN discovery —— 本版本没有 matchmaking server，也不引入公网房间目录。
 - §10 LAN Rooms：紧凑行 = 房间主标题 + 地址 caption + Mode/Arena/Goal + n/5 + JOIN/FULL。协议 5 的发现包不带 Host 显示名，主标题暂写 `ROOM`，等发现包扩包后再填名字。
 - §11/§12 Create Room：落在同一页（Mode / Arena / Goal / Privacy / Start）。隐私 `LAN VISIBLE / INVITE ONLY` 决定要不要对外广播 17778 信标；借档（Phase 3 的 DoD）改成建房页内的 `Use a record` 入口，不再挡在建房前面。
 - §13 Join Room：`JOIN INVITE` 页 = 手打 / 粘贴邀请文本（`LobbyNet.parse_address()` 取 LAN IPv4，解析不到按主机名原样用）+ 选角；`Invite` = Copy invite / Show QR **shell**，不做 token / QR 真连接。

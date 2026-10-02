@@ -13,8 +13,10 @@ const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
 const DEFAULT_LOOP_GOAL: int = 20
 const SEAT_ROW_HEIGHT: float = 22.0
-## Recent 只保留本机最近几个房间（内存里的一次会话记录，不落盘、不上服务器）。
-const RECENT_LIMIT: int = 5
+## Recent 最多 3 行（screen spec §9），只保留本机最近几个房间（内存里的一次会话记录，不落盘、不上服务器）。
+const RECENT_LIMIT: int = 3
+## 首页导航行高：行式导航，不是大胶囊。
+const HOME_ROW_HEIGHT: float = 54.0
 
 var _open: bool = false
 var _view: View = View.HOME
@@ -28,6 +30,12 @@ var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
 var _privacy: Room.Privacy = Room.Privacy.LAN_VISIBLE
 ## 最近房间（本机内存，见 RECENT_LIMIT）。元素：address / arena_id / net_play / loop_goal / occupied / max_seats。
 var _recent_rooms: Array[Dictionary] = []
+## 首页导航行（代码生成，见 _build_home_nav）：行顺序 = 焦点顺序。
+var _home_rows: Array[Button] = []
+var _row_create: Button = null
+var _row_join_invite: Button = null
+var _row_lan_rooms: Button = null
+var _row_quick_join: Button = null
 var _beacon: LanBeacon
 ## Lobby domain 的唯一入口，由 MainMenu 注入（不是 Autoload）。座位 / ready / 网络状态全归它。
 var _lobby: LobbyManager = null
@@ -46,12 +54,9 @@ var _lobby_notice_playing: bool = false
 @onready var _host_root: Control = $Sheet/Column/Content/HostRoot
 @onready var _join_root: Control = $Sheet/Column/Content/JoinRoot
 @onready var _lobby_root: Control = $Sheet/Column/Content/LobbyRoot
-@onready var _quick_join_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/QuickJoin
-@onready var _new_room_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/CreateRoom
-@onready var _lan_rooms_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/LanRooms
-@onready var _join_invite_button: Button = $Sheet/Column/Content/HomeRoot/Center/Column/JoinInvite
-@onready var _recent_title: Label = $Sheet/Column/Content/HomeRoot/Center/Column/RecentTitle
-@onready var _recent_list: VBoxContainer = $Sheet/Column/Content/HomeRoot/Center/Column/Recent
+@onready var _home_nav: VBoxContainer = $Sheet/Column/Content/HomeRoot/Column/Nav
+@onready var _recent_title: Label = $Sheet/Column/Content/HomeRoot/Column/RecentTitle
+@onready var _recent_list: VBoxContainer = $Sheet/Column/Content/HomeRoot/Column/Recent
 @onready var _pick_scroll: ScrollContainer = $Sheet/Column/Content/PickRoot/Scroll
 @onready var _pick_cards: GridContainer = $Sheet/Column/Content/PickRoot/Scroll/Cards
 @onready var _custom_button: Button = $Sheet/Column/Content/PickRoot/Scroll/Cards/Custom
@@ -117,10 +122,6 @@ func _ready() -> void:
 	_fill_character(_host_chicken, CHAR_CHICKEN)
 	_fill_character(_join_boar, CHAR_BOAR)
 	_fill_character(_join_chicken, CHAR_CHICKEN)
-	_quick_join_button.pressed.connect(_on_quick_join_pressed)
-	_new_room_button.pressed.connect(_on_home_host_pressed)
-	_lan_rooms_button.pressed.connect(_on_home_join_pressed)
-	_join_invite_button.pressed.connect(_on_home_invite_pressed)
 	_host_lan_visible.pressed.connect(_on_privacy_pressed.bind(Room.Privacy.LAN_VISIBLE))
 	_host_invite_only.pressed.connect(_on_privacy_pressed.bind(Room.Privacy.INVITE_ONLY))
 	_copy_invite_button.pressed.connect(_on_copy_invite_pressed)
@@ -145,13 +146,14 @@ func _ready() -> void:
 	_start_button.pressed.connect(_on_start_pressed)
 	_connect_button.pressed.connect(_on_connect_pressed)
 	_back_button.pressed.connect(_handle_back)
-	for button: Button in [_quick_join_button, _new_room_button, _lan_rooms_button, _join_invite_button, _create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _host_lan_visible, _host_invite_only, _start_button, _connect_button, _copy_invite_button, _show_qr_button, _join_boar, _join_chicken, _lobby_boar, _lobby_chicken, _lobby_ready, _lobby_invite, _host_invite, _back_button]:
+	for button: Button in [_create_room_button, _custom_button, _host_boar, _host_chicken, _host_yard, _host_pit, _host_keep, _host_coop, _host_battle, _host_lan_visible, _host_invite_only, _start_button, _connect_button, _copy_invite_button, _show_qr_button, _join_boar, _join_chicken, _lobby_boar, _lobby_chicken, _lobby_ready, _lobby_invite, _host_invite, _back_button]:
 		_wire_hover(button)
 	UiFit.connect_refit(self, _on_host_resized)
 	_content.resized.connect(_on_content_resized)
 	_build_seat_rows()
 	_build_guest_seat_rows()
 	_build_borrow_record_button()
+	_build_home_nav()
 	_ensure_beacon()
 	_join_search.text_changed.connect(_on_join_search_changed)
 	_enter_multiplayer()
@@ -437,7 +439,8 @@ func open(direction: int = 0) -> void:
 	_enter_multiplayer()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.enter_page(self, _dimmer, _sheet, false, direction)
-	_quick_join_button.grab_focus()
+	if _row_create != null:
+		_row_create.grab_focus()
 
 func close(direction: int = 0) -> void:
 	if not _open:
@@ -561,8 +564,9 @@ func _show_home(_animate: bool) -> void:
 	_reset_play_mode()
 	_enter_multiplayer()
 
-## MULTIPLAYER 首页：Quick join / Create room / LAN rooms / Join invite / Recent。
-## Quick join 只基于已有 LAN discovery —— 本版本没有 matchmaking server，也不引入公网房间目录。
+## MULTIPLAYER 首页：行式导航（Create room / Join invite / LAN rooms / Quick join）+ RECENT。
+## screen spec §9：三条同级导航是**行**不是大卡，行间一条分隔线，右侧一句 caption + 箭头；
+## Recent 最多 3 行，没有就整段不出现。Quick join 只基于已有 LAN discovery。
 func _enter_multiplayer() -> void:
 	_view = View.HOME
 	_home_root.visible = true
@@ -572,8 +576,90 @@ func _enter_multiplayer() -> void:
 	_lobby_root.visible = false
 	_refresh_recent()
 	_start_guest_beacon()
-	if _open:
-		_quick_join_button.grab_focus()
+	_refresh_home_captions()
+	if _open and _row_create != null:
+		_row_create.grab_focus()
+
+## 建首页四行导航（行内容在代码里生成：右侧 caption 要跟着 Beacon 结果变）。
+func _build_home_nav() -> void:
+	if _home_nav == null or _row_create != null:
+		return
+	_row_create = _make_home_row("CREATE ROOM", "HOST A GAME", _on_home_host_pressed)
+	_row_join_invite = _make_home_row("JOIN INVITE", "IP / INVITE", _on_home_invite_pressed)
+	_row_lan_rooms = _make_home_row("LAN ROOMS", "SEARCHING", _on_home_join_pressed)
+	_row_quick_join = _make_home_row("QUICK JOIN", "FIRST OPEN ROOM", _on_quick_join_pressed)
+	_home_rows = [_row_create, _row_join_invite, _row_lan_rooms, _row_quick_join]
+	for index: int in _home_rows.size():
+		if index > 0:
+			_home_nav.add_child(_make_nav_divider())
+		_home_nav.add_child(_home_rows[index])
+
+## 一行导航：左标题 + 右 caption + 箭头，行间靠分隔线，不套卡片边框。
+func _make_home_row(title: String, caption: String, handler: Callable) -> Button:
+	var row: Button = Button.new()
+	row.custom_minimum_size = Vector2(0, HOME_ROW_HEIGHT)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.theme_type_variation = &"EmptyButton"
+	row.add_child(_make_row_mark())
+	var text_row: HBoxContainer = HBoxContainer.new()
+	text_row.name = "Text"
+	text_row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	text_row.offset_left = 4.0
+	text_row.offset_right = -4.0
+	text_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_row.add_theme_constant_override("separation", 24)
+	text_row.add_child(_make_row_label("Title", &"OfferTitle", title, Control.SIZE_EXPAND_FILL, HORIZONTAL_ALIGNMENT_LEFT))
+	text_row.add_child(_make_row_label("Caption", &"Caption", caption, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_RIGHT))
+	var arrow: Label = _make_row_label("Arrow", &"StatValue", "→", Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_RIGHT)
+	arrow.custom_minimum_size = Vector2(28, 0)
+	text_row.add_child(arrow)
+	row.add_child(text_row)
+	row.pressed.connect(handler)
+	_wire_hover(row)
+	return row
+
+func _make_row_label(node_name: String, variation: StringName, text: String, size_flags: int, align: int) -> Label:
+	var label: Label = Label.new()
+	label.name = node_name
+	label.theme_type_variation = variation
+	label.text = text
+	label.size_flags_horizontal = size_flags
+	label.horizontal_alignment = align
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+## 行间分隔线：与页面 TopLine 同一条骨白细线（结构色令牌，不写魔法颜色）。
+func _make_nav_divider() -> ColorRect:
+	var line: ColorRect = ColorRect.new()
+	line.custom_minimum_size = Vector2(0, 1)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.color = UiType.STRUCTURE
+	return line
+
+## 首页右侧 caption：LAN 行报发现数量（发现口绑定失败时说清楚），其余是固定说明。
+func _refresh_home_captions() -> void:
+	if _row_lan_rooms == null:
+		return
+	var caption: String = "LAN ROOMS"
+	if _beacon != null and _beacon.has_bind_failed():
+		caption = "DISCOVER BIND FAILED"
+	elif _beacon != null:
+		var count: int = _beacon.get_rooms().size()
+		caption = "%d ON THIS LAN" % count if count > 0 else "NONE FOUND YET"
+	_row_caption(_row_lan_rooms).text = caption
+	_row_caption(_row_quick_join).text = "FIRST OPEN ROOM" if _has_open_room() else "NO OPEN ROOM"
+
+func _row_caption(row: Button) -> Label:
+	return row.get_node("Text/Caption") as Label
+
+func _has_open_room() -> bool:
+	if _beacon == null:
+		return false
+	for room: Dictionary in _beacon.get_rooms():
+		if not _is_room_full(room):
+			return true
+	return false
 
 ## CREATE ROOM：借档改成页内显式入口，不再挡在建房前面。
 func _on_home_host_pressed() -> void:
@@ -883,19 +969,18 @@ func _refresh_recent() -> void:
 	for entry: Dictionary in _recent_rooms:
 		_recent_list.add_child(_make_recent_row(entry))
 
+## Recent 行与导航行同一套版式：左地址（协议 5 不带房主名），右「n/5 · Mode · Arena」。
 func _make_recent_row(entry: Dictionary) -> Button:
-	var button: Button = Button.new()
-	button.custom_minimum_size = Vector2(0, 40)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.theme_type_variation = &"PillNeutral"
-	button.text = "%s  ·  %s  ·  %s" % [
+	return _make_home_row(
 		str(entry["address"]),
-		RecordCard.format_arena_name(str(entry["arena_id"])),
-		_mode_name(int(entry["net_play"])),
-	]
-	button.pressed.connect(_on_recent_pressed.bind(str(entry["address"])))
-	_wire_hover(button)
-	return button
+		"%d/%d  ·  %s  ·  %s" % [
+			int(entry["occupied"]),
+			int(entry["max_seats"]),
+			_mode_name(int(entry["net_play"])),
+			RecordCard.format_arena_name(str(entry["arena_id"])),
+		],
+		_on_recent_pressed.bind(str(entry["address"])),
+	)
 
 func _on_recent_pressed(address: String) -> void:
 	_play_click()
@@ -1323,6 +1408,10 @@ func _host_loop_goal() -> int:
 	return maxi(roundi(_loop_slider.value), 0)
 
 func _on_rooms_changed() -> void:
+	# 首页要更新 LAN ROOMS / QUICK JOIN 两行的 caption；LAN ROOMS 页要重画房间列表。
+	if _view == View.HOME:
+		_refresh_home_captions()
+		return
 	if _view != View.JOIN:
 		return
 	_rebuild_room_cards()

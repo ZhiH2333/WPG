@@ -75,14 +75,18 @@ func _case_multiplayer_home(overlay: LanOverlay) -> void:
 	_expect(overlay._view == LanOverlay.View.HOME, "打开叠层落在 MULTIPLAYER 首页")
 	_expect(overlay._home_root.visible, "首页可见")
 	_expect(not overlay._host_root.visible and not overlay._join_root.visible, "首页不叠建房 / 列表页")
-	_expect(overlay._quick_join_button.visible, "Quick join 入口存在")
-	_expect(overlay._new_room_button.visible, "Create room 入口存在")
-	_expect(overlay._lan_rooms_button.visible, "LAN rooms 入口存在")
-	_expect(overlay._join_invite_button.visible, "Join invite 入口存在")
+	_expect(overlay._row_create.visible, "Create room 行存在")
+	_expect(overlay._row_quick_join.visible, "Quick join 行存在")
+	_expect(overlay._row_lan_rooms.visible, "LAN rooms 行存在")
+	_expect(overlay._row_join_invite.visible, "Join invite 行存在")
+	_expect(overlay._row_lan_rooms.get_node("Text/Caption").text != "", "LAN rooms 行右侧有 caption")
+	_expect(overlay._row_create.get_node("Text/Caption").text == "HOST A GAME", "Create room 行 caption")
 	_expect(not overlay._recent_title.visible, "还没有最近房间时不显示 RECENT")
+	_expect(overlay._home_nav.get_child_count() == overlay._home_rows.size() + overlay._home_rows.size() - 1, "导航行之间各一条分隔线")
+	_expect(overlay._row_create.get_node_or_null("Text/Arrow") != null, "导航行右侧有箭头")
 
 func _case_create_room_and_back(overlay: LanOverlay, manager: LobbyManager) -> void:
-	overlay._new_room_button.pressed.emit()
+	overlay._row_create.pressed.emit()
 	_expect(overlay._view == LanOverlay.View.HOST, "Create room -> 建房页")
 	_expect(overlay._host_root.visible and not overlay._home_root.visible, "建房页可见，首页让位")
 	_expect(manager.has_room() and manager.is_host(), "进建房页就真的建了房")
@@ -94,14 +98,14 @@ func _case_create_room_and_back(overlay: LanOverlay, manager: LobbyManager) -> v
 	_expect(not net_active(overlay), "Back 时关掉网络")
 
 func _case_lan_rooms(overlay: LanOverlay) -> void:
-	overlay._lan_rooms_button.pressed.emit()
+	overlay._row_lan_rooms.pressed.emit()
 	_expect(overlay._view == LanOverlay.View.JOIN, "LAN rooms -> 房间列表页")
 	_expect(overlay._join_root.visible, "列表页可见")
 	_expect(overlay._join_browse.visible and not overlay._join_form.visible, "LAN rooms 只显示发现列表列")
 
 ## Guest 握手完成必须真的把 UI 推进 Lobby 页（这条曾经断线：页面在、导航没人调）。
 func _case_lobby_navigation(overlay: LanOverlay, manager: LobbyManager) -> void:
-	overlay._lan_rooms_button.pressed.emit()
+	overlay._row_lan_rooms.pressed.emit()
 	_expect(overlay._view == LanOverlay.View.JOIN, "先在 LAN ROOMS 页连接")
 	manager.joined_lobby.emit()
 	_expect(overlay._view == LanOverlay.View.LOBBY, "joined_lobby -> 自动进 Lobby 页")
@@ -109,7 +113,7 @@ func _case_lobby_navigation(overlay: LanOverlay, manager: LobbyManager) -> void:
 	overlay._enter_multiplayer()
 
 func _case_join_invite(overlay: LanOverlay, net: LobbyNet) -> void:
-	overlay._join_invite_button.pressed.emit()
+	overlay._row_join_invite.pressed.emit()
 	_expect(overlay._view == LanOverlay.View.INVITE, "Join invite -> 邀请页")
 	_expect(overlay._join_form.visible and not overlay._join_browse.visible, "Join invite 只显示手打 / 粘贴列")
 	_expect(overlay._join_edit.text == GameLaunch.DEFAULT_JOIN_ADDRESS, "邀请页地址栏回默认值")
@@ -142,7 +146,7 @@ func _case_recent(overlay: LanOverlay) -> void:
 
 func _case_privacy(overlay: LanOverlay, manager: LobbyManager) -> void:
 	overlay._enter_multiplayer()
-	overlay._new_room_button.pressed.emit()
+	overlay._row_create.pressed.emit()
 	_expect(overlay._view == LanOverlay.View.HOST and manager.has_room(), "再次进建房页")
 	overlay._host_invite_only.pressed.emit()
 	_expect(overlay._privacy == Room.Privacy.INVITE_ONLY, "UI 切到 INVITE ONLY")
