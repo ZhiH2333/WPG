@@ -106,6 +106,8 @@ func _ready() -> void:
 	_play_page.multi_pressed.connect(_enter_multi_flow)
 	_play_page.back_pressed.connect(_on_play_back_pressed)
 	_lan_overlay.start_lan.connect(_enter_lan)
+	# LobbyNet 必须挂上：没有它 host_room() 只能返回失败，建房页会一直显示 bind failed。
+	_lobby.bind_net($LobbyNet)
 	_lan_overlay.bind_lobby(_lobby)
 	_record_selector.selected_record.connect(_enter_record)
 	_profile_overlay.view_ranking_pressed.connect(_enter_leaderboard)

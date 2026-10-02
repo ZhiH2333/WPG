@@ -268,8 +268,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 12
-alignment = 1
+theme_override_constants/separation = 10
+alignment = 0
 
 [node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 layout_mode = 2
@@ -315,14 +315,20 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
+[node name="CharacterTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "CHARACTER"
+
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
+theme_override_constants/separation = 12
+alignment = 0
 
 [node name="Boar" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters"]
-custom_minimum_size = Vector2(240, 200)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -332,46 +338,48 @@ button_group = SubResource("group_host_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar"]
+[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
+offset_left = 14.0
+offset_right = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/VBox"]
-custom_minimum_size = Vector2(64, 64)
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/Card"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/VBox"]
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/Card"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 text = "Boar"
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Tanky."
-horizontal_alignment = 1
-autowrap_mode = 2
+clip_text = true
 
 [node name="Chicken" type="Button" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters"]
-custom_minimum_size = Vector2(240, 200)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -380,51 +388,60 @@ button_group = SubResource("group_host_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken"]
+[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
+offset_left = 14.0
+offset_right = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/VBox"]
-custom_minimum_size = Vector2(64, 64)
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/Card"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/VBox"]
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/Card"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 text = "Chicken"
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Left/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Hard to hit."
-horizontal_alignment = 1
-autowrap_mode = 2
+clip_text = true
 
 [node name="Right" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Body"]
+custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 0
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 12
-alignment = 1
+theme_override_constants/separation = 14
+alignment = 0
+
+[node name="SettingsTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Body/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "ROOM SETTINGS"
 
 [node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Body/Right"]
 layout_mode = 2
@@ -583,20 +600,28 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
+alignment = 1
 
 [node name="Form" type="VBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row"]
-custom_minimum_size = Vector2(420, 0)
+custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 12
-alignment = 1
+alignment = 0
 
 [node name="Title" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "JOIN"
+text = "JOIN INVITE"
+horizontal_alignment = 1
+
+[node name="AddressTitle" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "ROOM ADDRESS"
 horizontal_alignment = 1
 
 [node name="Address" type="LineEdit" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -622,14 +647,21 @@ mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 horizontal_alignment = 1
 
+[node name="CharacterTitle" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "CHARACTER"
+horizontal_alignment = 1
+
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
+theme_override_constants/separation = 12
+alignment = 0
 
 [node name="Boar" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters"]
-custom_minimum_size = Vector2(240, 200)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -639,46 +671,48 @@ button_group = SubResource("group_join_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar"]
+[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
+offset_left = 14.0
+offset_right = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar/VBox"]
-custom_minimum_size = Vector2(64, 64)
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar/Card"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar/VBox"]
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar/Card"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 text = "Boar"
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Tanky."
-horizontal_alignment = 1
-autowrap_mode = 2
+clip_text = true
 
 [node name="Chicken" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters"]
-custom_minimum_size = Vector2(240, 200)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -687,43 +721,45 @@ button_group = SubResource("group_join_character")
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
 
-[node name="VBox" type="VBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken"]
+[node name="Card" type="HBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
+offset_left = 14.0
+offset_right = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken/VBox"]
-custom_minimum_size = Vector2(64, 64)
+[node name="Portrait" type="TextureRect" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken/Card"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken/VBox"]
+[node name="Text" type="VBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken/Card"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
 text = "Chicken"
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Desc" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken/VBox"]
+[node name="Desc" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
 text = "Hard to hit."
-horizontal_alignment = 1
-autowrap_mode = 2
+clip_text = true
 
 [node name="GoalLabel" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 visible = false
@@ -765,6 +801,13 @@ theme_type_variation = &"OfferDesc"
 text = "waiting for host"
 horizontal_alignment = 1
 
+[node name="InviteTitle" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = "INVITE"
+horizontal_alignment = 1
+
 [node name="InviteShell" type="HBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
 mouse_filter = 2
@@ -798,7 +841,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Browse"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "LAN ROOMS"
 
 [node name="Search" type="LineEdit" parent="Sheet/Column/Content/JoinRoot/Row/Browse"]
 custom_minimum_size = Vector2(0, 44)
@@ -806,13 +855,6 @@ layout_mode = 2
 mouse_filter = 0
 placeholder_text = "search ip / map / mode"
 caret_blink = true
-
-[node name="CreateRoom" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Browse"]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"PillPink"
-text = "Create a room"
 
 [node name="EmptyHint" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Browse"]
 layout_mode = 2
@@ -834,6 +876,13 @@ size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 8
 
+[node name="CreateRoom" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Browse"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "No room? Create one"
+
 [node name="LobbyRoot" type="Control" parent="Sheet/Column/Content"]
 visible = false
 layout_mode = 1
@@ -852,7 +901,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="RoomHeader" type="HBoxContainer" parent="Sheet/Column/Content/LobbyRoot/Body"]
 layout_mode = 2
@@ -889,11 +938,11 @@ text = "PLAYERS"
 [node name="Seats" type="VBoxContainer" parent="Sheet/Column/Content/LobbyRoot/Body"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 2
 
 [node name="Spacer" type="Control" parent="Sheet/Column/Content/LobbyRoot/Body"]
+custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
-size_flags_vertical = 3
 mouse_filter = 2
 
 [node name="Connection" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body"]

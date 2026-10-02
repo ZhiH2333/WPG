@@ -16,6 +16,7 @@ func _initialize() -> void:
 
 func _run_all() -> void:
 	PlayerProfile.load_from_disk()
+	_case_main_menu_wiring()
 	var packed: PackedScene = load("res://ui/lan_overlay.tscn") as PackedScene
 	_expect(packed != null, "lan_overlay.tscn 能加载")
 	if packed == null:
@@ -52,6 +53,23 @@ func _run_all() -> void:
 	_finish()
 
 # ---- 用例 ----
+
+## 主菜单必须把 LobbyNet 绑给 LobbyManager：漏了这一步，建房页永远显示 bind failed
+## （ENet 与大厅 RPC 都归 LobbyNet，没有它就没人能 listen）。
+func _case_main_menu_wiring() -> void:
+	var packed: PackedScene = load("res://ui/main_menu.tscn") as PackedScene
+	_expect(packed != null, "main_menu.tscn 能加载")
+	if packed == null:
+		return
+	var menu: Node = packed.instantiate()
+	root.add_child(menu)
+	var manager: LobbyManager = menu.get_node_or_null("LobbyManager") as LobbyManager
+	_expect(manager != null, "主菜单里有 LobbyManager 节点")
+	if manager != null:
+		_expect(manager.has_net(), "主菜单把 LobbyNet 绑给了 LobbyManager")
+		if manager.has_net():
+			_expect(manager.get_net_state() == int(LobbyNet.NetState.DISCONNECTED), "绑上但还没建连")
+	menu.queue_free()
 
 func _case_multiplayer_home(overlay: LanOverlay) -> void:
 	_expect(overlay._view == LanOverlay.View.HOME, "打开叠层落在 MULTIPLAYER 首页")

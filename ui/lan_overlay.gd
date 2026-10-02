@@ -12,7 +12,7 @@ const FALLBACK_BODY: Texture2D = preload("res://images/player.png")
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
 const DEFAULT_LOOP_GOAL: int = 20
-const SEAT_ROW_HEIGHT: float = 24.0
+const SEAT_ROW_HEIGHT: float = 22.0
 ## Recent 只保留本机最近几个房间（内存里的一次会话记录，不落盘、不上服务器）。
 const RECENT_LIMIT: int = 5
 
@@ -247,7 +247,8 @@ func _on_lobby_closed() -> void:
 		return
 	_refresh_lobby_view()
 
-## 座位墙：5 行固定结构，只按 Room 快照改字，不重建节点。
+## 座位墙：5 行固定结构 + 一行表头，只按 Room 快照改字，不重建节点。
+## 三列固定列宽（PLAYER / CHARACTER / STATE），左对齐成表，不随页面宽度把字拉到两头。
 func _build_seat_rows() -> void:
 	_build_rows_into(_seats, _seat_rows)
 
@@ -256,18 +257,34 @@ func _build_guest_seat_rows() -> void:
 
 func _build_rows_into(container: VBoxContainer, store: Array[HBoxContainer]) -> void:
 	store.clear()
+	if not container.has_node("SeatHeader"):
+		container.add_child(_make_seat_header())
 	for seat: int in range(1, GameLaunch.NET_MAX_SEATS + 1):
 		var row: HBoxContainer = HBoxContainer.new()
 		row.name = "Seat%d" % seat
 		row.custom_minimum_size = Vector2(0, SEAT_ROW_HEIGHT)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_theme_constant_override("separation", 12)
-		row.add_child(_make_seat_label("Name", &"OfferTitle", 260.0, Control.SIZE_EXPAND_FILL, HORIZONTAL_ALIGNMENT_LEFT))
-		row.add_child(_make_seat_label("Tag", &"Caption", 72.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_LEFT))
-		row.add_child(_make_seat_label("Character", &"OfferDesc", 96.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_LEFT))
-		row.add_child(_make_seat_label("State", &"StatValue", 104.0, Control.SIZE_SHRINK_END, HORIZONTAL_ALIGNMENT_RIGHT))
+		row.add_theme_constant_override("separation", 16)
+		row.add_child(_make_seat_label("Name", &"OfferTitle", 200.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+		row.add_child(_make_seat_label("Character", &"OfferDesc", 110.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+		row.add_child(_make_seat_label("State", &"StatValue", 96.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
 		container.add_child(row)
 		store.append(row)
+
+## 座位表头：列宽与座位行严格一致（PLAYER / CHARACTER / STATE），压暗当表头用，别像第 0 个玩家。
+func _make_seat_header() -> HBoxContainer:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.name = "SeatHeader"
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.modulate.a = 0.5
+	row.add_theme_constant_override("separation", 16)
+	row.add_child(_make_seat_label("Name", &"Caption", 200.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+	row.add_child(_make_seat_label("Character", &"Caption", 110.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+	row.add_child(_make_seat_label("State", &"Caption", 96.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
+	(row.get_node("Name") as Label).text = "PLAYER"
+	(row.get_node("Character") as Label).text = "CHARACTER"
+	(row.get_node("State") as Label).text = "STATE"
+	return row
 
 func _make_seat_label(node_name: String, variation: StringName, min_width: float, size_flags: int, align: int) -> Label:
 	var label: Label = Label.new()
@@ -299,20 +316,18 @@ func _refresh_lobby_view() -> void:
 func _apply_seat_row(rows: Array[HBoxContainer], index: int, seat_data: Dictionary) -> void:
 	var row: HBoxContainer = rows[index]
 	var name_label: Label = row.get_node("Name") as Label
-	var tag_label: Label = row.get_node("Tag") as Label
 	var character_label: Label = row.get_node("Character") as Label
 	var state_label: Label = row.get_node("State") as Label
 	if not bool(seat_data.get("occupied", false)):
 		name_label.text = "EMPTY SEAT"
-		tag_label.text = ""
 		character_label.text = ""
 		state_label.text = ""
-		row.modulate.a = 0.5
+		## 空位压暗，别让 4 行 EMPTY SEAT 抢走 PLAYERS 的注意力。
+		row.modulate.a = 0.35
 		return
 	row.modulate.a = 1.0
 	var display_name: String = str(seat_data.get("display_name", "")).to_upper()
 	name_label.text = display_name if not display_name.is_empty() else "CONNECTING"
-	tag_label.text = "HOST" if bool(seat_data.get("is_host", false)) else "PLAYER"
 	character_label.text = _seat_character_text(str(seat_data.get("selected_character_id", "")))
 	state_label.text = _seat_state_text(seat_data)
 
@@ -802,20 +817,21 @@ func _on_connect_pressed() -> void:
 		_connect_button.disabled = false
 		_play_error()
 
-## CREATE ROOM 页内的借档入口（新 IA 不再让选档挡在建房前面）。
+## CREATE ROOM 页内的借档入口：放进 ROOM SETTINGS 那一竖列（与其它房间设置同一列宽），
+## 排在 START 之前，不再挡在建房前面。
 func _build_borrow_record_button() -> void:
-	var left: VBoxContainer = $Sheet/Column/Content/HostRoot/Body/Left
-	if left.has_node("BorrowRecord"):
+	var right: VBoxContainer = $Sheet/Column/Content/HostRoot/Body/Right
+	if right.has_node("BorrowRecord"):
 		return
 	var button: Button = Button.new()
 	button.name = "BorrowRecord"
-	button.custom_minimum_size = Vector2(0, 40)
+	button.custom_minimum_size = Vector2(0, 44)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.theme_type_variation = &"PillNeutral"
 	button.text = "Use a record"
 	button.pressed.connect(_on_borrow_record_pressed)
-	left.add_child(button)
-	left.move_child(button, mini(2, left.get_child_count() - 1))
+	right.add_child(button)
+	right.move_child(button, _start_button.get_index())
 	_wire_hover(button)
 
 ## 借档 = 用已有档当种子开房（Phase 3 的 DoD），仍然只种子 Room，不上网、不写档。
@@ -1101,11 +1117,12 @@ func _primary_address() -> String:
 	var lines: PackedStringArray = _format_addresses().split("\n", false)
 	return lines[0] if not lines.is_empty() else "127.0.0.1"
 
+## 角色卡是紧凑横排：Card(HBox) = Portrait + Text(VBox: Title / Desc)。
 func _fill_character(button: Button, character_id: String) -> void:
 	var def: CharacterDef = CATALOG.get_by_id(StringName(character_id))
-	var portrait: TextureRect = button.get_node("VBox/Portrait") as TextureRect
-	var title: Label = button.get_node("VBox/Title") as Label
-	var desc: Label = button.get_node("VBox/Desc") as Label
+	var portrait: TextureRect = button.get_node_or_null("Card/Portrait") as TextureRect
+	var title: Label = button.get_node_or_null("Card/Text/Title") as Label
+	var desc: Label = button.get_node_or_null("Card/Text/Desc") as Label
 	if portrait != null:
 		portrait.texture = FALLBACK_BODY
 		if def != null and def.body_texture != null:

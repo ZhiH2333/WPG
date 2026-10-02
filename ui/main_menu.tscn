@@ -19,6 +19,7 @@
 [ext_resource type="Texture2D" uid="uid://dss7kt840b8h8" path="res://ui/icons/gear.png" id="25_gear_icon"]
 [ext_resource type="Texture2D" uid="uid://byffsvxbi8khl" path="res://ui/icons/profile.png" id="26_profile_icon"]
 [ext_resource type="Script" path="res://lobby/lobby_manager.gd" id="27_lobby"]
+[ext_resource type="Script" path="res://lobby/lobby_net.gd" id="28_lobby_net"]
 
 [sub_resource type="ShaderMaterial" id="mat_blur"]
 shader = ExtResource("5_blur")
@@ -403,6 +404,9 @@ bus = &"SFX"
 
 [node name="LobbyManager" type="Node" parent="."]
 script = ExtResource("27_lobby")
+
+[node name="LobbyNet" type="Node" parent="."]
+script = ExtResource("28_lobby_net")
 
 [node name="SettingsOverlay" parent="." instance=ExtResource("3_overlay")]
 layout_mode = 1
