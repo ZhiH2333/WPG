@@ -54,9 +54,12 @@ func _run_step(step: String) -> void:
 	var host_result: String = _out_dir.path_join("%s_host.result" % step)
 	var guest_result: String = _out_dir.path_join("%s_guest.result" % step)
 	var host_ready: String = host_result + ".ready"
+	## 协议 6：Host 还会写出 invite（含 ticket），Guest 必须先读到它才能进房。
+	var host_invite: String = host_result + ".invite"
 	_remove(host_result)
 	_remove(guest_result)
 	_remove(host_ready)
+	_remove(host_invite)
 
 	var host_pid: int = _spawn(HOST_SCRIPT, step, host_result, "%s_host" % step)
 	if host_pid <= 0:

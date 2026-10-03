@@ -44,10 +44,31 @@ func _run() -> void:
 	root.add_child(_manager)
 	_manager.bind_net(_net)
 
-	if not _manager.join_room_address("127.0.0.1"):
-		_fail("client_connect 发起失败")
+	## 协议 6：Guest 必须持有 Host 的 invite（含 ticket）才能进房。
+	## invite 文件由 Host peer 写出，编排脚本保证它在 Guest 启动前已就绪。
+	var invite_uri: String = _read_invite_uri()
+	if invite_uri.is_empty():
+		_fail("读不到 Host invite（编排未先起 Host？）")
+		return
+	var invite: JoinInvite = _manager.join_invite(invite_uri)
+	if invite == null or invite.error != JoinInvite.InvalidReason.OK:
+		_fail("join_invite 失败：%s" % [invite.error if invite != null else -1])
 		return
 	_wait()
+
+## 同目录的 <step>_host.result.invite：Host 写、Guest 读。
+func _read_invite_uri() -> String:
+	var path: String = _result_path.replace("_guest.result", "_host.result") + ".invite"
+	for _attempt: int in 100:
+		if FileAccess.file_exists(path):
+			var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+			if file != null:
+				var text: String = file.get_as_text().strip_edges()
+				file.close()
+				if not text.is_empty():
+					return text
+		OS.delay_msec(50)
+	return ""
 
 func _wait() -> void:
 	if _done:

@@ -82,9 +82,9 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 | 3 | Lobby domain（离线 mock） | 已完成 (2026-09-27) | `LobbyPlayer` / `Room` / `LobbyManager`（挂 MainMenu 下）；Create → Lobby → 假座位进出 → Ready → Start → `GameLaunch` | 不碰 `NetSession`；不做 WAN / P2P；不 bump 协议 |
 | 4 | 移动端输入抽象 | 已完成 (2026-10-01) | `VirtualStick` / `TouchActionButton` / 轻量 TouchInput 适配层；左摇杆移动、右摇杆瞄准、主射击、Dash、技能预留按钮 | 不写 `TouchPlayerInput` / `TouchPlayer` / `TouchCombat`；不复制战斗逻辑 |
 | 5 | 移动端 Vertical Slice | 已完成 (2026-10-02) | Android → MainMenu → Solo → Combat → Pause → Winner；export preset、renderer 可行性、Safe Area / UiFit / 触控命中 / 性能 | 移动端 P2P；直接套用 Desktop Forward+ 假设 |
-| 6 | Ability Framework | 待开始 | `AbilityDef` / `AbilityController` / `AbilityState` / `AbilityEffect` + cooldown / duration / cost；输入只给 `ability_0/1` → `try_activate(index)` | 不绑键盘/鼠标/Pad/触屏按键；不先堆技能数量 |
+| 6 | Ability Framework | 已完成（已冻结，不再扩展） | `AbilityDef` / `AbilityController` / `AbilityState` / `AbilityEffect` + cooldown / duration / cost；输入只给 `ability_0/1` → `try_activate(index)` | 不绑键盘/鼠标/Pad/触屏按键；不先堆技能数量；冻结后不因联网「顺手」改技能 |
 | 7 | LobbyNet | 已完成 (2026-10-02) | `LobbyNet`（host_listen / client_connect / hello / roster / ready / start / connection state）；`LanOverlay` 最终只发 Manager 命令 | UI 不得建 `ENetMultiplayerPeer`；`NetSession` 职责不变 |
-| 8 | WAN / P2P 预留 | 待开始 | `JoinInvite` + `ConnectionPath`（LAN IPv4 / IPv6 / WAN IPv4）；协议 5→6 只 bump 一次 | UI 不拼 IP / Port / Token；不直接做复杂打洞 |
+| 8 | JoinInvite / ConnectionPath / protocol 6 | 已完成 (2026-10-02) | `lobby/join_invite.gd`（create / parse / 严格校验）+ `lobby/connection_path.gd`（LAN_IPV4 → IPV6 → WAN_IPV4 候选排序，不持有 peer）+ 协议 5→6 ticket handshake（`hello(protocol, token)`，Host 权威校验）+ LanBeacon 带 room_id / host_display_name | UI 不拼 IP / Port / Token；不直接做复杂打洞；不做 STUN / TURN / UPnP / rendezvous |
 | 9 | P2P | 待开始 | Direct UDP：Host/Guest 各自与 rendezvous 交换连接信息 → NAT 穿透 → 直连 ENet；定义连接/打洞超时与失败文案 | 不写死公网 IP；不做第二套战斗 Session；不同时两个 peer；不承诺所有 NAT 都能直连 |
 | 10 | 最终集成 | 待开始 | Desktop Solo/LAN/WAN + Android Solo/LAN/WAN；再做 Skill multiplayer、多人 UX、reconnect、timeout、profiling、release | 不为 P2P 改战斗快照结构（除非规格明确要求） |
 
@@ -316,24 +316,33 @@ PLAY 是主意图（进可玩上下文），不是屏幕上最大的物体。视
 ## Implementation Sequence
 
 ```text
-Phase 1  IA + Design System + Motion 意图     网络零改   ← 已完成 2026-09-26
-Phase 2  PlayerProfile + 顶栏真名                  ← 已完成 2026-09-26
-Phase 3  Lobby domain + 离线 mock              ← 已完成 2026-09-27
-Phase 4  LobbyNet 接入现有 ENet / 大厅 RPC      ← 已完成 2026-10-02（含 Ready 网络同步）
-Phase 5  Create / Join / Lobby UX + Invite     ← 已完成 2026-10-02（RECENT / 隐私 / Starting / 断线提示）
-Phase 6  动效 / 音效 / 焦点 polish              ← 下一步
+AI + Design System + Motion 意图        网络零改   ← 已完成 2026-09-26
+PlayerProfile + 顶栏真名                       ← 已完成 2026-09-26
+Lobby domain + 离线 mock                       ← 已完成 2026-09-27
+移动端输入抽象 + Vertical Slice                ← 已完成 2026-10-01 / 10-02
+Ability Framework                              ← 已完成（已冻结，不再扩展）
+LobbyNet 接入 ENet / 大厅 RPC + Ready 同步      ← 已完成 2026-10-02
+Multiplayer UX（Create / Join / Lobby / Invite） ← 已完成 2026-10-02
+Guest Start 换场（Lobby -> CombatSandbox）      ← 已完成（fix: guest enters combat after lobby start）
+JoinInvite / ConnectionPath / protocol 6        ← 已完成 2026-10-02
+P2P（rendezvous + NAT 穿透）                    ← 下一步
 ```
 
 不要先把所有 UI 做完再接 Network。也不要先继续写 UPnP。
 
-其它轨道（不写入 Phase 1–6 的 DoD）：
+当前实际状态口径（三份文档必须一致）：
+**Ability Framework = DONE（已冻结）**，**LobbyNet = DONE**，**Multiplayer UX = DONE**，
+**Guest Start transition = DONE**，**Phase 8 = JoinInvite / ConnectionPath / protocol 6 ticket handshake = DONE**，
+**Phase 9 = P2P**。
+
+其它轨道（不写入上述阶段的 DoD）：
 
 | 轨道 | 何时 |
 |---|---|
-| 主动技能 | Phase 3 离线 mock 可跑之后 |
-| 虚拟摇杆 / 触屏 | 大厅 UX 稳定之后（原后置决定不变） |
-| UPnP / IPv6 / WAN 直连 | Phase 4 末或 Phase 5，协议一次 bump |
-| 导出 / profiling / 自建打洞 | 大厅 polish 之后 |
+| 主动技能 | 已完成并冻结；网络技能同步留到最终集成 |
+| 虚拟摇杆 / 触屏 | 已完成（移动端 Vertical Slice 一并通过） |
+| P2P / NAT 穿透（STUN / TURN / UPnP / rendezvous） | Phase 9 |
+| 导出 / profiling | 最终集成阶段 |
 
 ---
 

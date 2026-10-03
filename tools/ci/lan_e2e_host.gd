@@ -48,6 +48,13 @@ func _run() -> void:
 	if not _manager.host_room("yard", GameLaunch.NetPlay.COOP, 20):
 		_fail("host_room 失败（17777 端口被占？）")
 		return
+	## 协议 6：Host 必须为房间生成 ticket，Guest 才有可出示的入场券。
+	## invite 通过文件交接给 Guest 进程（真实链路里这一步是复制 / 扫码）。
+	var invite: JoinInvite = _manager.create_invite("127.0.0.1", GameLaunch.NET_PORT)
+	if invite == null or not invite.is_valid():
+		_fail("create_invite 失败")
+		return
+	_write_marker(_result_path + ".invite", invite.to_uri())
 	## 监听已建立：给编排脚本一个确定性握手点，Guest 据此才启动，避免抢跑连不上。
 	_write_marker(_result_path + ".ready")
 	_wait()

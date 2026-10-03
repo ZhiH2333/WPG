@@ -1,7 +1,7 @@
 # WPG UI / UX / Lobby Architecture Specification
 
 **版本:** 1.1-ui-lobby-arch
-**状态:** Phase 1（UI/UX 统一重构）、Phase 2（PlayerProfile）、Phase 3（Lobby domain 离线 mock）、表中 Phase 4/5（移动端输入抽象 + Vertical Slice）、Phase 7（`LobbyNet` + Ready 网络同步）与旧编号 Phase 5（Multiplayer UX：MULTIPLAYER 首页 / Lobby 核心页 / Starting / 断线提示）**已落地**（2026-10-02）：§3.1–3.6 的 `PlayerProfile` / `LobbyPlayer` / `Room` 在 `ui/player_profile.gd`、`lobby/` 下实现；§4 的 `LobbyManager` 是唯一状态机与命令入口，`LobbyNet` 独占 ENet 与大厅 `@rpc`，`ui/lan_overlay.gd` 已不再持有 `ENetMultiplayerPeer` / `@rpc`（由 `tools/ci/architecture.py` 守卫）。仍未建立：`JoinInvite` 的完整形态（当前只有 `LobbyNet.parse_address()` 这一刀的 LAN IPv4 解析）、门票握手、`ConnectionPath`、P2P 预留（表中原 Phase 8–9）。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
+**状态:** Phase 1（UI/UX 统一重构）、Phase 2（PlayerProfile）、Phase 3（Lobby domain 离线 mock）、表中 Phase 4/5（移动端输入抽象 + Vertical Slice）、**Phase 6 Ability Framework（DONE，已冻结，不再扩展）**、Phase 7（`LobbyNet` + Ready 网络同步）、旧编号 Phase 5（Multiplayer UX）、Guest Start 换场修复（Lobby → CombatSandbox）以及**表中 Phase 8（`JoinInvite` + `ConnectionPath` + protocol 6 ticket handshake）**均已落地：§3.1–3.6 的 `PlayerProfile` / `LobbyPlayer` / `Room` 在 `ui/player_profile.gd`、`lobby/` 下实现；§4 的 `LobbyManager` 是唯一状态机与命令入口，`LobbyNet` 独占 ENet 与大厅 `@rpc`，`ui/lan_overlay.gd` 已不再持有 `ENetMultiplayerPeer` / `@rpc`（由 `tools/ci/architecture.py` 守卫）。仍未建立：P2P（STUN / TURN / UPnP / rendezvous / NAT 穿透，= Phase 9）。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
 **配套:** 根目录 [`roadmap.md`](../roadmap.md)（阶段 / 硬约束）· [`ui_screen_spec.md`](ui_screen_spec.md)（页面布局 / 动效 / 导航栈）
 
 布局、CTA 层级、wireframe、Back 栈以 `ui_screen_spec.md` 为准。本文件管领域模型、职责、网络与换场。冲突时 `roadmap.md` 最高。
@@ -65,7 +65,7 @@ UI 只做两件事：向 `LobbyManager` 发命令、读 `get_snapshot()` 画座�
 | `ui/settings_overlay.gd` | 977 | Settings 抽屉（Audio/Display/Controls/Data） |
 | `arena/net_session.gd` | 303 | 沙盒内同步。**不建连**。peer 是大厅挂上 SceneTree 后留下来的 |
 | `arena/lan_beacon.gd` | 274 | 17778 发现。Overlay 子节点。房间卡标题目前是 IP |
-| `ui/game_launch.gd` | 143 | 换场信封 + 网络常量（`NET_PORT=17777`、`NET_DISCOVER_PORT=17778`、`NET_PROTOCOL=5`、`NET_MAX_SEATS=5`） |
+| `ui/game_launch.gd` | 146 | 换场信封 + 网络常量（`NET_PORT=17777`、`NET_DISCOVER_PORT=17778`、`NET_PROTOCOL=6`、`NET_MAX_SEATS=5`） |
 | `ui/profile_overlay.gd` | 163 | 只读成绩与档位，没有昵称/头像编辑 |
 | `ui/ui_anim.gd` | 95 | `enter_overlay` 淡入+上浮+卡片错峰；`exit_overlay` 整体 fade |
 | `ui/ui_fit.gd` | — | 可见区收缩大面板，禁止再乘 `ui_scale` |
@@ -80,7 +80,7 @@ UI 只做两件事：向 `LobbyManager` 发命令、读 `get_snapshot()` 画座�
 
 `NetSession` **不建连**。`LobbyNet.host_listen()` / `client_connect()` 把 `ENetMultiplayerPeer` 挂到 `SceneTree.multiplayer`；进沙盒后大厅对象销毁，peer 还在。这是正确的换场合同，拆大厅时必须保留。
 
-协议现状：`NET_PROTOCOL = 5`，快照 v3，座位 1–5，满 5 才踢，号不前挪。LAN 不写档。Handshake = `rpc_hello(protocol)` 后 `rpc_hello_ok`，**peer_connected 立刻占座**。
+协议现状：`NET_PROTOCOL = 6`（Phase 8 唯一一次 5 → 6 bump），座位 1–5，满 5 才踢，号不前挪。LAN 不写档。Handshake = **Guest → Host** `rpc_hello(protocol=6, token)`，Host 先验协议再验 ticket，通过后回 `rpc_hello_ok` + `rpc_assign_seat`；失败回 `rpc_join_rejected` 并 disconnect。**peer_connected 立刻占 pending 座，但只有 ticket 通过才 confirm 进 `Room.players`**。
 
 ---
 
@@ -338,7 +338,7 @@ wpg://join?v=6&t=TOKEN&lan=...&lp=17777&wan=...&wp=49152&ip6=...
 | `Room` | `RefCounted`（大厅域对象） | 房间身份与状态：seats 1–5（Host = seat 1）、room lifecycle、模式 / 地图 / `loop_goal` 种子 | Room **不是** IP；不直接处理 socket |
 | `LobbyManager` | `Node`，挂在 MainMenu 下 | 大厅唯一状态机 + 唯一命令入口（create / join / leave / ready / start / invite / privacy）；决定状态 | **不是 Autoload**；不碰 ENet API |
 | `LobbyNet` | `Node`（已建立，2026-10-02） | 建连 / 关连 / 大厅 RPC：`host_listen` / `client_connect` / `close` / `hello` / `roster` / `ready` / `start` / connection state；`parse_address()` 是 JoinInvite 的第一刀 | 不决定 UI 状态；不承担战斗流量 |
-| `JoinInvite` | static（表中原 Phase 8 建立；当前只有 `LobbyNet.parse_address()`） | `create()` / `parse()` 连接信息（LAN IPv4 / IPv6 / WAN IPv4）；UI 只调这两个 | UI 禁止自己拼 IP / Port / Token |
+| `JoinInvite` | static（Phase 8 已落地：`lobby/join_invite.gd`） | `create()` / `parse()` 连接信息（LAN IPv4 / IPv6 / WAN IPv4 + token + 可选展示元数据）；UI 只经 `LobbyManager.create_invite()` / `join_invite()` | UI 禁止自己拼 IP / Port / Token / URI |
 | `NetSession` | `arena/net_session.gd`（已存在） | 战斗内同步（输入 / 快照 v3 / 局内事件）；复用具 SceneTree 上的 peer | **职责不改**：不建连、不管大厅、不做发现 |
 | `LanBeacon` | `arena/lan_beacon.gd`（已存在） | 同网发现（17778 UDP）；进战斗停信标 | 不扫网段；不做游戏流量 |
 | `GameLaunch` | static 信封 | 换场一次性交接（`take` 一次） | 不进 Autoload；不长期持有大厅对象 |
@@ -354,11 +354,13 @@ wpg://join?v=6&t=TOKEN&lan=...&lp=17777&wan=...&wp=49152&ip6=...
 7. 无 Autoload：`LobbyManager` 是 MainMenu 子节点；大厅对象随主菜单场景销毁，进沙盒后只剩 `GameLaunch` 快照。
 8. 每一刀都必须能 F5 进现有 Solo；拆大厅中途若不能开房，这一刀不算完成。
 
-## 5. 换场与连接信息（Phase 3 / 7 已落地；表中原 Phase 8 待做）
+## 5. 换场与连接信息（Phase 3 / 7 / 8 已落地；P2P = Phase 9）
 
 - 离线 mock（Phase 3，已落地）：`LobbyManager` 自己维护 `Room` + 假 `LobbyPlayer` 进出，`Start` 直接写 `GameLaunch`，可不 bind 17777。
 - 接网（Phase 7，已落地 2026-10-02）：UI 发命令 → `LobbyManager` → `LobbyNet` 执行 ENet 与大厅 RPC；pending peer 不进 `Room.players`，认证失败 disconnect 且 occupied 不变；Ready / 房间设置 / 座位快照全部走 Host 权威广播，Guest 只读投影。
-- WAN / P2P 预留（表中原 Phase 8）：`JoinInvite.create()` / `parse()` 是 UI 的唯一入口；`ConnectionPath` 枚举 `LAN_IPV4 / IPV6 / WAN_IPV4`；协议 bump 5 → 6 与门票握手同一天落地。当前只有 `LobbyNet.parse_address()`（LAN IPv4）+ Invite shell（Copy invite / Show QR 占位，不做真连接）。
+- JoinInvite / ConnectionPath / protocol 6（Phase 8，已落地）：`JoinInvite.create()` / `parse()` 是 invite 的唯一入口，产出 `wpg://join?v=6&t=TOKEN&lan=…&lp=…[&wan=…&wp=…][&ip6=…][&n=…][&r=…]`；`token` 由 `Crypto` 随机生成（128 bit hex），**不是** profile_id / room_id / seat / peer_id。`ConnectionPath` 只描述候选顺序 `LAN_IPV4 → IPV6 → WAN_IPV4`，**不持有 peer**；回退时先 `close()` 再试下一个，`SceneTree.multiplayer` 始终只有一个 peer。协议 5 → 6 与 ticket 握手同一天落地，本阶段唯一一次 bump。
+- 门票握手（Phase 8）：Guest 连上后 `rpc_hello(protocol, token)` → Host 先验协议（不符 → `VERSION_MISMATCH`）再验 ticket（不符 → `peer_rejected` + `rpc_join_rejected` + disconnect）→ 通过才 `accept_hello_ok()` 确认座位。ticket 不过的 peer **不进 `Room.players`、不占正式 seat**，pending 由 `drop_peer` 释放。
+- LanBeacon 协议 6：发现包追加 `room_id` / `host_display_name`，LAN Rooms 主标题显示 `NightFox's Room`、地址退居次级；Beacon 仍然**只是 discovery**，不做认证、不承载游戏流量、不做 P2P relay。
 - P2P（表中原 Phase 9）：Host / Guest 各自与 rendezvous 交换连接信息后走 Direct UDP，rendezvous 不承担游戏流量；必须定义连接超时、打洞超时、直连失败与手动连接文案，且**不承诺**所有 NAT 都能直连。
 
 [Showing lines 1-300 of 578. Use :301 to continue]

@@ -9,7 +9,10 @@ enum NetPlay { COOP, BATTLE }
 const SOLO_LOOP_GOAL: int = 20 ## 滑杆默认与缺档 Solo 隐式档，不是运行时硬锁终点
 const NET_PORT: int = 17777
 const NET_DISCOVER_PORT: int = 17778
-const NET_PROTOCOL: int = 5
+## 协议 6（Phase 8）：hello 增加 ticket 校验。v5 -> v6 是本阶段唯一一次 bump；
+## 同批进入 v6 的字段（token / ipv6 / wan_host / wan_port / room_id / host_name）
+## 已在 JoinInvite 一次定义清楚，不允许再为单个字段做 6 -> 7。
+const NET_PROTOCOL: int = 6
 const NET_MAX_SEATS: int = 5
 const DEFAULT_JOIN_ADDRESS := "127.0.0.1"
 const ARENA_CATALOG: ArenaCatalog = preload("res://data/arena_catalog.tres")

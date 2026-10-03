@@ -63,13 +63,34 @@ def _lobby_guards() -> list:
         failures.append("LanOverlay 建房 / 连房必须走 LobbyManager 命令（host_room / join_room_address）")
     if "ENetMultiplayerPeer" in overlay or "@rpc" in overlay:
         failures.append("ui/lan_overlay.gd 不允许出现 ENet / @rpc（建连归 lobby/lobby_net.gd）")
+    # Phase 8：URI / token / 候选选择全部归 domain，UI 只发命令。
+    if "wpg://" in overlay:
+        failures.append("LanOverlay 不许自己拼 wpg:// URI（必须走 LobbyManager.create_invite）")
+    if "_lobby.create_invite(" not in overlay:
+        failures.append("LanOverlay 的 Copy Invite 必须走 LobbyManager.create_invite()")
+    if "JoinInvite.generate_token" in overlay:
+        failures.append("LanOverlay 不许自己生成 token（归 JoinInvite / LobbyManager）")
+    # ConnectionPath 只描述候选，绝不持有 peer / 建连。
+    if (ROOT / "lobby/connection_path.gd").is_file():
+        path_code = _strip_comments(read(ROOT / "lobby/connection_path.gd"))
+        for marker in ("ENetMultiplayerPeer", "@rpc", "create_client", "create_server"):
+            if marker in path_code:
+                failures.append("lobby/connection_path.gd 只是候选描述，不允许出现 %s" % marker)
+    # LanBeacon 只做发现，不是认证 / 不是游戏流量。
+    beacon = _strip_comments(read(ROOT / "arena/lan_beacon.gd"))
+    for marker in ("ENetMultiplayerPeer", "@rpc", "check_ticket"):
+        if marker in beacon:
+            failures.append("arena/lan_beacon.gd 只是 LAN discovery，不允许出现 %s" % marker)
     # 全仓库：new ENetMultiplayerPeer 只允许 LobbyNet。
+    # 唯一例外是 connection_path_test：它必须亲手持有/替换 peer，才能证明
+    # 「候选回退过程中 SceneTree 始终只有一个 peer」这条 Phase 8 硬约束。
+    ENet_ALLOWED = {"lobby/lobby_net.gd", "tests/connection_path_test.gd"}
     for path in ROOT.rglob("*.gd"):
         rel = path.relative_to(ROOT).as_posix()
         if rel.startswith(".godot/") or rel.startswith("tools/"):
             continue
         code = _strip_comments(path.read_text(encoding="utf-8", errors="replace"))
-        if "ENetMultiplayerPeer.new()" in code and rel != "lobby/lobby_net.gd":
+        if "ENetMultiplayerPeer.new()" in code and rel not in ENet_ALLOWED:
             failures.append("%s 不允许 new ENetMultiplayerPeer（只允许 lobby/lobby_net.gd）" % rel)
     # 战斗 NetSession 不得混进大厅 RPC。
     net = read(ROOT / "arena/net_session.gd")
@@ -248,8 +269,9 @@ def main() -> int:
         failures.append("GameLaunch.NET_PORT 不是 17777")
     if "const NET_DISCOVER_PORT: int = 17778" not in launch:
         failures.append("GameLaunch.NET_DISCOVER_PORT 不是 17778")
-    if "const NET_PROTOCOL: int = 5" not in launch:
-        failures.append("GameLaunch.NET_PROTOCOL 不是 5")
+    # 协议 6（Phase 8）：JoinInvite / ConnectionPath / ticket handshake 唯一一次 bump。
+    if "const NET_PROTOCOL: int = 6" not in launch:
+        failures.append("GameLaunch.NET_PROTOCOL 不是 6")
     net = read(ROOT / "arena/net_session.gd")
     if "class_name NetSession" not in net:
         failures.append("arena/net_session.gd 缺少 class_name NetSession")

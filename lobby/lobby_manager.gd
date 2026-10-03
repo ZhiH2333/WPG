@@ -41,6 +41,11 @@ var _mock_seq: int = 0
 var _net: LobbyNet = null
 ## Guest 侧本地投影用的房间种子（协议 5 不回传身份，先占位）。
 var _remote_seed: Dictionary = {}
+## 本房 ticket（Phase 8）。Host 建房时随机生成，只用于「持有门票」校验。
+## 绝不是身份：与 profile_id / room_id / seat / peer_id 严格分开。
+var _room_ticket: String = ""
+## Guest 实际选中的连接路径（LobbyPlayer.Path）。未连接时不假装成 WAN_IPV4。
+var _active_path: int = LobbyPlayer.Path.LAN_IPV4
 
 func _exit_tree() -> void:
 	if _net != null and _net.get_parent() == self:
@@ -134,6 +139,73 @@ func join_room_address(address: String) -> bool:
 	if _net == null:
 		return false
 	return _net.client_connect(address)
+
+# ---- 邀请票据（Phase 8）----
+#
+# UI 只允许调这两个命令。禁止 UI 自己拼 "wpg://"、自己解析 query、自己生成 token、
+# 自己挑 ENet 地址 —— 那些全部归本层与 JoinInvite / ConnectionPath。
+
+## Host：为本房生成邀请票据（含 ticket）。ticket 每次调用都重新随机，
+## 绝不复用 room_id / profile_id / seat / peer_id。
+## lan_host 由调用方给出（UI 从 LanBeacon / 多网卡里读出本机地址，不猜）。
+func create_invite(lan_host: String, lan_port: int = GameLaunch.NET_PORT) -> JoinInvite:
+	if _room == null:
+		return null
+	var host_name: String = _room.host_display_name
+	var invite: JoinInvite = JoinInvite.create(
+		lan_host,
+		lan_port,
+		"",
+		_room.room_id,
+		host_name
+	)
+	if not invite.is_valid():
+		return null
+	_room_ticket = invite.token
+	if _net != null:
+		_net.set_ticket(invite.token)
+	return invite
+
+## Host 侧：本房当前 ticket（无房则空）。仅供 Host 自己复述给 Guest，绝不外发身份。
+func get_room_ticket() -> String:
+	return _room_ticket
+
+## Guest：解析并消费一张邀请票据，选一个候选路径发起连接。
+## 返回 JoinInvite（含 error 供 UI 显示）；成功发起连接时 error == OK。
+## 失败时返回的 invite.error 明确区分 bad scheme / version / port 等。
+func join_invite(raw: String) -> JoinInvite:
+	var invite: JoinInvite = JoinInvite.parse(raw)
+	if not invite.is_valid():
+		return invite
+	if _net == null:
+		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
+		return invite
+	var plan: ConnectionPath = invite.to_candidates()
+	if plan.is_empty():
+		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
+		return invite
+	## 1.0：按候选顺序尝试。一次只建一个 peer；失败就 close 再试下一个。
+	var index: int = 0
+	while true:
+		var candidate: ConnectionPath.Candidate = plan.select_next_path(index)
+		if candidate == null:
+			break
+		index += 1
+		if _try_candidate(candidate, invite.token):
+			return invite
+	return invite
+
+## 尝试一个候选：先关闭当前 peer（保证 SceneTree.multiplayer 只有一个 peer），再建连。
+func _try_candidate(candidate: ConnectionPath.Candidate, ticket: String) -> bool:
+	if _net == null:
+		return false
+	_net.close()
+	_active_path = candidate.path
+	return _net.client_connect(candidate.address, candidate.port, ticket)
+
+## 本机实际选中的连接路径（未连接时返回 LAN_IPV4 作为无害默认）。
+func get_active_path() -> int:
+	return _active_path
 
 ## 关掉网络。Host 关房 / Guest 断线都走这里。
 func close_network() -> void:
@@ -239,7 +311,9 @@ func _on_net_peer_joined(peer_id: int, _seat: int) -> void:
 		return
 	if _net != null:
 		_net.set_seat_peer(seat, peer_id)
-		_net.send_hello(peer_id)
+		# 协议 6：不再由 Host 主动 send_hello。Guest 连上后自己出示 ticket，
+		# Host 在 rpc_hello 里校验；这里只负责占 pending 座。
+		# ticket 不通过时 peer_confirmed 不会到达 -> pending 由 drop_peer 释放。
 
 func _on_net_peer_left(peer_id: int) -> void:
 	drop_peer(peer_id)

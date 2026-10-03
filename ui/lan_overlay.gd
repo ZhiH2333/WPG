@@ -47,6 +47,8 @@ var _seat_rows: Array[HBoxContainer] = []
 var _guest_seat_rows: Array[HBoxContainer] = []
 ## 掉线提示播放中：期间不接受 room_changed 的整体刷新，先把 PLAYERxx LEFT 播完。
 var _lobby_notice_playing: bool = false
+## 最近一次生成的 invite URI（QR / 复制共用数据源）。UI 不解析它，只转发。
+var _last_invite_uri: String = ""
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _sheet: Control = $Sheet
@@ -919,16 +921,44 @@ func _on_privacy_pressed(privacy: Room.Privacy) -> void:
 		_lobby.set_privacy(privacy)
 	_sync_host_beacon()
 
-## Copy invite：复制本机 LAN 地址（shell，不生成 token / 不做 WAN）。
+## Copy invite（Phase 8）：真 JoinInvite。UI 不拼 URI、不生成 token，
+## 一律经 LobbyManager.create_invite()，再原样复制 invite.to_uri()。
 func _on_copy_invite_pressed() -> void:
 	_play_click()
-	DisplayServer.clipboard_set(_format_addresses())
+	var invite: JoinInvite = _make_invite()
+	if invite == null:
+		_invite_notice.text = "no room"
+		_play_error()
+		return
+	DisplayServer.clipboard_set(invite.to_uri())
 	_invite_notice.text = "invite copied"
 
-## Show QR：本阶段只有 shell —— JoinInvite / token 落地前不画真二维码。
+## Show QR：数据源已是真实 v6 JoinInvite URI。QR 渲染器本身留到 Phase 9，
+## 这里只把「要编码的字符串」换成真 invite，并显示 URI 供人肉核对。
 func _on_show_qr_pressed() -> void:
 	_play_click()
-	_invite_notice.text = "QR shell · 协议 8 再接"
+	var invite: JoinInvite = _make_invite()
+	if invite == null:
+		_invite_notice.text = "no room"
+		_play_error()
+		return
+	_last_invite_uri = invite.to_uri()
+	_invite_notice.text = "invite ready: %s" % invite.display_label()
+
+## 本机 invite URI（QR / 复制共用同一份数据源）。无 invite 时为空。
+func get_invite_uri() -> String:
+	if not _last_invite_uri.is_empty():
+		return _last_invite_uri
+	var invite: JoinInvite = _make_invite()
+	if invite == null:
+		return ""
+	return invite.to_uri()
+
+## 经 LobbyManager 生成真 invite（含随机 ticket）。UI 不做任何 token / URI 拼接。
+func _make_invite() -> JoinInvite:
+	if _lobby == null or not _lobby.has_room():
+		return null
+	return _lobby.create_invite(_primary_address(), GameLaunch.NET_PORT)
 
 ## 粘贴进来的邀请文本可能带前缀 / 端口：先按 IPv4 解析，解析不到再当主机名原样用。
 func _resolve_join_address(raw: String) -> String:
@@ -941,7 +971,12 @@ func _on_connect_pressed() -> void:
 	if _view != View.JOIN and _view != View.INVITE:
 		return
 	_play_click()
-	var address: String = _resolve_join_address(_join_edit.text)
+	var raw: String = _join_edit.text.strip_edges()
+	## wpg:// 邀请文本走 JoinInvite 全链路（含 ticket）。UI 只转发原文，不解析 query。
+	if raw.to_lower().begins_with("%s://" % JoinInvite.SCHEME):
+		_join_uri_invite(raw)
+		return
+	var address: String = _resolve_join_address(raw)
 	_join_edit.text = address
 	if address.is_empty():
 		_join_status.text = "no address"
@@ -957,6 +992,53 @@ func _on_connect_pressed() -> void:
 		_join_status.text = "refused"
 		_connect_button.disabled = false
 		_play_error()
+
+## 邀请票据入口：解析 / 校验 / 候选选择 / 连接全在 LobbyManager + JoinInvite + ConnectionPath。
+## UI 只把 error 码翻成一行文案。
+func _join_uri_invite(raw: String) -> void:
+	if _view == View.JOIN:
+		_start_guest_beacon()
+	_hide_join_session_labels()
+	_connect_button.disabled = true
+	if _lobby == null:
+		_join_status.text = "refused"
+		_connect_button.disabled = false
+		_play_error()
+		return
+	_join_status.text = "connecting"
+	var invite: JoinInvite = _lobby.join_invite(raw)
+	if invite == null or invite.error != JoinInvite.InvalidReason.OK:
+		_join_status.text = _invite_error_text(invite)
+		_connect_button.disabled = false
+		_play_error()
+		return
+	_join_edit.text = invite.lan_host
+	_last_invite_uri = invite.to_uri()
+	if not invite.host_name.is_empty():
+		_join_status.text = "invited by %s" % invite.host_name
+
+## JoinInvite 的 error 码 -> UI 文案。UI 不解析 URI、不猜原因。
+func _invite_error_text(invite: JoinInvite) -> String:
+	if invite == null:
+		return "bad invite"
+	match invite.error:
+		JoinInvite.InvalidReason.EMPTY:
+			return "empty invite"
+		JoinInvite.InvalidReason.BAD_SCHEME:
+			return "bad scheme"
+		JoinInvite.InvalidReason.BAD_ACTION:
+			return "bad invite"
+		JoinInvite.InvalidReason.BAD_VERSION:
+			return "Version mismatch"
+		JoinInvite.InvalidReason.MISSING_TOKEN, JoinInvite.InvalidReason.BAD_TOKEN:
+			return "bad ticket"
+		JoinInvite.InvalidReason.BAD_LAN_HOST, JoinInvite.InvalidReason.BAD_WAN_HOST:
+			return "bad address"
+		JoinInvite.InvalidReason.BAD_LAN_PORT, JoinInvite.InvalidReason.BAD_WAN_PORT:
+			return "bad port"
+		JoinInvite.InvalidReason.BAD_IPV6:
+			return "bad ipv6"
+	return "bad invite"
 
 ## CREATE ROOM 页内的借档入口：放进 ROOM SETTINGS 那一竖列（与其它房间设置同一列宽），
 ## 排在 START 之前，不再挡在建房前面。
@@ -1453,7 +1535,15 @@ func _start_host_beacon() -> void:
 	if _view != View.HOST or _host_started or _privacy != Room.Privacy.LAN_VISIBLE:
 		return
 	_ensure_beacon()
-	_beacon.start_host(_occupied(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
+	_beacon.start_host(
+		_occupied(),
+		GameLaunch.NET_MAX_SEATS,
+		int(_net_play),
+		_host_loop_goal(),
+		GameLaunch._sanitize_arena_id(_selected_arena_id),
+		_beacon_room_id(),
+		_beacon_host_name()
+	)
 
 ## INVITE ONLY = 不发信标（房间还在，只是同网段发现不到）。
 func _sync_host_beacon() -> void:
@@ -1464,7 +1554,26 @@ func _sync_host_beacon() -> void:
 		return
 	if _beacon == null:
 		return
-	_beacon.update_host(_occupied(), GameLaunch.NET_MAX_SEATS, int(_net_play), _host_loop_goal(), GameLaunch._sanitize_arena_id(_selected_arena_id))
+	_beacon.update_host(
+		_occupied(),
+		GameLaunch.NET_MAX_SEATS,
+		int(_net_play),
+		_host_loop_goal(),
+		GameLaunch._sanitize_arena_id(_selected_arena_id),
+		_beacon_room_id(),
+		_beacon_host_name()
+	)
+
+## 协议 6：beacon 里带的房间身份 / Host 名（只用于 LAN Rooms 显示，不是认证）。
+func _beacon_room_id() -> String:
+	if _lobby == null or not _lobby.has_room():
+		return ""
+	return _lobby.get_room().room_id
+
+func _beacon_host_name() -> String:
+	if _lobby == null or not _lobby.has_room():
+		return ""
+	return _lobby.get_room().host_display_name
 
 ## Guest 探针在 MULTIPLAYER 首页 / LAN ROOMS / JOIN INVITE 都跑（Quick join 要靠它）。
 func _start_guest_beacon() -> void:
@@ -1564,12 +1673,17 @@ func _make_room_row(room: Dictionary) -> HBoxContainer:
 	row.add_child(_make_room_action_label(room))
 	return row
 
-## 主标题：协议 5 的发现包不带 Host 显示名，先写房间；地址放次级 caption。
-func _make_room_title_label(_room: Dictionary) -> Label:
+## 主标题：协议 6 的发现包带 Host 显示名 -> "NightFox's Room"；缺省回落到 ROOM。
+## 地址退居次级 caption，人不再需要读 IP 才能认房间。
+func _make_room_title_label(room: Dictionary) -> Label:
 	var label: Label = Label.new()
 	label.name = "Title"
 	label.theme_type_variation = &"OfferTitle"
-	label.text = "ROOM"
+	var host_name: String = str(room.get("host_display_name", ""))
+	if host_name.is_empty():
+		label.text = "ROOM"
+	else:
+		label.text = "%s's Room" % host_name
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE

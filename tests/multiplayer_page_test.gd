@@ -42,6 +42,7 @@ func _run_all() -> void:
 	_case_lan_rooms(overlay)
 	_case_lobby_navigation(overlay, manager)
 	_case_join_invite(overlay, net)
+	_case_invite_uri_is_real(overlay, manager)
 	_case_recent(overlay)
 	_case_privacy(overlay, manager)
 	_case_starting_and_disconnect(overlay, manager)
@@ -146,7 +147,26 @@ func _case_join_invite(overlay: LanOverlay, net: LobbyNet) -> void:
 	_expect(overlay._join_status.text == "no address", "空地址直接拒绝")
 	_expect(not net.is_active(), "空地址不会建 peer")
 	overlay._show_qr_button.pressed.emit()
-	_expect(overlay._invite_notice.text.find("QR") >= 0, "Show QR 是 shell（只给占位文案）")
+	## Phase 8：QR 数据源已是真实 v6 JoinInvite。没有房间时不允许假装有 invite。
+	_expect(overlay._invite_notice.text.find("no room") >= 0, "无房间时 Show QR 明确报 no room")
+	overlay._copy_invite_button.pressed.emit()
+	_expect(overlay._invite_notice.text.find("no room") >= 0, "无房间时 Copy invite 明确报 no room")
+	_expect(overlay.get_invite_uri().is_empty(), "无房间时没有 invite URI")
+
+## Phase 8：有房间后 Copy Invite / Show QR 必须走真 JoinInvite（含 ticket）。
+func _case_invite_uri_is_real(overlay: LanOverlay, manager: LobbyManager) -> void:
+	overlay._enter_host()
+	overlay._row_create.pressed.emit()
+	_expect(manager.has_room(), "建房后有房间")
+	overlay._show_qr_button.pressed.emit()
+	var uri: String = overlay.get_invite_uri()
+	_expect(uri.begins_with("wpg://join?"), "QR 数据源是真 v6 invite URI")
+	_expect(uri.find("v=6") >= 0, "URI 带 v=6")
+	var parsed: JoinInvite = JoinInvite.parse(uri)
+	_expect(parsed.is_valid(), "UI 产出的 URI 能被 JoinInvite 解析")
+	_expect(parsed.token == manager.get_room_ticket(), "URI 里的 token 就是本房 ticket")
+	## UI 不许自己拼 URI：Notice 里不该出现裸 "wpg://" 拼装痕迹。
+	_expect(overlay._invite_notice.text.find("invite ready") >= 0, "Show QR 给出真实 invite 数据流反馈")
 	overlay._copy_invite_button.pressed.emit()
 	_expect(overlay._invite_notice.text.find("copied") >= 0, "Copy invite 给出复制反馈")
 

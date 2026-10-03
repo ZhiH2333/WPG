@@ -87,19 +87,20 @@ func _case_client_connect_state() -> void:
 	_expect(net.get_state() == LobbyNet.NetState.DISCONNECTED, "close 归零")
 	net.queue_free()
 
-# ---- 3. hello 协议闸门 ----
+# ---- 3. hello 协议闸门（协议 6：hello 带 ticket，方向 Guest -> Host）----
 
 func _case_hello_protocol_gate() -> void:
 	var net: LobbyNet = LobbyNet.new()
 	root.add_child(net)
 	var mismatches: Array = [0]
 	net.version_mismatch.connect(func() -> void: mismatches[0] += 1)
-	net.rpc_hello(GameLaunch.NET_PROTOCOL + 1)
+	## 协议号不对必须走 VERSION_MISMATCH（比 ticket 更早的一道门）。
+	net.rpc_hello(GameLaunch.NET_PROTOCOL + 1, "deadbeefdeadbeef")
 	_expect(net.get_state() == LobbyNet.NetState.VERSION_MISMATCH, "版本不符 -> VERSION_MISMATCH")
 	_expect(int(mismatches[0]) == 1, "version_mismatch 派发一次")
 	_expect(not net.is_active(), "VERSION_MISMATCH 不是可用会话")
-	# 正确协议分支：没有 peer 时不会回执，但状态机照样推进到 CONNECTED。
-	net.rpc_hello(GameLaunch.NET_PROTOCOL)
+	## 正确协议分支：没有 peer 时不会回执，但状态机照样推进到 CONNECTED。
+	net.rpc_hello(GameLaunch.NET_PROTOCOL, "deadbeefdeadbeef")
 	_expect(net.get_state() == LobbyNet.NetState.CONNECTED, "协议相符 -> CONNECTED")
 	net.close()
 	net.queue_free()
@@ -431,7 +432,7 @@ func _case_server_disconnect() -> void:
 	_expect(failed.has("refused"), "连接被拒给出 refused 文案")
 	net.close()
 	_expect(net.get_state() == LobbyNet.NetState.DISCONNECTED, "再次 close 归零")
-	net.rpc_hello(-1)
+	net.rpc_hello(-1, "deadbeefdeadbeef")
 	_expect(failed.has("Version mismatch"), "版本不符给出 Version mismatch 文案")
 	manager.queue_free()
 	net.queue_free()

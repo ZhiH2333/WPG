@@ -43,6 +43,10 @@ signal peer_joined(peer_id: int, seat: int)
 signal peer_left(peer_id: int)
 ## Host 侧：某 peer 握手完成（可正式入座）。
 signal peer_confirmed(peer_id: int, seat: int)
+## Host 侧：某 peer 的 ticket 校验失败，已被拒（原因见 TicketReject）。
+signal peer_rejected(peer_id: int, reason: int)
+## Guest 侧：自己的 ticket 被 Host 拒绝。
+signal join_rejected(reason: int)
 ## Host 侧：收到 Guest 的角色。
 signal guest_character(peer_id: int, character_id: String)
 ## Guest 侧：收到自己座位。
@@ -61,6 +65,16 @@ signal ready_applied(seat: int, ready: bool)
 ## 状态变化。
 signal state_changed(state: int)
 
+## 协议 6：Guest hello 被拒的原因。Host 是唯一裁判。
+enum TicketReject {
+	NONE,
+	BAD_PROTOCOL,
+	BAD_TOKEN,
+	NO_ROOM,
+	FULL,
+	NO_SEAT,
+}
+
 const MAX_SEATS: int = GameLaunch.NET_MAX_SEATS
 const HOST_PEER: int = 1
 
@@ -74,6 +88,13 @@ var _seat_character_ids: PackedStringArray = PackedStringArray()
 var _seat_handshake: PackedByteArray = PackedByteArray()
 ## Guest 侧：最后一次收到的 roster。
 var _roster_character_ids: PackedStringArray = PackedStringArray()
+## Host 侧：本房门票（协议 6）。由 LobbyManager 在建房时通过 set_ticket() 注入。
+## 只用于比对 Guest 出示的 ticket，绝不当作身份 —— 身份永远看 profile_id 握手。
+var _ticket: String = ""
+## Guest 侧：本次连接携带的 ticket。
+var _guest_ticket: String = ""
+## Host 侧：peer_id -> 已通过 ticket 校验（0/1）。未通过的 peer 不得进 Room、不得占正式座位。
+var _peer_ticket_ok: Dictionary = {}
 
 func _ready() -> void:
 	_reset_seats()
@@ -134,11 +155,13 @@ func host_listen() -> bool:
 	listen_ok.emit()
 	return true
 
-## Guest 连接。成功发起返回 true；立即失败返回 false（refused）。
-func client_connect(address: String) -> bool:
+## Guest 连接（Phase 8：按候选路径带 address / port / ticket）。
+## 一次只建一个 peer —— 调用方负责在失败后 close() 再试下一个候选。
+func client_connect(address: String, port: int = GameLaunch.NET_PORT, ticket: String = "") -> bool:
 	close()
+	_guest_ticket = ticket
 	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
-	var err: Error = peer.create_client(address.strip_edges(), GameLaunch.NET_PORT)
+	var err: Error = peer.create_client(address.strip_edges(), clampi(port, 1, 65535))
 	if err != OK:
 		set_state(NetState.FAILED)
 		connection_failed.emit()
@@ -148,10 +171,27 @@ func client_connect(address: String) -> bool:
 	set_state(NetState.CONNECTING)
 	return true
 
+## Host 侧：注入本房 ticket（由 LobbyManager 在建房时给出）。
+func set_ticket(ticket: String) -> void:
+	_ticket = ticket.strip_edges()
+
+func get_ticket() -> String:
+	return _ticket
+
+## Guest 侧：本次连接携带的 ticket。
+func set_guest_ticket(ticket: String) -> void:
+	_guest_ticket = ticket.strip_edges()
+
+func get_guest_ticket() -> String:
+	return _guest_ticket
+
 func close() -> void:
 	_unwire()
 	_reset_seats()
 	_roster_character_ids = PackedStringArray()
+	_peer_ticket_ok.clear()
+	## _ticket 是房间级凭据，由 LobbyManager 显式注入 / 清空，这里不擅自丢，
+	## 否则 Host 一关连重开就变成「无 ticket 房间」而拒绝所有 Guest。
 	var peer: MultiplayerPeer = multiplayer.multiplayer_peer
 	if peer != null:
 		peer.close()
@@ -171,11 +211,24 @@ func send_ready(ready: bool) -> void:
 		return
 	rpc_ready.rpc_id(HOST_PEER, ready)
 
-## Host 主动向新连上的 peer 发起握手。
-func send_hello(peer_id: int) -> void:
+## Guest 侧：向 Host 出示 ticket（协议 6 握手第一步）。ticket 是入场券，不是身份。
+## 方向必须是 Guest -> Host：否则 Host 把自己的 ticket 发给 Guest，校验就失去意义。
+func send_hello() -> void:
+	if is_server() or multiplayer.multiplayer_peer == null:
+		return
+	set_state(NetState.HANDSHAKING)
+	rpc_hello.rpc_id(HOST_PEER, GameLaunch.NET_PROTOCOL, _guest_ticket)
+
+## Host 侧：ticket 校验通过后回执握手，并把座位发给该 Guest。
+## 座位是握手成功的产物 —— 没通过 ticket 的 peer 永远走不到这里。
+func send_hello_ok(peer_id: int) -> void:
 	if not is_server() or peer_id <= 1:
 		return
-	rpc_hello.rpc_id(peer_id, GameLaunch.NET_PROTOCOL)
+	rpc_hello_ok.rpc_id(peer_id)
+	var seat: int = seat_for_peer(peer_id)
+	if seat < Room.HOST_SEAT + 1 or seat > MAX_SEATS:
+		return
+	rpc_assign_seat.rpc_id(peer_id, seat)
 
 ## Host 拒绝一个 peer（占座失败 / 满员 / 无房）。
 func disconnect_peer(peer_id: int) -> void:
@@ -240,26 +293,89 @@ func begin_match(character_ids: PackedStringArray, peer_ids: PackedInt32Array, l
 
 # ---- RPC（大厅）----
 
-@rpc("authority", "call_remote", "reliable")
-func rpc_hello(protocol: int) -> void:
+## Guest -> Host：出示 (protocol, ticket)。Host 是唯一裁判。
+## 协议不匹配 -> VERSION_MISMATCH；ticket 不匹配 -> 明确 rejected，且不占座。
+@rpc("any_peer", "call_remote", "reliable")
+func rpc_hello(protocol: int, ticket: String) -> void:
+	## 协议门放在最前面：它既不依赖 peer 也不依赖 server 角色，
+	## 这样离线状态机自检（单进程测试）也能走通，与 v5 行为保持一致。
 	if protocol != GameLaunch.NET_PROTOCOL:
 		set_state(NetState.VERSION_MISMATCH)
 		version_mismatch.emit()
+		## 只有真有 peer 时才谈得上回执 / 踢人；离线自检没有 sender。
+		if multiplayer.multiplayer_peer != null:
+			var mismatched: int = multiplayer.get_remote_sender_id()
+			peer_rejected.emit(mismatched, int(TicketReject.BAD_PROTOCOL))
+			rpc_join_rejected.rpc_id(mismatched, int(TicketReject.BAD_PROTOCOL))
+			disconnect_peer(mismatched)
 		return
-	## 没有 peer 就不回执（离线状态机自检 / 收尾关连时不该发 RPC），但状态照常推进。
-	if multiplayer.multiplayer_peer != null:
-		rpc_hello_ok.rpc_id(HOST_PEER)
-	set_state(NetState.CONNECTED)
-
-@rpc("any_peer", "call_remote", "reliable")
-func rpc_hello_ok() -> void:
+	## 没有 peer = 离线状态机自检 / 收尾关连：不回执、不校验 ticket，但状态照常推进
+	##（与协议 5 行为一致，单进程测试依赖这条）。
+	if multiplayer.multiplayer_peer == null:
+		set_state(NetState.CONNECTED)
+		return
 	if not multiplayer.is_server():
 		return
 	var sender: int = multiplayer.get_remote_sender_id()
+	var reject: TicketReject = check_ticket(sender, ticket)
+	if reject != TicketReject.NONE:
+		## ticket 不过 = 不确认、不占正式座位、不进 Room.players，并立刻断开。
+		_peer_ticket_ok.erase(sender)
+		peer_rejected.emit(sender, int(reject))
+		rpc_join_rejected.rpc_id(sender, int(reject))
+		disconnect_peer(sender)
+		return
+	_peer_ticket_ok[sender] = 1
+	## ticket 过了才走座位确认：未过 ticket 的 peer 永远拿不到 seat，
+	## 也就不会进 Room.players（LobbyManager 只在 peer_confirmed 时 confirm_peer）。
 	var seat: int = accept_hello_ok(sender)
 	if seat == 0:
+		## 没座位（满员 / 未占 pending）-> 明确拒绝，不静默丢包。
+		_peer_ticket_ok.erase(sender)
+		peer_rejected.emit(sender, int(TicketReject.NO_SEAT))
+		rpc_join_rejected.rpc_id(sender, int(TicketReject.NO_SEAT))
+		disconnect_peer(sender)
 		return
-	rpc_assign_seat.rpc_id(sender, seat)
+	send_hello_ok(sender)
+	set_state(NetState.CONNECTED)
+
+## Host 权威 ticket 校验（纯逻辑，便于单测）。
+## 注意：ticket 只证明「持有本房门票」，不映射 profile_id、不与 seat / peer_id 混用。
+func check_ticket(peer_id: int, ticket: String) -> TicketReject:
+	if not is_server():
+		return TicketReject.NO_ROOM
+	if _ticket.is_empty():
+		## 没建 ticket 的房间不接受任何 ticket 连接（避免"空 ticket 放行"）。
+		return TicketReject.NO_ROOM
+	if ticket.is_empty():
+		return TicketReject.BAD_TOKEN
+	## 定长比较，避免长度差异提前退出。
+	if ticket.length() != _ticket.length():
+		return TicketReject.BAD_TOKEN
+	var diff: int = 0
+	for i: int in ticket.length():
+		diff |= ticket.unicode_at(i) ^ _ticket.unicode_at(i)
+	if diff != 0:
+		return TicketReject.BAD_TOKEN
+	if seat_for_peer(peer_id) < Room.HOST_SEAT + 1:
+		return TicketReject.NO_SEAT
+	return TicketReject.NONE
+
+## Host 侧：某 peer 是否已通过 ticket 校验。未通过的 peer 不得进 Room。
+func is_peer_ticket_ok(peer_id: int) -> bool:
+	return _peer_ticket_ok.get(peer_id, 0) == 1
+
+## Host -> Guest：ticket 已通过，握手确认，随后 Host 分配座位。
+@rpc("authority", "call_remote", "reliable")
+func rpc_hello_ok() -> void:
+	set_state(NetState.CONNECTED)
+
+## Host → Guest：ticket 被拒。Guest 侧据此进入明确的失败状态，不重试、不静默。
+@rpc("authority", "call_remote", "reliable")
+func rpc_join_rejected(reason: int) -> void:
+	set_state(NetState.FAILED)
+	join_rejected.emit(reason)
+	connection_failed.emit()
 
 ## 握手回执的座位校验（纯逻辑，便于单测）：只有已占座的 Guest 才被确认。
 ## 返回 seat；0 = 没有座位（没占座 / 是 Host 自己 / 座位号越界）。
@@ -492,6 +608,8 @@ func _on_peer_disconnected(id: int) -> void:
 func _on_connected_to_server() -> void:
 	set_state(NetState.HANDSHAKING)
 	connected.emit()
+	## 协议 6：连上后由 Guest 主动出示 ticket。Host 校验通过才会 assign seat。
+	send_hello()
 
 func _on_connection_failed() -> void:
 	set_state(NetState.FAILED)
