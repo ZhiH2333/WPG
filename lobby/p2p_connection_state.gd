@@ -14,12 +14,24 @@ class_name P2PConnectionState
 ## 本阶段（9.1）**不实现 NAT hole punching**：DIRECT_CONNECTING 只是表达
 ## 「正在尝试把 ENet 接到直连路径」，不代表打洞已经能穿过 NAT。
 
-## 状态。终态 = CONNECTED / FAILED / TIMEOUT / TICKET_REJECTED / VERSION_MISMATCH。
+## 状态。终态 = CONNECTED / FAILED / TIMEOUT / TICKET_REJECTED / VERSION_MISMATCH / DIRECT_ENET_FAILED / DIRECT_PATH_FAILED。
+## Phase 9.2 新增：
+##   DIRECT_PROBING           - UDP hole punch 探测中
+##   DIRECT_PATH_ESTABLISHED  - 双向 UDP probe 成功，已有 validated direct path
+##   DIRECT_ENET_CONNECTING   - 在 validated path 上发起 ENet 连接
+##   DIRECT_ENET_FAILED       - ENet 连接失败（UDP path 可用但 ENet 握手失败）
+## Phase 9.1 兼容（保留）：
+##   DIRECT_CONNECTING        - 直接 ENet 直连尝试中（不做 hole punch）
+##   DIRECT_PATH_FAILED       - hole punch 失败 / 无可用路径
 enum State {
 	DISCONNECTED,
 	RENDEZVOUS_CONNECTING,
 	RENDEZVOUS_REGISTERED,
 	CANDIDATES_RECEIVED,
+	DIRECT_PROBING,
+	DIRECT_PATH_ESTABLISHED,
+	DIRECT_ENET_CONNECTING,
+	DIRECT_ENET_FAILED,
 	DIRECT_CONNECTING,
 	HANDSHAKING,
 	CONNECTED,
@@ -27,13 +39,29 @@ enum State {
 	TIMEOUT,
 	TICKET_REJECTED,
 	VERSION_MISMATCH,
+	DIRECT_PATH_FAILED,
 }
 
 ## 事件。非法事件 -> transition 返回 false，且**状态不变**。
+## Phase 9.2 新增：
+##   BEGIN_DIRECT_PROBING    - 开始 UDP hole punch
+##   DIRECT_PATH_OK          - 双向 probe 成功
+##   DIRECT_PATH_FAILED      - hole punch 失败
+##   BEGIN_DIRECT_ENET       - 在 validated path 上发起 ENet
+##   DIRECT_ENET_CONNECTED   - ENet connected_to_server
+##   DIRECT_ENET_FAILED      - ENet connection_failed
+## Phase 9.1 兼容（保留）：
+##   BEGIN_DIRECT_ATTEMPT    - 直接进入 ENet 直连（不做 hole punch）
 enum Event {
 	BEGIN_RENDEZVOUS,
 	RENDEZVOUS_REGISTERED,
 	CANDIDATES_RECEIVED,
+	BEGIN_DIRECT_PROBING,
+	DIRECT_PATH_OK,
+	DIRECT_PATH_FAILED,
+	BEGIN_DIRECT_ENET,
+	DIRECT_ENET_CONNECTED,
+	DIRECT_ENET_FAILED,
 	BEGIN_DIRECT_ATTEMPT,
 	DIRECT_CONNECTED,
 	DIRECT_FAILED,
@@ -45,9 +73,10 @@ enum Event {
 	RESET,
 }
 
-## 明确的三级超时（F）：各阶段独立预算，不是一个数字覆盖全部。
+## 明确的四级超时（F）：各阶段独立预算，不是一个数字覆盖全部。
 const RENDEZVOUS_TIMEOUT_SEC: float = 5.0
-const DIRECT_CONNECT_TIMEOUT_SEC: float = 4.0
+const DIRECT_PROBE_TIMEOUT_SEC: float = 4.0
+const DIRECT_ENET_TIMEOUT_SEC: float = 4.0
 const OVERALL_JOIN_TIMEOUT_SEC: float = 12.0
 
 ## 状态变化：from -> to，附带触发事件（UI / 日志只读）。
@@ -61,6 +90,8 @@ var _local_candidate_count: int = 0
 var _remote_candidate_count: int = 0
 ## 直连尝试次数（attempt generation 语义与 ConnectAttempt 对齐）。
 var _direct_attempts: int = 0
+## Hole punch probe 尝试次数。
+var _direct_probe_attempts: int = 0
 
 # ---- 查询 ----
 
@@ -168,8 +199,39 @@ func _next_state(state: int, event: int) -> int:
 			if event == Event.CANDIDATES_RECEIVED:
 				return State.CANDIDATES_RECEIVED
 		State.CANDIDATES_RECEIVED:
+			## Phase 9.1 兼容：BEGIN_DIRECT_ATTEMPT 直接进 ENet 直连（不做 hole punch）
 			if event == Event.BEGIN_DIRECT_ATTEMPT:
 				return State.DIRECT_CONNECTING
+			## Phase 9.2：开始 hole punch
+			if event == Event.BEGIN_DIRECT_PROBING:
+				return State.DIRECT_PROBING
+		State.DIRECT_PROBING:
+			if event == Event.DIRECT_PATH_OK:
+				return State.DIRECT_PATH_ESTABLISHED
+			if event == Event.DIRECT_PATH_FAILED:
+				return State.DIRECT_PATH_FAILED
+			if event == Event.TIMEOUT:
+				return State.TIMEOUT
+		State.DIRECT_PATH_ESTABLISHED:
+			if event == Event.BEGIN_DIRECT_ENET:
+				return State.DIRECT_ENET_CONNECTING
+			if event == Event.DIRECT_PATH_FAILED:
+				return State.DIRECT_PATH_FAILED
+		State.DIRECT_ENET_CONNECTING:
+			if event == Event.DIRECT_ENET_CONNECTED:
+				return State.HANDSHAKING
+			if event == Event.DIRECT_ENET_FAILED:
+				return State.DIRECT_ENET_FAILED
+			if event == Event.TIMEOUT:
+				return State.TIMEOUT
+		State.DIRECT_ENET_FAILED:
+			## ENet 直连失败可重试 hole punch（换候选）或终结
+			if event == Event.BEGIN_DIRECT_PROBING:
+				return State.DIRECT_PROBING
+			if event == Event.DIRECT_PATH_FAILED:
+				return State.DIRECT_PATH_FAILED
+			if event == Event.TIMEOUT:
+				return State.TIMEOUT
 		State.DIRECT_CONNECTING:
 			if event == Event.DIRECT_CONNECTED:
 				return State.HANDSHAKING
@@ -190,10 +252,12 @@ func _next_state(state: int, event: int) -> int:
 func _apply_side_effects(event: int) -> void:
 	if event == Event.BEGIN_DIRECT_ATTEMPT:
 		_direct_attempts += 1
+	if event == Event.BEGIN_DIRECT_PROBING:
+		_direct_probe_attempts += 1
 
 func _is_terminal_state(state: int) -> bool:
 	match state:
-		State.CONNECTED, State.FAILED, State.TIMEOUT, State.TICKET_REJECTED, State.VERSION_MISMATCH:
+		State.CONNECTED, State.FAILED, State.TIMEOUT, State.TICKET_REJECTED, State.VERSION_MISMATCH, State.DIRECT_ENET_FAILED:
 			return true
 		_:
 			return false
@@ -208,6 +272,14 @@ static func state_name(value: int) -> String:
 			return "rendezvous_registered"
 		State.CANDIDATES_RECEIVED:
 			return "candidates_received"
+		State.DIRECT_PROBING:
+			return "direct_probing"
+		State.DIRECT_PATH_ESTABLISHED:
+			return "direct_path_established"
+		State.DIRECT_ENET_CONNECTING:
+			return "direct_enet_connecting"
+		State.DIRECT_ENET_FAILED:
+			return "direct_enet_failed"
 		State.DIRECT_CONNECTING:
 			return "direct_connecting"
 		State.HANDSHAKING:
@@ -233,6 +305,18 @@ static func event_name(value: int) -> String:
 			return "rendezvous_registered"
 		Event.CANDIDATES_RECEIVED:
 			return "candidates_received"
+		Event.BEGIN_DIRECT_PROBING:
+			return "begin_direct_probing"
+		Event.DIRECT_PATH_OK:
+			return "direct_path_ok"
+		Event.DIRECT_PATH_FAILED:
+			return "direct_path_failed"
+		Event.BEGIN_DIRECT_ENET:
+			return "begin_direct_enet"
+		Event.DIRECT_ENET_CONNECTED:
+			return "direct_enet_connected"
+		Event.DIRECT_ENET_FAILED:
+			return "direct_enet_failed"
 		Event.BEGIN_DIRECT_ATTEMPT:
 			return "begin_direct_attempt"
 		Event.DIRECT_CONNECTED:

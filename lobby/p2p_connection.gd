@@ -1,11 +1,12 @@
 extends RefCounted
 class_name P2PConnection
 
-## P2P 连接编排器（Phase 9.1）。
+## P2P 连接编排器（Phase 9.1 / 9.2）。
 ##
 ## 分层：
 ##   LobbyManager -> P2PConnection -> RendezvousContract（只交换信息）
 ##                                 -> ConnectionPath（只描述候选）
+##                                 -> P2PHolePunch（UDP probe，仅验证路径）
 ##                                 -> LobbyNet（唯一持有 ENet、唯一建连）
 ##
 ## 职责（严格）：
@@ -13,28 +14,32 @@ class_name P2PConnection
 ## 2. 创建一次 join attempt
 ## 3. 与 rendezvous contract 对接（本阶段是本地 / 注入式，不接公网服务器）
 ## 4. 得到 remote candidates
-## 5. 决定进入 DIRECT_CONNECTING
+## 5. Phase 9.1：直接进入 DIRECT_CONNECTING（ENet 直连）
+##    Phase 9.2：进入 DIRECT_PROBING（UDP hole punch）→ DIRECT_PATH_ESTABLISHED → DIRECT_ENET_CONNECTING
 ## 6. 调用已有 LobbyNet 的「单 peer 建连能力」
 ## 7. 等待 connected / failed / timeout
 ## 8. 控制 attempt generation
 ## 9. 连接成功后进入 HANDSHAKING / CONNECTED
 ##
-## **明确不做**（Phase 9.1 范围）：STUN / TURN / UPnP / 真公网 NAT hole punching / Relay。
-## 直连用的是 ENet 自己 bind 的地址，与 LAN 路径同一条代码路径。
-##
+## **明确不做**：STUN / TURN / UPnP / Relay（Phase 9.3）。
 ## 本对象**不创建 ENet peer**，也不持有 MultiplayerPeer —— 建连只经注入的 transport。
 
 ## 状态推进（UI / 日志只读，不直接改）。
 signal state_changed(from: int, to: int, event: int)
 ## 整个 join 流程终结（成功或失败）。
 signal finished(success: bool, reason: String)
-## 诊断：即将尝试的直连候选。
+## 诊断：即将尝试的直连候选（Phase 9.1 兼容）。
 signal direct_attempt_started(attempt: ConnectAttempt)
+## Hole punch 诊断。
+signal direct_probe_started(local_candidate: Dictionary, remote_candidate: Dictionary)
+signal direct_path_established(rtt_ms: int, validated_candidate: Dictionary)
+signal direct_path_failed(reason: String)
 
 var _state: P2PConnectionState = null
 var _session: RendezvousContract.SessionState = null
 var _identity: RendezvousContract.SessionIdentity = null
 var _runner: ConnectAttemptRunner = null
+var _hole_punch: P2PHolePunch = null
 var _invite: JoinInvite = null
 ## 注入的传输层（生产 = LobbyManager -> LobbyNet；测试 = 假实现）。
 var _connect_fn: Callable = Callable()
@@ -45,6 +50,15 @@ var _client: RendezvousClient = null
 func _init() -> void:
 	_state = P2PConnectionState.new()
 	_session = RendezvousContract.SessionState.new()
+	_hole_punch = P2PHolePunch.new()
+	_hole_punch.state_changed.connect(func(from: int, to: int) -> void:
+		## Hole punch 内部状态变化不直接映射到 P2PConnectionState，
+		## 由显式 notify 方法驱动主状态机。
+		pass
+	)
+	_hole_punch.path_established.connect(_on_hole_punch_path_established)
+	_hole_punch.path_failed.connect(_on_hole_punch_path_failed)
+	_hole_punch.timeout.connect(_on_hole_punch_timeout)
 	_state.state_changed.connect(func(from: int, to: int, event: int) -> void:
 		state_changed.emit(from, to, event)
 	)
@@ -213,6 +227,102 @@ func poll_rendezvous(delta_sec: float) -> void:
 		_client.poll()
 		_client.tick(delta_sec)
 
+# ---- Hole Punch 回调（内部）----
+
+func _on_hole_punch_path_established(rtt_ms: int, validated_candidate: Dictionary) -> void:
+	_state.transition(P2PConnectionState.Event.DIRECT_PATH_OK)
+	direct_path_established.emit(rtt_ms, validated_candidate)
+
+func _on_hole_punch_path_failed(reason: String) -> void:
+	_state.transition(P2PConnectionState.Event.DIRECT_PATH_FAILED)
+	direct_path_failed.emit(reason)
+
+func _on_hole_punch_timeout() -> void:
+	_state.transition(P2PConnectionState.Event.TIMEOUT)
+	_finish(false, "hole_punch_timeout")
+
+# ---- Hole Punch 公共 API ----
+
+## 开始 UDP hole punch（Phase 9.2）。
+## 从 CANDIDATES_RECEIVED 状态调用。
+## 使用 rendezvous 交换的 candidates + observed endpoint。
+func begin_direct_probing(bind_port: int = 0) -> bool:
+	if not _state.transition(P2PConnectionState.Event.BEGIN_DIRECT_PROBING):
+		return false
+	## 准备本端候选：invite 的 local candidates + observed endpoint
+	var local_candidates: Array = _session.local_candidates.duplicate()
+	## 远端候选：rendezvous 交换来的 remote candidates（已含 observed）
+	var remote_candidates: Array = _session.remote_candidates.duplicate()
+	if local_candidates.is_empty() or remote_candidates.is_empty():
+		_state.transition(P2PConnectionState.Event.DIRECT_PATH_FAILED)
+		_finish(false, "no_candidates_for_probing")
+		return false
+	## 本端 role：Guest 发起 join，所以是 GUEST；Host 侧由 LobbyManager 调用时传 HOST
+	var local_role: int = P2PUDPProbe.Role.GUEST
+	if _identity != null and _identity.role == RendezvousContract.Role.HOST:
+		local_role = P2PUDPProbe.Role.HOST
+	## 启动 hole punch
+	var ok: bool = _hole_punch.begin(
+		_session.rendezvous_id,
+		_session.local_nonce,
+		_session.remote_nonce,
+		local_role,
+		local_candidates,
+		remote_candidates,
+		bind_port
+	)
+	if not ok:
+		_state.transition(P2PConnectionState.Event.DIRECT_PATH_FAILED)
+		_finish(false, "hole_punch_begin_failed")
+		return false
+	return true
+
+## Hole punch 成功后，在 validated path 上发起 ENet 直连。
+## 从 DIRECT_PATH_ESTABLISHED 状态调用。
+func begin_direct_enet() -> bool:
+	if not _state.transition(P2PConnectionState.Event.BEGIN_DIRECT_ENET):
+		return false
+	## 从 validated candidate 取 remote address/port
+	var validated: Dictionary = _hole_punch.get_validated_candidate()
+	if validated.is_empty():
+		_state.transition(P2PConnectionState.Event.DIRECT_ENET_FAILED)
+		_finish(false, "no_validated_candidate")
+		return false
+	var remote: Dictionary = validated.remote
+	var address: String = remote.address
+	var port: int = remote.port
+	if address.is_empty() or port < 1:
+		_state.transition(P2PConnectionState.Event.DIRECT_ENET_FAILED)
+		_finish(false, "invalid_validated_candidate")
+		return false
+	## 关闭 probe socket（hole punch 已完成）
+	_hole_punch.cancel()
+	## 复用现有 ConnectAttemptRunner 逻辑，但只试这一个 validated candidate
+	var plan: ConnectionPath = ConnectionPath.new()
+	var candidate: ConnectionPath.Candidate = ConnectionPath.Candidate.new()
+	candidate.path = LobbyPlayer.Path.WAN_IPV4
+	candidate.address = address
+	candidate.port = port
+	plan._candidates.append(candidate)
+	_runner = ConnectAttemptRunner.new()
+	_runner.candidate_started.connect(_on_candidate_started)
+	_runner.attempt_finished.connect(_on_attempt_finished)
+	_runner.exhausted.connect(_on_runner_exhausted)
+	_runner.begin(plan, _ticket(), _connect_fn, _close_fn)
+	return true
+
+## ENet connected_to_server 回调（在 validated path 上）。
+func notify_direct_enet_connected() -> void:
+	if _runner != null:
+		_runner.notify_transport_connected(_runner.current_attempt_id())
+	_state.transition(P2PConnectionState.Event.DIRECT_ENET_CONNECTED)
+
+## ENet connection_failed 回调（在 validated path 上）。
+func notify_direct_enet_failed(why: String = "refused") -> void:
+	if _runner != null:
+		_runner.notify_connection_failed(_runner.current_attempt_id(), why)
+	_state.transition(P2PConnectionState.Event.DIRECT_ENET_FAILED)
+
 ## 进入直连阶段：按候选顺序串行尝试（复用 ConnectionPath 的顺序语义）。
 func begin_direct() -> bool:
 	if not _state.transition(P2PConnectionState.Event.BEGIN_DIRECT_ATTEMPT):
@@ -272,15 +382,19 @@ func notify_connection_failed(why: String = "refused") -> void:
 		return
 	_runner.notify_connection_failed(_runner.current_attempt_id(), why)
 
-## 推进超时。三级超时分别生效（见 P2PConnectionState 常量）。
+## 推进超时。四级超时分别生效（见 P2PConnectionState 常量）。
 func tick(delta_sec: float) -> void:
 	if _runner != null:
 		_runner.tick(delta_sec)
+	if _hole_punch != null and _hole_punch.is_active():
+		_hole_punch.tick(int(delta_sec * 1000))
 
 ## 取消 / 重置：保证不留 active peer。
 func cancel() -> void:
 	if _runner != null:
 		_runner.cancel()
+	if _hole_punch != null:
+		_hole_punch.cancel()
 	## 取消也要关掉 rendezvous socket，不留资源。
 	if _client != null:
 		_client.close()
@@ -291,6 +405,8 @@ func reset() -> void:
 	if _runner != null:
 		_runner.cancel()
 	_runner = null
+	if _hole_punch != null:
+		_hole_punch.reset()
 	if _client != null:
 		_client.reset()
 	_invite = null

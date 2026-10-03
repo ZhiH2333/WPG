@@ -34,10 +34,10 @@ func _run_all() -> void:
 
 func _case_states_and_events_exist() -> void:
 	_expect(P2PConnectionState.State.DISCONNECTED == 0, "DISCONNECTED 存在")
-	_expect(P2PConnectionState.State.CONNECTED == 6, "CONNECTED 存在")
-	_expect(P2PConnectionState.State.TICKET_REJECTED == 9, "TICKET_REJECTED 存在")
-	_expect(P2PConnectionState.State.VERSION_MISMATCH == 10, "VERSION_MISMATCH 存在")
-	_expect(P2PConnectionState.Event.RESET == 11, "RESET 事件存在")
+	_expect(P2PConnectionState.State.CONNECTED == 10, "CONNECTED 存在")
+	_expect(P2PConnectionState.State.TICKET_REJECTED == 13, "TICKET_REJECTED 存在")
+	_expect(P2PConnectionState.State.VERSION_MISMATCH == 14, "VERSION_MISMATCH 存在")
+	_expect(P2PConnectionState.Event.RESET == 17, "RESET 事件存在")
 	_expect(P2PConnectionState.state_name(P2PConnectionState.State.HANDSHAKING) == "handshaking", "state_name 覆盖 HANDSHAKING")
 	_expect(P2PConnectionState.event_name(P2PConnectionState.Event.BEGIN_DIRECT_ATTEMPT) == "begin_direct_attempt", "event_name 覆盖 begin_direct_attempt")
 
@@ -65,13 +65,13 @@ func _case_happy_path() -> void:
 ## 三级超时必须是三个独立值，不允许一个数字覆盖全部。
 func _case_timeouts_are_independent() -> void:
 	var r: float = P2PConnectionState.RENDEZVOUS_TIMEOUT_SEC
-	var d: float = P2PConnectionState.DIRECT_CONNECT_TIMEOUT_SEC
+	var d: float = P2PConnectionState.DIRECT_PROBE_TIMEOUT_SEC
 	var o: float = P2PConnectionState.OVERALL_JOIN_TIMEOUT_SEC
 	_expect(r > 0.0 and d > 0.0 and o > 0.0, "三级超时都为正")
 	_expect(r != d and d != o and r != o, "三级超时互不相同（不是一个数字）")
 	_expect(o > r and o > d, "总超时大于任一单阶段超时")
 	_expect(is_equal_approx(r, ConnectAttemptRunner.RENDEZVOUS_TIMEOUT_SEC), "rendezvous 超时与 runner 一致")
-	_expect(is_equal_approx(d, ConnectAttemptRunner.DIRECT_ATTEMPT_TIMEOUT_SEC), "direct 超时与 runner 一致")
+	_expect(is_equal_approx(d, ConnectAttemptRunner.DIRECT_ATTEMPT_TIMEOUT_SEC), "direct probe 超时与 runner 一致")
 	_expect(is_equal_approx(o, ConnectAttemptRunner.OVERALL_JOIN_TIMEOUT_SEC), "overall 超时与 runner 一致")
 	## Phase 9.2.1 起超时在第三处也有定义：rendezvous 客户端用同一组预算，
 	## 三处必须始终一致，否则注册阶段与直连阶段会各算各的。
