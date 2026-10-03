@@ -5,6 +5,8 @@
 .godot/
 .nomedia
 /android/
+# Android Gradle 构建的本地缓存（由 ensure_android_gradle_template 自动生成）
+/.gradle-home/
 
 # Godot 3 遗留导入缓存（4.x 已迁到 .godot/）
 .import/

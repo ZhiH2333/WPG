@@ -319,6 +319,71 @@ def _ui_display_guards() -> list:
     return failures
 
 
+def _icon_guards() -> list:
+    """图标接线守卫：预设引用的 res:// 图标必须真实存在，且导出期素材不进 PCK。"""
+    failures = []
+    project = read(PROJECT_GODOT)
+    if 'config/icon="res://icon.png"' not in project:
+        failures.append("application/config/icon 未指向 res://icon.png")
+    if not (ROOT / "icon.png").is_file():
+        failures.append("缺少项目图标 icon.png（跑 tools/icons/generate_icons.py 生成）")
+    if 'boot_splash/image="res://icons/splash.png"' not in project:
+        failures.append("application/boot_splash/image 未指向 res://icons/splash.png")
+    # 默认 stretch_mode=1(Keep) 会按窗口长边撑满：横屏时字标被裁成中间一小段。
+    # 2(Keep Width) 才保证整条字标等比完整可见，也是 boot_screen.gd 复刻的规则。
+    if "boot_splash/stretch_mode=2" not in project:
+        failures.append("boot_splash/stretch_mode 必须是 2(Keep Width)，否则横屏会裁掉字标")
+    for name in ("logo.png", "splash.png"):
+        if not (ROOT / "icons" / name).is_file():
+            failures.append("缺少开屏素材 icons/%s（跑 tools/icons/generate_icons.py 生成）" % name)
+    if (ROOT / "icons" / ".gdignore").is_file():
+        failures.append("icons/.gdignore 会让 splash.png 无法被导入，开屏会失效")
+    boot_screen = read(ROOT / "ui" / "boot_screen.gd")
+    if 'const MENU_SCENE := "res://ui/main_menu.tscn"' not in boot_screen:
+        failures.append("ui/boot_screen.gd 必须把 ui/main_menu.tscn 作为 MENU_SCENE")
+    # 导出期素材目录必须整体忽略，否则 1024 PNG 会被打进每个平台的 PCK。
+    for name in ("ios", "macos", "android", "windows", "web", "wpg_iOS_Exports"):
+        if not (ROOT / "icons" / name / ".gdignore").is_file():
+            failures.append("icons/%s/.gdignore 缺失：导出期图标会被当资源打进 PCK" % name)
+    stray = sorted(
+        path.relative_to(ROOT).as_posix()
+        for name in ("ios", "macos", "android", "windows", "web", "wpg_iOS_Exports")
+        for path in (ROOT / "icons" / name).rglob("*.import")
+    )
+    if stray:
+        failures.append("导出期图标目录里出现 Godot 导入残留：%s" % ", ".join(stray[:3]))
+    if not (ROOT / "wpg.icon" / "icon.json").is_file():
+        failures.append("缺少 wpg.icon/icon.json：图标唯一真源")
+
+    required_exact = {
+        "application/icon",
+        "application/console_wrapper_icon",
+        "application/liquid_glass_icon",
+    }
+    required_prefixes = ("icons/", "launcher_icons/", "progressive_web_app/icon_")
+    checked = set()
+    for line in read(EXPORT_PRESETS).splitlines():
+        key, sep, value = line.partition("=")
+        key = key.strip()
+        if not sep:
+            continue
+        if key not in required_exact and not key.startswith(required_prefixes):
+            continue
+        value = value.strip().strip('"')
+        if not value.startswith("res://"):
+            failures.append("%s 未指向图标资源：%s" % (key, value or "(空)"))
+            continue
+        rel = value[len("res://") :]
+        if rel in checked:
+            continue
+        checked.add(rel)
+        if not (ROOT / rel).exists():
+            failures.append("%s 指向不存在的文件：%s" % (key, value))
+    if not failures:
+        emit("PASS", "图标接线（%d 个资源）" % len(checked))
+    return failures
+
+
 def main() -> int:
     failures = []
     project = read(PROJECT_GODOT)
@@ -331,8 +396,8 @@ def main() -> int:
             failures.append("config/features 未包含 4.6")
         if "Forward Plus" not in project:
             failures.append("config/features 未包含 Forward Plus")
-        if 'run/main_scene="res://ui/main_menu.tscn"' not in project:
-            failures.append("主场景不是 res://ui/main_menu.tscn")
+        if 'run/main_scene="res://ui/boot_screen.tscn"' not in project:
+            failures.append("主场景必须是 res://ui/boot_screen.tscn（开屏：字标 + 进度条）")
     version = read_project_version()
     if version is None:
         failures.append("application/config/version 不存在")
@@ -363,6 +428,7 @@ def main() -> int:
     failures.extend(_lobby_guards())
     failures.extend(_mobile_input_guards())
     failures.extend(_ui_display_guards())
+    failures.extend(_icon_guards())
     presets = read(EXPORT_PRESETS)
     for key, name in PRESETS.items():
         if ('name="%s"' % name) not in presets:

@@ -26,7 +26,8 @@ def collect_scripts() -> list:
     scripts = []
     for path in ROOT.rglob("*.gd"):
         rel = path.relative_to(ROOT).as_posix()
-        if rel.startswith(".godot/") or rel.startswith("build/") or rel.startswith("artifacts/"):
+        if rel.startswith((".godot/", "build/", "artifacts/", "android/")):
+            # android/ 是 Godot 官方 Gradle 模板（含它自带的测试脚本），不是本工程代码。
             continue
         scripts.append(path)
     return sorted(scripts)

@@ -158,7 +158,16 @@ func _input(event: InputEvent) -> void:
 		_ensure_music()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
+	## 逐层返回：Esc / Android 返回键先把打开的叠层与子页收掉（见 UiBack）。
+	## 已到根页面（没叠层、已在 Home）时，Android 返回键才真正退出应用 ——
+	## 这条分支必须在这里处理：叠层们对 `ui_cancel` 调用了 set_input_as_handled()，
+	## 引擎自带的「返回键退出」永远等不到这个事件（见 ui/ui_back.gd 的说明）。
+	if UiBack.is_back(event):
+		if _back_once():
+			get_viewport().set_input_as_handled()
+		elif UiBack.is_root_back(event):
+			get_viewport().set_input_as_handled()
+			UiBack.quit_app(self)
 		return
 	if event.is_action_pressed("ui_accept"):
 		if _blocks_home_accept():
@@ -295,6 +304,25 @@ func _return_home(from: StringName) -> void:
 	_page = PAGE_HOME
 	_switch_left = UiAnim.PAGE_SLIDE_SEC
 	_set_home_slid(false, -1)
+
+## 收掉一层界面，成功返回 true。
+##
+## 子页 / 叠层自己带 `ui_cancel` 处理（它们走 `_input`，比本节点的 `_unhandled_input` 更早），
+## 正常情况下轮不到这里。剩下的两种情况必须由主菜单兜住：
+##   1) 设置抽屉开着（它不是 `_blocks_home_accept()` 的一员，且 Credits 可能盖在上面）；
+##   2) 当前停在非 Home 的子页 —— 对齐 `_on_play_back_pressed()` 的观感，退回 Home。
+## 都没得收才返回 false，交由调用方决定要不要退出应用。
+func _back_once() -> bool:
+	if _overlay.is_open():
+		## `SettingsOverlay.close()` 会连带关掉盖在上面的 Credits（见其实现），
+		## 所以这里不用单独判 credits。
+		_overlay.close()
+		return true
+	if _page != PAGE_HOME:
+		_return_home(_page)
+		_refresh_nav_marks()
+		return true
+	return false
 
 func _page_node(name: StringName) -> Node:
 	match name:

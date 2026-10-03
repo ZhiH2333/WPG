@@ -11,10 +11,12 @@ config_version=5
 [application]
 
 config/name="WPG"
-config/version="0.2.1"
-run/main_scene="res://ui/main_menu.tscn"
+config/version="0.3.0"
+run/main_scene="res://ui/boot_screen.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
+boot_splash/stretch_mode=2
+boot_splash/image="res://icons/splash.png"
+config/icon="res://icon.png"
 
 [debug]
 
