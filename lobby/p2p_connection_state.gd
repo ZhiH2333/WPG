@@ -149,10 +149,13 @@ func _next_state(state: int, event: int) -> int:
 				return -1
 			return State.VERSION_MISMATCH
 		Event.TICKET_REJECTED:
-			## ticket 只能在握手阶段被拒（渲染 / 直连阶段还没有 ticket 校验）。
-			if state == State.HANDSHAKING:
-				return State.TICKET_REJECTED
-			return -1
+			## ticket 有**两个**校验点，所以任一进行中的阶段都可能被拒：
+			##   1) Phase 9.2.1：rendezvous 服务端在 REGISTER 时按 session ticket 比对；
+			##   2) Phase 8/9：Host 在 protocol 6 握手时做最终权威校验。
+			## 只要不是 DISCONNECTED / 终态，都可能收到 TICKET_REJECTED。
+			if state == State.DISCONNECTED or _is_terminal_state(state):
+				return -1
+			return State.TICKET_REJECTED
 
 	match state:
 		State.DISCONNECTED:

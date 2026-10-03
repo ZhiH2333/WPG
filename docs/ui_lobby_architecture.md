@@ -343,13 +343,15 @@ wpg://join?v=6&t=TOKEN&lan=...&lp=17777&wan=...&wp=49152&ip6=...
 | `P2PConnectionState` | `RefCounted`（`lobby/p2p_connection_state.gd`，Phase 9.1） | P2P 连接状态机（DISCONNECTED → … → CONNECTED / TIMEOUT / TICKET_REJECTED / VERSION_MISMATCH）；纯状态、纯函数转换表，可 headless 单测 | 不做 socket I/O、不持有 peer、不依赖 SceneTree / UI / Combat |
 | `RendezvousContract` | `RefCounted`（`lobby/rendezvous_contract.gd`，Phase 9.1） | rendezvous 的**纯数据** contract：会话身份（room_id / ticket / protocol / role / nonce）、候选（transport / path / port / observed endpoint）、会话状态；含版本化二进制编解码 | 只负责**发现与信息交换**；不是 Relay、不承载游戏流量；不碰 ENet |
 | `P2PConnection` | `RefCounted`（`lobby/p2p_connection.gd`，Phase 9.1） | P2P 编排：接受 JoinInvite → rendezvous contract → 远端候选 → DIRECT_CONNECTING → 调用注入的 transport（→ `LobbyNet`）→ 等 connected / failed / timeout → HANDSHAKING / CONNECTED | **不创建 ENet peer**、不发 `@rpc`；不做 STUN / TURN / UPnP / 真打洞 |
+| `RendezvousClient` | `RefCounted`（`lobby/rendezvous_client.gd`，Phase 9.2.1） | rendezvous 的 **UDP 客户端**：REGISTER / 收 REGISTERED / PEER_READY / CANDIDATES / ERROR / BYE，转成 `RendezvousContract` 并通知 `P2PConnection` | **不创建** `ENetMultiplayerPeer`、**不改** `SceneTree.multiplayer`；不代替 `LobbyNet` / `ConnectionPath`；不碰 Combat |
+| rendezvous service | `tools/p2p/rendezvous/`（Python 标准库，Phase 9.2.1） | 公网发现 / 交换：register / match / candidate exchange / **observed endpoint** / session 生命周期 / idle cleanup | **不是 Relay**、不承载游戏流量、不分配 seat、不拥有 `Room.players`、不是最终准入权威；不访问 Combat |
 | `NetSession` | `arena/net_session.gd`（已存在） | 战斗内同步（输入 / 快照 v3 / 局内事件）；复用具 SceneTree 上的 peer | **职责不改**：不建连、不管大厅、不做发现、**不接手 rendezvous** |
 | `LanBeacon` | `arena/lan_beacon.gd`（已存在） | 同网发现（17778 UDP）；进战斗停信标 | 不扫网段；不做游戏流量 |
 | `GameLaunch` | static 信封 | 换场一次性交接（`take` 一次） | 不进 Autoload；不长期持有大厅对象 |
 
 ### 4.1 硬规则（每条都有历史教训）
 
-1. UI 不直接操作 ENet：`ENetMultiplayerPeer.new()` 与大厅 `@rpc` 只允许出现在 `LobbyNet`。`ui/lan_overlay.gd` 的越界点已于 2026-10-02 迁走，并由 `tools/ci/architecture.py` 固化守卫（`lan_overlay.gd` 不得出现 `ENetMultiplayerPeer` / `@rpc`；`lobby_manager.gd` 不得出现 `multiplayer.`）。Phase 9.1 追加：P2P 状态对象 / rendezvous contract / `ConnectAttempt` / `P2PConnection` 一律不得出现 ENet 或 `@rpc`，UI 不得直接接触 `RendezvousContract` / `P2PConnectionState` / `P2PConnection`（必须经 `LobbyManager`）。
+1. UI 不直接操作 ENet：`ENetMultiplayerPeer.new()` 与大厅 `@rpc` 只允许出现在 `LobbyNet`。`ui/lan_overlay.gd` 的越界点已于 2026-10-02 迁走，并由 `tools/ci/architecture.py` 固化守卫（`lan_overlay.gd` 不得出现 `ENetMultiplayerPeer` / `@rpc`；`lobby_manager.gd` 不得出现 `multiplayer.`）。Phase 9.1 追加：P2P 状态对象 / rendezvous contract / `ConnectAttempt` / `P2PConnection` 一律不得出现 ENet 或 `@rpc`，UI 不得直接接触 `RendezvousContract` / `P2PConnectionState` / `P2PConnection`（必须经 `LobbyManager`）。Phase 9.2.1 追加：`rendezvous_client.gd` 不得出现 `ENetMultiplayerPeer` / `@rpc`，且必须用 `PacketPeerUDP`；UI 不得接触 `RendezvousClient` / `PacketPeerUDP` / rendezvous packet format；rendezvous server 不得访问 Combat / Lobby。
 2. Feature 阶段不允许两套 `multiplayer_peer` 同时工作；SceneTree 同一时间一个 peer。
 3. 协议因门票握手只 bump 一次 5 → 6；不要为显示名 / 房间名单独 bump。**Ready 同步不走协议 bump**：它是独立可靠 RPC（`rpc_ready` / `rpc_apply_ready`），roster 包格式逐字节不变。
 4. 席位 1–5 保持，Host = 1，号不前挪，满员才踢。`ready` 是状态语义不是裸 bool：Host 恒显示 `HOST`（不参与 Start 判定），Guest 进房默认 **NOT READY**（握手完成必须自己按 READY）；Guest 改角色、Host 改 Mode/Arena/Goal 都会让旧的 READY 失效退回 WAITING；Starting 期间冻结 Ready / 角色 / 房间规则。
@@ -428,7 +430,10 @@ DISCONNECTED -> RENDEZVOUS_CONNECTING -> RENDEZVOUS_REGISTERED
 - 状态转换**确定性**（纯函数转换表，同样 `(state, event)` 永远同样结果）；
 - 非法转换返回 `false` **且状态不变**；
 - 不依赖 SceneTree、不持有 `MultiplayerPeer`、不依赖 UI / Combat，可 headless 单测；
-- `direct_failed` 是自环（允许换下一个候选再试），不直接终结。
+- `direct_failed` 是自环（允许换下一个候选再试），不直接终结；
+- `ticket_rejected` 在**任一进行中的阶段**都合法：ticket 有**两个**校验点 ——
+  ① 9.2.1 rendezvous 服务端在 `REGISTER` 时按 session ticket 比对；
+  ② Host 在 protocol 6 握手时做最终权威校验。二者都进入 `TICKET_REJECTED` 终态。
 
 **Rendezvous contract** `RendezvousContract`：只定义数据 —— 会话身份（`room_id` / `ticket` /
 `protocol` / `role` / `nonce`）、候选（`transport` / `path` / `port` / `address` /
@@ -437,7 +442,8 @@ DISCONNECTED -> RENDEZVOUS_CONNECTING -> RENDEZVOUS_REGISTERED
 
 - rendezvous **只负责发现 / 交换连接信息**，**不承载游戏流量**，**不是 Relay**；
 - `NetSession` **不接手** rendezvous；UI **不接触** packet format（`tools/ci/architecture.py` 已守卫）；
-- `observed_*` 是为后续 NAT 穿透预留的字段：本阶段没有 STUN，**绝不用本地地址伪造**；
+- `observed_*` 只能由 **rendezvous 服务端观测** 或 **STUN** 填入，
+  **绝不用本地地址 / invite / 客户端自报值伪造**；
 - contract 版本（`RendezvousContract.VERSION`）与游戏协议号（`GameLaunch.NET_PROTOCOL`）**分离**，各自演进。
 
 **P2P 编排器** `P2PConnection`：接受 JoinInvite → 与 contract 对接 → 得到远端候选 →
@@ -445,11 +451,108 @@ DISCONNECTED -> RENDEZVOUS_CONNECTING -> RENDEZVOUS_REGISTERED
 的单 peer 建连能力 → 等 connected / failed / timeout → `HANDSHAKING` / `CONNECTED`。
 它**不创建 ENet、不发 `@rpc`**；职责不再放回 `LanOverlay`。
 
-**本阶段明确不做**：STUN、TURN、UPnP、真公网 NAT hole punching、Relay、Host migration、
+- 为 null 的 rendezvous 客户端 = 9.1 的**本地装配模式**（注册立即完成）；
+- 绑定了 `RendezvousClient` 时走**真实公网注册**，状态由回包驱动，绝不假装已注册；
+- `poll_rendezvous(delta)` 由上层每帧驱动轮询与超时。
+
+**本阶段明确不做**：真公网 NAT hole punching、TURN、UPnP、Relay、Host migration、
 reconnect、Android P2P、修改 `CombatNetSession`、修改 snapshot v3、修改 Ability Framework、
 第二套 `MultiplayerPeer`、为 P2P 重写 `LobbyNet`。
 
 `ConnectionPath` 的候选顺序仍是 `LAN_IPV4 → IPV6 → WAN_IPV4`，
 但现在只是为未来 Direct P2P 提供**候选描述**。
+
+### 5.3 Phase 9.2.1：公网 Rendezvous + observed endpoint（已落地，不含真打洞）
+
+**最终目标链路**（本阶段只完成到 CANDIDATES，**不打洞**）：
+
+```text
+Host  -> Rendezvous Register -> session / observed endpoint -> 等 Guest
+Guest -> Rendezvous Register -> 自己的 observed endpoint
+      -> Rendezvous 返回双方 candidate
+      -> P2PConnection.apply_remote_candidates()
+      -> （9.2.2 才做 UDP hole punching）
+
+状态推进：RENDEZVOUS_CONNECTING -> RENDEZVOUS_REGISTERED -> CANDIDATES_RECEIVED
+（**不会**直接假装 CONNECTED）
+```
+
+**独立于 Godot 的最小服务** `tools/p2p/rendezvous/`（纯 Python 标准库，无第三方框架）：
+
+| 文件 | 职责 |
+|---|---|
+| `server.py` | UDP rendezvous：register / match / candidate exchange / observed endpoint / session 生命周期 / idle cleanup |
+| `protocol.py` | `lobby/rendezvous_contract.gd` 的**逐字节镜像**；wire 改动必须同时改两处 |
+| `stun.py` | 最小 RFC 5389 Binding Request 客户端（只拿 NAT 映射端点） |
+| `test_server.py` | 13 组服务端回归 |
+| `README.md` | 协议 / 安全边界 / 运行 / 测试说明 |
+
+**协议 v2**（9.2.1 把 contract 从 v1 升到 v2）：
+
+```text
+u32 magic | u8 version | u8 type | u32 sid_len | session_id | <payload>
+```
+
+- 每条消息都带 **`session_id`**（服务端分配，用于把双方关联到同一会话）；
+- 新增 `PEER_READY`（对端已就绪）与 `ERROR`（可诊断错误码）；
+- `REGISTERED` / `CANDIDATES` 承载**服务端观测到的** observed endpoint；
+- v1 包被明确 `BAD_VERSION` 拒绝（**不做静默兼容**）；
+- 截断包必须被识别为 `TRUNCATED`，**不能**因为「读不到就返回空串」而被当合法包接受。
+
+**observed endpoint 的唯一来源**：
+
+```python
+observed_address, observed_port = addr[0], addr[1]   # recvfrom 的内核源地址
+```
+
+服务器看到什么就记什么。严禁从 invite / 本地地址 / hostname / **客户端自报的 observed 字段**伪造。
+客户端即使在自己的 `Candidate.observed_address` 里塞假值，服务端一律无视。
+
+**客户端** `lobby/rendezvous_client.gd`：
+
+- 用 **`PacketPeerUDP`**（与 `LanBeacon` 同源）而**不是 ENet** ——
+  rendezvous 只交换信息，不该占用 SceneTree 上唯一那个 peer；
+- 职责：连接 server / `REGISTER` / 发 local candidates / 收 `REGISTERED` /
+  收 `PEER_READY` / 收 `CANDIDATES` / 转成 `RendezvousContract` / 通知 `P2PConnection`；
+- **不能**创建 `ENetMultiplayerPeer`、不能改 `SceneTree.multiplayer`、不能代替
+  `LobbyNet` / `ConnectionPath`；
+- 串台保护：`session_id` 或 `nonce` 不一致的回包**一律丢弃**。
+
+**分层**（保持）：
+
+```text
+LobbyManager -> P2PConnection -> RendezvousClient -> RendezvousContract
+P2PConnection -> ConnectionPath -> LobbyNet -> ENet
+```
+
+**安全边界**：rendezvous 只做最基础的 protocol / 形状 / ticket / nonce / role / 配对校验，
+**不是最终游戏权威**。最终能否进 Lobby 仍由 Host 的 protocol 6 ticket handshake 决定。
+rendezvous **不拥有** `Room.players`、**不分配** seat、**不碰** `GameLaunch`。
+
+**日志**：只输出 `session_id` / role / nonce 短摘要（前 8 位）/ observed endpoint /
+message type / 错误码；**绝不输出完整 ticket 或完整 nonce**。
+
+**超时与清理**：
+
+| 层 | 常量 | 值 |
+|---|---|---|
+| 客户端注册 | `RendezvousContract.RENDEZVOUS_TIMEOUT_SEC` | 5.0 |
+| 客户端整体 | `RendezvousContract.OVERALL_JOIN_TIMEOUT_SEC` | 12.0 |
+| 服务端 session | `SESSION_IDLE_TIMEOUT_SEC` | 30.0 |
+
+超时必须进入明确 `TIMEOUT`，**不留 socket、不留 ENet peer、不触发旧回调、不偷偷重试**；
+服务端超时只删除那一个 session，**不影响其它 session**。
+
+**local candidate 收集**：本阶段不扫 LAN、不扫端口、不猜公网 IP、不硬编码公网 IP，
+只收集本机可用 IPv4 / IPv6 与已有 `JoinInvite` / `ConnectionPath` 能提供的候选，
+包装成 `RendezvousContract.Candidate`。
+
+**STUN（最小 subset）**：只实现 Binding Request 构造、magic cookie 校验、
+12 字节 transaction id、`XOR-MAPPED-ADDRESS`（回退 `MAPPED-ADDRESS`）解析。
+**不引入** 完整 STUN server / ICE / TURN / WebRTC / 第三方 NAT 库。
+无应答返回 `None` —— **绝不伪造**。
+
+**本阶段明确不做**（属 9.2.2 / 9.2.3）：UDP simultaneous open、多端口快速探测、
+hole punch retry storm、完整 ICE、TURN、Relay、UPnP、Host migration、reconnect。
 
 [Showing lines 1-300 of 578. Use :301 to continue]

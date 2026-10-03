@@ -87,7 +87,9 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 | 8 | JoinInvite / ConnectionPath / protocol 6 | 已完成 (2026-10-02) | `lobby/join_invite.gd`（create / parse / 严格校验）+ `lobby/connection_path.gd`（LAN_IPV4 → IPV6 → WAN_IPV4 候选排序，不持有 peer）+ 协议 5→6 ticket handshake（`hello(protocol, token)`，Host 权威校验）+ LanBeacon 带 room_id / host_display_name | UI 不拼 IP / Port / Token；不直接做复杂打洞；不做 STUN / TURN / UPnP / rendezvous |
 | 8.5 | Phase 8 hardening | 已完成 | `ConnectAttempt` + `ConnectAttemptRunner`：`create_client()` 返回 true **不等于**连接成功，必须等真实 `connected_to_server` + 握手；attempt_id 隔离延迟回调；换候选前必 `close()`（任意时刻一个 active peer）；结果分类 CONNECT_TIMEOUT / CONNECTION_FAILED / SOCKET_ERROR / VERSION_MISMATCH / TICKET_REJECTED / CONNECTED；协议/ticket 问题不换路径重试；三级超时集中定义；ticket lifecycle 定为**方案 A（复用 room ticket）**，仅 `rotate_room_ticket()` 换票 | 不为「安全」自行加复杂机制；不许 profile_id / room_id / seat / peer_id 当 ticket；不引入第二套 peer |
 | 9.1 | P2P state machine + rendezvous contract | 已完成 | `lobby/p2p_connection_state.gd`（纯状态机：DISCONNECTED → RENDEZVOUS_* → CANDIDATES_RECEIVED → DIRECT_CONNECTING → HANDSHAKING → CONNECTED，终态含 FAILED / TIMEOUT / TICKET_REJECTED / VERSION_MISMATCH；非法转换返回 false 且状态不变；不依赖 SceneTree / 不持有 peer）+ `lobby/rendezvous_contract.gd`（纯数据 contract：会话身份 / 候选 / 会话状态 + 版本化编解码，`observed_*` 为 NAT 穿透预留且不伪造）+ `lobby/p2p_connection.gd`（编排器，经 `bind_transport()` 复用 LobbyNet 单 peer 建连） | **不实现真 NAT hole punching**；不做 STUN / TURN / UPnP / Relay / Host migration / reconnect；rendezvous 不承载游戏流量；`NetSession` 不接手 rendezvous；UI 不接触 packet format；不改 CombatNetSession / snapshot v3 / Ability Framework |
-| 9.2 | P2P 真打洞（下一步） | 待开始 | 公网 rendezvous 服务 + STUN 观测端点 + 打洞尝试；把 `observed_address` / `observed_port` 真正填上；Direct UDP 穿透 → 直连 ENet；定义连接/打洞超时与失败文案 | 不写死公网 IP；不做第二套战斗 Session；不同时两个 peer；不承诺所有 NAT 都能直连 |
+| 9.2.1 | Rendezvous + observed endpoint | 已完成 | `tools/p2p/rendezvous/`（纯标准库 Python 服务端：register / match / candidate exchange / observed endpoint / session 生命周期 / idle cleanup；`server.py` / `protocol.py` / `stun.py` / `test_server.py` / README）+ `lobby/rendezvous_client.gd`（**PacketPeerUDP，非 ENet**，不占 SceneTree peer；REGISTER / REGISTERED / PEER_READY / CANDIDATES / ERROR / BYE）+ `RendezvousContract` **升 wire v2**（每条消息带 `session_id`，新增 `PEER_READY` / `ERROR`，observed endpoint 承载；v1 包明确 `BAD_VERSION`）+ 最小 RFC 5389 STUN Binding Request 客户端（`XOR-MAPPED-ADDRESS` 解析，只为拿 NAT 映射端点）+ `P2PConnection.bind_rendezvous()` / `poll_rendezvous()` 接缝（状态真实走 RENDEZVOUS_CONNECTING → RENDEZVOUS_REGISTERED → CANDIDATES_RECEIVED，**不直接假装 CONNECTED**） | **不做真 NAT hole punching**；不做 UDP simultaneous open / 多端口快速探测 / ICE / TURN / Relay / UPnP / Host migration / reconnect；rendezvous **不是 Relay**、不承载游戏流量、不分配 seat、不拥有 `Room.players`、不是最终准入权威（最终仍由 Host protocol 6 ticket handshake 决定）；observed endpoint 只能由服务端 / STUN 写入，严禁用本地地址或客户端自报值伪造；server 不访问 Combat |
+| 9.2.2 | NAT hole punching（下一步） | 待开始 | UDP simultaneous open、多端口快速探测、打洞超时与失败文案；把 9.2.1 拿到的 observed endpoint 真正用于穿透 | 不做 TURN / Relay；不承诺所有 NAT 都能直连（对称 NAT 需 Relay，属后续） |
+| 9.2.3 | Direct ENet validation | 待开始 | 打洞成功后的 ENet 直连验证：把 direct path 接到 `LobbyNet` 单 peer，跑通 protocol 6 ticket handshake 进 Lobby | 不改战斗 snapshot v3；不同时两个 peer |
 | 10 | 最终集成 | 待开始 | Desktop Solo/LAN/WAN + Android Solo/LAN/WAN；再做 Skill multiplayer、多人 UX、reconnect、timeout、profiling、release | 不为 P2P 改战斗快照结构（除非规格明确要求） |
 
 阶段 3 起每阶的硬性验收（沿用 Architecture Rules）：能 F5 进 Solo、无 Autoload、`NetSession` 只服务战斗、Lobby 网络全归 `LobbyNet`、UI 不碰 ENet、Touch 不复制 Combat、Skill 不绑设备、四份存档继续分离、LAN 不写档、每阶完成同步 roadmap / README。
@@ -329,7 +331,8 @@ Guest Start 换场（Lobby -> CombatSandbox）      ← 已完成（fix: guest e
 JoinInvite / ConnectionPath / protocol 6        ← 已完成 2026-10-02
 Phase 8 hardening（异步回退 + ticket lifecycle） ← 已完成
 Phase 9.1 P2P state machine + rendezvous 契约   ← 已完成（不含真 NAT 打洞）
-P2P 真打洞（rendezvous 服务 + STUN）            ← 下一步
+Phase 9.2.1 公网 rendezvous + observed endpoint   ← 已完成（真实 UDP 交换已跑通）
+Phase 9.2.2 NAT hole punching                     ← 下一步
 ```
 
 不要先把所有 UI 做完再接 Network。也不要先继续写 UPnP。
@@ -339,7 +342,8 @@ P2P 真打洞（rendezvous 服务 + STUN）            ← 下一步
 **Guest Start transition = DONE**，**Phase 8 = JoinInvite / ConnectionPath / protocol 6 ticket handshake = DONE**，
 **Phase 8 hardening = DONE（ConnectAttempt / 三级超时 / ticket 复用）**，
 **Phase 9.1 = P2P state machine + rendezvous contract = DONE（不含真打洞）**，
-**Phase 9.2 = 真 NAT 穿透**。
+**Phase 9.2.1 = 公网 rendezvous service + Guest/Host 注册与候选交换 + observed endpoint = DONE**，
+**Phase 9.2.2 = 真 NAT 穿透**，**Phase 9.2.3 = Direct ENet validation**。
 
 其它轨道（不写入上述阶段的 DoD）：
 
@@ -347,7 +351,7 @@ P2P 真打洞（rendezvous 服务 + STUN）            ← 下一步
 |---|---|
 | 主动技能 | 已完成并冻结；网络技能同步留到最终集成 |
 | 虚拟摇杆 / 触屏 | 已完成（移动端 Vertical Slice 一并通过） |
-| P2P / NAT 穿透（STUN / TURN / UPnP / rendezvous 服务） | Phase 9.2 |
+| P2P / NAT 穿透（STUN / TURN / UPnP / rendezvous 服务） | Phase 9.2.2 / 9.2.3 |
 | 导出 / profiling | 最终集成阶段 |
 
 ---

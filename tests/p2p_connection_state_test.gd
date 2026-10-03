@@ -21,7 +21,7 @@ func _run_all() -> void:
 	_case_timeouts_are_independent()
 	_case_illegal_transitions_are_rejected()
 	_case_version_mismatch_is_terminal()
-	_case_ticket_rejected_only_from_handshaking()
+	_case_ticket_rejected_is_reachable_from_active_states()
 	_case_timeout_is_terminal()
 	_case_cancel_only_while_active()
 	_case_direct_failure_allows_another_attempt()
@@ -73,6 +73,21 @@ func _case_timeouts_are_independent() -> void:
 	_expect(is_equal_approx(r, ConnectAttemptRunner.RENDEZVOUS_TIMEOUT_SEC), "rendezvous 超时与 runner 一致")
 	_expect(is_equal_approx(d, ConnectAttemptRunner.DIRECT_ATTEMPT_TIMEOUT_SEC), "direct 超时与 runner 一致")
 	_expect(is_equal_approx(o, ConnectAttemptRunner.OVERALL_JOIN_TIMEOUT_SEC), "overall 超时与 runner 一致")
+	## Phase 9.2.1 起超时在第三处也有定义：rendezvous 客户端用同一组预算，
+	## 三处必须始终一致，否则注册阶段与直连阶段会各算各的。
+	_expect(
+		is_equal_approx(r, RendezvousContract.RENDEZVOUS_TIMEOUT_SEC),
+		"rendezvous 超时与 RendezvousContract 一致"
+	)
+	_expect(
+		is_equal_approx(o, RendezvousContract.OVERALL_JOIN_TIMEOUT_SEC),
+		"overall 超时与 RendezvousContract 一致"
+	)
+	## 服务端 session 空闲阈值必须**大于**客户端整体预算，否则客户端还在等就被回收。
+	_expect(
+		RendezvousContract.SESSION_IDLE_TIMEOUT_SEC > o,
+		"服务端 session 空闲阈值 > 客户端整体超时"
+	)
 
 ## 非法转换必须返回 false 且状态不变（确定性的核心保证）。
 func _case_illegal_transitions_are_rejected() -> void:
@@ -104,17 +119,47 @@ func _case_version_mismatch_is_terminal() -> void:
 	_expect(not machine.transition(P2PConnectionState.Event.HANDSHAKE_OK), "终态上 handshake_ok 被拒")
 	_expect(machine.get_state() == P2PConnectionState.State.VERSION_MISMATCH, "状态保持 VERSION_MISMATCH")
 
-## ticket 被拒只能在 HANDSHAKING 阶段发生。
-func _case_ticket_rejected_only_from_handshaking() -> void:
-	var machine: P2PConnectionState = _machine_in_handshaking()
-	_expect(machine.transition(P2PConnectionState.Event.TICKET_REJECTED), "HANDSHAKING 上 ticket_rejected 合法")
-	_expect(machine.get_state() == P2PConnectionState.State.TICKET_REJECTED, "-> TICKET_REJECTED")
-	_expect(machine.is_terminal(), "TICKET_REJECTED 是终态")
-	## 直连阶段还没 ticket 校验，不该出现 ticket_rejected。
+## ticket 有**两个**校验点（9.2.1 rendezvous 注册 + Host protocol 6 握手），
+## 所以任一进行中的阶段都可能进入 TICKET_REJECTED 终态。
+func _case_ticket_rejected_is_reachable_from_active_states() -> void:
+	## 1) rendezvous 注册阶段被服务端拒（Phase 9.2.1 新增路径）。
+	var registering: P2PConnectionState = P2PConnectionState.new()
+	_advance_to(registering, P2PConnectionState.State.RENDEZVOUS_CONNECTING)
+	_expect(
+		registering.transition(P2PConnectionState.Event.TICKET_REJECTED),
+		"RENDEZVOUS_CONNECTING 上 ticket_rejected 合法（服务端 register 时拒票）"
+	)
+	_expect(registering.get_state() == P2PConnectionState.State.TICKET_REJECTED, "-> TICKET_REJECTED")
+	_expect(registering.is_terminal(), "TICKET_REJECTED 是终态")
+	_expect(not registering.is_connection_established(), "TICKET_REJECTED 不是 CONNECTED")
+
+	## 2) 已注册但还在等候选时被拒。
+	var registered: P2PConnectionState = P2PConnectionState.new()
+	_advance_to(registered, P2PConnectionState.State.RENDEZVOUS_REGISTERED)
+	_expect(
+		registered.transition(P2PConnectionState.Event.TICKET_REJECTED),
+		"RENDEZVOUS_REGISTERED 上 ticket_rejected 合法"
+	)
+
+	## 3) 直连阶段被拒也合法（Host 校验权威在握手前可能先回错误）。
 	var direct: P2PConnectionState = P2PConnectionState.new()
 	_advance_to(direct, P2PConnectionState.State.DIRECT_CONNECTING)
-	_expect(not direct.transition(P2PConnectionState.Event.TICKET_REJECTED), "DIRECT_CONNECTING 上 ticket_rejected 被拒")
-	_expect(direct.get_state() == P2PConnectionState.State.DIRECT_CONNECTING, "状态不变")
+	_expect(direct.transition(P2PConnectionState.Event.TICKET_REJECTED), "DIRECT_CONNECTING 上 ticket_rejected 合法")
+	_expect(direct.get_state() == P2PConnectionState.State.TICKET_REJECTED, "-> TICKET_REJECTED")
+
+	## 4) 握手阶段被 Host 拒（Phase 8 原路径）仍然合法。
+	var handshaking: P2PConnectionState = _machine_in_handshaking()
+	_expect(handshaking.transition(P2PConnectionState.Event.TICKET_REJECTED), "HANDSHAKING 上 ticket_rejected 合法")
+	_expect(handshaking.get_state() == P2PConnectionState.State.TICKET_REJECTED, "-> TICKET_REJECTED")
+
+	## 但 DISCONNECTED 与终态上仍然非法。
+	var idle: P2PConnectionState = P2PConnectionState.new()
+	_expect(not idle.transition(P2PConnectionState.Event.TICKET_REJECTED), "DISCONNECTED 上 ticket_rejected 被拒")
+	_expect(not handshaking.transition(P2PConnectionState.Event.TICKET_REJECTED), "终态上 ticket_rejected 被拒")
+	_expect(
+		handshaking.get_state() == P2PConnectionState.State.TICKET_REJECTED,
+		"二次拒绝不改变状态"
+	)
 
 func _case_timeout_is_terminal() -> void:
 	var machine: P2PConnectionState = P2PConnectionState.new()

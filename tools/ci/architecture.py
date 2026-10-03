@@ -112,6 +112,43 @@ def _lobby_guards() -> list:
         for marker in ("RendezvousContract", "P2PConnectionState", "P2PConnection"):
             if marker in code:
                 failures.append("%s：UI 不得直接接触 %s（必须经 LobbyManager）" % (rel, marker))
+        # Phase 9.2.1：UI 也不得接触 rendezvous 的 packet format / 客户端。
+        # 注意：不要用泛化的 "decode(" —— 那会和 UI 自己的解码逻辑撞名。
+        for marker in ("RendezvousClient", "PacketPeerUDP", "encode_register"):
+            if marker in code:
+                failures.append("%s：UI 不得接触 rendezvous packet format（%s）" % (rel, marker))
+    # Phase 9.2.1：rendezvous_client 是 UDP 层，绝不允许抢 LobbyNet 的 ENet / 大厅 RPC。
+    rv_client_rel = "lobby/rendezvous_client.gd"
+    if not (ROOT / rv_client_rel).is_file():
+        failures.append("缺少 %s（Phase 9.2.1 rendezvous 客户端）" % rv_client_rel)
+    else:
+        rv_client = _strip_comments(read(ROOT / rv_client_rel))
+        for marker in ("ENetMultiplayerPeer", "@rpc"):
+            if marker in rv_client:
+                failures.append(
+                    "%s 不允许出现 %s（ENet 与大厅 RPC 只归 lobby/lobby_net.gd）" % (rv_client_rel, marker)
+                )
+        if "PacketPeerUDP" not in rv_client:
+            failures.append("%s 必须用 PacketPeerUDP（rendezvous 走 UDP，不占 SceneTree peer）" % rv_client_rel)
+        # 不允许它经 multiplayer 改 SceneTree 的 active peer。
+        if "multiplayer.multiplayer_peer" in rv_client:
+            failures.append("%s 不允许改 SceneTree.multiplayer.multiplayer_peer" % rv_client_rel)
+    # rendezvous server 只做发现：不许访问 Combat，也不许承载游戏包。
+    rv_server_rel = "tools/p2p/rendezvous/server.py"
+    if not (ROOT / rv_server_rel).is_file():
+        failures.append("缺少 %s（Phase 9.2.1 rendezvous 服务端）" % rv_server_rel)
+    else:
+        rv_server = read(ROOT / rv_server_rel)
+        for marker in ("net_session", "NetSession", "combat_sandbox", "LobbyNet", "snapshot"):
+            if marker in rv_server:
+                failures.append("%s 只是发现服务，不允许访问 Combat / Lobby（%s）" % (rv_server_rel, marker))
+    # rendezvous 协议模块同样不许碰游戏 / 战斗。
+    rv_proto_rel = "tools/p2p/rendezvous/protocol.py"
+    if (ROOT / rv_proto_rel).is_file():
+        rv_proto = read(ROOT / rv_proto_rel)
+        for marker in ("net_session", "combat", "LobbyNet"):
+            if marker in rv_proto:
+                failures.append("%s 只是编解码，不允许访问 %s" % (rv_proto_rel, marker))
     # LanBeacon 只做发现，不是认证 / 不是游戏流量。
     beacon = _strip_comments(read(ROOT / "arena/lan_beacon.gd"))
     for marker in ("ENetMultiplayerPeer", "@rpc", "check_ticket"):

@@ -39,6 +39,8 @@ var _invite: JoinInvite = null
 ## 注入的传输层（生产 = LobbyManager -> LobbyNet；测试 = 假实现）。
 var _connect_fn: Callable = Callable()
 var _close_fn: Callable = Callable()
+## 可选的真实 rendezvous 客户端（Phase 9.2.1）。为 null = 本地装配模式（9.1 行为）。
+var _client: RendezvousClient = null
 
 func _init() -> void:
 	_state = P2PConnectionState.new()
@@ -77,9 +79,58 @@ func bind_transport(connect_fn: Callable, close_fn: Callable) -> void:
 	_connect_fn = connect_fn
 	_close_fn = close_fn
 
+## 收到对端候选（9.2.1 起由 RendezvousClient 的真实回包驱动；仍可本地直接喂入）。
+func apply_remote_candidates(candidates: Array, remote_nonce: String = "") -> bool:
+	if not _state.transition(P2PConnectionState.Event.CANDIDATES_RECEIVED):
+		return false
+	_session.remote_candidates.assign(candidates)
+	_session.remote_nonce = remote_nonce
+	_state.set_remote_candidate_count(_session.remote_candidates.size())
+	return true
+
+# ---- 真实 rendezvous（Phase 9.2.1）----
+
+## 绑定一个真实 rendezvous 客户端。绑定后 begin() 会走公网注册流程，
+## 状态由 REGISTERED / CANDIDATES 回包驱动，而不是立即完成。
+func bind_rendezvous(client: RendezvousClient) -> void:
+	if _client == client:
+		return
+	_unbind_rendezvous()
+	_client = client
+	if _client == null:
+		return
+	_client.registered.connect(_on_rendezvous_registered)
+	_client.peer_ready.connect(_on_rendezvous_peer_ready)
+	_client.candidates_received.connect(_on_rendezvous_candidates)
+	_client.server_error.connect(_on_rendezvous_error)
+	_client.timed_out.connect(_on_rendezvous_timeout)
+
+func _unbind_rendezvous() -> void:
+	if _client == null:
+		return
+	if _client.registered.is_connected(_on_rendezvous_registered):
+		_client.registered.disconnect(_on_rendezvous_registered)
+	if _client.peer_ready.is_connected(_on_rendezvous_peer_ready):
+		_client.peer_ready.disconnect(_on_rendezvous_peer_ready)
+	if _client.candidates_received.is_connected(_on_rendezvous_candidates):
+		_client.candidates_received.disconnect(_on_rendezvous_candidates)
+	if _client.server_error.is_connected(_on_rendezvous_error):
+		_client.server_error.disconnect(_on_rendezvous_error)
+	if _client.timed_out.is_connected(_on_rendezvous_timeout):
+		_client.timed_out.disconnect(_on_rendezvous_timeout)
+	_client = null
+
+func get_rendezvous_client() -> RendezvousClient:
+	return _client
+
+## 是否使用真实 rendezvous（false = 9.1 的本地装配模式）。
+func uses_rendezvous() -> bool:
+	return _client != null
+
 ## 开始一次 P2P join。
-## 本阶段 rendezvous 是**本地装配**：候选直接来自 invite（真实的公网交换留到 9.2）。
-func begin(invite: JoinInvite) -> bool:
+## - 未 bind rendezvous：本地装配模式（9.1 行为，注册立即完成）。
+## - 已 bind rendezvous：真实注册，等 REGISTERED / CANDIDATES 回包驱动状态。
+func begin(invite: JoinInvite, rendezvous_host: String = "", rendezvous_port: int = RendezvousClient.DEFAULT_PORT) -> bool:
 	if invite == null or not invite.is_valid():
 		return false
 	if not _connect_fn.is_valid():
@@ -96,19 +147,71 @@ func begin(invite: JoinInvite) -> bool:
 	_session.local_nonce = _identity.nonce
 	_session.local_candidates = RendezvousContract.candidates_from_invite(invite)
 	_state.set_local_candidate_count(_session.local_candidates.size())
-	## 本阶段：注册立即完成（没有公网服务可等）。9.2 会由真实往返驱动这两个事件。
+	## 真实 rendezvous：把注册发出去，等回包。**绝不**在这里假装已注册。
+	if _client != null and not rendezvous_host.strip_edges().is_empty():
+		if not _client.begin(rendezvous_host, rendezvous_port, _identity, _session.local_candidates):
+			_finish(false, "rendezvous_begin_failed")
+			return false
+		return true
+	## 本地装配模式（9.1）：注册立即完成。
 	if not _state.transition(P2PConnectionState.Event.RENDEZVOUS_REGISTERED):
 		return false
 	return true
 
-## 收到对端候选（本阶段由上层直接喂入；9.2 由 rendezvous 服务回包驱动）。
-func apply_remote_candidates(candidates: Array, remote_nonce: String = "") -> bool:
-	if not _state.transition(P2PConnectionState.Event.CANDIDATES_RECEIVED):
-		return false
-	_session.remote_candidates.assign(candidates)
+func _on_rendezvous_registered(_session_id: String, observed_address: String, observed_port: int) -> void:
+	## 记录**服务端观测到的**本端端点。绝不自己填。
+	_session.local_observed_address = observed_address
+	_session.local_observed_port = observed_port
+	_state.transition(P2PConnectionState.Event.RENDEZVOUS_REGISTERED)
+
+func _on_rendezvous_peer_ready(_remote_nonce: String, _remote_role: int) -> void:
+	## 对端已就绪，但候选可能还没到 —— 状态不前进，等 CANDIDATES。
+	pass
+
+func _on_rendezvous_candidates(
+	candidates: Array,
+	remote_nonce: String,
+	_remote_role: int
+) -> void:
+	## 真实候选取代本地假设：只有服务端交换来的才是「远端候选」。
+	_session.remote_candidates.clear()
+	for candidate: RendezvousContract.Candidate in candidates:
+		_session.remote_candidates.append(candidate)
 	_session.remote_nonce = remote_nonce
+	## 对端 observed endpoint 来自服务端观测，从 client 的 session 取回。
+	## （信号只带候选，observed 是服务端权威数据，不经信号传递以免被伪造。）
+	if _client != null and _client.get_session() != null:
+		var remote_session: RendezvousContract.SessionState = _client.get_session()
+		_session.remote_observed_address = remote_session.remote_observed_address
+		_session.remote_observed_port = remote_session.remote_observed_port
 	_state.set_remote_candidate_count(_session.remote_candidates.size())
-	return true
+	_state.transition(P2PConnectionState.Event.CANDIDATES_RECEIVED)
+
+func _on_rendezvous_error(error_code: int, detail: String) -> void:
+	## ticket / 协议类错误是终态；其它按直连失败处理，由上层决定是否换候选。
+	match error_code:
+		RendezvousContract.ErrorCode.BAD_TICKET:
+			_state.transition(P2PConnectionState.Event.TICKET_REJECTED)
+			_finish(false, "ticket_rejected")
+		RendezvousContract.ErrorCode.BAD_PROTOCOL:
+			_state.transition(P2PConnectionState.Event.VERSION_MISMATCH)
+			_finish(false, "version_mismatch")
+		RendezvousContract.ErrorCode.TIMEOUT:
+			_state.transition(P2PConnectionState.Event.TIMEOUT)
+			_finish(false, "rendezvous_timeout")
+		_:
+			_finish(false, "rendezvous_error:%d %s" % [error_code, detail])
+
+func _on_rendezvous_timeout(reason: String) -> void:
+	if not _state.is_terminal():
+		_state.transition(P2PConnectionState.Event.TIMEOUT)
+	_finish(false, reason)
+
+## 推进 rendezvous 轮询与超时。由上层每帧驱动。
+func poll_rendezvous(delta_sec: float) -> void:
+	if _client != null:
+		_client.poll()
+		_client.tick(delta_sec)
 
 ## 进入直连阶段：按候选顺序串行尝试（复用 ConnectionPath 的顺序语义）。
 func begin_direct() -> bool:
@@ -178,6 +281,9 @@ func tick(delta_sec: float) -> void:
 func cancel() -> void:
 	if _runner != null:
 		_runner.cancel()
+	## 取消也要关掉 rendezvous socket，不留资源。
+	if _client != null:
+		_client.close()
 	_state.transition(P2PConnectionState.Event.CANCEL)
 	_finish(false, "cancelled")
 
@@ -185,6 +291,8 @@ func reset() -> void:
 	if _runner != null:
 		_runner.cancel()
 	_runner = null
+	if _client != null:
+		_client.reset()
 	_invite = null
 	_identity = null
 	_session = RendezvousContract.SessionState.new()
