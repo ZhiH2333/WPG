@@ -31,6 +31,8 @@ func _run_all() -> void:
 	_case_rejected_peer_gets_no_seat()
 	_case_rejected_peer_not_in_room_players()
 	_case_ticket_is_not_identity()
+	_case_room_ticket_is_reused_across_invites()
+	_case_guest_ticket_is_separate_from_room_ticket()
 	_case_close_clears_peer_ticket_state()
 	_case_version_mismatch_rejects_before_ticket()
 	_finish()
@@ -140,8 +142,53 @@ func _case_ticket_is_not_identity() -> void:
 	if not profile_id.is_empty():
 		_expect(invite.token != profile_id, "token != profile_id")
 	## 同一房间反复取 invite：每次 ticket 都重新随机（不是 room 的固定指纹）。
+	## 注意：这是 JoinInvite.create() 的**静态工厂**语义 —— 它不认识「房间」，
+	## 每次调用都产出一张新门票。房间级复用由 LobbyManager.create_invite() 负责
+	## （见 _case_room_ticket_is_reused_across_invites）。
 	var again: JoinInvite = JoinInvite.create("192.168.1.20", 17777, "", "roomid01", "NightFox")
 	_expect(again.token != invite.token, "重新生成的 ticket 不同")
+
+## ticket lifecycle（方案 A = 复用）：room ticket 属于房间，
+## 再次 create_invite() **复用**当前 room ticket，只有显式 rotate 才换新票。
+func _case_room_ticket_is_reused_across_invites() -> void:
+	var manager: LobbyManager = LobbyManager.new()
+	root.add_child(manager)
+	manager.create_room("pit", GameLaunch.NetPlay.COOP, 20)
+	_expect(manager.get_room_ticket().is_empty(), "建房后尚未生成 ticket")
+	var first: JoinInvite = manager.create_invite("192.168.1.20", 17777)
+	_expect(first != null and first.is_valid(), "第一张 invite 有效")
+	var room_ticket: String = manager.get_room_ticket()
+	_expect(not room_ticket.is_empty(), "建房后 room ticket 已生成")
+	_expect(first.token == room_ticket, "invite.token 就是 room ticket")
+	## 再取一次：必须复用，绝不换票（否则复制 invite 会让上一张失效）。
+	var second: JoinInvite = manager.create_invite("192.168.1.20", 17777)
+	_expect(second.token == room_ticket, "再次 create_invite 复用同一 room ticket")
+	_expect(second.token == first.token, "两张 invite 的门票一致")
+	_expect(manager.get_room_ticket() == room_ticket, "room ticket 未被改写")
+	## 显式 rotate 才换票，且旧票立刻失效。
+	var rotated: String = manager.rotate_room_ticket()
+	_expect(rotated != room_ticket, "rotate 生成新 ticket")
+	_expect(manager.get_room_ticket() == rotated, "room ticket 已更新")
+	var third: JoinInvite = manager.create_invite("192.168.1.20", 17777)
+	_expect(third.token == rotated, "rotate 后 create_invite 用新 ticket")
+	_expect(third.token != room_ticket, "旧 invite 的 ticket 已失效")
+	## ticket 与四种标识严格分离。
+	_expect(rotated != manager.get_room().room_id, "ticket != room_id")
+	_expect(rotated != PlayerProfile.get_profile_id(), "ticket != profile_id")
+	manager.queue_free()
+
+## guest ticket 与 room ticket 是两个独立概念，API 命名不混。
+func _case_guest_ticket_is_separate_from_room_ticket() -> void:
+	var manager: LobbyManager = LobbyManager.new()
+	root.add_child(manager)
+	manager.create_room("pit", GameLaunch.NetPlay.COOP, 20)
+	var invite: JoinInvite = manager.create_invite("192.168.1.20", 17777)
+	_expect(manager.get_room_ticket() == invite.token, "Host 持 room ticket")
+	## Host 侧不该有 guest ticket。
+	_expect(manager.get_guest_ticket().is_empty(), "Host 侧 guest ticket 为空")
+	## Host 改房间规则 / 复制 invite 都不影响 guest ticket 语义。
+	_expect(manager.get_room_ticket() != manager.get_guest_ticket(), "room ticket 与 guest ticket 分离")
+	manager.queue_free()
 
 ## close() 必须清掉 peer 级 ticket 状态，避免旧连接放行新 peer。
 func _case_close_clears_peer_ticket_state() -> void:

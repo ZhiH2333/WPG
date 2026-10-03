@@ -76,15 +76,56 @@ def _lobby_guards() -> list:
         for marker in ("ENetMultiplayerPeer", "@rpc", "create_client", "create_server"):
             if marker in path_code:
                 failures.append("lobby/connection_path.gd 只是候选描述，不允许出现 %s" % marker)
+    # Phase 9.1：P2P state / rendezvous contract / 编排器必须保持"纯"。
+    # - 状态对象只描述状态；contract 只描述数据；两者都不许碰 ENet / @rpc。
+    # - ConnectionPath 与编排器都不持有 peer（建连只经注入的 transport -> LobbyNet）。
+    pure_objects = {
+        "lobby/p2p_connection_state.gd": "P2P 状态对象",
+        "lobby/rendezvous_contract.gd": "Rendezvous contract",
+        "lobby/connect_attempt.gd": "ConnectAttempt",
+    }
+    for rel, name in pure_objects.items():
+        if not (ROOT / rel).is_file():
+            failures.append("缺少 %s（%s）" % (rel, name))
+            continue
+        code = _strip_comments(read(ROOT / rel))
+        for marker in ("ENetMultiplayerPeer", "@rpc", "multiplayer.", "SceneTree"):
+            if marker in code:
+                failures.append("%s（%s）只是纯对象，不允许出现 %s" % (rel, name, marker))
+    # 编排器不创建 ENet、不发 @rpc；建连必须走注入的 transport（归 LobbyNet）。
+    orchestrator = _strip_comments(read(ROOT / "lobby/p2p_connection.gd"))
+    if not orchestrator:
+        failures.append("缺少 lobby/p2p_connection.gd（Phase 9.1 编排器）")
+    else:
+        if "ENetMultiplayerPeer" in orchestrator:
+            failures.append("lobby/p2p_connection.gd 不允许创建 ENet peer（归 lobby/lobby_net.gd）")
+        if "@rpc" in orchestrator:
+            failures.append("lobby/p2p_connection.gd 不允许出现 @rpc（大厅 RPC 归 lobby/lobby_net.gd）")
+        if "bind_transport" not in orchestrator:
+            failures.append("lobby/p2p_connection.gd 必须通过 bind_transport() 注入传输层")
+    # 编排器 / contract 不许被 UI 直接使用（UI 只经 LobbyManager）。
+    for path in sorted(ROOT.rglob("*.gd")):
+        rel = path.relative_to(ROOT).as_posix()
+        if not rel.startswith("ui/"):
+            continue
+        code = _strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+        for marker in ("RendezvousContract", "P2PConnectionState", "P2PConnection"):
+            if marker in code:
+                failures.append("%s：UI 不得直接接触 %s（必须经 LobbyManager）" % (rel, marker))
     # LanBeacon 只做发现，不是认证 / 不是游戏流量。
     beacon = _strip_comments(read(ROOT / "arena/lan_beacon.gd"))
     for marker in ("ENetMultiplayerPeer", "@rpc", "check_ticket"):
         if marker in beacon:
             failures.append("arena/lan_beacon.gd 只是 LAN discovery，不允许出现 %s" % marker)
     # 全仓库：new ENetMultiplayerPeer 只允许 LobbyNet。
-    # 唯一例外是 connection_path_test：它必须亲手持有/替换 peer，才能证明
-    # 「候选回退过程中 SceneTree 始终只有一个 peer」这条 Phase 8 硬约束。
-    ENet_ALLOWED = {"lobby/lobby_net.gd", "tests/connection_path_test.gd"}
+    # 例外只限于**明确列出的测试文件**：
+    # - connection_path_test：必须亲手持有/替换 peer，才能证明「候选回退过程中
+    #   SceneTree 始终只有一个 peer」这条 Phase 8 硬约束。
+    # 新增测试例外必须逐个列出，绝不扩大生产代码白名单。
+    ENet_ALLOWED = {
+        "lobby/lobby_net.gd",
+        "tests/connection_path_test.gd",
+    }
     for path in ROOT.rglob("*.gd"):
         rel = path.relative_to(ROOT).as_posix()
         if rel.startswith(".godot/") or rel.startswith("tools/"):

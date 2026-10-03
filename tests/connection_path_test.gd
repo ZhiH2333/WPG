@@ -23,6 +23,18 @@ func _run_all() -> void:
 	_case_select_next_path_walks_then_ends()
 	_case_validate_rejects_bad_candidate()
 	await _case_single_multiplayer_peer()
+	## Phase 8 hardening：异步回退语义（attempt_id / 单 peer / 明确失败分类）。
+	_case_connect_success_needs_handshake_not_create_client()
+	_case_failed_first_candidate_falls_back()
+	_case_timeout_first_candidate_falls_back()
+	_case_stale_callback_is_discarded()
+	_case_second_candidate_connected_not_overwritten()
+	_case_version_mismatch_does_not_retry()
+	_case_ticket_rejected_does_not_retry()
+	_case_timeout_leaves_no_peer()
+	_case_at_most_one_active_peer()
+	_case_retryable_and_terminal_classification()
+	_case_manual_join_uses_runner()
 	_finish()
 
 # ---- 用例 ----
@@ -141,6 +153,253 @@ func _case_single_multiplayer_peer() -> void:
 	_expect(seen.size() == 3, "三个候选都被顺序走到")
 	_expect(net.multiplayer.multiplayer_peer == null, "收尾后没有残留 peer")
 	net.queue_free()
+
+# ---- 异步回退（Phase 8 hardening）----
+#
+# 这些用例用「假 transport」驱动 ConnectAttemptRunner：真实 ENet 无法在单进程内
+# 可靠地制造 connection_failed / 延迟 callback，而这些恰恰是出 bug 的地方。
+# 生产路径（真 ENet）由 tests/lan_e2e_test + tools/ci/lan_start_ui_* 覆盖。
+
+## 关键修正：create_client() 返回 true **不等于**连接成功。
+## 必须等 connected_to_server + 握手通过才算 CONNECTED。
+func _case_connect_success_needs_handshake_not_create_client() -> void:
+	var harness: Array = _make_runner([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	_expect(runner.attempts_made() == 1, "只发起了 1 次尝试")
+	_expect(not runner.is_finished(), "create_client 成功后仍未定论（不是 CONNECTED）")
+	var attempt: ConnectAttempt = runner.current_attempt()
+	_expect(attempt.is_pending(), "attempt 仍 PENDING")
+	_expect(not attempt.transport_connected, "还没有真实 transport connected")
+	## 真实连上（传输层）。
+	runner.notify_transport_connected(attempt.attempt_id)
+	_expect(attempt.transport_connected, "transport_connected 置位")
+	_expect(not runner.is_finished(), "传输层连上但未握手 -> 仍未定论")
+	## 握手通过才算成功。
+	runner.notify_handshake_ok(attempt.attempt_id)
+	_expect(runner.is_finished(), "握手后 join 终结")
+	_expect(runner.is_success(), "join 成功")
+	_expect(attempt.outcome == ConnectAttempt.Outcome.CONNECTED, "outcome = CONNECTED")
+
+## 场景 1：第一个 candidate create_client 成功，但随后 connection_failed
+## -> 必须尝试第二个 candidate。
+func _case_failed_first_candidate_falls_back() -> void:
+	var harness: Array = _make_runner([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	var transport: FakeTransport = harness[1]
+	var first: ConnectAttempt = runner.current_attempt()
+	_expect(runner.attempts_made() == 1, "先试第一个候选")
+	runner.notify_connection_failed(first.attempt_id, "refused")
+	_expect(transport.closed_count >= 1, "换候选前 close 了旧 peer")
+	_expect(runner.attempts_made() == 2, "回退到第二个候选")
+	_expect(transport.requested.size() == 2, "两次建连请求")
+	_expect(transport.requested[1] == V6, "第二次请求的是 IPv6 候选")
+	_expect(not runner.is_finished(), "回退后仍在进行（未终结）")
+	## 第二个候选成功。
+	var second: ConnectAttempt = runner.current_attempt()
+	runner.notify_transport_connected(second.attempt_id)
+	runner.notify_handshake_ok(second.attempt_id)
+	_expect(runner.is_success(), "第二个候选连上 -> 成功")
+
+## 场景 2：第一个 candidate timeout -> 尝试第二个。
+func _case_timeout_first_candidate_falls_back() -> void:
+	var harness: Array = _make_runner([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	var transport: FakeTransport = harness[1]
+	## 推进超过单次尝试超时。
+	runner.tick(ConnectAttemptRunner.DIRECT_ATTEMPT_TIMEOUT_SEC + 0.1)
+	_expect(transport.closed_count >= 1, "超时后 close 了旧 peer")
+	_expect(runner.attempts_made() == 2, "超时后回退到第二个候选")
+	## 第二个候选成功收尾。
+	var second: ConnectAttempt = runner.current_attempt()
+	runner.notify_transport_connected(second.attempt_id)
+	runner.notify_handshake_ok(second.attempt_id)
+	_expect(runner.is_success(), "超时回退后第二个候选成功")
+
+## 场景 3：第一个 candidate 的**延迟 callback** 在第二个 candidate 已开始后到达
+## -> 必须被 attempt_id 丢弃，不得修改新候选状态。
+func _case_stale_callback_is_discarded() -> void:
+	var harness: Array = _make_runner([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	var first: ConnectAttempt = runner.current_attempt()
+	var stale_id: int = first.attempt_id
+	## 第一个失败 -> 换到第二个。
+	runner.notify_connection_failed(stale_id, "refused")
+	var second: ConnectAttempt = runner.current_attempt()
+	_expect(second.attempt_id != stale_id, "第二个候选有新的 attempt_id")
+	## 旧候选的延迟失败回调到达：必须被丢弃。
+	var accepted: bool = runner.notify_connection_failed(stale_id, "late_refused")
+	_expect(not accepted, "旧 attempt 的延迟回调被拒绝")
+	_expect(runner.current_attempt() == second, "当前 attempt 仍是第二个候选")
+	_expect(second.is_pending(), "第二个候选状态未被旧回调污染")
+	_expect(runner.attempts_made() == 2, "不因为延迟回调多试一个候选")
+	## 旧候选的延迟「连上」回调同样必须被丢弃。
+	_expect(not runner.notify_transport_connected(stale_id), "旧 attempt 的延迟 connected 被拒绝")
+	_expect(not runner.notify_handshake_ok(stale_id), "旧 attempt 的延迟握手被拒绝")
+	_expect(not runner.is_finished(), "延迟回调没有提前终结 join")
+
+## 场景 4：第二个 candidate connected -> 旧 candidate callback 不得覆盖 CONNECTED。
+func _case_second_candidate_connected_not_overwritten() -> void:
+	var harness: Array = _make_runner([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	var stale_id: int = runner.current_attempt().attempt_id
+	runner.notify_connection_failed(stale_id, "refused")
+	var second: ConnectAttempt = runner.current_attempt()
+	runner.notify_transport_connected(second.attempt_id)
+	runner.notify_handshake_ok(second.attempt_id)
+	_expect(runner.is_success(), "第二个候选已 CONNECTED")
+	_expect(runner.final_attempt() == second, "终态指向第二个候选")
+	## 旧候选的超时 / 失败回调迟到了，绝不能把 CONNECTED 改回去。
+	_expect(not runner.notify_connection_failed(stale_id, "late"), "旧候选失败回调被丢弃")
+	_expect(not runner.notify_transport_connected(stale_id), "旧候选 connected 回调被丢弃")
+	_expect(runner.is_success(), "CONNECTED 未被旧 callback 覆盖")
+	_expect(runner.current_attempt().outcome == ConnectAttempt.Outcome.CONNECTED, "outcome 仍是 CONNECTED")
+
+## 场景 5：protocol mismatch -> VERSION_MISMATCH，不走普通 retry。
+func _case_version_mismatch_does_not_retry() -> void:
+	var harness: Array = _make_runner([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	var attempt: ConnectAttempt = runner.current_attempt()
+	runner.notify_version_mismatch(attempt.attempt_id, "protocol_mismatch")
+	_expect(runner.is_finished(), "协议不符立即终结 join")
+	_expect(not runner.is_success(), "协议不符不算成功")
+	_expect(runner.attempts_made() == 1, "协议不符不换候选重试（只试了 1 次）")
+	_expect(attempt.outcome == ConnectAttempt.Outcome.VERSION_MISMATCH, "outcome = VERSION_MISMATCH")
+	_expect(not attempt.is_retryable(), "VERSION_MISMATCH 不可重试")
+	_expect(runner.final_reason() == "version_mismatch", "终结原因 = version_mismatch")
+
+## 场景 6：ticket rejected -> TICKET_REJECTED，不走普通 retry。
+func _case_ticket_rejected_does_not_retry() -> void:
+	var harness: Array = _make_runner([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	var attempt: ConnectAttempt = runner.current_attempt()
+	runner.notify_ticket_rejected(attempt.attempt_id, "ticket_rejected:2")
+	_expect(runner.is_finished(), "ticket 被拒立即终结 join")
+	_expect(not runner.is_success(), "ticket 被拒不算成功")
+	_expect(runner.attempts_made() == 1, "ticket 被拒不换候选重试（只试了 1 次）")
+	_expect(attempt.outcome == ConnectAttempt.Outcome.TICKET_REJECTED, "outcome = TICKET_REJECTED")
+	_expect(not attempt.is_retryable(), "TICKET_REJECTED 不可重试")
+
+## 场景 7：timeout -> 没有残留 multiplayer_peer。
+func _case_timeout_leaves_no_peer() -> void:
+	var harness: Array = _make_runner([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	var transport: FakeTransport = harness[1]
+	## 推进到总超时。
+	runner.tick(ConnectAttemptRunner.OVERALL_JOIN_TIMEOUT_SEC + 0.1)
+	_expect(runner.is_finished(), "总超时终结 join")
+	_expect(not runner.is_success(), "超时不算成功")
+	_expect(runner.final_reason() == "overall_timeout", "终结原因 = overall_timeout")
+	_expect(transport.closed_count >= 1, "超时后调用了 close（无残留 peer）")
+	_expect(transport.peer_alive == false, "超时后没有 active peer")
+	_expect(runner.current_attempt().outcome == ConnectAttempt.Outcome.CONNECT_TIMEOUT, "outcome = CONNECT_TIMEOUT")
+
+## 场景 8：任意时刻最多一个 active peer。
+## 用真实 ENet peer 证明：回退过程中永远是「先关旧、再开新」。
+func _case_at_most_one_active_peer() -> void:
+	var net: LobbyNet = LobbyNet.new()
+	root.add_child(net)
+	var harness: Array = _make_runner_with_transport([LAN, V6])
+	var runner: ConnectAttemptRunner = harness[0]
+	var transport: FakeTransport = harness[1]
+	## 让假 transport 真的往 LobbyNet 上挂 peer，模拟生产路径。
+	transport.net = net
+	var max_live: int = 0
+	var first: ConnectAttempt = runner.current_attempt()
+	max_live = maxi(max_live, transport.live_peer_count())
+	runner.notify_connection_failed(first.attempt_id, "refused")
+	max_live = maxi(max_live, transport.live_peer_count())
+	_expect(transport.max_concurrent_peers <= 1, "回退全程并发 peer 从未超过 1")
+	_expect(max_live <= 1, "任意时刻最多一个 active peer")
+	## 收尾不留 peer。
+	runner.cancel()
+	_expect(net.multiplayer.multiplayer_peer == null, "cancel 后 LobbyNet 无残留 peer")
+	net.close()
+	net.queue_free()
+
+## 分类表：可重试 vs 终态必须互斥且覆盖完整。
+func _case_retryable_and_terminal_classification() -> void:
+	_expect(ConnectAttempt.RETRYABLE.has(ConnectAttempt.Outcome.CONNECT_TIMEOUT), "超时可重试")
+	_expect(ConnectAttempt.RETRYABLE.has(ConnectAttempt.Outcome.CONNECTION_FAILED), "connection_failed 可重试")
+	_expect(ConnectAttempt.RETRYABLE.has(ConnectAttempt.Outcome.SOCKET_ERROR), "socket_error 可重试")
+	_expect(not ConnectAttempt.RETRYABLE.has(ConnectAttempt.Outcome.VERSION_MISMATCH), "version_mismatch 不可重试")
+	_expect(not ConnectAttempt.RETRYABLE.has(ConnectAttempt.Outcome.TICKET_REJECTED), "ticket_rejected 不可重试")
+	_expect(ConnectAttempt.TERMINAL.has(ConnectAttempt.Outcome.CONNECTED), "CONNECTED 是终态")
+	_expect(not ConnectAttempt.TERMINAL.has(ConnectAttempt.Outcome.PENDING), "PENDING 不是终态")
+	_expect(ConnectAttempt.outcome_name(ConnectAttempt.Outcome.CONNECT_TIMEOUT) == "connect_timeout", "outcome_name 覆盖超时")
+	_expect(ConnectAttempt.outcome_name(ConnectAttempt.Outcome.VERSION_MISMATCH) == "version_mismatch", "outcome_name 覆盖协议不符")
+	_expect(ConnectAttempt.outcome_name(ConnectAttempt.Outcome.TICKET_REJECTED) == "ticket_rejected", "outcome_name 覆盖 ticket 被拒")
+
+## 手打 IP 路径（LobbyManager.join_room_address）也必须走 runner：
+## 单候选、无回退，但同样有 attempt_id 隔离与明确结果分类。
+## 否则手打 IP 失败后旧 runner 会误收别的连接的回调。
+func _case_manual_join_uses_runner() -> void:
+	var manager: LobbyManager = LobbyManager.new()
+	root.add_child(manager)
+	var net: LobbyNet = LobbyNet.new()
+	root.add_child(net)
+	manager.bind_net(net)
+	## 空地址不合法：不该发起，也不该留下 runner。
+	_expect(not manager.join_room_address(""), "空地址被拒")
+	_expect(manager.get_connect_attempt() == null, "空地址后没有 attempt")
+	## 合法地址：发起一次尝试（结果异步）。
+	var started: bool = manager.join_room_address(LAN)
+	_expect(started, "手打 IP 已发起")
+	var attempt: ConnectAttempt = manager.get_connect_attempt()
+	_expect(attempt != null, "手打 IP 也创建 attempt")
+	if attempt != null:
+		_expect(attempt.candidate != null and attempt.candidate.address == LAN, "attempt 指向手打地址")
+		_expect(attempt.is_pending(), "发起后仍是 PENDING（未连上）")
+	## 取消必须清干净，不留 peer。
+	manager.cancel_join()
+	_expect(manager.get_connect_attempt() == null, "cancel 后无 attempt")
+	_expect(net.multiplayer.multiplayer_peer == null, "cancel 后无残留 peer")
+	manager.queue_free()
+	net.queue_free()
+
+# ---- 假 transport ----
+
+## 记录建连请求与 close 次数，用于断言回退顺序与「先关后开」。
+class FakeTransport extends RefCounted:
+	var requested: Array[String] = []
+	var closed_count: int = 0
+	## 设为非 null 时，close 会真的关掉 LobbyNet 上的 peer（场景 8 用）。
+	var net: LobbyNet = null
+	## 同时存活的 peer 数峰值。
+	var max_concurrent_peers: int = 0
+	var _live: int = 0
+
+	func connect_to(address: String, _port: int, _ticket: String) -> bool:
+		requested.append(address)
+		_live += 1
+		max_concurrent_peers = maxi(max_concurrent_peers, _live)
+		return true
+
+	func close_transport() -> void:
+		closed_count += 1
+		_live = 0
+		if net != null:
+			net.close()
+
+	func live_peer_count() -> int:
+		return _live
+
+	var peer_alive: bool:
+		get:
+			return _live > 0
+
+# ---- 辅助 ----
+
+## 用假 transport 建一个 runner（候选来自 invite）。
+func _make_runner(addresses: Array) -> Array:
+	return _make_runner_with_transport(addresses)
+
+func _make_runner_with_transport(_addresses: Array) -> Array:
+	var invite: JoinInvite = JoinInvite.create(LAN, 17777, "", "", "", V6, WAN, 49152)
+	var plan: ConnectionPath = invite.to_candidates()
+	var runner: ConnectAttemptRunner = ConnectAttemptRunner.new()
+	var transport: FakeTransport = FakeTransport.new()
+	runner.begin(plan, invite.token, transport.connect_to, transport.close_transport)
+	return [runner, transport]
 
 # ---- 收尾 ----
 

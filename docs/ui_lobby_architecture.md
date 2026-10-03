@@ -339,13 +339,17 @@ wpg://join?v=6&t=TOKEN&lan=...&lp=17777&wan=...&wp=49152&ip6=...
 | `LobbyManager` | `Node`，挂在 MainMenu 下 | 大厅唯一状态机 + 唯一命令入口（create / join / leave / ready / start / invite / privacy）；决定状态 | **不是 Autoload**；不碰 ENet API |
 | `LobbyNet` | `Node`（已建立，2026-10-02） | 建连 / 关连 / 大厅 RPC：`host_listen` / `client_connect` / `close` / `hello` / `roster` / `ready` / `start` / connection state；`parse_address()` 是 JoinInvite 的第一刀 | 不决定 UI 状态；不承担战斗流量 |
 | `JoinInvite` | static（Phase 8 已落地：`lobby/join_invite.gd`） | `create()` / `parse()` 连接信息（LAN IPv4 / IPv6 / WAN IPv4 + token + 可选展示元数据）；UI 只经 `LobbyManager.create_invite()` / `join_invite()` | UI 禁止自己拼 IP / Port / Token / URI |
-| `NetSession` | `arena/net_session.gd`（已存在） | 战斗内同步（输入 / 快照 v3 / 局内事件）；复用具 SceneTree 上的 peer | **职责不改**：不建连、不管大厅、不做发现 |
+| `ConnectAttempt` / `ConnectAttemptRunner` | `RefCounted`（`lobby/connect_attempt*.gd`，Phase 8 hardening） | 单次建连尝试的状态与候选回退驱动器：attempt_id 隔离延迟回调、换候选前 close、区分 CONNECT_TIMEOUT / CONNECTION_FAILED / VERSION_MISMATCH / TICKET_REJECTED / CONNECTED | **不持有 ENet peer**；建连只经注入的 transport（归 `LobbyNet`） |
+| `P2PConnectionState` | `RefCounted`（`lobby/p2p_connection_state.gd`，Phase 9.1） | P2P 连接状态机（DISCONNECTED → … → CONNECTED / TIMEOUT / TICKET_REJECTED / VERSION_MISMATCH）；纯状态、纯函数转换表，可 headless 单测 | 不做 socket I/O、不持有 peer、不依赖 SceneTree / UI / Combat |
+| `RendezvousContract` | `RefCounted`（`lobby/rendezvous_contract.gd`，Phase 9.1） | rendezvous 的**纯数据** contract：会话身份（room_id / ticket / protocol / role / nonce）、候选（transport / path / port / observed endpoint）、会话状态；含版本化二进制编解码 | 只负责**发现与信息交换**；不是 Relay、不承载游戏流量；不碰 ENet |
+| `P2PConnection` | `RefCounted`（`lobby/p2p_connection.gd`，Phase 9.1） | P2P 编排：接受 JoinInvite → rendezvous contract → 远端候选 → DIRECT_CONNECTING → 调用注入的 transport（→ `LobbyNet`）→ 等 connected / failed / timeout → HANDSHAKING / CONNECTED | **不创建 ENet peer**、不发 `@rpc`；不做 STUN / TURN / UPnP / 真打洞 |
+| `NetSession` | `arena/net_session.gd`（已存在） | 战斗内同步（输入 / 快照 v3 / 局内事件）；复用具 SceneTree 上的 peer | **职责不改**：不建连、不管大厅、不做发现、**不接手 rendezvous** |
 | `LanBeacon` | `arena/lan_beacon.gd`（已存在） | 同网发现（17778 UDP）；进战斗停信标 | 不扫网段；不做游戏流量 |
 | `GameLaunch` | static 信封 | 换场一次性交接（`take` 一次） | 不进 Autoload；不长期持有大厅对象 |
 
 ### 4.1 硬规则（每条都有历史教训）
 
-1. UI 不直接操作 ENet：`ENetMultiplayerPeer.new()` 与大厅 `@rpc` 只允许出现在 `LobbyNet`。`ui/lan_overlay.gd` 的越界点已于 2026-10-02 迁走，并由 `tools/ci/architecture.py` 固化守卫（`lan_overlay.gd` 不得出现 `ENetMultiplayerPeer` / `@rpc`；`lobby_manager.gd` 不得出现 `multiplayer.`）。
+1. UI 不直接操作 ENet：`ENetMultiplayerPeer.new()` 与大厅 `@rpc` 只允许出现在 `LobbyNet`。`ui/lan_overlay.gd` 的越界点已于 2026-10-02 迁走，并由 `tools/ci/architecture.py` 固化守卫（`lan_overlay.gd` 不得出现 `ENetMultiplayerPeer` / `@rpc`；`lobby_manager.gd` 不得出现 `multiplayer.`）。Phase 9.1 追加：P2P 状态对象 / rendezvous contract / `ConnectAttempt` / `P2PConnection` 一律不得出现 ENet 或 `@rpc`，UI 不得直接接触 `RendezvousContract` / `P2PConnectionState` / `P2PConnection`（必须经 `LobbyManager`）。
 2. Feature 阶段不允许两套 `multiplayer_peer` 同时工作；SceneTree 同一时间一个 peer。
 3. 协议因门票握手只 bump 一次 5 → 6；不要为显示名 / 房间名单独 bump。**Ready 同步不走协议 bump**：它是独立可靠 RPC（`rpc_ready` / `rpc_apply_ready`），roster 包格式逐字节不变。
 4. 席位 1–5 保持，Host = 1，号不前挪，满员才踢。`ready` 是状态语义不是裸 bool：Host 恒显示 `HOST`（不参与 Start 判定），Guest 进房默认 **NOT READY**（握手完成必须自己按 READY）；Guest 改角色、Host 改 Mode/Arena/Goal 都会让旧的 READY 失效退回 WAITING；Starting 期间冻结 Ready / 角色 / 房间规则。
@@ -362,5 +366,90 @@ wpg://join?v=6&t=TOKEN&lan=...&lp=17777&wan=...&wp=49152&ip6=...
 - 门票握手（Phase 8）：Guest 连上后 `rpc_hello(protocol, token)` → Host 先验协议（不符 → `VERSION_MISMATCH`）再验 ticket（不符 → `peer_rejected` + `rpc_join_rejected` + disconnect）→ 通过才 `accept_hello_ok()` 确认座位。ticket 不过的 peer **不进 `Room.players`、不占正式 seat**，pending 由 `drop_peer` 释放。
 - LanBeacon 协议 6：发现包追加 `room_id` / `host_display_name`，LAN Rooms 主标题显示 `NightFox's Room`、地址退居次级；Beacon 仍然**只是 discovery**，不做认证、不承载游戏流量、不做 P2P relay。
 - P2P（表中原 Phase 9）：Host / Guest 各自与 rendezvous 交换连接信息后走 Direct UDP，rendezvous 不承担游戏流量；必须定义连接超时、打洞超时、直连失败与手动连接文案，且**不承诺**所有 NAT 都能直连。
+
+### 5.1 Phase 8 hardening：异步回退与 ticket lifecycle（已落地）
+
+**异步回退语义（修正前是真实 bug）**：`client_connect()` 返回 `true` 只代表**本地 socket 创建成功**，
+ENet 对不可达地址同样返回 `OK`。旧实现据此认为「连接成功」并在第一个候选 `return`，
+导致 IPv6 / WAN 回退是死代码。正确语义：
+
+```text
+candidate[0] -> 建连 -> 等待真实结果
+    connected + handshake 成功 => CONNECTED（DONE）
+    connection_failed          => close peer -> candidate[1]
+    timeout                    => close peer -> candidate[1]
+    VERSION_MISMATCH           => 停止（换 IP 也没用）
+    TICKET_REJECTED            => 停止（换 IP 也没用）
+```
+
+硬约束：
+
+1. **一次只有一个 active peer**；换 candidate 前必须 `close()` 当前 peer。
+2. 每次 attempt 有独立 `attempt_id`；**所有 async callback 必须先核对 attempt_id**，
+   旧候选的延迟回调不得修改新候选状态（IPv4 #1 的迟到回调不能覆盖 IPv6 #2）。
+3. `connect success` 必须等真实 `connected_to_server` **且**握手通过，不能只看 `create_client()` 返回值。
+4. 结果明确区分 `CONNECT_TIMEOUT` / `CONNECTION_FAILED` / `VERSION_MISMATCH` / `TICKET_REJECTED` / `CONNECTED`；
+   只有前两类（加 `SOCKET_ERROR`）可换路径重试。
+5. 由 `ConnectAttempt` + `ConnectAttemptRunner` 承担，不再把逻辑堆在 `LobbyManager.join_invite()`。
+
+**ticket lifecycle（方案 A = 复用）**：
+
+| 概念 | 归属 | 语义 |
+|---|---|---|
+| room ticket | Host / 房间 | 建房时生成一次，**属于当前房间**；`create_invite()` 复用，复制第二张 invite 不会让第一张失效 |
+| guest ticket | Guest / 单次连接 | Guest 本次连接携带的凭据副本，与 room ticket 是两个独立命名 |
+| rotation | Host 显式调用 | **只有** `LobbyManager.rotate_room_ticket()` 会生成新 ticket，旧 invite 从那一刻起失效 |
+
+`create_invite()` 不再换票。ticket 绝不是 profile_id / room_id / seat / peer_id。
+
+**三级超时**（集中定义在 `P2PConnectionState` 与 `ConnectAttemptRunner`，两处必须一致）：
+
+| 常量 | 值 | 含义 |
+|---|---|---|
+| `RENDEZVOUS_TIMEOUT_SEC` | 5.0 | 与 rendezvous 建立 / 注册的预算 |
+| `DIRECT_ATTEMPT_TIMEOUT_SEC` | 4.0 | **单次**直连尝试预算 |
+| `OVERALL_JOIN_TIMEOUT_SEC` | 12.0 | 整个 join 流程总预算 |
+
+超时必须进入明确 `TIMEOUT` 状态，且**不留 active peer、不触发旧 attempt callback、不偷偷重试**。
+
+### 5.2 Phase 9.1：P2P 状态机与 rendezvous contract（已落地，不含真打洞）
+
+**P2P 状态机** `P2PConnectionState`（纯状态对象）：
+
+```text
+DISCONNECTED -> RENDEZVOUS_CONNECTING -> RENDEZVOUS_REGISTERED
+             -> CANDIDATES_RECEIVED -> DIRECT_CONNECTING -> HANDSHAKING -> CONNECTED
+终态：CONNECTED / FAILED / TIMEOUT / TICKET_REJECTED / VERSION_MISMATCH
+事件：begin_rendezvous / rendezvous_registered / candidates_received /
+      begin_direct_attempt / direct_connected / direct_failed /
+      handshake_ok / ticket_rejected / version_mismatch / timeout / cancel / reset
+```
+
+- 状态转换**确定性**（纯函数转换表，同样 `(state, event)` 永远同样结果）；
+- 非法转换返回 `false` **且状态不变**；
+- 不依赖 SceneTree、不持有 `MultiplayerPeer`、不依赖 UI / Combat，可 headless 单测；
+- `direct_failed` 是自环（允许换下一个候选再试），不直接终结。
+
+**Rendezvous contract** `RendezvousContract`：只定义数据 —— 会话身份（`room_id` / `ticket` /
+`protocol` / `role` / `nonce`）、候选（`transport` / `path` / `port` / `address` /
+**`observed_address` + `observed_port`**）、会话状态（`rendezvous_id` / 本地与远端 nonce /
+本地与远端候选表），外加版本化二进制编解码（magic `WPGR` + version + type）。
+
+- rendezvous **只负责发现 / 交换连接信息**，**不承载游戏流量**，**不是 Relay**；
+- `NetSession` **不接手** rendezvous；UI **不接触** packet format（`tools/ci/architecture.py` 已守卫）；
+- `observed_*` 是为后续 NAT 穿透预留的字段：本阶段没有 STUN，**绝不用本地地址伪造**；
+- contract 版本（`RendezvousContract.VERSION`）与游戏协议号（`GameLaunch.NET_PROTOCOL`）**分离**，各自演进。
+
+**P2P 编排器** `P2PConnection`：接受 JoinInvite → 与 contract 对接 → 得到远端候选 →
+进入 `DIRECT_CONNECTING` → 经 `bind_transport()` 注入的 transport 调用已有 `LobbyNet`
+的单 peer 建连能力 → 等 connected / failed / timeout → `HANDSHAKING` / `CONNECTED`。
+它**不创建 ENet、不发 `@rpc`**；职责不再放回 `LanOverlay`。
+
+**本阶段明确不做**：STUN、TURN、UPnP、真公网 NAT hole punching、Relay、Host migration、
+reconnect、Android P2P、修改 `CombatNetSession`、修改 snapshot v3、修改 Ability Framework、
+第二套 `MultiplayerPeer`、为 P2P 重写 `LobbyNet`。
+
+`ConnectionPath` 的候选顺序仍是 `LAN_IPV4 → IPV6 → WAN_IPV4`，
+但现在只是为未来 Direct P2P 提供**候选描述**。
 
 [Showing lines 1-300 of 578. Use :301 to continue]

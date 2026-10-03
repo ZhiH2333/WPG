@@ -41,11 +41,16 @@ var _mock_seq: int = 0
 var _net: LobbyNet = null
 ## Guest 侧本地投影用的房间种子（协议 5 不回传身份，先占位）。
 var _remote_seed: Dictionary = {}
-## 本房 ticket（Phase 8）。Host 建房时随机生成，只用于「持有门票」校验。
-## 绝不是身份：与 profile_id / room_id / seat / peer_id 严格分开。
+## 本房 room ticket（Phase 8）。Host 建房时随机生成，属于**房间**生命周期，
+## 只用于「持有门票」校验。绝不是身份：与 profile_id / room_id / seat / peer_id 严格分开。
 var _room_ticket: String = ""
+## Guest 侧本次连接携带的 guest ticket（凭据副本，只读）。
+## 与 _room_ticket 分开命名：Host 持 room_ticket，Guest 持 guest_ticket，两者不是同一个东西。
+var _guest_ticket: String = ""
 ## Guest 实际选中的连接路径（LobbyPlayer.Path）。未连接时不假装成 WAN_IPV4。
 var _active_path: int = LobbyPlayer.Path.LAN_IPV4
+## 当前 join attempt 驱动器（Phase 8 hardening）。null = 没有进行中的 join。
+var _runner: ConnectAttemptRunner = null
 
 func _exit_tree() -> void:
 	if _net != null and _net.get_parent() == self:
@@ -83,6 +88,7 @@ func bind_net(net: LobbyNet) -> void:
 	_net.match_begin.connect(_on_net_match_begin)
 	_net.connection_failed.connect(_on_net_connection_failed)
 	_net.version_mismatch.connect(_on_net_version_mismatch)
+	_net.join_rejected.connect(_on_net_join_rejected)
 	_net.host_closed.connect(_on_net_host_closed)
 	_net.state_changed.connect(_on_net_state_changed)
 
@@ -107,6 +113,7 @@ func _unbind_net() -> void:
 		[_net.match_begin, _on_net_match_begin],
 		[_net.connection_failed, _on_net_connection_failed],
 		[_net.version_mismatch, _on_net_version_mismatch],
+		[_net.join_rejected, _on_net_join_rejected],
 		[_net.host_closed, _on_net_host_closed],
 		[_net.state_changed, _on_net_state_changed],
 	]:
@@ -134,45 +141,82 @@ func host_room(arena_id: String, net_play: GameLaunch.NetPlay, loop_goal: int, b
 	room_changed.emit()
 	return true
 
-## Guest 连 Host。
+## Guest 连 Host（手打 IPv4 的 LAN 路径）。
+## 走同一个 ConnectAttemptRunner：单候选、无回退，但同样享有 attempt_id 隔离与
+## 明确的结果分类 —— 否则手打 IP 失败时旧 runner 会误收别的连接的回调。
 func join_room_address(address: String) -> bool:
 	if _net == null:
 		return false
-	return _net.client_connect(address)
+	_guest_ticket = ""
+	var plan: ConnectionPath = ConnectionPath.from_address(address)
+	if plan.is_empty():
+		return false
+	if _runner != null:
+		_runner.cancel()
+	_runner = ConnectAttemptRunner.new()
+	_runner.candidate_started.connect(_on_candidate_started)
+	_runner.attempt_finished.connect(_on_attempt_finished)
+	_runner.exhausted.connect(_on_join_exhausted)
+	return _runner.begin(plan, "", _connect_transport, _close_transport)
 
 # ---- 邀请票据（Phase 8）----
 #
 # UI 只允许调这两个命令。禁止 UI 自己拼 "wpg://"、自己解析 query、自己生成 token、
 # 自己挑 ENet 地址 —— 那些全部归本层与 JoinInvite / ConnectionPath。
 
-## Host：为本房生成邀请票据（含 ticket）。ticket 每次调用都重新随机，
-## 绝不复用 room_id / profile_id / seat / peer_id。
+## Host：生成本房邀请票据。
+##
+## ticket lifecycle（Phase 8 明确语义，方案 A = 复用）：
+## - room ticket 在**建房时**生成一次，属于当前房间的生命周期；
+## - 再次调用 create_invite() **复用**当前 room ticket —— 复制第二张 invite 不会
+##   让第一张失效，同一间房的多个 Guest 可以共享同一张门票；
+## - 只有显式 rotate_room_ticket() 才生成新 ticket（旧 invite 从那一刻起失效）；
+## - ticket 绝不复用 room_id / profile_id / seat / peer_id。
+##
 ## lan_host 由调用方给出（UI 从 LanBeacon / 多网卡里读出本机地址，不猜）。
 func create_invite(lan_host: String, lan_port: int = GameLaunch.NET_PORT) -> JoinInvite:
 	if _room == null:
 		return null
+	if _room_ticket.is_empty():
+		_room_ticket = JoinInvite.generate_token()
 	var host_name: String = _room.host_display_name
 	var invite: JoinInvite = JoinInvite.create(
 		lan_host,
 		lan_port,
-		"",
+		_room_ticket,
 		_room.room_id,
 		host_name
 	)
 	if not invite.is_valid():
 		return null
-	_room_ticket = invite.token
 	if _net != null:
-		_net.set_ticket(invite.token)
+		_net.set_ticket(_room_ticket)
 	return invite
+
+## Host：显式轮换本房 ticket（旧 invite 立即失效）。
+## 这是唯一会改变 room ticket 的入口；常规 create_invite() 不再换票。
+func rotate_room_ticket() -> String:
+	_room_ticket = JoinInvite.generate_token()
+	if _net != null:
+		_net.set_ticket(_room_ticket)
+	return _room_ticket
 
 ## Host 侧：本房当前 ticket（无房则空）。仅供 Host 自己复述给 Guest，绝不外发身份。
 func get_room_ticket() -> String:
 	return _room_ticket
 
-## Guest：解析并消费一张邀请票据，选一个候选路径发起连接。
-## 返回 JoinInvite（含 error 供 UI 显示）；成功发起连接时 error == OK。
-## 失败时返回的 invite.error 明确区分 bad scheme / version / port 等。
+## Guest 侧：本次连接携带的 guest ticket（无则空）。与 room ticket 是两个独立概念。
+func get_guest_ticket() -> String:
+	return _guest_ticket
+
+## Guest：解析并消费一张邀请票据，按候选顺序**串行**发起连接。
+##
+## 返回 JoinInvite（含 error 供 UI 显示）。
+## 语义修正（Phase 8 hardening）：本函数返回 error == OK 只表示「解析通过且已**发起**
+## 第一次尝试」，**不代表连接成功**。真正的结果通过 attempt_finished / 网络信号异步到达：
+##   connected + 握手成功 => CONNECTED
+##   connection_failed / timeout => 自动 close peer 后换下一个候选
+##   VERSION_MISMATCH / TICKET_REJECTED => 立即停止，不再换路径
 func join_invite(raw: String) -> JoinInvite:
 	var invite: JoinInvite = JoinInvite.parse(raw)
 	if not invite.is_valid():
@@ -184,24 +228,69 @@ func join_invite(raw: String) -> JoinInvite:
 	if plan.is_empty():
 		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
 		return invite
-	## 1.0：按候选顺序尝试。一次只建一个 peer；失败就 close 再试下一个。
-	var index: int = 0
-	while true:
-		var candidate: ConnectionPath.Candidate = plan.select_next_path(index)
-		if candidate == null:
-			break
-		index += 1
-		if _try_candidate(candidate, invite.token):
-			return invite
+	_guest_ticket = invite.token
+	if _runner != null:
+		_runner.cancel()
+	_runner = ConnectAttemptRunner.new()
+	_runner.candidate_started.connect(_on_candidate_started)
+	_runner.attempt_finished.connect(_on_attempt_finished)
+	_runner.exhausted.connect(_on_join_exhausted)
+	_runner.begin(plan, invite.token, _connect_transport, _close_transport)
 	return invite
 
-## 尝试一个候选：先关闭当前 peer（保证 SceneTree.multiplayer 只有一个 peer），再建连。
-func _try_candidate(candidate: ConnectionPath.Candidate, ticket: String) -> bool:
+## 传输层注入：真正的建连在 LobbyNet（唯一持有 ENet 的对象）。
+## 返回 true 仅表示「已发起」——**不是**连接成功，这正是过去出 bug 的地方。
+func _connect_transport(address: String, port: int, ticket: String) -> bool:
 	if _net == null:
 		return false
-	_net.close()
-	_active_path = candidate.path
-	return _net.client_connect(candidate.address, candidate.port, ticket)
+	return _net.client_connect(address, port, ticket)
+
+## 换候选前必须关掉当前 peer：SceneTree.multiplayer 同时只能有一个 active peer。
+func _close_transport() -> void:
+	if _net != null:
+		_net.close()
+
+func _on_candidate_started(attempt: ConnectAttempt) -> void:
+	if attempt.candidate != null:
+		_active_path = attempt.candidate.path
+
+func _on_attempt_finished(attempt: ConnectAttempt) -> void:
+	if attempt == null:
+		return
+	if attempt.is_success():
+		_networked = true
+		room_changed.emit()
+		return
+	## 可重试的失败：继续往下试，不报错（UI 不该在 LAN 失败瞬间弹错）。
+	if attempt.is_retryable():
+		return
+	## VERSION_MISMATCH / TICKET_REJECTED：明确失败，不再重试。
+	network_failed.emit(ConnectAttempt.outcome_name(attempt.outcome))
+
+func _on_join_exhausted(attempt: ConnectAttempt, reason: String) -> void:
+	_runner = null
+	if attempt != null and attempt.is_success():
+		return
+	## 收尾保证没有残留 peer（超时 / 全候选失败都走这里）。
+	if _net != null:
+		_net.close()
+	if reason != "cancelled":
+		network_failed.emit(reason)
+
+## 当前 join attempt（无则 null）。UI / 测试只读，不修改。
+func get_connect_attempt() -> ConnectAttempt:
+	return _runner.current_attempt() if _runner != null else null
+
+## 推进 join 超时。由 MainMenu 每帧驱动；没有进行中的 join 时是空操作。
+func tick_join(delta_sec: float) -> void:
+	if _runner != null:
+		_runner.tick(delta_sec)
+
+## 取消进行中的 join（关 peer、不留残留）。没有进行中的 join 时是空操作。
+func cancel_join() -> void:
+	if _runner != null:
+		_runner.cancel()
+		_runner = null
 
 ## 本机实际选中的连接路径（未连接时返回 LAN_IPV4 作为无害默认）。
 func get_active_path() -> int:
@@ -349,6 +438,10 @@ func _on_net_ready_applied(seat: int, ready: bool) -> void:
 	room_changed.emit()
 
 func _on_net_connected() -> void:
+	# 传输层连上（尚未握手）。告诉当前 attempt「还没定论，继续等握手」。
+	# 关键：**这里绝不能判定成功** —— 握手没过就换候选/宣告成功都是错的。
+	if _runner != null:
+		_runner.notify_transport_connected(_runner.current_attempt_id())
 	# Guest 连上 Host，发自己的角色。
 	if _net != null:
 		var local: LobbyPlayer = get_local_player()
@@ -356,6 +449,9 @@ func _on_net_connected() -> void:
 		_net.send_guest_character(character_id)
 
 func _on_net_seat_assigned(seat: int) -> void:
+	# 收到座位 = Host 的握手回执，本次 attempt 真正成功。
+	if _runner != null:
+		_runner.notify_handshake_ok(_runner.current_attempt_id())
 	# Guest 侧 Lobby 是本地投影；协议 5 不回传 host 名 / room_id，先占位。
 	var arena: String = str(_remote_seed.get("arena_id", "yard"))
 	var net_play: GameLaunch.NetPlay = _remote_seed.get("net_play", GameLaunch.NetPlay.COOP)
@@ -398,13 +494,30 @@ func _on_net_match_begin(loop_goal: int, arena_id: String, net_play: int) -> voi
 	room_changed.emit()
 
 func _on_net_connection_failed() -> void:
+	# 有进行中的 join：交给 runner 决定「换下一个候选」。它自己会 close peer，
+	# 只有候选全部耗尽才 emit network_failed（由 _on_join_exhausted 负责）。
+	if _runner != null:
+		_runner.notify_connection_failed(_runner.current_attempt_id(), "refused")
+		return
 	_networked = false
 	room_changed.emit()
 	network_failed.emit("refused")
 
 func _on_net_version_mismatch() -> void:
+	# 协议不符：换 IP 也解决不了，立即终结本次 join，不做普通重试。
+	if _runner != null:
+		_runner.notify_version_mismatch(_runner.current_attempt_id(), "protocol_mismatch")
+		return
 	_networked = false
 	network_failed.emit("Version mismatch")
+
+func _on_net_join_rejected(reason: int) -> void:
+	# ticket 被拒：换 IP 也解决不了，立即终结本次 join，不做普通重试。
+	if _runner != null:
+		_runner.notify_ticket_rejected(_runner.current_attempt_id(), "ticket_rejected:%d" % reason)
+		return
+	_networked = false
+	network_failed.emit("ticket rejected")
 
 func _on_net_host_closed() -> void:
 	_networked = false
