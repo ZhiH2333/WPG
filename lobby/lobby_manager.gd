@@ -24,6 +24,9 @@ signal network_failed(reason: String)
 signal joined_lobby
 ## 有人在房里掉线 / 离房：UI 播放 PLAYERxx LEFT 后把座位画回 EMPTY SEAT。
 signal player_left(display_name: String, seat: int)
+## Phase 9.2.2 R2：P2P hole punch 已确认一条 validated 直连路径。
+## 本阶段到此为止（Direct ENet 属 9.2.3，不在此自动发起）。
+signal p2p_path_established(rtt_ms: int, validated_candidate: Dictionary)
 
 enum Role { NONE, HOST, GUEST }
 
@@ -53,6 +56,9 @@ var _active_path: int = LobbyPlayer.Path.LAN_IPV4
 var _runner: ConnectAttemptRunner = null
 ## P2P 连接编排器（Phase 9.2）：处理 rendezvous + hole punch + ENet 直连。
 var _p2p_connection: P2PConnection = null
+## 本机默认 rendezvous 服务端（可由 MainMenu / 测试注入；为空则必须由 invite 携带 rv=）。
+var _rendezvous_host: String = ""
+var _rendezvous_port: int = RendezvousClient.DEFAULT_PORT
 
 func _exit_tree() -> void:
 	if _net != null and _net.get_parent() == self:
@@ -223,6 +229,10 @@ func join_invite(raw: String) -> JoinInvite:
 	var invite: JoinInvite = JoinInvite.parse(raw)
 	if not invite.is_valid():
 		return invite
+	## Phase 9.2.2 R2：P2P 邀请必须进入 P2P domain flow（rendezvous + hole punch），
+	## 而不是旧的 LAN 串行候选。UI 不变（仍只调 join_invite），分流在 domain 内完成。
+	if invite.is_p2p():
+		return join_invite_p2p(invite, invite.rendezvous_host, invite.rendezvous_port)
 	if _net == null:
 		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
 		return invite
@@ -265,10 +275,48 @@ func _get_or_create_p2p_connection() -> P2PConnection:
 		_p2p_connection.direct_path_failed.connect(_on_p2p_direct_path_failed)
 	return _p2p_connection
 
+## 配置本机默认 rendezvous 服务端（供 create_p2p_invite / join_invite 兜底）。
+func set_rendezvous_endpoint(host: String, port: int = RendezvousClient.DEFAULT_PORT) -> void:
+	_rendezvous_host = host.strip_edges()
+	_rendezvous_port = port if port >= 1 and port <= 65535 else RendezvousClient.DEFAULT_PORT
+
+func get_rendezvous_host() -> String:
+	return _rendezvous_host
+
+func get_rendezvous_port() -> int:
+	return _rendezvous_port
+
+## Host 侧：生成一张 **P2P** 邀请（带 p2p=1 与 rendezvous 端点）。
+func create_p2p_invite(lan_host: String, rendezvous_host: String = "", rendezvous_port: int = 0) -> JoinInvite:
+	if _room == null:
+		return null
+	if _room_ticket.is_empty():
+		_room_ticket = JoinInvite.generate_token()
+	var rv_host: String = rendezvous_host.strip_edges() if not rendezvous_host.strip_edges().is_empty() else _rendezvous_host
+	var rv_port: int = rendezvous_port if rendezvous_port >= 1 and rendezvous_port <= 65535 else _rendezvous_port
+	var invite: JoinInvite = JoinInvite.create(
+		lan_host,
+		GameLaunch.NET_PORT,
+		_room_ticket,
+		_room.room_id,
+		_room.host_display_name,
+		"",
+		"",
+		JoinInvite.DEFAULT_WAN_PORT,
+		true,
+		rv_host,
+		rv_port
+	)
+	if not invite.is_valid():
+		return null
+	if _net != null:
+		_net.set_ticket(_room_ticket)
+	return invite
+
 ## 开始通过 rendezvous + hole punch 的 P2P join。
 ## invite 必须包含有效的 room_id / ticket / candidates。
-## rendezvous_host/port：公网 rendezvous 服务端地址。
-func join_invite_p2p(invite: JoinInvite, rendezvous_host: String, rendezvous_port: int = RendezvousClient.DEFAULT_PORT) -> JoinInvite:
+## rendezvous_host/port：公网 rendezvous 服务端地址；为空时用本机配置兜底。
+func join_invite_p2p(invite: JoinInvite, rendezvous_host: String = "", rendezvous_port: int = 0) -> JoinInvite:
 	if invite == null or not invite.is_valid():
 		if invite == null:
 			invite = JoinInvite.new()
@@ -277,16 +325,36 @@ func join_invite_p2p(invite: JoinInvite, rendezvous_host: String, rendezvous_por
 	if _net == null:
 		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
 		return invite
-	
+	var rv_host: String = rendezvous_host.strip_edges()
+	if rv_host.is_empty():
+		rv_host = invite.rendezvous_host.strip_edges()
+	if rv_host.is_empty():
+		rv_host = _rendezvous_host
+	if rv_host.is_empty():
+		## 没有 rendezvous 端点 = 无法做真 P2P；明确报错，绝不退化成「假装已注册」。
+		invite.error = JoinInvite.InvalidReason.MISSING_RENDEZVOUS
+		return invite
+	var rv_port: int = rendezvous_port
+	if rv_port < 1 or rv_port > 65535:
+		rv_port = invite.rendezvous_port
+	if rv_port < 1 or rv_port > 65535:
+		rv_port = _rendezvous_port
+
+	## 每次 join 用**新的** P2PConnection，避免复用上一个的终态/残留。
+	if _p2p_connection != null:
+		_p2p_connection.reset()
+		_p2p_connection = null
+	_runner = null
 	var p2p: P2PConnection = _get_or_create_p2p_connection()
 	var client: RendezvousClient = RendezvousClient.new()
 	p2p.bind_rendezvous(client)
-	
-	## 开始 P2P 连接流程
-	if not p2p.begin(invite, rendezvous_host, rendezvous_port):
+
+	## 开始 P2P 连接流程（状态由 rendezvous 回包 + hole punch 驱动）。
+	if not p2p.begin(invite, rv_host, rv_port):
 		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
+		_p2p_connection = null
 		return invite
-	
+
 	_guest_ticket = invite.token
 	return invite
 
@@ -318,13 +386,16 @@ func _on_p2p_finished(success: bool, reason: String) -> void:
 		if _net != null:
 			_net.close()
 		network_failed.emit(reason)
+	## 终态后彻底清理（socket / client / probe 状态），不留「看似可继续」的残骸。
+	if _p2p_connection != null:
+		_p2p_connection.reset()
 	_p2p_connection = null
 
-## Hole punch 成功，得到 validated path，准备发起 ENet 直连。
+## Hole punch 成功，得到 validated path。
+## **Phase 9.2.2 R2 到此为止**：只宣告 direct path 已验证，不在本阶段发起
+## Direct ENet（那是 9.2.3 的范围：接到 LobbyNet 单 peer 跑 protocol 6 握手）。
 func _on_p2p_direct_path_established(rtt_ms: int, validated_candidate: Dictionary) -> void:
-	var p2p: P2PConnection = _get_or_create_p2p_connection()
-	## 在 validated path 上发起 ENet 连接
-	p2p.begin_direct_enet()
+	p2p_path_established.emit(rtt_ms, validated_candidate)
 
 ## Hole punch 失败。
 func _on_p2p_direct_path_failed(reason: String) -> void:

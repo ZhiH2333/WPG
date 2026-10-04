@@ -15,6 +15,11 @@ class_name JoinInvite
 ##
 ## URI 形态：
 ##   wpg://join?v=6&t=TOKEN&lan=192.168.1.20&lp=17777[&wan=h&wp=p][&ip6=...][&n=Name][&r=ROOMID]
+##
+## Phase 9.2.2 R2 新增（P2P / rendezvous 明确分流）：
+##   p2p=1        显式标记这是一张 **P2P 邀请**（生产 UI 必须走 join_invite_p2p）
+##   rv=HOST      可选：rendezvous 服务端地址（缺省时由 LobbyManager 配置兜底）
+##   rvp=PORT     可选：rendezvous 服务端端口
 
 const SCHEME: String = "wpg"
 const ACTION_JOIN: String = "join"
@@ -25,6 +30,8 @@ const PREFIX: String = "wpg://join?"
 
 const DEFAULT_LAN_PORT: int = 17777
 const DEFAULT_WAN_PORT: int = 49152
+## 与 RendezvousClient.DEFAULT_PORT 同值；join_invite_test 会断言两者一致。
+const DEFAULT_RENDEZVOUS_PORT: int = 17779
 
 ## 解析失败原因码。UI 只显示，不解析字符串。
 enum InvalidReason {
@@ -40,6 +47,7 @@ enum InvalidReason {
 	BAD_WAN_HOST,
 	BAD_WAN_PORT,
 	BAD_IPV6,
+	MISSING_RENDEZVOUS,
 }
 
 var token: String = ""
@@ -48,6 +56,10 @@ var lan_port: int = DEFAULT_LAN_PORT
 var ipv6: String = ""
 var wan_host: String = ""
 var wan_port: int = DEFAULT_WAN_PORT
+## P2P 标记 + rendezvous 端点（Phase 9.2.2 R2）。
+var p2p: bool = false
+var rendezvous_host: String = ""
+var rendezvous_port: int = DEFAULT_RENDEZVOUS_PORT
 ## 以下两个只是显示用元数据，不参与鉴权、不参与连接。
 var room_id: String = ""
 var host_name: String = ""
@@ -56,6 +68,11 @@ var error: InvalidReason = InvalidReason.OK
 
 func is_valid() -> bool:
 	return error == InvalidReason.OK and not token.is_empty() and not lan_host.is_empty()
+
+## 是否 P2P（rendezvous + hole punch）邀请。生产 UI 只发命令，
+## 由 LobbyManager 据此分流到 join_invite_p2p()。
+func is_p2p() -> bool:
+	return p2p
 
 ## 本机是否至少有一个可尝试的连接候选（LAN / IPv6 / WAN）。
 func has_any_candidate() -> bool:
@@ -76,7 +93,10 @@ static func create(
 	host_name: String = "",
 	ipv6: String = "",
 	wan_host: String = "",
-	wan_port: int = DEFAULT_WAN_PORT
+	wan_port: int = DEFAULT_WAN_PORT,
+	p2p: bool = false,
+	rendezvous_host: String = "",
+	rendezvous_port: int = DEFAULT_RENDEZVOUS_PORT
 ) -> JoinInvite:
 	var invite: JoinInvite = JoinInvite.new()
 	invite.version = VERSION
@@ -88,6 +108,9 @@ static func create(
 	invite.ipv6 = _sanitize_ipv6(ipv6)
 	invite.wan_host = _sanitize_host(wan_host)
 	invite.wan_port = wan_port
+	invite.p2p = p2p
+	invite.rendezvous_host = _sanitize_rendezvous_host(rendezvous_host)
+	invite.rendezvous_port = rendezvous_port if _is_valid_port(rendezvous_port) else DEFAULT_RENDEZVOUS_PORT
 	invite.error = invite._validate_fields()
 	return invite
 
@@ -195,6 +218,16 @@ func _apply_query(query: String) -> void:
 		host_name = _sanitize_metadata(str(fields["n"]), 24)
 	if fields.has("r"):
 		room_id = _sanitize_metadata(str(fields["r"]), 32)
+	## Phase 9.2.2 R2：P2P 标记与 rendezvous 端点（可选，缺省不算错）。
+	if fields.has("p2p"):
+		var raw_p2p: String = str(fields["p2p"]).strip_edges()
+		p2p = raw_p2p == "1" or raw_p2p.to_lower() == "true"
+	if fields.has("rv"):
+		rendezvous_host = _sanitize_rendezvous_host(str(fields["rv"]))
+	if fields.has("rvp"):
+		var raw_rvp: String = str(fields["rvp"])
+		if raw_rvp.is_valid_int() and _is_valid_port(int(raw_rvp)):
+			rendezvous_port = int(raw_rvp)
 
 	error = _validate_fields()
 
@@ -228,6 +261,11 @@ func to_uri() -> String:
 		parts.append("n=%s" % host_name)
 	if not room_id.is_empty():
 		parts.append("r=%s" % room_id)
+	if p2p:
+		parts.append("p2p=1")
+	if not rendezvous_host.is_empty():
+		parts.append("rv=%s" % rendezvous_host)
+		parts.append("rvp=%d" % rendezvous_port)
 	return PREFIX + "&".join(parts)
 
 ## 给 UI 显示用的一行摘要（不含 token：门票不进日志、不进截图）。
@@ -250,6 +288,23 @@ static func _is_hex_token(value: String) -> bool:
 		if not (is_digit or is_lower or is_upper):
 			return false
 	return true
+
+## rendezvous 主机名允许域名（与 lan_host 不同：lan_host 必须是点分 IPv4）。
+static func _sanitize_rendezvous_host(value: String) -> String:
+	var host: String = value.strip_edges()
+	if host.is_empty() or host.length() > 253:
+		return ""
+	if host.find("/") >= 0 or host.find(" ") >= 0:
+		return ""
+	for i: int in host.length():
+		var c: int = host.unicode_at(i)
+		var is_digit: bool = c >= 48 and c <= 57
+		var is_lower: bool = c >= 97 and c <= 122
+		var is_upper: bool = c >= 65 and c <= 90
+		if is_digit or is_lower or is_upper or c == 46 or c == 45 or c == 95 or c == 58:
+			continue
+		return ""
+	return host
 
 ## IPv4（或主机名）校验。拒绝空、拒绝带冒号的 IPv6、拒绝越界段。
 static func _sanitize_host(value: String) -> String:

@@ -211,6 +211,50 @@ def _node_block(text: str, name: str) -> str:
     return text[start:end if end >= 0 else len(text)]
 
 
+def _p2p_guards() -> list:
+    """Phase 9.2.2 R2 硬约束：P2P production flow 与 UDP ownership。
+
+    - P2PHolePunch 是打洞的唯一实现；production E2E 必须用它，不能手写 probe 协议。
+    - UDP ownership 必须显式表达（owns_socket / owns_udp），不能靠注释猜。
+    - P2PConnection 持有共享 UDP；LobbyManager 必须按 is_p2p() 分流到 join_invite_p2p()。
+    """
+    failures = []
+    hp_rel = "lobby/p2p_hole_punch.gd"
+    hp = _strip_comments(read(ROOT / hp_rel))
+    if not hp:
+        failures.append("缺少 %s（Phase 9.2.2 P2PHolePunch）" % hp_rel)
+    else:
+        for marker in ("ENetMultiplayerPeer", "@rpc"):
+            if marker in hp:
+                failures.append("%s 不允许出现 %s（打洞不建 ENet）" % (hp_rel, marker))
+        if "PacketPeerUDP" not in hp:
+            failures.append("%s 必须用 PacketPeerUDP" % hp_rel)
+        if "owns_socket" not in hp:
+            failures.append("%s 必须显式表达 UDP ownership（owns_socket）" % hp_rel)
+    rv = _strip_comments(read(ROOT / "lobby/rendezvous_client.gd"))
+    if "owns_udp" not in rv:
+        failures.append("lobby/rendezvous_client.gd 必须显式表达 UDP ownership（owns_udp）")
+    orch = _strip_comments(read(ROOT / "lobby/p2p_connection.gd"))
+    if "_shared_udp" not in orch:
+        failures.append("lobby/p2p_connection.gd 必须持有共享 UDP（_shared_udp）")
+    manager = _strip_comments(read(ROOT / "lobby/lobby_manager.gd"))
+    if "join_invite_p2p(" not in manager:
+        failures.append("LobbyManager 必须提供 join_invite_p2p()（P2P domain flow）")
+    if "is_p2p()" not in manager:
+        failures.append("LobbyManager.join_invite() 必须按 is_p2p() 分流到 P2P domain flow")
+    # 两进程 E2E 必须用 production P2PHolePunch；禁止手写 probe 编码冒充。
+    for rel in ("tools/ci/p2p_probe_host.gd", "tools/ci/p2p_probe_guest.gd"):
+        code = _strip_comments(read(ROOT / rel))
+        if not code:
+            failures.append("缺少 %s（Phase 9.2.2 两进程打洞 E2E）" % rel)
+            continue
+        if "P2PHolePunch" not in code:
+            failures.append("%s 必须使用 production P2PHolePunch" % rel)
+        if "encode_probe" in code:
+            failures.append("%s 不得手写 probe 协议（必须走 P2PHolePunch）" % rel)
+    return failures
+
+
 def _mobile_input_guards() -> list:
     """Touch 必须走 PlayerInput 正式 API；禁止 Touch 直连战斗/网络/暂停。
     UI 依赖 Touch -> emulated Mouse compatibility，Gameplay 隔离由 Touch source +
@@ -426,6 +470,7 @@ def main() -> int:
         if "class_name NetworkSession" in text or "class_name CombatSession" in text:
             failures.append("%s 引入了禁止的网络类名" % rel)
     failures.extend(_lobby_guards())
+    failures.extend(_p2p_guards())
     failures.extend(_mobile_input_guards())
     failures.extend(_ui_display_guards())
     failures.extend(_icon_guards())

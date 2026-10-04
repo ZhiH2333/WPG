@@ -1036,6 +1036,8 @@ func _invite_error_text(invite: JoinInvite) -> String:
 			return "bad address"
 		JoinInvite.InvalidReason.BAD_LAN_PORT, JoinInvite.InvalidReason.BAD_WAN_PORT:
 			return "bad port"
+		JoinInvite.InvalidReason.MISSING_RENDEZVOUS:
+			return "no rendezvous"
 		JoinInvite.InvalidReason.BAD_IPV6:
 			return "bad ipv6"
 	return "bad invite"

@@ -121,8 +121,15 @@ func is_active() -> bool:
 func direct_attempts() -> int:
 	return _direct_attempts
 
+## Hole punch 探测尝试次数（每次 BEGIN_DIRECT_PROBING 累加一次）。
+func direct_probe_attempts() -> int:
+	return _direct_probe_attempts
+
 func remote_candidate_count() -> int:
 	return _remote_candidate_count
+
+func local_candidate_count() -> int:
+	return _local_candidate_count
 
 ## —— 事件入口 ——
 
@@ -154,6 +161,7 @@ func reset() -> void:
 	_local_candidate_count = 0
 	_remote_candidate_count = 0
 	_direct_attempts = 0
+	_direct_probe_attempts = 0
 	if from != State.DISCONNECTED:
 		state_changed.emit(int(from), int(_state), int(Event.RESET))
 

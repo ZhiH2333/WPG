@@ -151,6 +151,10 @@ func _process(delta: float) -> void:
 	_music.volume_db = lerpf(SILENCE_DB, overlay_db, _music_fade)
 	_refresh_clock(false)
 	_refresh_nav_marks()
+	## Lobby domain 的时间推进：LAN join 的 attempt 超时与 P2P 的 rendezvous /
+	## hole punch 都需要每帧推进。放在 MainMenu 这一层，保证叠层关掉时也照常推进。
+	if _lobby != null:
+		_lobby.tick_join(delta)
 
 func _input(event: InputEvent) -> void:
 	if event.is_pressed():

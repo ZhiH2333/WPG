@@ -1,109 +1,148 @@
 extends SceneTree
 
-## P2P UDP Probe E2E —— Guest 端真进程（由 tools/ci/p2p_probe_e2e.py 拉起，不单独跑）。
+## P2P Hole Punch E2E —— Guest 端真进程（由 tools/ci/p2p_probe_e2e.py 拉起，不单独跑）。
 ##
-## 本进程 bind UDP 端口，接收 Host 的 probe，回复 ACK。
+## **必须使用 production P2PHolePunch**，不允许用 PacketPeerUDP 手写 probe/ACK 协议。
 ##
-## 用法：godot --headless --path . --script res://tools/ci/p2p_probe_guest.gd -- <local_port> <remote_port> <session_id> <local_nonce> <remote_nonce> <role> <result_file>
+## 用法：
+##   godot --headless --path . --script res://tools/ci/p2p_probe_guest.gd -- \
+##     <local_port> <remote_port> <session_id> <local_nonce> <remote_nonce> <role> <result_file> <go_file>
 
-const TIMEOUT_MS: int = 15000
+const TIMEOUT_MS: int = 20000
 
-var _port: int = 0
+var _local_port: int = 0
 var _remote_port: int = 0
 var _session_id: String = ""
 var _local_nonce: String = ""
 var _remote_nonce: String = ""
-var _role: String = ""
 var _result_path: String = ""
-var _socket: PacketPeerUDP = null
+var _go_path: String = ""
+var _punch: P2PHolePunch = null
 var _done: bool = false
 var _deadline: int = 0
-var _received_probe: bool = false
-var _sent_ack: bool = false
-var _probe_timestamp: int = 0
+var _last_tick_ms: int = 0
 
 func _initialize() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
-	if args.size() < 6:
-		printerr("GUEST_FAIL -: 缺少 local_port / remote_port / session_id / local_nonce / remote_nonce / role / result_file")
+	if args.size() < 8:
+		printerr("GUEST_FAIL -: 需要 local_port remote_port session_id local_nonce remote_nonce role result_file go_file")
 		quit(1)
 		return
-	_port = int(args[0])
+	_local_port = int(args[0])
 	_remote_port = int(args[1])
 	_session_id = args[2]
 	_local_nonce = args[3]
 	_remote_nonce = args[4]
-	_role = args[5]
 	_result_path = args[6]
+	_go_path = args[7]
 	_run.call_deferred()
 
 func _run() -> void:
-	_socket = PacketPeerUDP.new()
-	var err: Error = _socket.bind(_port)
-	if err != OK:
-		_fail("bind 失败: %s" % err)
-		return
-	var actual_port: int = _socket.get_local_port()
-	print("GUEST bound on port %d" % actual_port)
+	_punch = P2PHolePunch.new()
 	_deadline = Time.get_ticks_msec() + TIMEOUT_MS
-	_poll_loop()
+	var local_candidates: Array = [_candidate(LobbyPlayer.Path.LAN_IPV4, "127.0.0.1", _local_port)]
+	var remote_candidates: Array = [
+		_candidate(LobbyPlayer.Path.WAN_IPV4, "10.255.255.10", 1, "127.0.0.1", _remote_port)
+	]
+	var ok: bool = _punch.begin(
+		_session_id, _local_nonce, _remote_nonce, P2PUDPProbe.Role.GUEST,
+		local_candidates, remote_candidates, _local_port
+	)
+	if not ok:
+		_fail("hole punch begin 失败")
+		return
+	## 先发一轮 probe，保证本端 pending probe_id 存在。
+	_punch.tick(0)
+	## stale ACK 注入（正确 source = 本端 socket，但 probe_id 不匹配）：
+	## 用本端真实 socket 发给 Host，考验 probe_id correlation。
+	var mode: String = OS.get_cmdline_user_args()[8] if OS.get_cmdline_user_args().size() >= 9 else ""
+	if mode == "stale":
+		_send_stale_ack()
+	print("GUEST bound on port %d" % _local_port)
+	_write_text(_result_path + ".bound", "1")
+	_wait_for_go()
+
+## 从本端真实 socket 发一个 probe_id 不匹配的 ACK 给 Host。
+func _send_stale_ack() -> void:
+	var socket: PacketPeerUDP = _punch.get_socket()
+	if socket == null:
+		return
+	socket.set_dest_address("127.0.0.1", _remote_port)
+	var now_ms: int = Time.get_ticks_msec()
+	var ack: PackedByteArray = P2PUDPProbe.encode_ack(
+		_session_id, _local_nonce, P2PUDPProbe.Role.GUEST, now_ms, now_ms, 0x7FFFFFF0
+	)
+	socket.put_packet(ack)
+	print("GUEST sent stale ack probe_id=%d" % 0x7FFFFFF0)
+
+func _wait_for_go() -> void:
+	if _done:
+		return
+	if Time.get_ticks_msec() > _deadline:
+		_fail("等待 go 文件超时")
+		return
+	if FileAccess.file_exists(_go_path):
+		_last_tick_ms = Time.get_ticks_msec()
+		_poll_loop()
+		return
+	create_timer(0.02).timeout.connect(_wait_for_go)
 
 func _poll_loop() -> void:
 	if _done:
 		return
 	if Time.get_ticks_msec() > _deadline:
-		_fail("轮询超时")
+		_fail("打洞超时")
 		return
-	while _socket.get_available_packet_count() > 0:
-		var packet: PackedByteArray = _socket.get_packet()
-		if not packet.is_empty():
-			_handle_packet(packet)
-	if _sent_ack:
+	var now_ms: int = Time.get_ticks_msec()
+	var delta_ms: int = maxi(now_ms - _last_tick_ms, 0)
+	_last_tick_ms = now_ms
+	_punch.tick(delta_ms)
+	if _punch.is_success():
 		_finish_ok()
 		return
-	create_timer(0.01).timeout.connect(_poll_loop)
-
-func _handle_packet(packet: PackedByteArray) -> void:
-	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
-	if not decoded.is_ok():
+	if _punch.is_terminal():
+		_fail("打洞失败 state=%d" % _punch.get_state())
 		return
-	if not P2PUDPProbe.validate_expectation(decoded, _session_id, _remote_nonce, P2PUDPProbe.Role.HOST):
-		return
-	if decoded.is_probe():
-		_received_probe = true
-		_probe_timestamp = decoded.timestamp_ms
-		## 回复 ACK - 必须 echo probe_id
-		var probe_id: int = decoded.probe_id
-		_socket.set_dest_address("127.0.0.1", _remote_port)
-		var now_ms: int = Time.get_ticks_msec()
-		var ack: PackedByteArray = P2PUDPProbe.encode_ack(_session_id, _local_nonce, P2PUDPProbe.Role.GUEST, now_ms, _probe_timestamp, probe_id)
-		_socket.put_packet(ack)
-		_sent_ack = true
-		print("GUEST replied ACK probe_id=%d" % probe_id)
+	create_timer(0.02).timeout.connect(_poll_loop)
 
 func _finish_ok() -> void:
 	if _done:
 		return
 	_done = true
-	_write_result("OK replied")
-	print("GUEST_OK replied")
-	_socket.close()
+	var validated: Dictionary = _punch.get_validated_endpoint()
+	var candidate: Dictionary = _punch.get_validated_candidate()
+	var target: Dictionary = candidate.get("probe_target", {})
+	var text: String = "OK bidirectional rtt=%dms validated=%s:%d target=%s:%d owns=%d" % [
+		_punch.get_validated_rtt_ms(),
+		str(validated.get("address", "")), int(validated.get("port", 0)),
+		str(target.get("address", "")), int(target.get("port", 0)),
+		1 if _punch.owns_socket() else 0,
+	]
+	_write_text(_result_path, text)
+	print("GUEST_OK %s" % text)
 	quit(0)
 
 func _fail(reason: String) -> void:
 	if _done:
 		return
 	_done = true
-	_write_result("FAIL: %s" % reason)
+	_write_text(_result_path, "FAIL: %s" % reason)
 	printerr("GUEST_FAIL: %s" % reason)
-	if _socket != null:
-		_socket.close()
 	quit(1)
 
-func _write_result(text: String) -> void:
-	var file: FileAccess = FileAccess.open(_result_path, FileAccess.WRITE)
+func _candidate(path: int, address: String, port: int, observed_address: String = "", observed_port: int = 0) -> RendezvousContract.Candidate:
+	var c: RendezvousContract.Candidate = RendezvousContract.Candidate.new()
+	c.path = path
+	c.address = address
+	c.port = port
+	c.observed_address = observed_address
+	c.observed_port = observed_port
+	return c
+
+func _write_text(path: String, text: String) -> void:
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		printerr("GUEST_FAIL: 无法写结果文件 %s" % _result_path)
+		printerr("GUEST_FAIL: 无法写 %s" % path)
 		return
 	file.store_string(text)
 	file.close()

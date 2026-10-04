@@ -241,22 +241,39 @@ static func calculate_rtt(now_ms: int, original_timestamp_ms: int) -> int:
 	return maxi(rtt, 0)
 
 ## 探针套接字管理器：bind / send / receive / close。
+##
+## **所有权语义（Phase 9.2.2 R2）**：
+## - `bind()` 自建并拥有底层 PacketPeerUDP -> `owns_udp() == true`。
+## - `adopt_existing_udp()` 复用外部（共享）PacketPeerUDP -> `owns_udp() == false`，
+##   此时 `close()`/`release()` **绝不关闭** 那个 socket —— 只有真正的 owner
+##   （P2PConnection）才能关它。
+## - `release()` 只断开引用；关不关底层 socket 完全由所有权决定。
 class ProbeSocket extends RefCounted:
 	var _udp: PacketPeerUDP = null
 	var _bound_port: int = 0
+	## true = 本对象创建并拥有 _udp；false = 外部共享，只有引用权。
+	var _owns_udp: bool = false
 
 	func bind(port: int = 0) -> bool:
-		close()
+		release()
 		_udp = PacketPeerUDP.new()
 		var err: Error = _udp.bind(port)
 		if err != OK:
 			_udp = null
 			return false
+		_owns_udp = true
 		_bound_port = _udp.get_local_port()
 		return true
 
 	func get_local_port() -> int:
 		return _bound_port
+
+	## 本对象是否拥有底层 socket 的生命周期。
+	func owns_udp() -> bool:
+		return _owns_udp
+
+	func get_udp() -> PacketPeerUDP:
+		return _udp
 
 	func send_to(address: String, port: int, packet: PackedByteArray) -> bool:
 		if _udp == null:
@@ -267,37 +284,44 @@ class ProbeSocket extends RefCounted:
 
 	func receive() -> Array:
 		## 返回 [packet: PackedByteArray, src_address: String, src_port: int]
-		## 使用 Godot 4.2+ 的 get_packet_with_address() 获取真实源地址端口
+		## Godot 4.6 的 PacketPeerUDP 没有 get_packet_with_address()；
+		## 用 get_packet() + get_packet_ip()/get_packet_port() 拿真实源地址端口
+		## （后两者描述「最近一次 get_packet() 取到的那包」的来源）。
 		if _udp == null:
 			return []
 		if _udp.get_available_packet_count() == 0:
 			return []
-		var result: Dictionary = _udp.get_packet_with_address()
-		if not result:
-			return []
-		var packet: PackedByteArray = result.get("packet", PackedByteArray())
-		var src_address: String = result.get("address", "")
-		var src_port: int = result.get("port", 0)
+		var packet: PackedByteArray = _udp.get_packet()
 		if packet.is_empty():
 			return []
+		var src_address: String = _udp.get_packet_ip()
+		var src_port: int = _udp.get_packet_port()
 		return [packet, src_address, src_port]
 
-	func close() -> void:
-		if _udp != null:
+	## 断开引用。仅在拥有时才真正 close() 底层 socket。
+	func release() -> void:
+		if _udp != null and _owns_udp:
 			_udp.close()
-			_udp = null
+		_udp = null
+		_owns_udp = false
 		_bound_port = 0
+
+	## 兼容旧名：语义等同 release()（共享 socket 不会被误关）。
+	func close() -> void:
+		release()
 
 	func is_open() -> bool:
 		return _udp != null
 
-	## 允许外部注入已有的 PacketPeerUDP（共享 transport 模式）
+	## 允许外部注入已有的 PacketPeerUDP（共享 transport 模式）。
+	## 注入后本对象**不拥有**该 socket：close()/release() 不会关闭它。
 	func adopt_existing_udp(udp: PacketPeerUDP) -> bool:
 		if _udp != null:
 			return false
 		if udp == null:
 			return false
 		_udp = udp
+		_owns_udp = false
 		_bound_port = _udp.get_local_port()
 		return true
 

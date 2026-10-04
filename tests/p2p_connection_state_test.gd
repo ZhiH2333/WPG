@@ -25,6 +25,7 @@ func _run_all() -> void:
 	_case_timeout_is_terminal()
 	_case_cancel_only_while_active()
 	_case_direct_failure_allows_another_attempt()
+	_case_direct_probe_attempts_reset()
 	_case_reset_clears_everything()
 	_case_transition_is_deterministic()
 	_case_no_scenetree_dependency()
@@ -192,6 +193,16 @@ func _case_direct_failure_allows_another_attempt() -> void:
 	_expect(not machine.is_terminal(), "direct_failed 后不是终态（可换候选）")
 	_expect(machine.transition(P2PConnectionState.Event.BEGIN_DIRECT_ATTEMPT), "可再次 begin_direct_attempt")
 	_expect(machine.direct_attempts() == 2, "直连尝试计数 = 2")
+
+## Phase 9.2.2：BEGIN_DIRECT_PROBING 累加计数，reset 必须一并清空。
+func _case_direct_probe_attempts_reset() -> void:
+	var machine: P2PConnectionState = P2PConnectionState.new()
+	_advance_to(machine, P2PConnectionState.State.CANDIDATES_RECEIVED)
+	_expect(machine.transition(P2PConnectionState.Event.BEGIN_DIRECT_PROBING), "begin_direct_probing 合法")
+	_expect(machine.get_state() == P2PConnectionState.State.DIRECT_PROBING, "-> DIRECT_PROBING")
+	_expect(machine.direct_probe_attempts() == 1, "probe 尝试计数 = 1")
+	machine.reset()
+	_expect(machine.direct_probe_attempts() == 0, "reset 清空 probe 尝试计数")
 
 func _case_reset_clears_everything() -> void:
 	var machine: P2PConnectionState = P2PConnectionState.new()

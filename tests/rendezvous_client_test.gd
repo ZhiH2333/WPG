@@ -309,13 +309,25 @@ func _case_p2p_connection_uses_rendezvous() -> void:
 		SID, client.get_session().local_nonce, "ffffffffffffffffffffffffffffffff",
 		RendezvousContract.Role.HOST, HOST_OBSERVED, 51820, remote
 	))
+	## Phase 9.2.2 R2：候选到达后自动进入 DIRECT_PROBING（不允许外部忘记调用）。
 	_expect(
-		p2p.get_state_value() == P2PConnectionState.State.CANDIDATES_RECEIVED,
-		"-> CANDIDATES_RECEIVED"
+		p2p.get_state_value() == P2PConnectionState.State.DIRECT_PROBING,
+		"-> DIRECT_PROBING（候选取到后自动触发 probing）"
 	)
 	_expect(p2p.get_session().remote_candidates.size() == 1, "远端候选已进 P2PConnection")
 	_expect(p2p.get_session().remote_observed_address == HOST_OBSERVED, "远端 observed 已进 P2PConnection")
 	_expect(not p2p.is_connection_established(), "到此仍未 CONNECTED（打洞是 9.2.2）")
+	## 共享 UDP ownership：P2PConnection 拥有；client 与 hole punch 都只是引用。
+	_expect(p2p.has_shared_udp(), "P2PConnection 创建了共享 UDP")
+	_expect(client.owns_udp() == false, "RendezvousClient 不拥有共享 UDP")
+	_expect(p2p._hole_punch != null and p2p._hole_punch.owns_socket() == false, "P2PHolePunch 不拥有共享 UDP")
+	## client.close() 不得关闭 owner 的共享 socket。
+	var shared: PacketPeerUDP = p2p.get_shared_udp()
+	client.close_socket()
+	_expect(shared.get_local_port() > 0, "client close 不关闭共享 UDP")
+	## p2p.cancel() 是真正的 owner，必须关闭它。
+	p2p.cancel()
+	_expect(not p2p.has_shared_udp(), "cancel 后 owner 关闭共享 UDP")
 	## 服务端报 ticket 被拒 -> P2PConnection 终态。
 	var p2p2: P2PConnection = P2PConnection.new()
 	var client2: RendezvousClient = RendezvousClient.new()

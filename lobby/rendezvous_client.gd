@@ -85,6 +85,11 @@ func has_observed_endpoint() -> bool:
 func get_udp() -> PacketPeerUDP:
 	return _udp
 
+## 本对象是否拥有底层 UDP socket 的生命周期。
+## false = 外部共享（由 P2PConnection 拥有），close()/reset() 绝不关闭它。
+func owns_udp() -> bool:
+	return _owns_udp
+
 ## 设置外部 UDP socket（必须在 begin() 前调用，或 begin() 时通过参数传入）。
 func set_udp(udp: PacketPeerUDP) -> bool:
 	if _udp != null or _state != State.IDLE:
@@ -100,20 +105,32 @@ func set_udp(udp: PacketPeerUDP) -> bool:
 ## 注意：ticket 由上层（LobbyManager）给出，**不由本对象生成或验证**；
 ## 本对象只负责把它放进 REGISTER 包，且绝不写进日志。
 ##
-## 可选参数 udp：外部传入的共享 PacketPeerUDP。如果提供，将复用该 socket，
-## 且不拥有其生命周期（close() 不会关闭它）。这是 9.2.2 共享 transport 模式的关键。
+## 参数 shared_udp：外部传入的**共享** PacketPeerUDP（由 P2PConnection 拥有）。
+## 如果提供，将复用该 socket，且 `owns_udp()` 为 false —— close()/reset() 绝不关闭它。
+## 这是 9.2.2 共享 transport 模式的关键：server observed 端点必须与打洞端点相同。
 func begin(
 	host: String,
 	port: int,
 	identity: RendezvousContract.SessionIdentity,
 	local_candidates: Array,
-	udp: PacketPeerUDP = null
+	shared_udp: PacketPeerUDP = null
 ) -> bool:
 	if identity == null or not identity.is_valid():
 		return false
 	if host.strip_edges().is_empty():
 		return false
-	close()
+	## 复用来源：显式传入的共享 socket，或先前 set_udp() 注入的共享 socket。
+	var reuse_shared: PacketPeerUDP = shared_udp
+	if reuse_shared == null and _udp != null and not _owns_udp:
+		reuse_shared = _udp
+	## 收起上一次的 socket：BYE 尽力而为；只有自己拥有的才 close()。
+	if _udp != null:
+		if _session != null and not _session.rendezvous_id.is_empty():
+			_udp.put_packet(RendezvousContract.encode_bye(_session.rendezvous_id))
+		if _owns_udp:
+			_udp.close()
+	_udp = null
+	_owns_udp = false
 	_host = host.strip_edges()
 	_port = port if port >= 1 and port <= 65535 else DEFAULT_PORT
 	_identity = identity
@@ -124,9 +141,9 @@ func begin(
 	_elapsed_sec = 0.0
 	_last_error = RendezvousContract.ErrorCode.NONE
 	_last_detail = ""
-	
-	if udp != null:
-		_udp = udp
+
+	if reuse_shared != null:
+		_udp = reuse_shared
 		_owns_udp = false
 	else:
 		_udp = PacketPeerUDP.new()
@@ -137,7 +154,7 @@ func begin(
 			_state = State.FAILED
 			_last_detail = "bind_failed"
 			return false
-	
+
 	_udp.set_dest_address(_host, _port)
 	_state = State.REGISTERING
 	return _send_register()

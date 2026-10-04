@@ -50,30 +50,24 @@ var _connect_fn: Callable = Callable()
 var _close_fn: Callable = Callable()
 ## 可选的真实 rendezvous 客户端（Phase 9.2.1）。为 null = 本地装配模式（9.1 行为）。
 var _client: RendezvousClient = null
-## 共享 UDP socket：由 P2PConnection 创建并持有，RendezvousClient 与 P2PHolePunch 复用。
+## 共享 UDP socket：由 P2PConnection 创建并**拥有**生命周期，
+## RendezvousClient 与 P2PHolePunch 只复用（它们 owns_udp()/owns_socket() 均为 false）。
 var _shared_udp: PacketPeerUDP = null
+## finished 只允许派发一次（防止重复 signal 导致上层重复收尾）。
+var _finished: bool = false
+## cancel 进行中：此时 hole punch 的 cancel 不应被当成探测失败传播。
+var _cancelling: bool = false
 
 func _init() -> void:
 	_state = P2PConnectionState.new()
 	_session = RendezvousContract.SessionState.new()
 	_hole_punch = P2PHolePunch.new()
-	_hole_punch.state_changed.connect(func(from: int, to: int) -> void:
-		## Hole punch 内部状态变化不直接映射到 P2PConnectionState，
-		## 由显式 notify 方法驱动主状态机。
-		pass
-	)
+	## 每个信号**只连接一次**（Phase 9.2.2 R2：历史上这里存在重复 connect，
+	## 导致一个事件回调执行两次、可能重复 begin_direct_enet()）。
 	_hole_punch.path_established.connect(_on_hole_punch_path_established)
 	_hole_punch.path_failed.connect(_on_hole_punch_path_failed)
 	_hole_punch.timeout.connect(_on_hole_punch_timeout)
-	_state.state_changed.connect(func(from: int, to: int, event: int) -> void:
-		state_changed.emit(from, to, event)
-	)
-	_hole_punch.path_established.connect(_on_hole_punch_path_established)
-	_hole_punch.path_failed.connect(_on_hole_punch_path_failed)
-	_hole_punch.timeout.connect(_on_hole_punch_timeout)
-	_state.state_changed.connect(func(from: int, to: int, event: int) -> void:
-		state_changed.emit(from, to, event)
-	)
+	_state.state_changed.connect(_on_state_changed)
 
 ## 获取/创建共享 UDP socket。RendezvousClient 与 P2PHolePunch 复用此端点。
 func _get_or_create_shared_udp(bind_port: int = 0) -> PacketPeerUDP:
@@ -90,6 +84,22 @@ func _close_shared_udp() -> void:
 	if _shared_udp != null:
 		_shared_udp.close()
 		_shared_udp = null
+
+## 共享 UDP 是否由本对象拥有（永远为 true；RendezvousClient / P2PHolePunch 为 false）。
+func owns_shared_udp() -> bool:
+	return _shared_udp != null
+
+## 共享 UDP socket（诊断 / 测试用）。
+func get_shared_udp() -> PacketPeerUDP:
+	return _shared_udp
+
+## 是否已有共享 socket（用于「谁拥有 UDP」的测试断言）。
+func has_shared_udp() -> bool:
+	return _shared_udp != null
+
+## 收到/发出的 state_changed 转发（单一连接）。
+func _on_state_changed(from: int, to: int, event: int) -> void:
+	state_changed.emit(from, to, event)
 
 # ---- 查询 ----
 
@@ -128,6 +138,8 @@ func apply_remote_candidates(candidates: Array, remote_nonce: String = "") -> bo
 	_session.remote_candidates.assign(candidates)
 	_session.remote_nonce = remote_nonce
 	_state.set_remote_candidate_count(_session.remote_candidates.size())
+	## 与 rendezvous 路径一致：候选一到就自动进入 direct probing。
+	begin_direct_probing()
 	return true
 
 # ---- 真实 rendezvous（Phase 9.2.1）----
@@ -179,6 +191,8 @@ func begin(invite: JoinInvite, rendezvous_host: String = "", rendezvous_port: in
 		return false
 	if not _state.transition(P2PConnectionState.Event.BEGIN_RENDEZVOUS):
 		return false
+	_finished = false
+	_cancelling = false
 	_invite = invite
 	_identity = RendezvousContract.make_identity(
 		invite.room_id,
@@ -205,8 +219,10 @@ func begin(invite: JoinInvite, rendezvous_host: String = "", rendezvous_port: in
 		return false
 	return true
 
-func _on_rendezvous_registered(_session_id: String, observed_address: String, observed_port: int) -> void:
-	## 记录**服务端观测到的**本端端点。绝不自己填。
+func _on_rendezvous_registered(session_id: String, observed_address: String, observed_port: int) -> void:
+	## 记录**服务端观测到的**本端端点，以及服务端分配的 session_id。
+	## session_id 是 hole punch probe 包的一部分，必须与服务端一致。
+	_session.rendezvous_id = session_id
 	_session.local_observed_address = observed_address
 	_session.local_observed_port = observed_port
 	_state.transition(P2PConnectionState.Event.RENDEZVOUS_REGISTERED)
@@ -231,8 +247,29 @@ func _on_rendezvous_candidates(
 		var remote_session: RendezvousContract.SessionState = _client.get_session()
 		_session.remote_observed_address = remote_session.remote_observed_address
 		_session.remote_observed_port = remote_session.remote_observed_port
+	_ensure_remote_observed_candidate()
 	_state.set_remote_candidate_count(_session.remote_candidates.size())
-	_state.transition(P2PConnectionState.Event.CANDIDATES_RECEIVED)
+	if not _state.transition(P2PConnectionState.Event.CANDIDATES_RECEIVED):
+		return
+	## Phase 9.2.2 R2：候选到达后**自动**进入 direct probing。
+	## 不允许依赖外部调用方“记得”再手动 begin_direct_probing()；
+	## tick/poll 只负责推进状态，不能成为遗漏状态转换的唯一机制。
+	if not begin_direct_probing():
+		## begin_direct_probing() 内部已在失败时进入终态并 _finish。
+		pass
+
+## 如果服务端给了会话级 remote observed，但候选里没带 per-candidate observed，
+## 则补一个 OBSERVED_PUBLIC 候选 —— 打洞必须有真实的 observed 目标。
+func _ensure_remote_observed_candidate() -> void:
+	if _session.remote_observed_address.is_empty() or _session.remote_observed_port < 1:
+		return
+	for candidate: RendezvousContract.Candidate in _session.remote_candidates:
+		if candidate.has_observed_endpoint():
+			return
+	var observed: NetworkCandidates.Candidate = NetworkCandidates.from_observed_endpoint(
+		_session.remote_observed_address, _session.remote_observed_port, _session.remote_nonce
+	)
+	_session.remote_candidates.append(NetworkCandidates.to_rendezvous_candidate(observed))
 
 func _on_rendezvous_error(error_code: int, detail: String) -> void:
 	## ticket / 协议类错误是终态；其它按直连失败处理，由上层决定是否换候选。
@@ -255,46 +292,69 @@ func _on_rendezvous_timeout(reason: String) -> void:
 	_finish(false, reason)
 
 ## 推进 rendezvous 轮询与超时。由上层每帧驱动。
+##
+## **共享 socket 的解复用规则（Phase 9.2.2 R2）**：RendezvousClient 与 P2PHolePunch
+## 复用同一个 PacketPeerUDP，而两者都用「取走所有包」的方式读取。任何时刻只能有
+## 一个消费者在 drain：
+##   - 进入 DIRECT_PROBING（打洞）后，socket 归 P2PHolePunch 读，停止 client.poll()；
+##   - 打洞之前由 RendezvousClient 读。
+## 否则 rendezvous 的 poll 会把打洞 probe 吞掉，导致探测永远收不到。
 func poll_rendezvous(delta_sec: float) -> void:
-	if _client != null:
+	if _client == null:
+		return
+	if not _hole_punch.is_active():
 		_client.poll()
-		_client.tick(delta_sec)
+	_client.tick(delta_sec)
 
 # ---- Hole Punch 回调（内部）----
 
 func _on_hole_punch_path_established(rtt_ms: int, validated_candidate: Dictionary) -> void:
+	if _finished:
+		return
 	_state.transition(P2PConnectionState.Event.DIRECT_PATH_OK)
 	direct_path_established.emit(rtt_ms, validated_candidate)
 
 func _on_hole_punch_path_failed(reason: String) -> void:
+	## cancel 期间 hole punch 的失败回调不参与状态推进（cancel 自己收尾）。
+	if _finished or _cancelling:
+		return
 	_state.transition(P2PConnectionState.Event.DIRECT_PATH_FAILED)
 	direct_path_failed.emit(reason)
+	_finish(false, reason)
 
 func _on_hole_punch_timeout() -> void:
+	if _finished or _cancelling:
+		return
 	_state.transition(P2PConnectionState.Event.TIMEOUT)
 	_finish(false, "hole_punch_timeout")
 
 # ---- Hole Punch 公共 API ----
 
 ## 开始 UDP hole punch（Phase 9.2）。
-## 从 CANDIDATES_RECEIVED 状态调用。
+## 从 CANDIDATES_RECEIVED 状态调用（**也会由 _on_rendezvous_candidates 自动调用**）。
 ## 使用 rendezvous 交换的 candidates + observed endpoint。
 func begin_direct_probing(bind_port: int = 0) -> bool:
+	if _finished:
+		return false
 	if not _state.transition(P2PConnectionState.Event.BEGIN_DIRECT_PROBING):
 		return false
-	## 准备本端候选：invite 的 local candidates + observed endpoint
-	var local_candidates: Array = _session.local_candidates.duplicate()
-	## 远端候选：rendezvous 交换来的 remote candidates（已含 observed）
+	## 准备本端候选：invite 的 local candidates + 服务端观测到的本端 observed endpoint。
+	## observed 必须挂到候选上，hole punch 才能在自己的端点语义里看到它。
+	var local_candidates: Array = _local_candidates_with_observed()
+	## 远端候选：rendezvous 交换来的 remote candidates（含 observed）。
 	var remote_candidates: Array = _session.remote_candidates.duplicate()
 	if local_candidates.is_empty() or remote_candidates.is_empty():
 		_state.transition(P2PConnectionState.Event.DIRECT_PATH_FAILED)
 		_finish(false, "no_candidates_for_probing")
 		return false
-	## 本端 role：Guest 发起 join，所以是 GUEST；Host 侧由 LobbyManager 调用时传 HOST
+	## 本端 role：Guest 发起 join，所以是 GUEST；Host 侧由 LobbyManager 调用时传 HOST。
 	var local_role: int = P2PUDPProbe.Role.GUEST
 	if _identity != null and _identity.role == RendezvousContract.Role.HOST:
 		local_role = P2PUDPProbe.Role.HOST
-	## 启动 hole punch
+	## 共享 socket 属于本对象；hole punch 只复用（owns_socket() == false）。
+	var shared: PacketPeerUDP = _shared_udp
+	if shared == null:
+		shared = _get_or_create_shared_udp(bind_port)
 	var ok: bool = _hole_punch.begin(
 		_session.rendezvous_id,
 		_session.local_nonce,
@@ -303,13 +363,30 @@ func begin_direct_probing(bind_port: int = 0) -> bool:
 		local_candidates,
 		remote_candidates,
 		bind_port,
-		_shared_udp
+		shared
 	)
 	if not ok:
 		_state.transition(P2PConnectionState.Event.DIRECT_PATH_FAILED)
 		_finish(false, "hole_punch_begin_failed")
 		return false
 	return true
+
+## 把服务端观测到的本端端点写进 local candidates（如果有）。
+func _local_candidates_with_observed() -> Array:
+	var out: Array = []
+	for candidate: RendezvousContract.Candidate in _session.local_candidates:
+		var copy: RendezvousContract.Candidate = RendezvousContract.Candidate.new()
+		copy.transport = candidate.transport
+		copy.path = candidate.path
+		copy.address = candidate.address
+		copy.port = candidate.port
+		copy.observed_address = candidate.observed_address
+		copy.observed_port = candidate.observed_port
+		if not copy.has_observed_endpoint() and _session.has_local_observed_endpoint():
+			copy.observed_address = _session.local_observed_address
+			copy.observed_port = _session.local_observed_port
+		out.append(copy)
+	return out
 
 ## Hole punch 成功后，在 validated path 上发起 ENet 直连。
 ## 从 DIRECT_PATH_ESTABLISHED 状态调用。
@@ -418,13 +495,18 @@ func notify_connection_failed(why: String = "refused") -> void:
 
 ## 推进超时。四级超时分别生效（见 P2PConnectionState 常量）。
 func tick(delta_sec: float) -> void:
+	if _finished:
+		return
 	if _runner != null:
 		_runner.tick(delta_sec)
 	if _hole_punch != null and _hole_punch.is_active():
 		_hole_punch.tick(int(delta_sec * 1000))
 
-## 取消 / 重置：保证不留 active peer。
+## 取消：停掉所有探测、释放共享 socket、明确终结。可重复调用且只终结一次。
 func cancel() -> void:
+	if _finished:
+		return
+	_cancelling = true
 	if _runner != null:
 		_runner.cancel()
 	if _hole_punch != null:
@@ -432,10 +514,14 @@ func cancel() -> void:
 	## 取消也要关掉 rendezvous socket，不留资源。
 	if _client != null:
 		_client.close()
+	## 共享 socket 的 owner 是本对象，只有这里能关它。
 	_close_shared_udp()
 	_state.transition(P2PConnectionState.Event.CANCEL)
 	_finish(false, "cancelled")
+	_cancelling = false
 
+## 完整重置：清理 runner / hole punch / rendezvous / 共享 socket / candidate 状态 /
+## validated endpoint / attempt 与 generation 标识。重置后可重新 begin()。
 func reset() -> void:
 	if _runner != null:
 		_runner.cancel()
@@ -444,11 +530,30 @@ func reset() -> void:
 		_hole_punch.reset()
 	if _client != null:
 		_client.reset()
+	_unbind_rendezvous()
 	_close_shared_udp()
 	_invite = null
 	_identity = null
 	_session = RendezvousContract.SessionState.new()
+	_finished = false
+	_cancelling = false
 	_state.reset()
+
+## 当前是否已走到 validated direct path（Phase 9.2.2 的终点）。
+func has_validated_path() -> bool:
+	return _hole_punch != null and _hole_punch.is_success()
+
+## 实际验证成功的远端端点（源地址端口）；未成功则为空。
+func get_validated_endpoint() -> Dictionary:
+	if _hole_punch == null:
+		return {}
+	return _hole_punch.get_validated_endpoint()
+
+## 验证成功时真正使用的探测目标（用于断言 target == validated）。
+func get_validated_probe_target() -> Dictionary:
+	if _hole_punch == null:
+		return {}
+	return _hole_punch.get_validated_candidate().get("probe_target", {})
 
 # ---- 内部 ----
 
@@ -489,7 +594,14 @@ func _on_runner_exhausted(attempt: ConnectAttempt, reason: String) -> void:
 	_finish(false, reason)
 
 func _finish(success: bool, reason: String) -> void:
+	## finished 只派发一次：重复 signal / cancel+timeout 竞争都不得让上层收两次。
+	if _finished:
+		return
+	_finished = true
 	## 失败收尾一定不留 peer。
 	if not success and _close_fn.is_valid():
 		_close_fn.call()
+	## 终态后不再需要 rendezvous socket；owner 是本对象，只有这里能关。
+	if not _hole_punch.is_active():
+		_close_shared_udp()
 	finished.emit(success, reason)
