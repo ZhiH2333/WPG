@@ -10,7 +10,7 @@ extends SceneTree
 ##   disconnect  —— Guest 断线，Host 释放座位
 ##   host_closed —— Host 关服，Guest 收到 host closed
 ##
-## 跑法：godot --headless --path . --script res://tests/lan_e2e_test.gd --quit
+## 跑法：godot --headless --path . --script res://tests/integration/lan_e2e_test.gd --quit
 ## 通过输出 LAN_E2E_OK；失败逐条 LAN_E2E_FAIL 并返回非 0。
 ##
 ## 为什么读文件而不是抓 stdout：两个 peer 必须并发运行，阻塞式 OS.execute 做不到；
@@ -21,8 +21,8 @@ extends SceneTree
 const PEER_TIMEOUT_MS: int = 35000
 const BOOT_TIMEOUT_MS: int = 15000
 const STEPS := ["full", "disconnect", "host_closed"]
-const HOST_SCRIPT: String = "tools/ci/lan_e2e_host.gd"
-const GUEST_SCRIPT: String = "tools/ci/lan_e2e_guest.gd"
+const HOST_SCRIPT: String = "tools/e2e/lan/host.gd"
+const GUEST_SCRIPT: String = "tools/e2e/lan/guest.gd"
 
 var _failures: PackedStringArray = PackedStringArray()
 var _godot: String = ""
@@ -35,7 +35,7 @@ func _initialize() -> void:
 func _run() -> void:
 	_godot = OS.get_executable_path()
 	_root = ProjectSettings.globalize_path("res://")
-	_out_dir = ProjectSettings.globalize_path("res://build/logs/lan_e2e")
+	_out_dir = ProjectSettings.globalize_path("res://build/logs/e2e/lan_e2e")
 	DirAccess.make_dir_recursive_absolute(_out_dir)
 
 	for step: String in STEPS:

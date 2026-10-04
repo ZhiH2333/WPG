@@ -1,14 +1,14 @@
 extends SceneTree
 
-## LAN E2E —— Guest 端真进程（由 tests/lan_e2e_test.gd 拉起，不单独跑）。
+## LAN E2E —— Guest 端真进程（由 tests/integration/lan_e2e_test.gd 或 tools/e2e/lan/ui_run.py 拉起，不单独跑）。
 ##
-## 放在 tools/ci/ 而不是 tests/：smoke.py 会把 tests/ 下所有 *.gd 都当测试跑一遍，
+## 放在 tools/e2e/ 而不是 tests/：smoke.py 会把 tests/ 下所有 *.gd 都当测试跑一遍，
 ## peer helper 脚本被无参调用会直接失败。这里不是独立测试，不该被自动发现。
 ##
-## 与 lan_e2e_host.gd 配对：本进程用真实 ENetMultiplayerPeer 连上 127.0.0.1:17777，
+## 与 host.gd 配对：本进程用真实 ENetMultiplayerPeer 连上 127.0.0.1:17777，
 ## 走完整 hello / hello_ok / assign_seat 握手，再按 step 触发真实 RPC。
 ##
-## 用法：godot --headless --path . --script res://tools/ci/lan_e2e_guest.gd -- <step> <result_file>
+## 用法：godot --headless --path . --script res://tools/e2e/lan/guest.gd -- <step> <result_file>
 ##
 ## 断言取向：Guest 侧只认 Host 广播下来的权威值。注意 set_local_ready 会先本地乐观落值，
 ## 所以「本地 ready == true」不能证明回程；真正证明 Host→Guest 的是 full 步里

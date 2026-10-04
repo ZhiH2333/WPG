@@ -1,12 +1,12 @@
 extends SceneTree
 
-## LAN UI 换场 E2E —— Guest 端真进程（由 tools/ci/lan_start_ui_run.py 拉起，不单独跑）。
+## LAN UI 换场 E2E —— Guest 端真进程（由 tools/e2e/lan/ui_run.py 拉起，不单独跑）。
 ##
 ## 这是唯一能证明本 bug 真被修好的路径：真进程 + 真 ENet + 真 ui/main_menu.tscn。
-## 旧 tools/ci/lan_e2e_guest.gd 只断言 room_state == STARTING，那在 bug 存在时也为真，
+## 旧 tools/e2e/lan/guest.gd 只断言 room_state == STARTING，那在 bug 存在时也为真，
 ## 所以它必须看到 current_scene 变成 CombatSandbox 才算数。
 ##
-## 用法：godot --headless --path . --script res://tools/ci/lan_start_ui_guest.gd -- <result_file>
+## 用法：godot --headless --path . --script res://tools/e2e/lan/ui_guest.gd -- <result_file>
 
 const TIMEOUT_MS: int = 40000
 const SANDBOX_MARKER: String = "CombatSandbox"

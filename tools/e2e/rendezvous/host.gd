@@ -1,14 +1,17 @@
 extends SceneTree
 
-## Rendezvous E2E —— Guest 端真进程（由 tools/ci/rendezvous_e2e.py 拉起，不单独跑）。
+## Rendezvous E2E —— Host 端真进程（由 tools/e2e/rendezvous/run.py 拉起，不单独跑）。
 ##
-## 与 rendezvous_host.gd 配对。Guest 必须在 Host 已注册之后再注册，
-## 否则服务端会回 SESSION_NOT_FOUND（编排脚本用 .ready marker 保证顺序）。
+## 放在 tools/e2e/ 而不是 tests/：smoke.py 会把 tests/ 下所有 *.gd 都当测试跑一遍，
+## peer helper 脚本被无参调用会直接失败。这里不是独立测试，不该被自动发现。
 ##
-## 本进程用**真实 UDP** 注册 Guest，拿到自己的 observed endpoint 与 Host 的候选。
-## **不要求 NAT 打洞成功** —— 9.2.1 只证明连接信息能真实交换。
+## 本进程只做一件事：用**真实 UDP** 向真实跑着的 rendezvous server 注册 Host，
+## 拿到自己的 observed endpoint，然后等 Guest 出现并收到对端候选。
 ##
-## 用法：godot --headless --path . --script res://tools/ci/rendezvous_guest.gd -- <port> <room_id> <ticket> <result_file>
+## **不要求两个 Godot 进程通过 NAT 直连** —— 本阶段（9.2.1）只证明
+## 「公网 rendezvous 可以真实把双方连接信息交换出去」。
+##
+## 用法：godot --headless --path . --script res://tools/e2e/rendezvous/host.gd -- <port> <room_id> <ticket> <result_file>
 
 const TIMEOUT_MS: int = 30000
 
@@ -19,12 +22,11 @@ var _result_path: String = ""
 var _client: RendezvousClient = null
 var _done: bool = false
 var _deadline: int = 0
-var _attempts: int = 0
 
 func _initialize() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	if args.size() < 4:
-		printerr("RV_GUEST_FAIL -: 缺少 port / room_id / ticket / result_file")
+		printerr("RV_HOST_FAIL -: 缺少 port / room_id / ticket / result_file")
 		quit(1)
 		return
 	_port = int(args[0])
@@ -39,19 +41,21 @@ func _run() -> void:
 		_room_id,
 		_ticket,
 		GameLaunch.NET_PROTOCOL,
-		RendezvousContract.Role.GUEST
+		RendezvousContract.Role.HOST
 	)
-	## Guest 的候选：与 Host 不同的地址，便于断言「收到的不是自己那份」。
+	## 本端候选：E2E 里用回环地址，证明候选能被真实交换出去。
 	var candidates: Array[RendezvousContract.Candidate] = []
 	var candidate: RendezvousContract.Candidate = RendezvousContract.Candidate.new()
 	candidate.path = LobbyPlayer.Path.LAN_IPV4
 	candidate.address = "127.0.0.1"
-	candidate.port = RendezvousClient.DEFAULT_PORT
+	candidate.port = GameLaunch.NET_PORT
 	candidates.append(candidate)
 
 	if not _client.begin("127.0.0.1", _port, identity, candidates):
 		_fail("begin 失败（server 未起？）")
 		return
+	## 注册包已发出：通知编排脚本可以起 Guest 了，避免抢跑。
+	_write_marker(_result_path + ".ready")
 	_wait()
 
 func _wait() -> void:
@@ -83,19 +87,22 @@ func _finish_ok() -> void:
 	if session == null:
 		_fail("session 为空")
 		return
+	## 硬断言：必须拿到服务端观测到的本端端点，而不是本地自报地址。
 	if not session.has_local_observed_endpoint():
 		_fail("没有拿到 server observed endpoint")
 		return
+	## 硬断言：必须收到 Guest 的真实候选，且**不是**自己那份。
 	if session.remote_candidates.is_empty():
-		_fail("没有收到 Host 的候选")
+		_fail("没有收到 Guest 的候选")
 		return
 	var remote: RendezvousContract.Candidate = session.remote_candidates[0]
 	if remote.address.is_empty() or remote.port < 1:
-		_fail("Host 候选不可用：%s:%d" % [remote.address, remote.port])
+		_fail("Guest 候选不可用：%s:%d" % [remote.address, remote.port])
 		return
 	if session.remote_nonce.is_empty():
-		_fail("没有收到 Host 的 nonce")
+		_fail("没有收到 Guest 的 nonce")
 		return
+	## 证据落盘（不含 ticket）。
 	_done = true
 	_write_result("OK observed=%s:%d remote=%s:%d remote_nonce=%s" % [
 		session.local_observed_address,
@@ -104,7 +111,7 @@ func _finish_ok() -> void:
 		remote.port,
 		RendezvousContract.nonce_summary(session.remote_nonce),
 	])
-	print("RV_GUEST_OK observed=%s:%d" % [session.local_observed_address, session.local_observed_port])
+	print("RV_HOST_OK observed=%s:%d" % [session.local_observed_address, session.local_observed_port])
 	_client.close()
 	quit(0)
 
@@ -113,13 +120,20 @@ func _fail(reason: String) -> void:
 		return
 	_done = true
 	_write_result("FAIL: %s" % reason)
-	printerr("RV_GUEST_FAIL: %s" % reason)
+	printerr("RV_HOST_FAIL: %s" % reason)
 	quit(1)
 
 func _write_result(text: String) -> void:
 	var file: FileAccess = FileAccess.open(_result_path, FileAccess.WRITE)
 	if file == null:
-		printerr("RV_GUEST_FAIL: 无法写结果文件 %s" % _result_path)
+		printerr("RV_HOST_FAIL: 无法写结果文件 %s" % _result_path)
 		return
 	file.store_string(text)
+	file.close()
+
+func _write_marker(path: String) -> void:
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string("ready")
 	file.close()

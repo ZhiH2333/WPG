@@ -7,7 +7,7 @@
   这里补上缺失的一环：两个真进程各自加载 ui/main_menu.tscn，
   Host 真实按 START、Guest 真实按 READY，最后只认 current_scene 变成 CombatSandbox。
 
-用法：python3 tools/ci/lan_start_ui_run.py
+用法：python3 tools/e2e/lan/ui_run.py
 通过输出 LAN_START_UI_OK；失败输出 LAN_START_UI_FAIL 并返回非 0。
 """
 
@@ -18,18 +18,19 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from wpg_common import LOG_DIR, ROOT, emit, find_godot, godot_log_args  # noqa: E402
 
-HOST_SCRIPT = "tools/ci/lan_start_ui_host.gd"
-GUEST_SCRIPT = "tools/ci/lan_start_ui_guest.gd"
+E2E_DIR = Path(__file__).resolve().parent
+HOST_SCRIPT = str(E2E_DIR / "ui_host.gd")
+GUEST_SCRIPT = str(E2E_DIR / "ui_guest.gd")
 BOOT_TIMEOUT_SEC = 25.0
 PEER_TIMEOUT_SEC = 60.0
 
 
 def _out_dir() -> Path:
-    path = LOG_DIR / "lan_start_ui"
+    path = LOG_DIR / "e2e" / "lan_start_ui"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -70,8 +71,8 @@ def main() -> int:
     for path in (host_result, guest_result, host_ready, host_invite):
         path.unlink(missing_ok=True)
 
-    host_log = LOG_DIR / "lan-start-ui-host.log"
-    guest_log = LOG_DIR / "lan-start-ui-guest.log"
+    host_log = out / "host.log"
+    guest_log = out / "guest.log"
 
     host = subprocess.Popen(
         _peer_cmd(godot, HOST_SCRIPT, host_result, host_log),

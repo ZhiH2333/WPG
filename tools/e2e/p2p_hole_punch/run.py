@@ -24,12 +24,13 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from wpg_common import LOG_DIR, ROOT, emit, find_godot, godot_log_args  # noqa: E402
 
-HOST_SCRIPT = "tools/ci/p2p_probe_host.gd"
-GUEST_SCRIPT = "tools/ci/p2p_probe_guest.gd"
+E2E_DIR = Path(__file__).resolve().parent
+HOST_SCRIPT = str(E2E_DIR / "host.gd")
+GUEST_SCRIPT = str(E2E_DIR / "guest.gd")
 
 BOOT_TIMEOUT_SEC = 30.0
 PEER_TIMEOUT_SEC = 30.0
@@ -43,7 +44,7 @@ ROLE_GUEST = 1
 
 
 def _out_dir() -> Path:
-    path = LOG_DIR / "p2p_probe_e2e"
+    path = LOG_DIR / "e2e" / "p2p_hole_punch"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -114,8 +115,8 @@ def main() -> int:
     host_bound = Path(str(host_result) + ".bound")
     guest_bound = Path(str(guest_result) + ".bound")
     go_file = out / "go"
-    host_log = LOG_DIR / "p2p-punch-host.log"
-    guest_log = LOG_DIR / "p2p-punch-guest.log"
+    host_log = out / "host.log"
+    guest_log = out / "guest.log"
     for path in (host_result, guest_result, host_bound, guest_bound, go_file):
         path.unlink(missing_ok=True)
 

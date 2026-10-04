@@ -29,13 +29,14 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from wpg_common import LOG_DIR, ROOT, emit, find_godot, godot_log_args  # noqa: E402
 
+E2E_DIR = Path(__file__).resolve().parent
 RENDEZVOUS_DIR = ROOT / "tools" / "p2p" / "rendezvous"
-HOST_SCRIPT = "tools/ci/rendezvous_host.gd"
-GUEST_SCRIPT = "tools/ci/rendezvous_guest.gd"
+HOST_SCRIPT = str(E2E_DIR / "host.gd")
+GUEST_SCRIPT = str(E2E_DIR / "guest.gd")
 SERVER_SCRIPT = "tools/p2p/rendezvous/server.py"
 
 BOOT_TIMEOUT_SEC = 20.0
@@ -51,7 +52,7 @@ def _free_port() -> int:
 
 
 def _out_dir() -> Path:
-    path = LOG_DIR / "rendezvous_e2e"
+    path = LOG_DIR / "e2e" / "rendezvous"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -147,7 +148,7 @@ def main() -> int:
             emit("FAIL", "rendezvous server 未进入监听（见 %s）" % server_log)
             return 1
 
-        host_log = LOG_DIR / "rendezvous-host.log"
+        host_log = out / "host.log"
         host = subprocess.Popen(
             _peer_cmd(godot, HOST_SCRIPT, port, room, ticket, host_result, host_log),
             stdout=subprocess.PIPE,
@@ -167,7 +168,7 @@ def main() -> int:
             emit("FAIL", "Host 未完成注册：%s" % host_out.strip()[-400:])
             return 1
 
-        guest_log = LOG_DIR / "rendezvous-guest.log"
+        guest_log = out / "guest.log"
         guest = subprocess.Popen(
             _peer_cmd(godot, GUEST_SCRIPT, port, room, ticket, guest_result, guest_log),
             stdout=subprocess.PIPE,

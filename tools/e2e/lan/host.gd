@@ -1,15 +1,15 @@
 extends SceneTree
 
-## LAN E2E —— Host 端真进程（由 tests/lan_e2e_test.gd 拉起，不单独跑）。
+## LAN E2E —— Host 端真进程（由 tests/integration/lan_e2e_test.gd 或 tools/e2e/lan/ui_run.py 拉起，不单独跑）。
 ##
-## 放在 tools/ci/ 而不是 tests/：smoke.py 会把 tests/ 下所有 *.gd 都当测试跑一遍，
+## 放在 tools/e2e/ 而不是 tests/：smoke.py 会把 tests/ 下所有 *.gd 都当测试跑一遍，
 ## peer helper 脚本被无参调用会直接失败。这里不是独立测试，不该被自动发现。
 ##
-## 与 lan_e2e_guest.gd 是两个独立 Godot 进程，通过真实 ENetMultiplayerPeer 在
+## 与 guest.gd 是两个独立 Godot 进程，通过真实 ENetMultiplayerPeer 在
 ## 127.0.0.1:17777 上互发 RPC。这是仓库里唯一一条「两个 peer 真握手」的路径：其余
-## lobby 测试都是单进程直接打状态机（见 tests/lobby_net_test.gd 顶部说明）。
+## lobby 测试都是单进程直接打状态机（见 tests/integration/lobby_net_test.gd 顶部说明）。
 ##
-## 用法：godot --headless --path . --script res://tools/ci/lan_e2e_host.gd -- <step> <result_file>
+## 用法：godot --headless --path . --script res://tools/e2e/lan/host.gd -- <step> <result_file>
 ##   step = full | disconnect | host_closed
 ## 结果写进 result_file（OK / FAIL: reason）；编排脚本读文件而不是抓 stdout，
 ## 因为两个 peer 必须并发跑，无法用阻塞式 OS.execute 同时收集两边输出。

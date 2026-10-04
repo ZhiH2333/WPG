@@ -1,13 +1,13 @@
 extends SceneTree
 
-## LAN UI 换场 E2E —— Host 端真进程（由 tools/ci/lan_start_ui_run.py 拉起，不单独跑）。
+## LAN UI 换场 E2E —— Host 端真进程（由 tools/e2e/lan/ui_run.py 拉起，不单独跑）。
 ##
-## 与 tools/ci/lan_e2e_host.gd 的区别：那个 peer 只驱动 LobbyManager，证明不了
+## 与 tools/e2e/lan/host.gd 的区别：那个 peer 只驱动 LobbyManager，证明不了
 ## 「UI 换场闭环」——它从不实例化 MainMenu / LanOverlay，也不等 CombatSandbox。
 ## 本 peer 起真实 ui/main_menu.tscn，按真实按钮路径 Create Room -> Guest READY -> START，
 ## 最后断言 current_scene 真的变成 CombatSandbox。
 ##
-## 用法：godot --headless --path . --script res://tools/ci/lan_start_ui_host.gd -- <result_file>
+## 用法：godot --headless --path . --script res://tools/e2e/lan/ui_host.gd -- <result_file>
 
 const TIMEOUT_MS: int = 40000
 const SANDBOX_MARKER: String = "CombatSandbox"

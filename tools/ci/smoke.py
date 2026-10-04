@@ -27,6 +27,9 @@ def automated_tests() -> list:
         found.extend(tests_dir.rglob("*.gd"))
     for path in ROOT.rglob("*_test.gd"):
         if path not in found:
+            rel = path.relative_to(ROOT).as_posix()
+            if rel.startswith((".godot/", "build/", "artifacts/", "android/")):
+                continue
             found.append(path)
     return sorted(found)
 

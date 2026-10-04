@@ -161,7 +161,7 @@ def _lobby_guards() -> list:
     # 新增测试例外必须逐个列出，绝不扩大生产代码白名单。
     ENet_ALLOWED = {
         "lobby/lobby_net.gd",
-        "tests/connection_path_test.gd",
+        "tests/unit/connection_path_test.gd",
     }
     for path in ROOT.rglob("*.gd"):
         rel = path.relative_to(ROOT).as_posix()
@@ -243,7 +243,7 @@ def _p2p_guards() -> list:
     if "is_p2p()" not in manager:
         failures.append("LobbyManager.join_invite() 必须按 is_p2p() 分流到 P2P domain flow")
     # 两进程 E2E 必须用 production P2PHolePunch；禁止手写 probe 编码冒充。
-    for rel in ("tools/ci/p2p_probe_host.gd", "tools/ci/p2p_probe_guest.gd"):
+    for rel in ("tools/e2e/p2p_hole_punch/host.gd", "tools/e2e/p2p_hole_punch/guest.gd"):
         code = _strip_comments(read(ROOT / rel))
         if not code:
             failures.append("缺少 %s（Phase 9.2.2 两进程打洞 E2E）" % rel)
