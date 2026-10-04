@@ -28,7 +28,8 @@ func _case_probe_encode_decode() -> void:
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
 	var timestamp: int = 1234567890
-	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, timestamp)
+	var probe_id: int = 42
+	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, timestamp, probe_id)
 	_expect(not packet.is_empty(), "encode_probe returns non-empty")
 	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
 	_expect(decoded.is_ok(), "decode probe ok")
@@ -37,13 +38,15 @@ func _case_probe_encode_decode() -> void:
 	_expect(decoded.nonce == nonce, "nonce preserved")
 	_expect(decoded.role == P2PUDPProbe.Role.HOST, "role preserved")
 	_expect(decoded.timestamp_ms == timestamp, "timestamp preserved")
+	_expect(decoded.probe_id == probe_id, "probe_id preserved")
 
 func _case_ack_encode_decode() -> void:
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
 	var timestamp: int = 1234567890
 	var original_ts: int = 1234567000
-	var packet: PackedByteArray = P2PUDPProbe.encode_ack(session_id, nonce, P2PUDPProbe.Role.GUEST, timestamp, original_ts)
+	var probe_id: int = 42
+	var packet: PackedByteArray = P2PUDPProbe.encode_ack(session_id, nonce, P2PUDPProbe.Role.GUEST, timestamp, original_ts, probe_id)
 	_expect(not packet.is_empty(), "encode_ack returns non-empty")
 	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
 	_expect(decoded.is_ok(), "decode ack ok")
@@ -53,6 +56,7 @@ func _case_ack_encode_decode() -> void:
 	_expect(decoded.role == P2PUDPProbe.Role.GUEST, "role preserved")
 	_expect(decoded.timestamp_ms == timestamp, "timestamp preserved")
 	_expect(decoded.original_timestamp_ms == original_ts, "original_timestamp preserved")
+	_expect(decoded.probe_id == probe_id, "probe_id preserved")
 
 func _case_malformed_packet() -> void:
 	## 空包
@@ -73,6 +77,7 @@ func _case_malformed_packet() -> void:
 	buf_bad_magic.put_data("0123456789abcdef0123456789abcdef".to_utf8_buffer())
 	buf_bad_magic.put_u8(P2PUDPProbe.Role.HOST)
 	buf_bad_magic.put_u64(1234567890)
+	buf_bad_magic.put_u32(42)  # probe_id
 	buf_bad_magic.put_u8(0)
 	decoded = P2PUDPProbe.decode(buf_bad_magic.data_array)
 	_expect(decoded.error == P2PUDPProbe.DecodeError.BAD_MAGIC, "bad magic -> BAD_MAGIC")
@@ -90,12 +95,13 @@ func _case_malformed_packet() -> void:
 	buf.put_data("0123456789abcdef0123456789abcdef".to_utf8_buffer())
 	buf.put_u8(P2PUDPProbe.Role.HOST)
 	buf.put_u64(1234567890)
+	buf.put_u32(42)
 	buf.put_u8(0)
 	decoded = P2PUDPProbe.decode(buf.data_array)
 	_expect(decoded.error == P2PUDPProbe.DecodeError.BAD_VERSION, "bad version -> BAD_VERSION")
 
 	## 截断包
-	var truncated: PackedByteArray = PackedByteArray([0x50, 0x50, 0x52, 0x42, 0x01, 0x00])
+	var truncated: PackedByteArray = PackedByteArray([0x50, 0x50, 0x52, 0x42, 0x02, 0x00])
 	decoded = P2PUDPProbe.decode(truncated)
 	_expect(decoded.error == P2PUDPProbe.DecodeError.TRUNCATED, "truncated -> TRUNCATED")
 
@@ -112,6 +118,7 @@ func _case_malformed_packet() -> void:
 	buf.put_data("0123456789abcdef0123456789abcdef".to_utf8_buffer())
 	buf.put_u8(P2PUDPProbe.Role.HOST)
 	buf.put_u64(1234567890)
+	buf.put_u32(42)
 	buf.put_u8(0)
 	decoded = P2PUDPProbe.decode(buf.data_array)
 	_expect(decoded.error == P2PUDPProbe.DecodeError.INVALID_SESSION_ID, "bad session_id len -> INVALID_SESSION_ID")
@@ -129,6 +136,7 @@ func _case_malformed_packet() -> void:
 	buf.put_data("0123456789abcdef0123456789abcde".to_utf8_buffer())
 	buf.put_u8(P2PUDPProbe.Role.HOST)
 	buf.put_u64(1234567890)
+	buf.put_u32(42)
 	buf.put_u8(0)
 	decoded = P2PUDPProbe.decode(buf.data_array)
 	_expect(decoded.error == P2PUDPProbe.DecodeError.INVALID_NONCE, "bad nonce len -> INVALID_NONCE")
@@ -146,6 +154,7 @@ func _case_malformed_packet() -> void:
 	buf.put_data("0123456789abcdef0123456789abcdef".to_utf8_buffer())
 	buf.put_u8(99)  # invalid role
 	buf.put_u64(1234567890)
+	buf.put_u32(42)
 	buf.put_u8(0)
 	decoded = P2PUDPProbe.decode(buf.data_array)
 	_expect(decoded.error == P2PUDPProbe.DecodeError.INVALID_ROLE, "bad role -> INVALID_ROLE")
@@ -153,14 +162,14 @@ func _case_malformed_packet() -> void:
 func _case_wrong_session_ignored() -> void:
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
-	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1234567890)
+	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1234567890, 42)
 	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
 	_expect(not P2PUDPProbe.validate_expectation(decoded, "different_session_id", nonce, P2PUDPProbe.Role.GUEST), "wrong session_id -> rejected")
 
 func _case_wrong_nonce_ignored() -> void:
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
-	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1234567890)
+	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1234567890, 42)
 	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
 	_expect(not P2PUDPProbe.validate_expectation(decoded, session_id, "different_nonce_value_here", P2PUDPProbe.Role.GUEST), "wrong nonce -> rejected")
 
@@ -168,22 +177,26 @@ func _case_wrong_role_ignored() -> void:
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
 	## Host 发 probe，role=HOST，Guest 期望 remote_role = HOST（正确）
-	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1234567890)
+	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1234567890, 42)
 	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
 	## 正确期望（Guest 期望 HOST）
 	_expect(P2PUDPProbe.validate_expectation(decoded, session_id, nonce, P2PUDPProbe.Role.HOST), "correct expected role (HOST) -> accepted")
+	_expect(P2PUDPProbe.validate_expectation(decoded, session_id, nonce, P2PUDPProbe.Role.HOST, 42), "correct expected role + probe_id -> accepted")
 	## 错误期望（期望 GUEST 但包里是 HOST）
 	_expect(not P2PUDPProbe.validate_expectation(decoded, session_id, nonce, P2PUDPProbe.Role.GUEST), "wrong expected role (GUEST) -> rejected")
+	## 错误 probe_id
+	_expect(not P2PUDPProbe.validate_expectation(decoded, session_id, nonce, P2PUDPProbe.Role.HOST, 99), "wrong probe_id -> rejected")
 
 func _case_duplicate_probe_safe() -> void:
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
-	var packet1: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1000)
-	var packet2: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 2000)
+	var packet1: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1000, 1)
+	var packet2: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 2000, 2)
 	var d1: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet1)
 	var d2: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet2)
 	_expect(d1.is_ok() and d2.is_ok(), "both decode ok")
 	_expect(d1.timestamp_ms == 1000 and d2.timestamp_ms == 2000, "timestamps differ")
+	_expect(d1.probe_id == 1 and d2.probe_id == 2, "probe_ids differ")
 	## 两个 probe 都能被正确解码，不会互相干扰
 
 func _case_bidirectional_success() -> void:
@@ -192,18 +205,19 @@ func _case_bidirectional_success() -> void:
 	var host_nonce: String = "0123456789abcdef0123456789abcdef"
 	var guest_nonce: String = "fedcba9876543210fedcba9876543210"
 	var host_ts: int = 1000000
-	var probe: PackedByteArray = P2PUDPProbe.encode_probe(session_id, host_nonce, P2PUDPProbe.Role.HOST, host_ts)
+	var probe_id: int = 42
+	var probe: PackedByteArray = P2PUDPProbe.encode_probe(session_id, host_nonce, P2PUDPProbe.Role.HOST, host_ts, probe_id)
 	## Guest 视角解码
 	var guest_decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(probe)
 	_expect(guest_decoded.is_ok() and guest_decoded.is_probe(), "guest decodes probe")
 	_expect(P2PUDPProbe.validate_expectation(guest_decoded, session_id, host_nonce, P2PUDPProbe.Role.HOST), "guest validates host probe")
-	## Guest 回 ACK
+	## Guest 回 ACK（echo probe_id）
 	var guest_ts: int = 1000050
-	var ack: PackedByteArray = P2PUDPProbe.encode_ack(session_id, guest_nonce, P2PUDPProbe.Role.GUEST, guest_ts, host_ts)
+	var ack: PackedByteArray = P2PUDPProbe.encode_ack(session_id, guest_nonce, P2PUDPProbe.Role.GUEST, guest_ts, host_ts, probe_id)
 	## Host 视角解码 ACK
 	var host_decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(ack)
 	_expect(host_decoded.is_ok() and host_decoded.is_ack(), "host decodes ack")
-	_expect(P2PUDPProbe.validate_expectation(host_decoded, session_id, guest_nonce, P2PUDPProbe.Role.GUEST), "host validates guest ack")
+	_expect(P2PUDPProbe.validate_expectation(host_decoded, session_id, guest_nonce, P2PUDPProbe.Role.GUEST, probe_id), "host validates guest ack with probe_id")
 	## RTT
 	var rtt: int = P2PUDPProbe.calculate_rtt(1000100, host_ts)
 	_expect(rtt >= 50 and rtt <= 100, "rtt calculated ~50ms")
@@ -212,9 +226,10 @@ func _case_one_way_not_equal_success() -> void:
 	## 只有单向 probe 没有 ACK 不算成功
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
-	var probe: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1000)
+	var probe: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1000, 42)
 	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(probe)
 	_expect(decoded.is_probe(), "is probe")
+	_expect(decoded.probe_id == 42, "probe_id preserved")
 	## 没有 ACK，无法计算 RTT，无法确认双向
 	## 这是逻辑层面的测试：probe 只有单向不代表成功
 
@@ -230,7 +245,7 @@ func _case_timeout_handling() -> void:
 	## Probe 超时由上层 P2PHolePunch 处理，这里只测试包编解码不超时
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
-	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1000)
+	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1000, 42)
 	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
 	_expect(decoded.is_ok(), "packet valid regardless of time")
 
@@ -238,9 +253,10 @@ func _case_stale_attempt_id() -> void:
 	## attempt_id 机制在 ConnectAttempt / P2PHolePunch 层，这里只验证包本身不带 attempt_id
 	var session_id: String = "abcdef1234567890"
 	var nonce: String = "0123456789abcdef0123456789abcdef"
-	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1000)
+	var packet: PackedByteArray = P2PUDPProbe.encode_probe(session_id, nonce, P2PUDPProbe.Role.HOST, 1000, 42)
 	var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
 	_expect(decoded.is_ok(), "decode ok")
+	_expect(decoded.probe_id == 42, "probe_id preserved (not attempt_id)")
 	## 包不包含 attempt_id，由上层生成管理
 
 # ---- 收尾 ----

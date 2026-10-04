@@ -103,7 +103,7 @@ func last_event() -> int:
 
 func is_terminal() -> bool:
 	match _state:
-		State.CONNECTED, State.FAILED, State.TIMEOUT, State.TICKET_REJECTED, State.VERSION_MISMATCH:
+		State.CONNECTED, State.FAILED, State.TIMEOUT, State.TICKET_REJECTED, State.VERSION_MISMATCH, State.DIRECT_PATH_FAILED, State.DIRECT_ENET_FAILED:
 			return true
 		_:
 			return false
@@ -257,7 +257,7 @@ func _apply_side_effects(event: int) -> void:
 
 func _is_terminal_state(state: int) -> bool:
 	match state:
-		State.CONNECTED, State.FAILED, State.TIMEOUT, State.TICKET_REJECTED, State.VERSION_MISMATCH, State.DIRECT_ENET_FAILED:
+		State.CONNECTED, State.FAILED, State.TIMEOUT, State.TICKET_REJECTED, State.VERSION_MISMATCH, State.DIRECT_PATH_FAILED, State.DIRECT_ENET_FAILED:
 			return true
 		_:
 			return false

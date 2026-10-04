@@ -72,12 +72,14 @@ func _handle_packet(packet: PackedByteArray) -> void:
 	if decoded.is_probe():
 		_received_probe = true
 		_probe_timestamp = decoded.timestamp_ms
-		## 回复 ACK - 需要先设置目标地址为 Host
+		## 回复 ACK - 必须 echo probe_id
+		var probe_id: int = decoded.probe_id
 		_socket.set_dest_address("127.0.0.1", _remote_port)
 		var now_ms: int = Time.get_ticks_msec()
-		var ack: PackedByteArray = P2PUDPProbe.encode_ack(_session_id, _local_nonce, P2PUDPProbe.Role.GUEST, now_ms, _probe_timestamp)
+		var ack: PackedByteArray = P2PUDPProbe.encode_ack(_session_id, _local_nonce, P2PUDPProbe.Role.GUEST, now_ms, _probe_timestamp, probe_id)
 		_socket.put_packet(ack)
 		_sent_ack = true
+		print("GUEST replied ACK probe_id=%d" % probe_id)
 
 func _finish_ok() -> void:
 	if _done:

@@ -24,6 +24,7 @@ var _received_ack: bool = false
 var _remote_addr: String = "127.0.0.1"
 var _probe_timestamp: int = 0
 var _rtt_ms: int = 0
+var _sent_probe_count: int = 0
 
 func _initialize() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
@@ -78,10 +79,12 @@ func _maybe_resend_probe() -> void:
 func _send_probe() -> void:
 	var now_ms: int = Time.get_ticks_msec()
 	_probe_timestamp = now_ms
-	var packet: PackedByteArray = P2PUDPProbe.encode_probe(_session_id, _local_nonce, P2PUDPProbe.Role.HOST, now_ms)
+	var probe_id: int = _sent_probe_count + 1
+	_sent_probe_count = probe_id
+	var packet: PackedByteArray = P2PUDPProbe.encode_probe(_session_id, _local_nonce, P2PUDPProbe.Role.HOST, now_ms, probe_id)
 	_socket.put_packet(packet)
 	_sent_probe = true
-	print("HOST sent probe ts=%d" % now_ms)
+	print("HOST sent probe ts=%d probe_id=%d" % [now_ms, probe_id])
 
 func _poll_loop() -> void:
 	if _done:
@@ -105,10 +108,13 @@ func _handle_packet(packet: PackedByteArray) -> void:
 	if not P2PUDPProbe.validate_expectation(decoded, _session_id, _remote_nonce, P2PUDPProbe.Role.GUEST):
 		return
 	if decoded.is_ack():
+		## 验证 probe_id 匹配
+		if decoded.probe_id != _sent_probe_count:
+			return
 		_received_ack = true
 		var now_ms: int = Time.get_ticks_msec()
 		_rtt_ms = P2PUDPProbe.calculate_rtt(now_ms, decoded.original_timestamp_ms)
-		print("HOST received ACK rtt=%dms" % _rtt_ms)
+		print("HOST received ACK rtt=%dms probe_id=%d" % [_rtt_ms, decoded.probe_id])
 
 func _finish_ok() -> void:
 	if _done:

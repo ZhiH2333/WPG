@@ -59,7 +59,7 @@ var _expected_remote_role: int = P2PUDPProbe.Role.HOST
 var _socket: P2PUDPProbe.ProbeSocket = null
 var _local_candidates: Array[NetworkCandidates.Candidate] = []
 var _remote_candidates: Array[NetworkCandidates.Candidate] = []
-var _candidate_pairs: Array[Dictionary] = []  # {local, remote, probes_sent, ack_received, rtt}
+var _candidate_pairs: Array[Dictionary] = []  # {local, remote, probes_sent, ack_received, rtt, pending_probe_ids, last_remote_addr, last_remote_port}
 var _current_pair_index: int = 0
 var _elapsed_ms: int = 0
 var _total_probes_sent: int = 0
@@ -68,6 +68,7 @@ var _validated_rtt_ms: int = 0
 var _validated_candidate: Dictionary = {}
 var _generation: int = 0
 var _finished: bool = false
+var _probe_id_counter: int = 0
 
 func _init() -> void:
 	_socket = P2PUDPProbe.ProbeSocket.new()
@@ -103,6 +104,8 @@ func get_validated_candidate() -> Dictionary:
 ##   local_candidates   - 本端候选（含 observed endpoint）
 ##   remote_candidates  - 对端候选（含 observed endpoint）
 ##   bind_port          - 本地 UDP 绑定端口（0 = 自动分配）
+##   external_udp       - 可选：外部共享的 PacketPeerUDP（9.2.2 共享 transport 模式）。
+##                        如果提供，将复用该 socket 而非自建，且不拥有其生命周期。
 func begin(
 	session_id: String,
 	local_nonce: String,
@@ -110,7 +113,8 @@ func begin(
 	local_role: int,
 	local_candidates: Array,
 	remote_candidates: Array,
-	bind_port: int = 0
+	bind_port: int = 0,
+	external_udp: PacketPeerUDP = null
 ) -> bool:
 	if _state != State.IDLE:
 		return false
@@ -140,11 +144,17 @@ func begin(
 		path_failed.emit("no_usable_candidate_pairs")
 		return false
 
-	## Bind UDP socket
-	if not _socket.bind(bind_port):
-		_transition(State.PATH_FAILED)
-		path_failed.emit("socket_bind_failed")
-		return false
+	## Bind UDP socket：优先使用外部共享 socket，否则自建
+	if external_udp != null:
+		if not _socket.adopt_existing_udp(external_udp):
+			_transition(State.PATH_FAILED)
+			path_failed.emit("adopt_shared_udp_failed")
+			return false
+	else:
+		if not _socket.bind(bind_port):
+			_transition(State.PATH_FAILED)
+			path_failed.emit("socket_bind_failed")
+			return false
 
 	_generation += 1
 	_elapsed_ms = 0
@@ -154,6 +164,7 @@ func begin(
 	_validated_rtt_ms = 0
 	_validated_candidate = {}
 	_finished = false
+	_probe_id_counter = 0
 
 	_transition(State.PROBING)
 	return true
@@ -196,6 +207,8 @@ func _process_receive() -> void:
 		if received.is_empty():
 			break
 		var packet: PackedByteArray = received[0]
+		var src_addr: String = received[1]
+		var src_port: int = received[2]
 		if packet.is_empty():
 			continue
 		var decoded: P2PUDPProbe.Decoded = P2PUDPProbe.decode(packet)
@@ -204,37 +217,42 @@ func _process_receive() -> void:
 		## 校验 session_id + nonce + expected role
 		if not P2PUDPProbe.validate_expectation(decoded, _session_id, _remote_nonce, _expected_remote_role):
 			continue
-		## 找到匹配的 candidate pair（按 remote address+port）
-		var pair_index: int = _find_pair_by_remote(decoded)
+		## 找到匹配的 candidate pair（按 source address+port）
+		var pair_index: int = _find_pair_by_source(src_addr, src_port)
 		if pair_index < 0:
 			continue
 		var pair: Dictionary = _candidate_pairs[pair_index]
+		## 记录实际来源地址（用于回复 ACK）
+		pair.last_remote_addr = src_addr
+		pair.last_remote_port = src_port
 		if decoded.is_probe():
-			## 收到对端 probe -> 回 ACK
+			## 收到对端 probe -> 回 ACK（必须 echo probe_id）
 			var now_ms: int = Time.get_ticks_msec()
 			var ack: PackedByteArray = P2PUDPProbe.encode_ack(
-				_session_id, _local_nonce, _local_role, now_ms, decoded.timestamp_ms
+				_session_id, _local_nonce, _local_role, now_ms, decoded.timestamp_ms, decoded.probe_id
 			)
-			var remote_addr: String = pair.remote.address
-			var remote_port: int = pair.remote.port
-			_socket.send_to(remote_addr, remote_port, ack)
+			_socket.send_to(src_addr, src_port, ack)
 		elif decoded.is_ack():
-			## 收到对端 ACK -> 确认双向
+			## 收到对端 ACK -> 严格 probe_id correlation 验证
 			if not pair.ack_received:
-				pair.ack_received = true
-				var now_ms: int = Time.get_ticks_msec()
-				var rtt: int = P2PUDPProbe.calculate_rtt(now_ms, decoded.original_timestamp_ms)
-				pair.rtt_ms = rtt
-				## 只有当我们也发过 probe 且对端回了 ACK，才算双向确认
-				## （这里简化：收到 ACK 即视为双向，因为我们发 probe 是主动的）
-				if pair.probes_sent > 0:
-					_bidirectional_confirmed = true
-					_validated_rtt_ms = rtt
-					_validated_candidate = {
-						"local": pair.local.duplicate(),
-						"remote": pair.remote.duplicate(),
-						"rtt_ms": rtt,
-					}
+				## 验证 ACK 的 probe_id 是否匹配我们发出的 pending probe
+				if decoded.probe_id in pair.pending_probe_ids:
+					pair.ack_received = true
+					var now_ms: int = Time.get_ticks_msec()
+					var rtt: int = P2PUDPProbe.calculate_rtt(now_ms, decoded.original_timestamp_ms)
+					pair.rtt_ms = rtt
+					## 只有当我们也发过 probe 且对端回了匹配的 ACK，才算双向确认
+					if pair.probes_sent > 0:
+						_bidirectional_confirmed = true
+						_validated_rtt_ms = rtt
+						_validated_candidate = {
+							"local": pair.local.duplicate(),
+							"remote": pair.remote.duplicate(),
+							"rtt_ms": rtt,
+						}
+				else:
+					## probe_id 不匹配：可能是旧 attempt 的 ACK 或伪造包，忽略
+					pass
 
 func _maybe_send_probes() -> void:
 	if _current_pair_index >= _candidate_pairs.size():
@@ -242,23 +260,30 @@ func _maybe_send_probes() -> void:
 	var pair: Dictionary = _candidate_pairs[_current_pair_index]
 	var now_ms: int = Time.get_ticks_msec()
 	## 简单的发送节流：按 PROBE_INTERVAL_MS 发送
-	## 这里用 elapsed_ms 粗略控制（更精确可用 Timer）
 	if _total_probes_sent == 0 or (now_ms - pair.last_probe_ms) >= PROBE_INTERVAL_MS:
 		if pair.probes_sent < MAX_PROBES_PER_CANDIDATE:
+			_probe_id_counter += 1
+			var probe_id: int = _probe_id_counter
 			var probe: PackedByteArray = P2PUDPProbe.encode_probe(
-				_session_id, _local_nonce, _local_role, now_ms
+				_session_id, _local_nonce, _local_role, now_ms, probe_id
 			)
-			if _socket.send_to(pair.remote.address, pair.remote.port, probe):
+			## 使用 observed endpoint 作为目标（如果可用），否则用候选地址
+			var target_addr: String = pair.remote.observed_address if pair.remote.has_observed_endpoint() else pair.remote.address
+			var target_port: int = pair.remote.observed_port if pair.remote.has_observed_endpoint() else pair.remote.port
+			if _socket.send_to(target_addr, target_port, probe):
 				pair.probes_sent += 1
 				pair.last_probe_ms = now_ms
+				pair.pending_probe_ids.append(probe_id)
 				_total_probes_sent += 1
 
-func _find_pair_by_remote(decoded: P2PUDPProbe.Decoded) -> int:
-	## decoded 不含地址，我们需要从 socket 接收层获取源地址
-	## 这里简化：假设当前正在探测的 pair 就是来源
-	## 真实实现需用 PacketPeerUDP.get_packet_with_address()
-	if _current_pair_index < _candidate_pairs.size():
-		return _current_pair_index
+func _find_pair_by_source(src_addr: String, src_port: int) -> int:
+	## 使用实际源地址端口匹配 candidate pair
+	for i in range(_candidate_pairs.size()):
+		var pair: Dictionary = _candidate_pairs[i]
+		var target_addr: String = pair.remote.observed_address if pair.remote.has_observed_endpoint() else pair.remote.address
+		var target_port: int = pair.remote.observed_port if pair.remote.has_observed_endpoint() else pair.remote.port
+		if src_addr == target_addr and src_port == target_port:
+			return i
 	return -1
 
 ## 收集本地候选：去重 + 分类 + 加上 observed endpoint
@@ -317,6 +342,7 @@ func _rendezvous_path_to_type(path: int) -> int:
 			return NetworkCandidates.CandidateType.OBSERVED_PUBLIC
 
 ## 构建 candidate pairs：local x remote 的笛卡尔积，按优先级排序，限制数量
+## 每个 pair 明确保存：local/remote endpoint、candidate type、probe 状态、pending probe_ids
 func _build_candidate_pairs() -> Array[Dictionary]:
 	var pairs: Array[Dictionary] = []
 	for local: NetworkCandidates.Candidate in _local_candidates:
@@ -328,6 +354,9 @@ func _build_candidate_pairs() -> Array[Dictionary]:
 				"ack_received": false,
 				"rtt_ms": 0,
 				"last_probe_ms": 0,
+				"pending_probe_ids": [],
+				"last_remote_addr": "",
+				"last_remote_port": 0,
 			}
 			pairs.append(pair)
 			if pairs.size() >= MAX_CANDIDATE_PAIRS:
@@ -384,3 +413,4 @@ func reset() -> void:
 	_validated_candidate = {}
 	_generation = 0
 	_finished = false
+	_probe_id_counter = 0

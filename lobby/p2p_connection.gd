@@ -23,6 +23,10 @@ class_name P2PConnection
 ##
 ## **明确不做**：STUN / TURN / UPnP / Relay（Phase 9.3）。
 ## 本对象**不创建 ENet peer**，也不持有 MultiplayerPeer —— 建连只经注入的 transport。
+##
+## 关键架构（9.2.2）：P2PConnection 持有**单一共享 UDP socket**，
+## RendezvousClient 与 P2PHolePunch 复用同一个端点，
+## 保证 server observed endpoint 就是 hole punch 真实使用的端点。
 
 ## 状态推进（UI / 日志只读，不直接改）。
 signal state_changed(from: int, to: int, event: int)
@@ -46,6 +50,8 @@ var _connect_fn: Callable = Callable()
 var _close_fn: Callable = Callable()
 ## 可选的真实 rendezvous 客户端（Phase 9.2.1）。为 null = 本地装配模式（9.1 行为）。
 var _client: RendezvousClient = null
+## 共享 UDP socket：由 P2PConnection 创建并持有，RendezvousClient 与 P2PHolePunch 复用。
+var _shared_udp: PacketPeerUDP = null
 
 func _init() -> void:
 	_state = P2PConnectionState.new()
@@ -62,6 +68,28 @@ func _init() -> void:
 	_state.state_changed.connect(func(from: int, to: int, event: int) -> void:
 		state_changed.emit(from, to, event)
 	)
+	_hole_punch.path_established.connect(_on_hole_punch_path_established)
+	_hole_punch.path_failed.connect(_on_hole_punch_path_failed)
+	_hole_punch.timeout.connect(_on_hole_punch_timeout)
+	_state.state_changed.connect(func(from: int, to: int, event: int) -> void:
+		state_changed.emit(from, to, event)
+	)
+
+## 获取/创建共享 UDP socket。RendezvousClient 与 P2PHolePunch 复用此端点。
+func _get_or_create_shared_udp(bind_port: int = 0) -> PacketPeerUDP:
+	if _shared_udp == null:
+		_shared_udp = PacketPeerUDP.new()
+		var err: Error = _shared_udp.bind(bind_port)
+		if err != OK:
+			_shared_udp = null
+			return null
+	return _shared_udp
+
+## 关闭共享 UDP socket。
+func _close_shared_udp() -> void:
+	if _shared_udp != null:
+		_shared_udp.close()
+		_shared_udp = null
 
 # ---- 查询 ----
 
@@ -162,8 +190,13 @@ func begin(invite: JoinInvite, rendezvous_host: String = "", rendezvous_port: in
 	_session.local_candidates = RendezvousContract.candidates_from_invite(invite)
 	_state.set_local_candidate_count(_session.local_candidates.size())
 	## 真实 rendezvous：把注册发出去，等回包。**绝不**在这里假装已注册。
+	## 创建/获取共享 UDP socket，传给 RendezvousClient 复用。
 	if _client != null and not rendezvous_host.strip_edges().is_empty():
-		if not _client.begin(rendezvous_host, rendezvous_port, _identity, _session.local_candidates):
+		var shared_udp: PacketPeerUDP = _get_or_create_shared_udp(0)
+		if shared_udp == null:
+			_finish(false, "shared_udp_create_failed")
+			return false
+		if not _client.begin(rendezvous_host, rendezvous_port, _identity, _session.local_candidates, shared_udp):
 			_finish(false, "rendezvous_begin_failed")
 			return false
 		return true
@@ -269,7 +302,8 @@ func begin_direct_probing(bind_port: int = 0) -> bool:
 		local_role,
 		local_candidates,
 		remote_candidates,
-		bind_port
+		bind_port,
+		_shared_udp
 	)
 	if not ok:
 		_state.transition(P2PConnectionState.Event.DIRECT_PATH_FAILED)
@@ -398,6 +432,7 @@ func cancel() -> void:
 	## 取消也要关掉 rendezvous socket，不留资源。
 	if _client != null:
 		_client.close()
+	_close_shared_udp()
 	_state.transition(P2PConnectionState.Event.CANCEL)
 	_finish(false, "cancelled")
 
@@ -409,6 +444,7 @@ func reset() -> void:
 		_hole_punch.reset()
 	if _client != null:
 		_client.reset()
+	_close_shared_udp()
 	_invite = null
 	_identity = null
 	_session = RendezvousContract.SessionState.new()

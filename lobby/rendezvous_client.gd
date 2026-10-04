@@ -1,7 +1,7 @@
 extends RefCounted
 class_name RendezvousClient
 
-## Rendezvous 客户端（Phase 9.2.1）。
+## Rendezvous 客户端（Phase 9.2.2）。
 ##
 ## 职责：
 ## - 连接 rendezvous server（**UDP，非 ENet**）
@@ -22,6 +22,9 @@ class_name RendezvousClient
 ##
 ## 用 PacketPeerUDP（与 LanBeacon 同源）而不是 ENet：rendezvous 只交换信息，
 ## 不承载游戏流量，也不该占用 SceneTree 上唯一那个 peer。
+##
+## 关键架构变更（9.2.2）：**不再自建 UDP socket**。改为接收外部传入的共享 PacketPeerUDP，
+## 与 P2PHolePunch 复用同一个端点，保证 server observed endpoint 就是 hole punch 真实使用的端点。
 
 ## 注册成功，拿到自己的 observed endpoint（可能为空 = 服务端没观测到）。
 signal registered(session_id: String, observed_address: String, observed_port: int)
@@ -49,6 +52,7 @@ var _session: RendezvousContract.SessionState = null
 var _elapsed_sec: float = 0.0
 var _last_error: int = RendezvousContract.ErrorCode.NONE
 var _last_detail: String = ""
+var _owns_udp: bool = false  ## 是否拥有 UDP 生命周期（外部传入则为 false）
 
 # ---- 查询 ----
 
@@ -77,17 +81,33 @@ func is_failed() -> bool:
 func has_observed_endpoint() -> bool:
 	return _session != null and _session.has_local_observed_endpoint()
 
+## 获取底层 UDP socket（用于共享 transport 模式）。
+func get_udp() -> PacketPeerUDP:
+	return _udp
+
+## 设置外部 UDP socket（必须在 begin() 前调用，或 begin() 时通过参数传入）。
+func set_udp(udp: PacketPeerUDP) -> bool:
+	if _udp != null or _state != State.IDLE:
+		return false
+	_udp = udp
+	_owns_udp = false
+	return true
+
 # ---- 生命周期 ----
 
 ## 开始注册。identity 携带 room_id / ticket / protocol / role / nonce。
 ##
 ## 注意：ticket 由上层（LobbyManager）给出，**不由本对象生成或验证**；
 ## 本对象只负责把它放进 REGISTER 包，且绝不写进日志。
+##
+## 可选参数 udp：外部传入的共享 PacketPeerUDP。如果提供，将复用该 socket，
+## 且不拥有其生命周期（close() 不会关闭它）。这是 9.2.2 共享 transport 模式的关键。
 func begin(
 	host: String,
 	port: int,
 	identity: RendezvousContract.SessionIdentity,
-	local_candidates: Array
+	local_candidates: Array,
+	udp: PacketPeerUDP = null
 ) -> bool:
 	if identity == null or not identity.is_valid():
 		return false
@@ -104,13 +124,20 @@ func begin(
 	_elapsed_sec = 0.0
 	_last_error = RendezvousContract.ErrorCode.NONE
 	_last_detail = ""
-	_udp = PacketPeerUDP.new()
-	## 绑定到任意本地端口；服务端看到的是这个 socket 经 NAT 映射后的端点。
-	var err: Error = _udp.bind(0)
-	if err != OK:
-		_state = State.FAILED
-		_last_detail = "bind_failed"
-		return false
+	
+	if udp != null:
+		_udp = udp
+		_owns_udp = false
+	else:
+		_udp = PacketPeerUDP.new()
+		_owns_udp = true
+		## 绑定到任意本地端口；服务端看到的是这个 socket 经 NAT 映射后的端点。
+		var err: Error = _udp.bind(0)
+		if err != OK:
+			_state = State.FAILED
+			_last_detail = "bind_failed"
+			return false
+	
 	_udp.set_dest_address(_host, _port)
 	_state = State.REGISTERING
 	return _send_register()
@@ -155,9 +182,10 @@ func close() -> void:
 	close_socket()
 
 func close_socket() -> void:
-	if _udp != null:
+	if _udp != null and _owns_udp:
 		_udp.close()
 	_udp = null
+	_owns_udp = false
 
 ## 重置到 IDLE（可重新 begin）。
 func reset() -> void:
@@ -169,6 +197,7 @@ func reset() -> void:
 	_elapsed_sec = 0.0
 	_last_error = RendezvousContract.ErrorCode.NONE
 	_last_detail = ""
+	_owns_udp = false
 
 # ---- 收包 ----
 

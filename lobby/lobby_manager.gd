@@ -51,6 +51,8 @@ var _guest_ticket: String = ""
 var _active_path: int = LobbyPlayer.Path.LAN_IPV4
 ## 当前 join attempt 驱动器（Phase 8 hardening）。null = 没有进行中的 join。
 var _runner: ConnectAttemptRunner = null
+## P2P 连接编排器（Phase 9.2）：处理 rendezvous + hole punch + ENet 直连。
+var _p2p_connection: P2PConnection = null
 
 func _exit_tree() -> void:
 	if _net != null and _net.get_parent() == self:
@@ -250,6 +252,85 @@ func _close_transport() -> void:
 	if _net != null:
 		_net.close()
 
+# ---- P2P Connection (Phase 9.2) ----
+
+## 创建/获取 P2PConnection 实例。
+func _get_or_create_p2p_connection() -> P2PConnection:
+	if _p2p_connection == null:
+		_p2p_connection = P2PConnection.new()
+		_p2p_connection.bind_transport(_connect_transport.bind(), _close_transport.bind())
+		_p2p_connection.state_changed.connect(_on_p2p_state_changed)
+		_p2p_connection.finished.connect(_on_p2p_finished)
+		_p2p_connection.direct_path_established.connect(_on_p2p_direct_path_established)
+		_p2p_connection.direct_path_failed.connect(_on_p2p_direct_path_failed)
+	return _p2p_connection
+
+## 开始通过 rendezvous + hole punch 的 P2P join。
+## invite 必须包含有效的 room_id / ticket / candidates。
+## rendezvous_host/port：公网 rendezvous 服务端地址。
+func join_invite_p2p(invite: JoinInvite, rendezvous_host: String, rendezvous_port: int = RendezvousClient.DEFAULT_PORT) -> JoinInvite:
+	if invite == null or not invite.is_valid():
+		if invite == null:
+			invite = JoinInvite.new()
+		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
+		return invite
+	if _net == null:
+		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
+		return invite
+	
+	var p2p: P2PConnection = _get_or_create_p2p_connection()
+	var client: RendezvousClient = RendezvousClient.new()
+	p2p.bind_rendezvous(client)
+	
+	## 开始 P2P 连接流程
+	if not p2p.begin(invite, rendezvous_host, rendezvous_port):
+		invite.error = JoinInvite.InvalidReason.BAD_LAN_HOST
+		return invite
+	
+	_guest_ticket = invite.token
+	return invite
+
+## 推进 P2P 连接状态机。由 MainMenu 每帧驱动。
+func tick_p2p(delta_sec: float) -> void:
+	if _p2p_connection != null:
+		_p2p_connection.poll_rendezvous(delta_sec)
+		_p2p_connection.tick(delta_sec)
+
+## 取消进行中的 P2P join。
+func cancel_p2p() -> void:
+	if _p2p_connection != null:
+		_p2p_connection.cancel()
+		_p2p_connection = null
+
+## P2P 状态变化回调。
+func _on_p2p_state_changed(from: int, to: int, event: int) -> void:
+	## 映射到 LobbyManager 可观测状态
+	pass
+
+## P2P 完成回调（成功或失败）。
+func _on_p2p_finished(success: bool, reason: String) -> void:
+	if success:
+		## 成功：ENet 已在 validated path 上连上并握手通过
+		_networked = true
+		room_changed.emit()
+	else:
+		## 失败：清理并通知 UI
+		if _net != null:
+			_net.close()
+		network_failed.emit(reason)
+	_p2p_connection = null
+
+## Hole punch 成功，得到 validated path，准备发起 ENet 直连。
+func _on_p2p_direct_path_established(rtt_ms: int, validated_candidate: Dictionary) -> void:
+	var p2p: P2PConnection = _get_or_create_p2p_connection()
+	## 在 validated path 上发起 ENet 连接
+	p2p.begin_direct_enet()
+
+## Hole punch 失败。
+func _on_p2p_direct_path_failed(reason: String) -> void:
+	## 失败由 _on_p2p_finished 处理
+	pass
+
 func _on_candidate_started(attempt: ConnectAttempt) -> void:
 	if attempt.candidate != null:
 		_active_path = attempt.candidate.path
@@ -285,12 +366,14 @@ func get_connect_attempt() -> ConnectAttempt:
 func tick_join(delta_sec: float) -> void:
 	if _runner != null:
 		_runner.tick(delta_sec)
+	tick_p2p(delta_sec)
 
 ## 取消进行中的 join（关 peer、不留残留）。没有进行中的 join 时是空操作。
 func cancel_join() -> void:
 	if _runner != null:
 		_runner.cancel()
 		_runner = null
+	cancel_p2p()
 
 ## 本机实际选中的连接路径（未连接时返回 LAN_IPV4 作为无害默认）。
 func get_active_path() -> int:
