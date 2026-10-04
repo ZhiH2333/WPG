@@ -117,7 +117,7 @@ def main() -> int:
     suites = {
         "p2p_hole_punch": ("python", E2E_DIR / "p2p_hole_punch" / "run.py"),
         "rendezvous": ("python", E2E_DIR / "rendezvous" / "run.py"),
-        "lan_e2e": ("godot", ROOT / "tests" / "integration" / "lan_e2e_test.gd"),
+        "lan_e2e": ("godot", E2E_DIR / "lan" / "run.gd"),
         "lan_ui": ("python", E2E_DIR / "lan" / "ui_run.py"),
     }
 

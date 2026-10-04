@@ -2,7 +2,7 @@ extends SceneTree
 
 ## LAN E2E 编排（Multiplayer 冻结前的真双进程回归）。
 ##
-## 已有 lobby 测试全是单进程直接打状态机（tests/lobby_net_test.gd 顶部写明：单进程里
+## 已有 lobby 测试全是单进程直接打状态机（tests/integration/lobby_net_test.gd 顶部写明：单进程里
 ## 不跑两个 peer，也不靠 RPC 真发包）。本测试补上唯一缺失的一环：拉起**两个真实
 ## Godot 进程**（Host / Guest），走真实 ENet + 真实 RPC，覆盖：
 ##   full        —— 握手落座 / 未 READY 不允许开局 / Ready / Guest 改角色清 Ready /
@@ -10,7 +10,7 @@ extends SceneTree
 ##   disconnect  —— Guest 断线，Host 释放座位
 ##   host_closed —— Host 关服，Guest 收到 host closed
 ##
-## 跑法：godot --headless --path . --script res://tests/integration/lan_e2e_test.gd --quit
+## 跑法：godot --headless --path . --script res://tools/e2e/lan/run.gd --quit
 ## 通过输出 LAN_E2E_OK；失败逐条 LAN_E2E_FAIL 并返回非 0。
 ##
 ## 为什么读文件而不是抓 stdout：两个 peer 必须并发运行，阻塞式 OS.execute 做不到；
