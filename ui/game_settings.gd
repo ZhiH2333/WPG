@@ -2,7 +2,6 @@ extends Object
 class_name GameSettings
 
 ## 音量、显示与按键。全是 static，不是 Autoload，不进场景树。唯一读写 user://settings.cfg。
-const VERSION: String = "1.0.0"
 const PATH := "user://settings.cfg"
 const DEFAULT_VOLUME: float = 1.0
 const MUTE_THRESHOLD: float = 0.001
@@ -182,7 +181,7 @@ static func _apply_bus_volume(bus_name: String, linear: float) -> void:
 		AudioServer.set_bus_volume_db(bus, linear_to_db(clampf(linear, MUTE_THRESHOLD, 1.0)))
 
 static func get_version() -> String:
-	return VERSION
+	return ProjectSettings.get_setting("application/config/version")
 
 static func get_volume() -> float:
 	return _volume

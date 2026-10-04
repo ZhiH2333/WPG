@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>WPG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            touch-action: none;
+        }
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-family: system-ui, sans-serif;
+            z-index: 1000;
+        }
+        .loading.hidden {
+            display: none;
+        }
+        .loading-bar {
+            width: 80%;
+            max-width: 400px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin-top: 16px;
+            overflow: hidden;
+        }
+        .loading-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: #fff;
+            transition: width 0.1s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div>WPG</div>
+        <div class="loading-bar">
+            <div class="loading-bar-fill" id="loading-bar-fill"></div>
+        </div>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Request fullscreen on load (including mobile)
+        function requestFullscreen() {
+            const elem = document.documentElement;
+            
+            // Try standard fullscreen API
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.log('Fullscreen request failed:', err);
+                });
+            }
+            // iOS Safari (webkit)
+            else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen().catch(err => {
+                    console.log('Fullscreen request failed:', err);
+                });
+            }
+            // Firefox
+            else if (elem.mozRequestFullScreen) {
+                elem.mozRequestFullScreen().catch(err => {
+                    console.log('Fullscreen request failed:', err);
+                });
+            }
+            // IE/Edge
+            else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen().catch(err => {
+                    console.log('Fullscreen request failed:', err);
+                });
+            }
+        }
+
+        // Request fullscreen on user interaction (required by browsers)
+        function requestFullscreenOnInteraction() {
+            document.addEventListener('click', requestFullscreen, { once: true });
+            document.addEventListener('touchstart', requestFullscreen, { once: true });
+            document.addEventListener('keydown', requestFullscreen, { once: true });
+        }
+
+        // Try auto-fullscreen on load (works on some mobile browsers when launched from home screen)
+        // Also listen for visibility change to re-request
+        function tryAutoFullscreen() {
+            // Check if already in fullscreen
+            if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+                return;
+            }
+
+            // Try to request fullscreen immediately (may work on some mobile browsers)
+            requestFullscreen();
+
+            // Also set up interaction listeners as fallback
+            requestFullscreenOnInteraction();
+        }
+
+        // Run when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', tryAutoFullscreen);
+        } else {
+            tryAutoFullscreen();
+        }
+
+        // Handle visibility change (e.g., returning from background)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                tryAutoFullscreen();
+            }
+        });
+
+        // Godot engine loading
+        const canvas = document.getElementById('canvas');
+        const loading = document.getElementById('loading');
+        const loadingBarFill = document.getElementById('loading-bar-fill');
+
+        // Module configuration
+        const moduleConfig = {
+            canvas: canvas,
+            onProgress: (progress) => {
+                if (loadingBarFill) {
+                    loadingBarFill.style.width = `${Math.round(progress * 100)}%`;
+                }
+            },
+            onLoad: () => {
+                if (loading) {
+                    loading.classList.add('hidden');
+                }
+                // Re-request fullscreen after engine loads
+                tryAutoFullscreen();
+            },
+            onError: (err) => {
+                console.error('Engine load error:', err);
+                if (loading) {
+                    loading.innerHTML = '<div style="color: #f00;">Failed to load game</div>';
+                }
+            }
+        };
+
+        // Load Godot engine
+        const script = document.createElement('script');
+        script.src = 'WPG.js';
+        script.onload = () => {
+            if (typeof Godot !== 'undefined') {
+                const engine = new Godot(moduleConfig);
+                engine.startGame();
+            } else if (typeof Module !== 'undefined') {
+                // Emscripten Module fallback
+                Module.canvas = canvas;
+                Module.onProgress = moduleConfig.onProgress;
+                Module.onRuntimeInitialized = moduleConfig.onLoad;
+            }
+        };
+        script.onerror = moduleConfig.onError;
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>
