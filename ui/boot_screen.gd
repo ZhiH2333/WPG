@@ -13,7 +13,11 @@ extends Control
 ##
 ## 进度条样式与 `ui/loading_screen.tscn` 保持一致（同一组颜色与 18px 高度），
 ## 这样开屏和换场封面的观感是连续的。
+##
+## 网页版会先把 `ui/test_build_notice.tscn`（测试版提示）盖在上面：提示页出现的那一刻，
+## 主菜单已经在后台线程里加载，只是没挂进树所以不显示。玩家点「开始游玩」之后才换场。
 const MENU_SCENE := "res://ui/main_menu.tscn"
+const NOTICE_SCENE := "res://ui/test_build_notice.tscn"
 const MIN_HOLD_SEC: float = 0.6 ## 加载常快于这段时间；用地板值保证进度条一定走完
 const BAR_MAX_W: float = 720.0
 const BAR_W_RATIO: float = 0.42
@@ -29,6 +33,11 @@ var _elapsed: float = 0.0
 var _ratio: float = 0.0
 var _requested: bool = false
 var _leaving: bool = false
+## 测试版提示页。只有网页版会开；开了之后换场要等玩家点「开始游玩」。
+var _notice: TestBuildNotice = null
+var _notice_started: bool = false
+## 本帧的主菜单加载状态。提示页要判断「能不能换场」时直接读它，不重复问一遍。
+var _status: ResourceLoader.ThreadLoadStatus = ResourceLoader.THREAD_LOAD_INVALID_RESOURCE
 
 @onready var _logo: TextureRect = $Logo
 @onready var _bar_track: ColorRect = $BarTrack
@@ -40,6 +49,35 @@ func _ready() -> void:
 	resized.connect(_layout)
 	_layout()
 	_apply_ratio()
+	_open_notice()
+
+
+## 网页版（且玩家没勾「不再提示」）先把提示页盖上来。主菜单的线程加载不受影响，
+## 所以提示页出现时主场景已经在加载了。
+func _open_notice() -> void:
+	if not TestBuildNotice.should_show():
+		return
+	var packed: PackedScene = load(NOTICE_SCENE) as PackedScene
+	if packed == null:
+		push_warning("boot_screen: 测试版提示页加载失败，直接进主菜单")
+		return
+	var notice: TestBuildNotice = packed.instantiate() as TestBuildNotice
+	if notice == null:
+		push_warning("boot_screen: 测试版提示页实例化失败，直接进主菜单")
+		return
+	notice.started.connect(_on_notice_started)
+	add_child(notice)
+	# 提示页是纯黑不透明的，字标和进度条已经被盖住了；显式藏掉是防止将来改版式时露出来。
+	_logo.visible = false
+	_bar_track.visible = false
+	_notice = notice
+
+
+func _on_notice_started() -> void:
+	_notice_started = true
+	# 加载还没完就把按钮切成「正在加载…」：玩家已经点过，不能让他以为没反应又点一次。
+	if _notice != null and _status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		_notice.lock_for_loading()
 
 
 func _process(delta: float) -> void:
@@ -50,6 +88,7 @@ func _process(delta: float) -> void:
 	var status: ResourceLoader.ThreadLoadStatus = ResourceLoader.THREAD_LOAD_INVALID_RESOURCE
 	if _requested:
 		status = ResourceLoader.load_threaded_get_status(MENU_SCENE, progress)
+	_status = status
 	var in_flight: bool = status == ResourceLoader.THREAD_LOAD_IN_PROGRESS
 	var real: float = 0.0
 	if progress.size() > 0:
@@ -63,6 +102,11 @@ func _process(delta: float) -> void:
 	_apply_ratio()
 	if in_flight or _elapsed < MIN_HOLD_SEC or _ratio < BAR_DONE:
 		return
+	# 提示页开着时换场由玩家决定。走到这里主菜单一定加载完了，没点就继续等。
+	if _notice != null:
+		if not _notice_started:
+			return
+		_notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_leave(status)
 
 

@@ -61,6 +61,13 @@ enum TouchControlsMode {
 	OFF = 2,
 }
 
+## 平台判定的测试覆盖档位。生产代码永远停在 AUTO（= 真的问引擎）。
+enum WebOverride {
+	AUTO = 0,
+	WEB = 1,
+	DESKTOP = 2,
+}
+
 static var _touch_controls_mode: int = TouchControlsMode.AUTO
 ## Manual Fire ON：右摇杆只瞄准，另需 FIRE 按钮开火。默认 OFF = 右摇杆自动开火。
 static var _touch_manual_fire: bool = false
@@ -72,6 +79,9 @@ static var _render_scale: float = 1.0
 static var _ui_scale: float = 1.0
 static var _vsync_enabled: bool = true
 static var _msaa_index: int = 0
+## 测试版提示页的「不再提示」。网页版专用，桌面版不读也不写。
+static var _test_build_notice_muted: bool = false
+static var _web_override: int = WebOverride.AUTO
 static var _key_overrides: Dictionary = {}
 static var _joy_overrides: Dictionary = {}
 
@@ -86,6 +96,7 @@ static func load_from_disk() -> void:
 	_msaa_index = 0
 	_touch_controls_mode = TouchControlsMode.AUTO
 	_touch_manual_fire = false
+	_test_build_notice_muted = false
 	_key_overrides.clear()
 	_joy_overrides.clear()
 	if not FileAccess.file_exists(PATH):
@@ -103,6 +114,7 @@ static func load_from_disk() -> void:
 	_msaa_index = clampi(int(cfg.get_value("display", "msaa", 0)), 0, 3)
 	_touch_controls_mode = clampi(int(cfg.get_value("input", "touch_controls", int(TouchControlsMode.AUTO))), 0, 2)
 	_touch_manual_fire = bool(cfg.get_value("input", "touch_manual_fire", false))
+	_test_build_notice_muted = bool(cfg.get_value("notice", "test_build_muted", false))
 	for action: String in REBINDABLE_ACTIONS:
 		var default_key: int = int(DEFAULT_KEYS[action])
 		var stored: int = int(cfg.get_value("controls", action, default_key))
@@ -126,6 +138,7 @@ static func save_to_disk() -> void:
 	cfg.set_value("display", "msaa", _msaa_index)
 	cfg.set_value("input", "touch_controls", int(_touch_controls_mode))
 	cfg.set_value("input", "touch_manual_fire", _touch_manual_fire)
+	cfg.set_value("notice", "test_build_muted", _test_build_notice_muted)
 	for action: String in REBINDABLE_ACTIONS:
 		cfg.set_value("controls", action, get_key_for_action(action))
 	for action: String in REBINDABLE_JOY_ACTIONS:
@@ -238,6 +251,27 @@ static func set_touch_manual_fire(enabled: bool) -> void:
 
 static func is_mobile_platform() -> bool:
 	return OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+
+## 网页版判定。所有「网页版特殊行为」都走这里（主菜单藏 Quit、测试版提示页、自动全屏），
+## 不要在别处再散写 OS.has_feature("web")。测试可以用 set_web_override() 覆盖。
+static func is_web_platform() -> bool:
+	match _web_override:
+		WebOverride.WEB:
+			return true
+		WebOverride.DESKTOP:
+			return false
+	return OS.has_feature("web")
+
+## 只有自动测试会调：生产代码不许覆盖平台判定。
+static func set_web_override(mode: WebOverride) -> void:
+	_web_override = mode
+
+## 测试版提示页的「不再提示」。勾了就再也不会出现。
+static func is_test_build_notice_muted() -> bool:
+	return _test_build_notice_muted
+
+static func set_test_build_notice_muted(muted: bool) -> void:
+	_test_build_notice_muted = muted
 
 static func is_touch_controls_enabled() -> bool:
 	match _touch_controls_mode:

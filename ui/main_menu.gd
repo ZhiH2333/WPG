@@ -519,8 +519,9 @@ func _wire_home_focus() -> void:
 		nav.focus_neighbor_bottom = slots[0].get_path()
 
 ## Quit 是否被平台藏掉。网页版 `get_tree().quit()` 退不出标签页，所以整条按钮不出现。
+## 平台判定统一走 GameSettings.is_web_platform()，UI 里不再散写 OS.has_feature。
 func _quit_hidden_by_platform() -> bool:
-	return OS.has_feature("web")
+	return GameSettings.is_web_platform()
 
 ## 没有 Quit（网页版）时返回 null：调用方必须自己兜底，不要把焦点指向隐藏控件。
 func _secondary_focus() -> Control:

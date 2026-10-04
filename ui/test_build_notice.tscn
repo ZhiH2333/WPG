@@ -1,0 +1,249 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://ui/test_build_notice.gd" id="1_notice"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://ui/warning_badge.gd" id="3_badge"]
+[ext_resource type="FontFile" path="res://ui/fonts/wpg_notice_cjk_regular.ttf" id="4_cjk"]
+[ext_resource type="FontFile" path="res://ui/fonts/wpg_notice_cjk_bold.ttf" id="5_cjk_bold"]
+
+[node name="TestBuildNotice" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_notice")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+horizontal_scroll_mode = 0
+follow_focus = true
+
+[node name="Center" type="CenterContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_bottom = 48
+
+[node name="Column" type="VBoxContainer" parent="Scroll/Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(720, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="Badge" type="Control" parent="Scroll/Center/Column"]
+custom_minimum_size = Vector2(104, 92)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+script = ExtResource("3_badge")
+
+[node name="Title" type="Label" parent="Scroll/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageTitle"
+theme_override_fonts/font = ExtResource("5_cjk_bold")
+theme_override_font_sizes/font_size = 40
+text = "这是一个测试版构建"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Lead" type="Label" parent="Scroll/Center/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageSubtitle"
+theme_override_fonts/font = ExtResource("4_cjk")
+theme_override_font_sizes/font_size = 22
+text = "您正在游玩的是 WPG 测试版，可能会出现 Bug，不代表最终品质"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Report" type="Label" parent="Scroll/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageSubtitle"
+theme_override_fonts/font = ExtResource("4_cjk")
+theme_override_font_sizes/font_size = 20
+text = "报告 Bug 至：zhih2333@gmail.com 或获得帮助"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="TopLine" type="ColorRect" parent="Scroll/Center/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="SettingsTitle" type="Label" parent="Scroll/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+theme_override_fonts/font = ExtResource("5_cjk_bold")
+text = "调整您的初始设置："
+
+[node name="FullscreenRow" type="HBoxContainer" parent="Scroll/Center/Column"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="FullscreenLabel" type="Label" parent="Scroll/Center/Column/FullscreenRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "Fullscreen"
+
+[node name="FullscreenCheck" type="CheckBox" parent="Scroll/Center/Column/FullscreenRow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+
+[node name="RenderBlock" type="VBoxContainer" parent="Scroll/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="RenderScaleLabel" type="Label" parent="Scroll/Center/Column/RenderBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "Render Resolution  100%"
+
+[node name="RenderScaleSlider" type="HSlider" parent="Scroll/Center/Column/RenderBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 0
+min_value = 10.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+scrollable = false
+
+[node name="RenderScaleHint" type="Label" parent="Scroll/Center/Column/RenderBlock"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+text = "Takes effect in combat / on Continue"
+
+[node name="UiBlock" type="VBoxContainer" parent="Scroll/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="UiScaleLabel" type="Label" parent="Scroll/Center/Column/UiBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "UI Scale  100%"
+
+[node name="UiScaleSlider" type="HSlider" parent="Scroll/Center/Column/UiBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 0
+min_value = 80.0
+max_value = 200.0
+step = 5.0
+value = 100.0
+scrollable = false
+
+[node name="TouchBlock" type="VBoxContainer" parent="Scroll/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="TouchLabel" type="Label" parent="Scroll/Center/Column/TouchBlock"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "Touch Controls"
+
+[node name="TouchOption" type="OptionButton" parent="Scroll/Center/Column/TouchBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+mouse_filter = 0
+
+[node name="ManualFireRow" type="VBoxContainer" parent="Scroll/Center/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="ManualFireLabel" type="Label" parent="Scroll/Center/Column/ManualFireRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SettingsHeader"
+text = "Manual Fire Button"
+
+[node name="ManualFireOption" type="OptionButton" parent="Scroll/Center/Column/ManualFireRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+mouse_filter = 0
+
+[node name="TouchHint" type="Label" parent="Scroll/Center/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RunSummaryHint"
+autowrap_mode = 3
+
+[node name="MuteRow" type="HBoxContainer" parent="Scroll/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="MuteCheck" type="CheckBox" parent="Scroll/Center/Column/MuteRow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+theme_override_fonts/font = ExtResource("4_cjk")
+text = "不再提示"
+
+[node name="StartRow" type="HBoxContainer" parent="Scroll/Center/Column"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="StartButton" type="Button" parent="Scroll/Center/Column/StartRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 64)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+theme_override_fonts/font = ExtResource("5_cjk_bold")
+theme_override_font_sizes/font_size = 26
+text = "开始游玩"
+
+[node name="BottomPad" type="Control" parent="Scroll/Center/Column"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+mouse_filter = 2
