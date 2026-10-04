@@ -7,17 +7,19 @@
 - 项目版本是 `1.0.0`
 - 本机 Godot 是 `4.6.2`
 - GitHub 仓库默认分支现在是长期分支 `dev`，不是 `main`
-- 叫 `dev` 的这个分支**不会**触发 WPG CI。触发条件是 `dev/*`，例如 `dev/phase1-ui`
+- `dev`、`dev/<name>`、`main` 的 push 都会触发 WPG CI
+- `dev` 上每来一个 commit，**Netlify 自己**会构建 Web 并发布到 <https://bwpg.netlify.app>，不用 GitHub Actions
 
-## 三个按钮，不要混
+## 三个按钮 + Netlify，不要混
 
 | 名字 | 做什么 | 什么时候跑 |
 |---|---|---|
-| WPG CI | 检查代码能不能过 | PR 到 main、push 到 main、push 到 `dev/<name>` |
+| WPG CI | 检查代码能不能过 | PR 到 main、push 到 main、push 到 `dev` 和 `dev/<name>` |
 | WPG Build | 打五个平台的测试包 | 你手动 Run，或者 main 上的 WPG CI 成功之后 |
 | WPG Release | 按 tag 重新打包并发布到 GitHub Release | 只有 push `vX.Y.Z`，而且这个 tag 正好指向 `origin/main` 的最新提交 |
+| Netlify 构建 | 构建 Web 并发布到 <https://bwpg.netlify.app> | push 到 `dev`（生产分支），由 Netlify 的 Git 集成负责 |
 
-`dev/<name>` 的每一次 push 只跑 CI，不会自动打五个平台。
+`dev/<name>` 的每一次 push 只跑 CI，不会自动打五个平台，也不会部署 Web。
 
 ## 日常开发
 
@@ -61,7 +63,8 @@ python3 tools/build_tools.py
 | 9 Set Version | 只改 `project.godot` 的 `config/version`，改完再读一遍核对 |
 | 10 Check Release Readiness | 发布前检查。会真的跑一遍 CI |
 | 11 Create Release Tag | 只在 main、且等于 `origin/main`、工作区干净、版本合法时，询问后创建并 push `vX.Y.Z`。取消则什么都不做 |
-| 12 Exit | 退出 |
+| 12 Deploy Web to Netlify | 手动兜底：把已有的 `build/web/raw` 用 netlify CLI 发到 <https://bwpg.netlify.app>。不会自己重新导出，先跑 6。平时不走这里 |
+| 13 Exit | 退出 |
 
 状态只用这几种：`[PASS]` `[FAIL]` `[BLOCKED]` `[INFO]` `[WARN]`。`BLOCKED` 不是成功。
 
@@ -127,12 +130,74 @@ Android 需要这三样，而且都不要提交进 Git：
 
 Web 打的是整个导出目录的 zip，不只是一个 HTML。包里至少要有 `index.html`，以及 wasm / js / pck 之一。
 
+## dev 提交后自动部署 Web 到 Netlify
+
+正式地址是 <https://bwpg.netlify.app>，内容是 `dev` 分支的最新 Web 构建。**这一段和 GitHub Actions 无关**，是 Netlify 自己的 Git 集成在干活：
+
+```text
+push dev
+  └─ Netlify（生产分支 = dev）读取仓库根的 netlify.toml
+       └─ command: python3 tools/deploy/netlify_build.py
+            ├─ tools/ci/install_godot.py          下载 Godot 4.6.2 与导出模板
+            ├─ tools/build/export_platform.py web 导出到 build/web/raw
+            └─ 复检 build/web/raw
+       └─ publish: build/web/raw  →  https://bwpg.netlify.app
+```
+
+- WPG CI 和部署是两条独立的路。CI 挂了 Netlify 照样会构建；它只看 Netlify 自己那次构建成不成功。
+- `dev/<name>`、`main`、PR 都不影响正式站，因为生产分支是 `dev`。
+- Web 导出是 `variant/thread_support=false`，不需要 COOP/COEP 响应头，Netlify 静态托管直接能跑。
+- 发布前会检查 `build/web/raw` 里有没有 `index.html` 和 wasm / js / pck；缺了就 `FAIL`，Netlify 不会发布坏包。
+- 现在的包大约 74 MB、16 个文件，最大单文件 `index.pck` 约 37 MB。Netlify 官方对单个文件的**建议**值是 10 MB 以内，静态部署实际能过。
+- Netlify 的静态资源默认 `max-age=0, must-revalidate`，而且每次原子部署会自动失效旧缓存，所以不用自己写 `_headers`。
+
+### 仓库里负责这件事的三个文件
+
+| 文件 | 作用 |
+|---|---|
+| `netlify.toml` | 告诉 Netlify 跑什么命令、发布哪个目录、哪些构建直接跳过。**文件里的设置优先级高于网页上的 Build settings** |
+| `tools/deploy/netlify_build.py` | 构建入口。装 Godot → 导出 Web → 复检产物，三步任一失败就非 0 退出 |
+| `tools/wpg_common.py` 的 `web_package_problem()` | 判断一个导出目录能不能发布。导出、Netlify 构建、手动发布共用它 |
+
+`netlify_build.py` 存在的原因：`install_godot.py` 只会把 Godot 路径写进 GitHub Actions 的 `GITHUB_ENV` / `GITHUB_PATH`，Netlify 上没有这两个变量，所以要自己把它接进 `GODOT_BIN`。
+
+### 你在 Netlify 上要确认的设置
+
+站点已经连好 GitHub，只需要确认这几项（都在 Project configuration → Developer settings → Continuous deployment）：
+
+1. **Build command / Publish directory 留空。** 仓库根的 `netlify.toml` 会覆盖它们；两边都填容易对不上。
+2. **Production branch = `dev`。** 这样只有 `dev` 的 commit 进正式站。
+3. **Branch deploys 保持 "Deploy only the production branch"**，除非你确实想给其它分支单独的预览地址。
+4. **Deploy Previews 建议关掉。** PR 到 `dev` 也会触发一次完整构建（要现下 Godot 和导出模板，几分钟）。`netlify.toml` 里已经有一行 `ignore = '[ "$CONTEXT" = "deploy-preview" ]'` 让它直接跳过；如果你确实想要 PR 预览地址，删掉那一行。这一行是「只在 preview 时跳过」，`$CONTEXT` 取不到时只会多构建，不会漏掉 `dev` 的正式部署。
+
+还有一个前提：`netlify.toml` 必须**在 `dev` 分支上**。Netlify 读的是「这次要部署的那个分支」里的配置文件，`dev` 上没有它就只会用网页上的 Build settings（现在是空的），构建会找不到 publish 目录。
+
+第一次构建失败时看 Netlify 的 deploy log。日志里 `[FAIL]` 那一行会直接说缺什么；把那段发出来就能定位。
+
+### 手动兜底
+
+Netlify 的构建坏掉、或者你想把本机刚导出的那一版直接推上去时，可以用 CLI 覆盖发布：
+
+```bash
+python3 tools/build_tools.py
+# 先 6. Build Web，再 12. Deploy Web to Netlify
+
+# 或者不进菜单
+python3 tools/build/export_platform.py web
+NETLIFY_AUTH_TOKEN=xxx NETLIFY_SITE_ID=yyy python3 tools/deploy/deploy_netlify.py
+```
+
+- 这条手动路**不参与**平时的自动部署，只是兜底。
+- token 从 Site configuration → General → Site information 拿 Site ID，头像 → User settings → Applications → Personal access tokens 拿 token。**不要提交进仓库。**
+- 没配这两个环境变量时，第 12 项只会打一行 `BLOCKED` 就退出，不会上传。
+- 部署完脚本会带 cache buster 请求一次线上地址核对，核对不通过只记 `WARN`。
+
 ## 你要在 GitHub 网页上手工设置的东西
 
 这些不能靠 workflow 文件自己打开。
 
 1. **把默认分支改成 `main`。**  
-   现在 `origin/HEAD` 指向 `dev`。`WPG Build` 用的 `workflow_run` 只读取**默认分支**上的 `build.yml`。在 Settings → General → Default branch，改成 `main`。改之前，先把这份 CI 文件合并进 `main`，否则默认分支上没有 workflow，自动 Build 不会挂上。
+   现在 `origin/HEAD` 指向 `dev`。`WPG Build` 用的 `workflow_run` 只读取**默认分支**上的 workflow 文件。在 Settings → General → Default branch，改成 `main`。改之前，先把 `build.yml` 合并进 `main`，否则默认分支上没有这个 workflow，自动 Build 不会挂上。Web 部署不经过 Actions，不受这条影响。
 
 2. **保护 `main`。** Settings → Branches → Add branch ruleset（或经典 Branch protection rule），分支选 `main`：
    - 要求 Pull Request 才能合并
@@ -149,6 +214,8 @@ Web 打的是整个导出目录的 zip，不只是一个 HTML。包里至少要�
 
 5. Release 使用仓库自带的 `GITHUB_TOKEN` 创建 Release。Settings → Actions → General 里，Workflow permissions 要允许 **Read and write permissions**，否则 `publish` 没法创建 Release。
 
+6. **只有手动兜底才需要的两个值。** 自动部署走 Netlify 的 Git 集成，不需要任何 GitHub Secret。只有你想用菜单 `12. Deploy Web to Netlify` 时，才要在本机 export `NETLIFY_AUTH_TOKEN` 和 `NETLIFY_SITE_ID`。
+
 ## 本地和 GitHub 为什么是同一套规则
 
 ```text
@@ -158,9 +225,11 @@ python3 tools/build_tools.py
         ├─ tools/ci/architecture.py
         ├─ tools/ci/smoke.py
         ├─ tools/build/export_platform.py
+        ├─ tools/deploy/netlify_build.py     （Netlify 用它构建 Web）
+        ├─ tools/deploy/deploy_netlify.py    （手动兜底发布）
         └─ tools/release/guard.py 里也会再调用 tools/ci/run_ci.py
 
-GitHub Actions 调用的是上面这些脚本，不另写一套检查。
+GitHub Actions 调用的是上面这些脚本，Netlify 调用的也是同一个 netlify_build.py，不另写一套。
 ```
 
 构建产物目录 `build/`、`artifacts/`、`logs/`、`.tools/` 已写进 `.gitignore`。原来的 `/export/`、`/builds/` 规则还在，没有删。

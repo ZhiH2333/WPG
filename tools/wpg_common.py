@@ -83,6 +83,8 @@ TEMPLATE_FILES: Dict[str, Tuple[str, ...]] = {
     "web": ("web_nothreads_release.zip", "web_release.zip"),
 }
 
+WEB_PACKAGE_SUFFIXES: Tuple[str, ...] = (".wasm", ".js", ".pck")
+
 
 @dataclass
 class Outcome:
@@ -322,6 +324,28 @@ def templates_ready(platform_key: str) -> Outcome:
             "缺少 %s 导出模板：%s" % (platform_key, ", ".join(required)),
         )
     return Outcome("PASS", "Export Templates: %s" % folder)
+
+
+def web_package_problem(folder: Path, prefix: str = "Web 导出目录") -> Optional[str]:
+    """检查一个 Web 导出目录能不能发布。返回 None 表示没问题。
+
+    导出、Netlify 构建、手动发布共用这一个判断：宁可不上传，也不要把坏包或者
+    空目录发成正式站。
+    """
+    if not folder.is_dir():
+        return "%s不存在：%s" % (prefix, folder)
+    files = [path for path in folder.rglob("*") if path.is_file()]
+    names = [path.name for path in files]
+    if "index.html" not in names:
+        return "%s里没有 index.html：%s" % (prefix, folder)
+    if not [name for name in names if name != "index.html"]:
+        return "%s里只有 HTML，不是完整包：%s" % (prefix, folder)
+    if not any(
+        name.endswith(WEB_PACKAGE_SUFFIXES) or ".wasm" in name or ".pck" in name
+        for name in names
+    ):
+        return "%s里缺少 wasm/js/pck：%s（%s）" % (prefix, ", ".join(sorted(names)), folder)
+    return None
 
 
 def preset_exists(platform_key: str) -> bool:

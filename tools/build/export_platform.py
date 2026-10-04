@@ -24,6 +24,7 @@ from wpg_common import (  # noqa: E402
     package_basename,
     platform_prereq,
     run_cmd,
+    web_package_problem,
     zip_directory,
     Outcome,
 )
@@ -49,16 +50,11 @@ def export_binary_name(platform_key: str) -> str:
 
 
 def web_package_ok(folder: Path) -> Outcome:
+    """导出后、注入 favicon 之前的第一道检查，判断在 wpg_common。"""
+    problem = web_package_problem(folder)
+    if problem is not None:
+        return Outcome("FAIL", problem)
     files = [path for path in folder.rglob("*") if path.is_file()]
-    names = [path.name for path in files]
-    if "index.html" not in names:
-        return Outcome("FAIL", "Web 导出没有 index.html")
-    extras = [name for name in names if name != "index.html"]
-    if not extras:
-        return Outcome("FAIL", "Web 导出只有 HTML，不是完整包")
-    interesting = (".js", ".wasm", ".pck", ".png", ".icon", ".audio")
-    if not any(name.endswith(interesting) or ".wasm" in name or ".pck" in name for name in names):
-        return Outcome("FAIL", "Web 导出缺少 wasm/js/pck：%s" % ", ".join(names))
     return Outcome("PASS", "Web package 文件数 %d" % len(files))
 
 

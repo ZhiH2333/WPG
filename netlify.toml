@@ -1,0 +1,24 @@
+# Netlify 的 Git 集成构建配置。
+#
+# 生产分支是 dev：dev 上每来一个 commit，Netlify 就跑一次这里的 command，
+# 然后把 publish 目录发成正式站 https://bwpg.netlify.app。
+# Web 部署不经过 GitHub Actions；WPG CI 仍然只负责检查代码。
+#
+# netlify.toml 的设置优先级高于网页上的 Build settings，所以
+# Project configuration → Continuous deployment → Build settings 里的
+# Build command / Publish directory 留空就行，不要两边都填。
+
+[build]
+  command = "python3 tools/deploy/netlify_build.py"
+  publish = "build/web/raw"
+  # PR 的 Deploy Preview 直接跳过：构建一次要现下 Godot 和导出模板，几分钟没了，
+  # 而且预览分支不一定带这份 netlify.toml。exit 0 = 跳过，exit 1 = 继续构建。
+  # 写成「只在 deploy-preview 时跳过」，这样万一 $CONTEXT 没拿到，也只会多构建，
+  # 不会把 dev 的正式部署静默跳过。想要 PR 预览就删掉这一行。
+  ignore = '[ "$CONTEXT" = "deploy-preview" ]'
+
+[build.environment]
+  # 钉住 Python 大版本，免得 Netlify 换默认版本时构建行为漂移。
+  PYTHON_VERSION = "3.12"
+  # 日志实时出，不在管道里攒着。
+  PYTHONUNBUFFERED = "1"
