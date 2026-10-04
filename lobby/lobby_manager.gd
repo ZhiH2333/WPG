@@ -392,10 +392,12 @@ func _on_p2p_finished(success: bool, reason: String) -> void:
 	_p2p_connection = null
 
 ## Hole punch 成功，得到 validated path。
-## **Phase 9.2.2 R2 到此为止**：只宣告 direct path 已验证，不在本阶段发起
-## Direct ENet（那是 9.2.3 的范围：接到 LobbyNet 单 peer 跑 protocol 6 握手）。
+## Phase 9.2.3：自动发起 Direct ENet，接到 LobbyNet 单 peer，跑 protocol 6 握手。
 func _on_p2p_direct_path_established(rtt_ms: int, validated_candidate: Dictionary) -> void:
 	p2p_path_established.emit(rtt_ms, validated_candidate)
+	## 在 validated path 上发起 ENet 直连。
+	if _p2p_connection != null:
+		_p2p_connection.begin_direct_enet()
 
 ## Hole punch 失败。
 func _on_p2p_direct_path_failed(reason: String) -> void:
@@ -594,6 +596,13 @@ func _on_net_ready_applied(seat: int, ready: bool) -> void:
 func _on_net_connected() -> void:
 	# 传输层连上（尚未握手）。告诉当前 attempt「还没定论，继续等握手」。
 	# 关键：**这里绝不能判定成功** —— 握手没过就换候选/宣告成功都是错的。
+	
+	# P2P Direct ENet path: route to P2PConnection
+	if _p2p_connection != null and _p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING:
+		_p2p_connection.notify_direct_enet_connected()
+		return
+	
+	# Legacy LAN/Invite path: use ConnectAttemptRunner
 	if _runner != null:
 		_runner.notify_transport_connected(_runner.current_attempt_id())
 	# Guest 连上 Host，发自己的角色。
@@ -604,6 +613,13 @@ func _on_net_connected() -> void:
 
 func _on_net_seat_assigned(seat: int) -> void:
 	# 收到座位 = Host 的握手回执，本次 attempt 真正成功。
+	
+	# P2P Direct ENet path: route to P2PConnection
+	if _p2p_connection != null and (_p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING or _p2p_connection.get_state_value() == P2PConnectionState.State.HANDSHAKING):
+		_p2p_connection.notify_handshake_ok()
+		return
+	
+	# Legacy LAN/Invite path: use ConnectAttemptRunner
 	if _runner != null:
 		_runner.notify_handshake_ok(_runner.current_attempt_id())
 	# Guest 侧 Lobby 是本地投影；协议 5 不回传 host 名 / room_id，先占位。
@@ -650,6 +666,13 @@ func _on_net_match_begin(loop_goal: int, arena_id: String, net_play: int) -> voi
 func _on_net_connection_failed() -> void:
 	# 有进行中的 join：交给 runner 决定「换下一个候选」。它自己会 close peer，
 	# 只有候选全部耗尽才 emit network_failed（由 _on_join_exhausted 负责）。
+	
+	# P2P Direct ENet path: route to P2PConnection
+	if _p2p_connection != null and (_p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING or _p2p_connection.get_state_value() == P2PConnectionState.State.HANDSHAKING):
+		_p2p_connection.notify_direct_enet_failed("refused")
+		return
+	
+	# Legacy LAN/Invite path: use ConnectAttemptRunner
 	if _runner != null:
 		_runner.notify_connection_failed(_runner.current_attempt_id(), "refused")
 		return
@@ -659,6 +682,13 @@ func _on_net_connection_failed() -> void:
 
 func _on_net_version_mismatch() -> void:
 	# 协议不符：换 IP 也解决不了，立即终结本次 join，不做普通重试。
+	
+	# P2P Direct ENet path: route to P2PConnection
+	if _p2p_connection != null and (_p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING or _p2p_connection.get_state_value() == P2PConnectionState.State.HANDSHAKING):
+		_p2p_connection.notify_version_mismatch()
+		return
+	
+	# Legacy LAN/Invite path: use ConnectAttemptRunner
 	if _runner != null:
 		_runner.notify_version_mismatch(_runner.current_attempt_id(), "protocol_mismatch")
 		return
@@ -667,6 +697,13 @@ func _on_net_version_mismatch() -> void:
 
 func _on_net_join_rejected(reason: int) -> void:
 	# ticket 被拒：换 IP 也解决不了，立即终结本次 join，不做普通重试。
+	
+	# P2P Direct ENet path: route to P2PConnection
+	if _p2p_connection != null and (_p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING or _p2p_connection.get_state_value() == P2PConnectionState.State.HANDSHAKING):
+		_p2p_connection.notify_ticket_rejected()
+		return
+	
+	# Legacy LAN/Invite path: use ConnectAttemptRunner
 	if _runner != null:
 		_runner.notify_ticket_rejected(_runner.current_attempt_id(), "ticket_rejected:%d" % reason)
 		return

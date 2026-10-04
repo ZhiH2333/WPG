@@ -428,12 +428,13 @@ func _deactivate_all_pairs() -> void:
 		pair.pending_probe_ids.clear()
 
 func _build_validated_candidate(pair: Dictionary, src_addr: String, src_port: int, rtt: int) -> Dictionary:
-	var validated_remote: NetworkCandidates.Candidate = NetworkCandidates.Candidate.new()
-	validated_remote.candidate_type = pair.remote.candidate_type
-	validated_remote.address = src_addr
-	validated_remote.port = src_port
-	validated_remote.observed_address = src_addr
-	validated_remote.observed_port = src_port
+	var validated_remote: Dictionary = {
+		"candidate_type": pair.remote.candidate_type,
+		"address": src_addr,
+		"port": src_port,
+		"observed_address": src_addr,
+		"observed_port": src_port,
+	}
 	return {
 		"local": _copy_candidate(pair.local),
 		## legacy key `remote`：一定是真正回 ACK 的 validated endpoint（Direct ENet 用）。

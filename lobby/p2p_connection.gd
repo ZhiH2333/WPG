@@ -406,7 +406,7 @@ func begin_direct_enet() -> bool:
 		_state.transition(P2PConnectionState.Event.DIRECT_ENET_FAILED)
 		_finish(false, "invalid_validated_candidate")
 		return false
-	## 关闭 probe socket（hole punch 已完成）
+	## 关闭 probe socket（hole punch 已完成，不再需要打洞探测）
 	_hole_punch.cancel()
 	## 复用现有 ConnectAttemptRunner 逻辑，但只试这一个 validated candidate
 	var plan: ConnectionPath = ConnectionPath.new()
@@ -422,16 +422,34 @@ func begin_direct_enet() -> bool:
 	_runner.begin(plan, _ticket(), _connect_fn, _close_fn)
 	return true
 
+## 获取当前 Direct ENet 连接目标（仅供查询/测试断言）。
+## 返回包含 address, port, validated=true 的字典；若未进入 DIRECT_ENET_CONNECTING 则为空。
+func get_direct_enet_target() -> Dictionary:
+	if _state.get_state() != P2PConnectionState.State.DIRECT_ENET_CONNECTING:
+		return {}
+	var validated: Dictionary = _hole_punch.get_validated_candidate()
+	if validated.is_empty():
+		return {}
+	var remote: Dictionary = validated.remote
+	return {
+		"address": remote.address,
+		"port": remote.port,
+		"validated": true
+	}
+
 ## ENet connected_to_server 回调（在 validated path 上）。
 func notify_direct_enet_connected() -> void:
+	if _finished:
+		return
 	if _runner != null:
 		_runner.notify_transport_connected(_runner.current_attempt_id())
 	_state.transition(P2PConnectionState.Event.DIRECT_ENET_CONNECTED)
 
 ## ENet connection_failed 回调（在 validated path 上）。
 func notify_direct_enet_failed(why: String = "refused") -> void:
-	if _runner != null:
-		_runner.notify_connection_failed(_runner.current_attempt_id(), why)
+	if _finished:
+		return
+	## Direct ENet path 只有一个 validated candidate，失败即终结，不走 runner 的重试逻辑。
 	_state.transition(P2PConnectionState.Event.DIRECT_ENET_FAILED)
 
 ## 进入直连阶段：按候选顺序串行尝试（复用 ConnectionPath 的顺序语义）。
@@ -460,34 +478,47 @@ func begin_direct() -> bool:
 	return true
 
 ## 传输层连上（connected_to_server）：进入 HANDSHAKING，等握手结果。
+## 用于 legacy direct path (Phase 9.1) 和 Direct ENet path (Phase 9.2.3) 共用。
 func notify_transport_connected() -> void:
+	if _finished:
+		return
 	if _runner != null:
 		_runner.notify_transport_connected(_runner.current_attempt_id())
 	_state.transition(P2PConnectionState.Event.DIRECT_CONNECTED)
 
 ## 握手通过：真正的 CONNECTED。
+## 用于 legacy direct path (Phase 9.1) 和 Direct ENet path (Phase 9.2.3) 共用。
 func notify_handshake_ok() -> void:
+	if _finished:
+		return
 	if _runner != null:
 		_runner.notify_handshake_ok(_runner.current_attempt_id())
 	_state.transition(P2PConnectionState.Event.HANDSHAKE_OK)
 	_finish(true, "connected")
 
 ## 协议不符：VERSION_MISMATCH 终态，不做普通重试。
+## 用于 legacy direct path (Phase 9.1) 和 Direct ENet path (Phase 9.2.3) 共用。
 func notify_version_mismatch() -> void:
-	if _runner != null:
-		_runner.notify_version_mismatch(_runner.current_attempt_id(), "protocol_mismatch")
+	if _finished:
+		return
+	## Direct ENet path：直接终结，不走 runner 的重试逻辑。
 	_state.transition(P2PConnectionState.Event.VERSION_MISMATCH)
 	_finish(false, "version_mismatch")
 
 ## ticket 被拒：TICKET_REJECTED 终态，不做普通重试。
+## 用于 legacy direct path (Phase 9.1) 和 Direct ENet path (Phase 9.2.3) 共用。
 func notify_ticket_rejected() -> void:
-	if _runner != null:
-		_runner.notify_ticket_rejected(_runner.current_attempt_id(), "ticket_rejected")
+	if _finished:
+		return
+	## Direct ENet path：直接终结，不走 runner 的重试逻辑。
 	_state.transition(P2PConnectionState.Event.TICKET_REJECTED)
 	_finish(false, "ticket_rejected")
 
 ## 传输层失败（connection_failed）：换下一个候选，由 runner 决定是否还有候选。
+## 用于 legacy direct path (Phase 9.1)。Direct ENet path 用 notify_direct_enet_failed。
 func notify_connection_failed(why: String = "refused") -> void:
+	if _finished:
+		return
 	if _runner == null:
 		_finish(false, why)
 		return

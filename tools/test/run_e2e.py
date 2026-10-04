@@ -109,7 +109,7 @@ def main() -> int:
         "suite",
         nargs="?",
         default="all",
-        choices=["p2p_hole_punch", "rendezvous", "lan_e2e", "lan_ui", "all"],
+        choices=["p2p_hole_punch", "rendezvous", "p2p_direct_enet", "lan_e2e", "lan_ui", "all"],
         help="E2E test suite to run",
     )
     args = parser.parse_args()
@@ -117,6 +117,7 @@ def main() -> int:
     suites = {
         "p2p_hole_punch": ("python", E2E_DIR / "p2p_hole_punch" / "run.py"),
         "rendezvous": ("python", E2E_DIR / "rendezvous" / "run.py"),
+        "p2p_direct_enet": ("python", E2E_DIR / "p2p_direct_enet" / "run.py"),
         "lan_e2e": ("godot", E2E_DIR / "lan" / "run.gd"),
         "lan_ui": ("python", E2E_DIR / "lan" / "ui_run.py"),
     }
