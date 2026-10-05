@@ -35,6 +35,7 @@ var _enabled: bool = true
 var _index: int = -1
 var _origin: Vector2 = Vector2.ZERO
 var _dragging: bool = false
+var _drag_session_active: bool = false
 
 ## 绑定一个 ScrollContainer。area 是「手指落在这块区域里才算滚动」的控制；不传就用 ScrollContainer 自己。
 static func attach(scroll: ScrollContainer, area: Control = null) -> DragScroll:
@@ -92,12 +93,18 @@ func handle_event(event: InputEvent) -> bool:
 		return was_dragging
 	var drag: InputEventScreenDrag = event as InputEventScreenDrag
 	if drag == null or drag.index != _index:
+		## 吞掉拖动会话中的模拟鼠标抬起（左键），防止把滑动误判成点击按钮。
+		var mouse: InputEventMouseButton = event as InputEventMouseButton
+		if _drag_session_active and mouse != null and mouse.button_index == MOUSE_BUTTON_LEFT and not mouse.pressed:
+			_drag_session_active = false
+			return true
 		return false
 	## screen_relative 不受 Content Scale 影响，比 relative 更适合触控拖动。
 	if not _dragging:
 		if absf(drag.position.y - _origin.y) < TOUCH_SLOP:
 			return false
 		_dragging = true
+		_drag_session_active = true
 		_active = true
 		_current = float(_scroll.scroll_vertical)
 		_target = _current
@@ -138,3 +145,4 @@ func _begin_touch(index: int, position: Vector2) -> void:
 func _reset_touch() -> void:
 	_index = -1
 	_dragging = false
+	_drag_session_active = false

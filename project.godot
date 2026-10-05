@@ -31,6 +31,10 @@ window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[editor]
+
+movie_writer/fps=10
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/multirun/plugin.cfg")

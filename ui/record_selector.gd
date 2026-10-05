@@ -198,16 +198,11 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not _open:
 		return
-	if event is InputEventScreenTouch or event is InputEventScreenDrag:
-		print("PROBE_RS_INPUT ", event)
 	## 触屏拖动滚动优先于按钮：越过 TOUCH_SLOP 才吞事件，tap 照旧落到卡片上。
 	## 见 ui/drag_scroll.gd 顶部注释：emulate_mouse_from_touch 让 ScrollContainer 自带的
 	## 触控拖动失效，只能在这里接管原生触摸事件。
 	var drag: DragScroll = _editor_drag if _view == View.EDITOR else _list_drag
-	var _handled: bool = drag != null and drag.handle_event(event)
-	if event is InputEventScreenTouch or event is InputEventScreenDrag:
-		print("PROBE_RS_HANDLED ", _handled, " list_rect=", _list_drag._area.get_global_rect() if _list_drag != null and _list_drag._area != null else Rect2())
-	if _handled:
+	if drag != null and drag.handle_event(event):
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ui_cancel"):
