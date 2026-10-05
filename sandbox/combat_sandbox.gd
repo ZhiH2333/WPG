@@ -47,7 +47,11 @@ var _mouse_inside_window: bool = true
 var _enemies: Array[EnemyBase] = []
 var _offer_is_phrase: bool = false
 var _progress_written: bool = false
-var _record_id: String = ""
+## 当前绑定的 SaveSlot id（旧名 record id）。非 LAN / 非 Guest 时非空。
+var _slot_id: String = ""
+## RESUME_RUN 时从 GameSaveStore 读出来的安全检查点；bind 阶段消费后置空。
+var _resume_checkpoint: RunCheckpoint = null
+var _resumed_from_checkpoint: bool = false
 var _god_mode: bool = false
 var _leaving: bool = false
 var _music_tween: Tween
@@ -312,17 +316,19 @@ func _bind_runtime() -> void:
 	_run_session.bind_companion_catalog(COMPANION_CATALOG)
 	_run_session.bind_consumable_catalog(CONSUMABLE_CATALOG)
 	_assert_upgrade_catalog()
-	_bind_playable_record()
+	_bind_playable_slot()
 	_arena_id = GameLaunch.take_arena_id()
 	if ARENA_CATALOG.get_by_id(StringName(_arena_id)) == null:
 		_arena_id = "yard"
 	_apply_arena(_arena_id)
+	_run_session.set_arena_id(_arena_id)
 	if _is_lan():
 		_run_session.configure_mode(_lan_loop_goal)
 	else:
 		_run_session.configure_mode(_read_record_loop_goal())
 	_apply_record_character()
 	_run_session.restart()
+	_restore_resumed_checkpoint()
 	if _is_battle():
 		_pause_battle_world()
 	elif not _is_guest():
@@ -332,6 +338,8 @@ func _bind_runtime() -> void:
 	_upgrade_applier.bind_session(_run_session)
 	_upgrade_applier.capture_baseline()
 	_upgrade_applier.apply_owned()
+	_restore_resumed_vitals()
+	_commit_checkpoint(RunCheckpoint.Kind.RUN_START)
 	_upgrade_offer.bind_session(_run_session)
 	_upgrade_offer.bind_player_input(player_input)
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
@@ -355,7 +363,7 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_upgrade_offer(_upgrade_offer)
 	_debug_overlay.bind_shop_offer(_shop_offer)
 	_debug_overlay.bind_winner_page(_winner_page)
-	_debug_overlay.bind_record_id(_record_id)
+	_debug_overlay.bind_record_id(_slot_id)
 	_debug_overlay.bind_arena_id(_arena_id)
 	_debug_overlay.bind_net_session(_net)
 	_debug_overlay.bind_seats(_occupied_seats(), _local_seat)
@@ -426,6 +434,7 @@ func _loop_phrases() -> void:
 
 func _finish_loop_after_shop() -> void:
 	_run_session.notify_phrase_loop()
+	_commit_checkpoint(RunCheckpoint.Kind.LOOP_COMPLETE)
 	if _run_session.get_loop_goal() > 0 and _run_session.get_loop_index() >= _run_session.get_loop_goal():
 		_run_session.mark_cleared()
 		_park_combat_pools()
@@ -462,6 +471,8 @@ func _reset_sandbox() -> void:
 	_clear_companion()
 	_run_session.restart()
 	_upgrade_applier.apply_owned()
+	_resumed_from_checkpoint = false
+	_commit_checkpoint(RunCheckpoint.Kind.RUN_START)
 	for pawn: Player in _pawns:
 		if pawn == null:
 			continue
@@ -530,6 +541,7 @@ func _on_upgrade_picked(upgrade_id: StringName) -> void:
 	_debug_overlay.set_last_grant_id(String(upgrade_id))
 	var was_phrase: bool = _offer_is_phrase
 	_close_offer()
+	_commit_checkpoint(RunCheckpoint.Kind.PLAYER_DECISION)
 	_broadcast_offer_close(String(upgrade_id))
 	if was_phrase:
 		_encounter.acknowledge_offer()
@@ -670,6 +682,7 @@ func _close_shop() -> void:
 	_shop_offer.close()
 	_set_offer_input_lock(false)
 	_set_combat_frozen(false)
+	_commit_checkpoint(RunCheckpoint.Kind.SHOP_COMPLETE)
 
 func _set_combat_frozen(frozen: bool) -> void:
 	if _is_lan():
@@ -946,10 +959,10 @@ func _apply_record_character() -> void:
 			var character_id: String = _character_id_for_seat(seat)
 			_apply_character_id(pawn, character_id if not character_id.is_empty() else "boar")
 		return
-	var record: GameRecord = GameRecords.get_record(_record_id)
+	var slot: SaveSlot = GameSaveStore.get_slot(_slot_id)
 	var character_id: String = "boar"
-	if record != null:
-		character_id = record.character_id
+	if slot != null:
+		character_id = slot.character_id
 	_apply_character_id(_player, character_id)
 
 func _apply_character_id(pawn: Player, character_id: String) -> void:
@@ -960,23 +973,74 @@ func _apply_character_id(pawn: Player, character_id: String) -> void:
 		def = CHARACTER_CATALOG.get_by_id(&"boar")
 	pawn.apply_character(def)
 
-func _bind_playable_record() -> void:
+## 绑定 SaveSlot：只 take id + 意图，不把 SaveSlot / RunSession 对象塞进下一场。
+## RESUME_RUN 且该档确有 active_run 时读出 checkpoint，等 restart() 之后再恢复。
+func _bind_playable_slot() -> void:
+	_resume_checkpoint = null
+	_resumed_from_checkpoint = false
 	if _is_lan():
-		GameLaunch.take_active_record_id()
+		GameLaunch.take_active_save_slot_id()
+		GameLaunch.take_run_intent()
 		GameLaunch.take_mode()
-		_record_id = ""
+		_slot_id = ""
 		return
-	GameRecords.load_from_disk()
-	_record_id = GameLaunch.take_active_record_id()
-	if _record_id.is_empty() or GameRecords.get_record(_record_id) == null:
+	GameSaveStore.load_from_disk()
+	_slot_id = GameLaunch.take_active_save_slot_id()
+	var intent: GameLaunch.RunIntent = GameLaunch.take_run_intent()
+	if _slot_id.is_empty() or GameSaveStore.get_slot(_slot_id) == null:
 		var fallback_goal: int = GameLaunch.SOLO_LOOP_GOAL if GameLaunch.take_mode() == GameLaunch.Mode.SOLO else 0
-		_record_id = GameRecords.ensure_playable_record("boar", fallback_goal).id
+		var fallback: SaveSlot = GameSaveStore.ensure_playable_slot("boar", fallback_goal, "yard")
+		_slot_id = fallback.slot_id if fallback != null else ""
+		intent = GameLaunch.RunIntent.START_NEW_RUN
+	_run_session.bind_local_profile(
+		PlayerProfile.get_profile_id(),
+		PlayerProfile.get_display_name(),
+		_local_seat
+	)
+	_run_session.set_save_slot_id(_slot_id)
+	if intent == GameLaunch.RunIntent.RESUME_RUN and not _slot_id.is_empty():
+		_resume_checkpoint = GameSaveStore.load_active_checkpoint(_slot_id)
+
+## restart() 之后立刻恢复 checkpoint（必须早于 _apply_loop_pressure / _encounter.restart），
+## 这样 loop 压力与敌人轮次都按恢复后的 loop_index 走。
+func _restore_resumed_checkpoint() -> void:
+	if _resume_checkpoint == null:
+		return
+	var checkpoint: RunCheckpoint = _resume_checkpoint
+	_resume_checkpoint = null
+	if not _run_session.restore_checkpoint(checkpoint):
+		return
+	_resumed_from_checkpoint = true
+
+## 恢复本机 Pawn 的 HP（在 UpgradeApplier.apply_owned 之后，先合升级再落血量）。
+func _restore_resumed_vitals() -> void:
+	if not _resumed_from_checkpoint or _local_player == null:
+		return
+	var state: PlayerRunState = _run_session.get_local_player_state()
+	if state == null or not state.alive or state.hp <= 0:
+		return
+	var health: PlayerHealth = _local_player.get_player_health()
+	if health == null:
+		return
+	## 只落血量，不回写 max_hp：上限由升级合成结果决定，checkpoint 只是当时的快照。
+	health.apply_net_state(state.hp, health.get_max_hp(), false)
+
+## 提交一次安全检查点。LAN / Guest 永不落盘；非终局 kind 只在 run 还在打时提交。
+func _commit_checkpoint(kind: int) -> void:
+	if _is_lan() or _started_as_lan or _is_guest():
+		return
+	if _slot_id.is_empty():
+		return
+	var terminal: bool = kind == RunCheckpoint.Kind.TERMINAL or kind == RunCheckpoint.Kind.PRE_EXIT
+	if not terminal and not _run_session.is_playing():
+		return
+	GameSaveStore.commit_checkpoint(_slot_id, _run_session.export_checkpoint(kind, _slot_id))
 
 func _read_record_loop_goal() -> int:
-	var record: GameRecord = GameRecords.get_record(_record_id)
-	if record == null:
+	var slot: SaveSlot = GameSaveStore.get_slot(_slot_id)
+	if slot == null:
 		return 0
-	return record.loop_goal
+	return slot.loop_goal
 
 func _record_outcome() -> String:
 	if _run_session.is_cleared():
@@ -1006,13 +1070,13 @@ func _show_winner_if_needed() -> void:
 		_set_offer_input_lock(true)
 		_sync_system_cursor()
 		return
-	GameRecords.load_from_disk()
+	GameSaveStore.load_from_disk()
 	var previous_best: int = 0
-	var record: GameRecord = GameRecords.get_record(_record_id)
-	if record != null:
-		previous_best = record.best_score
+	var slot: SaveSlot = GameSaveStore.get_slot(_slot_id)
+	if slot != null:
+		previous_best = slot.best_score
 	_record_progress_if_needed()
-	_winner_page.present(_record_id, _run_session, previous_best)
+	_winner_page.present(_slot_id, _run_session, previous_best)
 	_set_offer_input_lock(true)
 	_sync_system_cursor()
 
@@ -1029,13 +1093,27 @@ func _on_winner_retry() -> void:
 func _on_winner_menu() -> void:
 	_return_to_menu()
 
+## 写盘时机唯一入口。职责：全局统计（GameProgress）+ 终局账本 / 续跑检查点（GameSaveStore）。
+## - 还在打就退出（quit）→ 只提交 PRE_EXIT 检查点，保留 active_run，档位保持 IN_PROGRESS 可续。
+## - 真正终局（cleared / dead）→ 提交 TERMINAL 检查点，再 mark_cleared / mark_failed，
+##   两者都会清掉 active_run 并把 status 定成 CLEARED / FAILED。
 func _record_progress_if_needed() -> void:
 	if _is_lan() or _started_as_lan:
 		return
 	if _progress_written:
 		return
 	GameProgress.record_run(_run_session)
-	GameRecords.append_run_result(_record_id, _run_session, _record_outcome())
+	var outcome: String = _record_outcome()
+	if outcome == "quit":
+		_commit_checkpoint(RunCheckpoint.Kind.PRE_EXIT)
+		_progress_written = true
+		return
+	var result: RunResult = _run_session.export_result(_slot_id, outcome)
+	_commit_checkpoint(RunCheckpoint.Kind.TERMINAL)
+	if outcome == "cleared":
+		GameSaveStore.mark_cleared(_slot_id, result)
+	else:
+		GameSaveStore.mark_failed(_slot_id, result)
 	_progress_written = true
 
 func _return_to_menu() -> void:

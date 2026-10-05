@@ -1,7 +1,14 @@
 extends Object
 class_name GameProgress
 
-## 跨局成绩。全是 static，不是 Autoload，不进场景树。不是中途续打。
+## 跨局**全局统计**（总局数 / 历史最好 / 上一局的收尾数字）。全是 static，不是 Autoload，
+## 不进场景树。不是中途续打。
+##
+## 数据边界（V2 Save Architecture 硬规定）：
+## - 「当前 run progress」只有一个 authoritative source = SaveSlot.active_run（RunCheckpoint）。
+## - GameProgress **绝不**保存 active_run / xp / level / gold 当前值 / 升级清单 / 任何 run state，
+##   它只是上一局结束后的只读统计投影，绝不能变成第二套 run-state source of truth。
+## - 档位与局末账本归 GameSaveStore（records.json）；本文件只写 progress.cfg。
 const PATH := "user://progress.cfg"
 
 static var _best_loop: int = 0

@@ -11,8 +11,17 @@ const COMPANION_CATALOG_TRES: String = "res://data/companion_catalog.tres"
 const SANDBOX_SCENE: String = "res://sandbox/combat_sandbox.tscn"
 ## 用户定的数字，故意写死：改这里就说明上限又被调了。
 const EXPECTED_CAP: int = 30
+## 沙盒 _ready 会真实写 records.json（ensure_playable_slot + RUN_START 检查点），
+## 测试跑完必须把用户真档原样放回去。
+const SAVE_NAMES: Array[String] = [
+	"records.json",
+	"records.json.tmp",
+	"records.json.bak",
+	"records.json.corrupt",
+]
 
 var _failures: PackedStringArray = PackedStringArray()
+var _save_snapshot: Dictionary = {}
 
 func _initialize() -> void:
 	_run_all.call_deferred()
@@ -21,6 +30,7 @@ func _run_all() -> void:
 	await process_frame
 	PlayerProfile.load_from_disk()
 	GameSettings.load_from_disk()
+	_snapshot_saves()
 
 	_case_expected_cap_value()
 	_case_count_clamps_to_cap()
@@ -28,6 +38,7 @@ func _run_all() -> void:
 	_case_shop_card_until_full()
 	await _case_sandbox_allows_cap_living_companions()
 
+	_restore_saves()
 	if _failures.is_empty():
 		print("COMPANION_CAP_OK")
 		quit(0)
@@ -35,6 +46,31 @@ func _run_all() -> void:
 	for failure: String in _failures:
 		printerr("COMPANION_CAP_FAIL: %s" % failure)
 	quit(1)
+
+## 只把字节抄进内存，绝不删用户文件。
+func _snapshot_saves() -> void:
+	_save_snapshot.clear()
+	for name: String in SAVE_NAMES:
+		var path: String = "user://%s" % name
+		_save_snapshot[name] = FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else null
+
+## 把字节写回；测试开始前不存在的文件才删除（只删自己造出来的）。
+func _restore_saves() -> void:
+	for name: String in _save_snapshot:
+		var path: String = "user://%s" % name
+		var stored: Variant = _save_snapshot[name]
+		if stored == null:
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(path)
+			continue
+		var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			continue
+		file.store_string(str(stored))
+		file.flush()
+		file.close()
+	_save_snapshot.clear()
+	GameSaveStore.load_from_disk()
 
 ## 常量本身 = 30。
 func _case_expected_cap_value() -> void:

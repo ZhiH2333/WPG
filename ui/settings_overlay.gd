@@ -844,8 +844,8 @@ func _on_delete_all_confirmed() -> void:
 	if dir != null:
 		if FileAccess.file_exists("user://progress.cfg"):
 			dir.remove("progress.cfg")
-		if FileAccess.file_exists("user://records.json"):
-			dir.remove("records.json")
+	## 存档文件整体交给仓储删（主文件 / tmp / bak / corrupt 一并清掉）。
+	GameSaveStore.wipe_files()
 	GameProgress.load_from_disk()
 	GameRecords.load_from_disk()
 	_status_label.text = "All data deleted."

@@ -361,17 +361,24 @@ func _set_home_slid(slid_out: bool, direction: int) -> void:
 	else:
 		UiAnim.slide_in(self, home, direction)
 
+## Continue = 续跑：该档还有 active_run 就 RESUME_RUN；否则退回「用该档新开一局」。
 func _on_continue_pressed() -> void:
+	GameSaveStore.ensure_loaded()
+	var active: SaveSlot = GameSaveStore.get_latest_active_slot()
+	if active != null:
+		_enter_record(active.slot_id, GameLaunch.RunIntent.RESUME_RUN)
+		return
 	var record: GameRecord = _find_last_record()
 	if record == null:
 		return
 	_enter_record(record.id)
 
-func _enter_record(id: String) -> void:
+func _enter_record(id: String, intent: GameLaunch.RunIntent = GameLaunch.RunIntent.START_NEW_RUN) -> void:
 	if _leaving:
 		return
 	var record: GameRecord = GameRecords.get_record(id)
-	GameLaunch.set_active_record_id(id)
+	GameLaunch.set_active_save_slot_id(id)
+	GameLaunch.set_run_intent(intent)
 	GameLaunch.set_arena_id(record.arena_id if record != null else "yard")
 	_leave_to_sandbox()
 

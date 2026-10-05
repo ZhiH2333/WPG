@@ -6,14 +6,20 @@ extends SceneTree
 ## 通过输出 LOBBY_DOMAIN_OK；失败逐条 LOBBY_DOMAIN_FAIL 并返回非 0。
 ##
 ## 离线开局会走 GameRecords.ensure_playable_record（等同 Solo 的「用该档新开一局」），
-## 因此测试前备份 user://records.json，结束后原样还原（原本没有就删掉）。
+## 且沙盒 _ready 会提交 RUN_START 检查点，因此测试前备份 user://records.json
+## 及其 .tmp / .bak / .corrupt 副本，结束后原样还原（原本没有就删掉）。
 
-const RECORDS_FILE := "user://records.json"
+const RECORDS_NAMES: Array[String] = [
+	"records.json",
+	"records.json.tmp",
+	"records.json.bak",
+	"records.json.corrupt",
+]
 
 var _failures: PackedStringArray = PackedStringArray()
 
 func _initialize() -> void:
-	var records_backup: Variant = _backup_records()
+	var records_backup: Dictionary = _backup_records()
 	PlayerProfile.load_from_disk()
 	_case_profile_copy_is_one_way()
 	_case_create_room_and_single_player_gate()
@@ -264,20 +270,24 @@ func _expect(condition: bool, label: String) -> void:
 	if not condition:
 		_failures.append(label)
 
-func _backup_records() -> Variant:
-	if not FileAccess.file_exists(RECORDS_FILE):
-		return null
-	return FileAccess.get_file_as_bytes(RECORDS_FILE)
+func _backup_records() -> Dictionary:
+	var saved: Dictionary = {}
+	for name: String in RECORDS_NAMES:
+		var path: String = "user://%s" % name
+		if FileAccess.file_exists(path):
+			saved[name] = FileAccess.get_file_as_bytes(path)
+	return saved
 
-func _restore_records(backup: Variant) -> void:
-	var dir: DirAccess = DirAccess.open("user://")
-	if dir == null:
-		return
-	if backup == null:
-		dir.remove("records.json")
-		return
-	var file: FileAccess = FileAccess.open(RECORDS_FILE, FileAccess.WRITE)
-	if file == null:
-		return
-	file.store_buffer(backup as PackedByteArray)
-	file.close()
+func _restore_records(backup: Dictionary) -> void:
+	for name: String in RECORDS_NAMES:
+		var path: String = "user://%s" % name
+		if backup.has(name):
+			var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+			if file == null:
+				continue
+			file.store_buffer(backup[name] as PackedByteArray)
+			file.close()
+			continue
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
+	GameSaveStore.load_from_disk()

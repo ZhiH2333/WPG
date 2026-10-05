@@ -1155,7 +1155,9 @@ func _write_offline_envelope() -> void:
 		record = GameRecords.get_record(_room.borrowed_record_id)
 	if record == null:
 		record = GameRecords.ensure_playable_record(character_id, _room.loop_goal, _room.arena_id)
-	GameLaunch.set_active_record_id(record.id if record != null else "")
+	GameLaunch.set_active_save_slot_id(record.id if record != null else "")
+	## 借档开房 = 用该档新开一局，绝不续跑该档的 active_run。
+	GameLaunch.set_run_intent(GameLaunch.RunIntent.START_NEW_RUN)
 	GameLaunch.set_mode(GameLaunch.Mode.SOLO if _room.loop_goal > 0 else GameLaunch.Mode.INFINITE)
 	GameLaunch.set_arena_id(_room.arena_id)
 	GameLaunch.set_net_role(GameLaunch.NetRole.OFFLINE)

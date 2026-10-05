@@ -13,6 +13,15 @@ var _touch: TouchControls
 var _player: Player
 var _pi: PlayerInput
 var _pause: PauseOverlay
+## 沙盒 _ready 会真实写 records.json（ensure_playable_slot + RUN_START 检查点），
+## 测试跑完必须把用户真档原样放回去。
+const SAVE_NAMES: Array[String] = [
+	"records.json",
+	"records.json.tmp",
+	"records.json.bak",
+	"records.json.corrupt",
+]
+var _save_snapshot: Dictionary = {}
 
 func _initialize() -> void:
 	_run()
@@ -21,6 +30,7 @@ func _run() -> void:
 	await process_frame
 	PlayerProfile.load_from_disk()
 	GameSettings.load_from_disk()
+	_snapshot_saves()
 	root.size = Vector2i(2400, 1080)
 
 	await _case_menu_loads_and_targets_combat()
@@ -34,6 +44,7 @@ func _run() -> void:
 
 	_teardown()
 	await process_frame
+	_restore_saves()
 
 	if _failures.is_empty():
 		print("MOBILE_VERTICAL_SLICE_OK")
@@ -42,6 +53,31 @@ func _run() -> void:
 	for failure: String in _failures:
 		printerr("MOBILE_VERTICAL_SLICE_FAIL: %s" % failure)
 	quit(1)
+
+## 只把字节抄进内存，绝不删用户文件。
+func _snapshot_saves() -> void:
+	_save_snapshot.clear()
+	for name: String in SAVE_NAMES:
+		var path: String = "user://%s" % name
+		_save_snapshot[name] = FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else null
+
+## 把字节写回；测试开始前不存在的文件才删除（只删自己造出来的）。
+func _restore_saves() -> void:
+	for name: String in _save_snapshot:
+		var path: String = "user://%s" % name
+		var stored: Variant = _save_snapshot[name]
+		if stored == null:
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(path)
+			continue
+		var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			continue
+		file.store_string(str(stored))
+		file.flush()
+		file.close()
+	_save_snapshot.clear()
+	GameSaveStore.load_from_disk()
 
 # ---- MainMenu -> Start Game ----
 

@@ -1,10 +1,13 @@
 extends Object
 class_name GameLaunch
 
-## 一次性把模式、档位 id、局域网身份、对局模式、竞技场 id、座位表和换场目标带进下一场。不是 Autoload，不是 Node，禁止 get_tree()。默认 Infinite / OFFLINE / COOP / yard，take 后打回缺省。只传 id，不塞 Record / ArenaDef 对象。NetPlay 不进 records.json。座位 1～5，下标 0=seat 1。
+## 一次性把模式、档位 id、局域网身份、对局模式、竞技场 id、座位表和换场目标带进下一场。不是 Autoload，不是 Node，禁止 get_tree()。默认 Infinite / OFFLINE / COOP / yard，take 后打回缺省。只传 id，不塞 SaveSlot / RunSession / ArenaDef 对象。NetPlay 不进 records.json。座位 1～5，下标 0=seat 1。
 enum Mode { SOLO, INFINITE }
 enum NetRole { OFFLINE, HOST, GUEST }
 enum NetPlay { COOP, BATTLE }
+## 这一趟是「用该档新开一局」还是「续上该档的 active_run」。
+## GameLaunch 只传 save slot id + 这个意图 + 必要配置 id，绝不塞整个 SaveSlot / RunSession。
+enum RunIntent { START_NEW_RUN, RESUME_RUN }
 
 const SOLO_LOOP_GOAL: int = 20 ## 滑杆默认与缺档 Solo 隐式档，不是运行时硬锁终点
 const NET_PORT: int = 17777
@@ -18,7 +21,8 @@ const DEFAULT_JOIN_ADDRESS := "127.0.0.1"
 const ARENA_CATALOG: ArenaCatalog = preload("res://data/arena_catalog.tres")
 
 static var _mode: Mode = Mode.INFINITE
-static var _active_record_id: String = ""
+static var _active_save_slot_id: String = ""
+static var _run_intent: RunIntent = RunIntent.START_NEW_RUN
 static var _net_role: NetRole = NetRole.OFFLINE
 static var _net_play: NetPlay = NetPlay.COOP
 static var _join_address: String = DEFAULT_JOIN_ADDRESS
@@ -37,12 +41,27 @@ static func take_mode() -> Mode:
 	_mode = Mode.INFINITE
 	return current
 
+static func set_active_save_slot_id(id: String) -> void:
+	_active_save_slot_id = id
+
+static func take_active_save_slot_id() -> String:
+	var current: String = _active_save_slot_id
+	_active_save_slot_id = ""
+	return current
+
+## 兼容旧名（active_record_id 语义 = active_save_slot_id）。新代码请用上面两个。
 static func set_active_record_id(id: String) -> void:
-	_active_record_id = id
+	set_active_save_slot_id(id)
 
 static func take_active_record_id() -> String:
-	var current: String = _active_record_id
-	_active_record_id = ""
+	return take_active_save_slot_id()
+
+static func set_run_intent(intent: RunIntent) -> void:
+	_run_intent = intent
+
+static func take_run_intent() -> RunIntent:
+	var current: RunIntent = _run_intent
+	_run_intent = RunIntent.START_NEW_RUN
 	return current
 
 static func set_net_role(role: NetRole) -> void:
