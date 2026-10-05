@@ -212,24 +212,45 @@ func loop_goal_text() -> String:
 	return str(loop_goal)
 
 
-## 进行中那一轮显示到哪了。第 0 行永远是主进度行（窄屏只留它）。
-func progress_lines() -> PackedStringArray:
-	var lines: PackedStringArray = PackedStringArray()
+## 进度 = 若干条「事实」。一条 = 左列 key（这一格是什么，可为空 = 只有一句短语）+ 右列 value（多少）。
+## 界面（SaveRow）拿这个结构自己排版：对齐成两列、按 kind 上色、窄屏按档位砍条数。
+## 文本拼装**只在这里**发生 —— progress_lines() 是同一个结构的纯文本展开，
+## 所以「存档行里写的」和「删除确认条里写的」不会各写一套然后慢慢漂移。
+## kind 只是给界面配色的提示（loop / level / gold / score / best / goal），
+## 永远不承担语义：色觉不敏感用户靠 key + value 的文字分辨（§3）。
+func progress_facts() -> Array[Dictionary]:
 	match status:
 		STATUS_IN_PROGRESS:
-			lines.append(_active_loop_line())
-			lines.append("Level %d  ·  XP %d / %d" % [level, xp, xp_to_next])
-			lines.append("Gold %d" % gold)
-			lines.append("Score %s" % format_score(score))
+			return [
+				_fact("Loop", _active_loop_value(), "loop"),
+				_fact("Level", "%d  ·  XP %d / %d" % [level, xp, xp_to_next], "level"),
+				_fact("Gold", str(gold), "gold"),
+				_fact("Score", format_score(score), "score"),
+			]
 		STATUS_CLEARED:
-			lines.append(_cleared_loop_line())
-			lines.append("Best Score %s" % format_score(best_score))
+			return [
+				_fact("", _cleared_loop_line(), "loop"),
+				_fact("Best Score", format_score(best_score), "best"),
+			]
 		STATUS_FAILED:
-			lines.append("Failed at loop %d" % loop_index)
-			lines.append("Best Score %s" % format_score(best_score))
+			return [
+				_fact("", "Failed at loop %d" % loop_index, "loop"),
+				_fact("Best Score", format_score(best_score), "best"),
+			]
 		_:
-			lines.append("Not started")
-			lines.append("Loop goal %s" % loop_goal_text())
+			return [
+				_fact("", "Not started", "loop"),
+				_fact("Loop goal", loop_goal_text(), "goal"),
+			]
+
+
+## 第 0 行永远是主进度行（窄屏只留它）。
+func progress_lines() -> PackedStringArray:
+	var lines: PackedStringArray = PackedStringArray()
+	for fact: Dictionary in progress_facts():
+		var key: String = str(fact.get("key", ""))
+		var value: String = str(fact.get("value", ""))
+		lines.append("%s %s" % [key, value] if not key.is_empty() else value)
 	return lines
 
 
@@ -313,10 +334,14 @@ func is_same_run(other: SaveUiProjection) -> bool:
 
 # ---- 内部 ----
 
-func _active_loop_line() -> String:
+func _active_loop_value() -> String:
 	if loop_goal > 0:
-		return "Loop %d / %d" % [loop_index, loop_goal]
-	return "Loop %d" % loop_index
+		return "%d / %d" % [loop_index, loop_goal]
+	return str(loop_index)
+
+
+static func _fact(key: String, value: String, kind: String) -> Dictionary:
+	return {"key": key, "value": value, "kind": kind}
 
 
 func _cleared_loop_line() -> String:
