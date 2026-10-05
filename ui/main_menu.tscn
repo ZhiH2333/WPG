@@ -119,8 +119,9 @@ theme_type_variation = &"Caption"
 text = "Ready to play"
 
 [node name="TopLine" type="ColorRect" parent="Home/Body"]
-custom_minimum_size = Vector2(0, 1)
+custom_minimum_size = Vector2(756, 1)
 layout_mode = 2
+size_flags_horizontal = 0
 mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 0.35)
 
@@ -131,9 +132,8 @@ theme_override_constants/separation = 48
 
 [node name="Continue" type="Button" parent="Home/Body/Rail"]
 visible = false
-custom_minimum_size = Vector2(0, 84)
+custom_minimum_size = Vector2(220, 84)
 layout_mode = 2
-size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
 
 [node name="Mark" type="ColorRect" parent="Home/Body/Rail/Continue"]
@@ -174,9 +174,8 @@ theme_type_variation = &"Caption"
 text = "Loop 0"
 
 [node name="Solo" type="Button" parent="Home/Body/Rail"]
-custom_minimum_size = Vector2(0, 84)
+custom_minimum_size = Vector2(220, 84)
 layout_mode = 2
-size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
 
 [node name="Mark" type="ColorRect" parent="Home/Body/Rail/Solo"]
@@ -217,9 +216,8 @@ theme_type_variation = &"Caption"
 text = "New run"
 
 [node name="Multi" type="Button" parent="Home/Body/Rail"]
-custom_minimum_size = Vector2(0, 84)
+custom_minimum_size = Vector2(220, 84)
 layout_mode = 2
-size_flags_horizontal = 3
 theme_type_variation = &"EmptyButton"
 
 [node name="Mark" type="ColorRect" parent="Home/Body/Rail/Multi"]
@@ -260,8 +258,9 @@ theme_type_variation = &"Caption"
 text = "Play with friends"
 
 [node name="BottomLine" type="ColorRect" parent="Home/Body"]
-custom_minimum_size = Vector2(0, 1)
+custom_minimum_size = Vector2(756, 1)
 layout_mode = 2
+size_flags_horizontal = 0
 mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 0.35)
 
@@ -272,7 +271,7 @@ mouse_filter = 2
 theme_override_constants/separation = 24
 
 [node name="Best" type="Button" parent="Home/Body/Secondary"]
-custom_minimum_size = Vector2(208, 54)
+custom_minimum_size = Vector2(220, 54)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
 
@@ -313,13 +312,8 @@ theme_type_variation = &"StatValue"
 text = "0"
 vertical_alignment = 1
 
-[node name="Spacer" type="Control" parent="Home/Body/Secondary"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
 [node name="Last" type="Button" parent="Home/Body/Secondary"]
-custom_minimum_size = Vector2(252, 54)
+custom_minimum_size = Vector2(220, 54)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
 

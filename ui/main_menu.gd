@@ -57,6 +57,8 @@ var _top_bar_nav_min: float = 0.0
 @onready var _solo_button: Button = $Home/Body/Rail/Solo
 @onready var _multi_button: Button = $Home/Body/Rail/Multi
 @onready var _continue_caption: Label = $Home/Body/Rail/Continue/Text/Caption
+@onready var _rail_top_line: ColorRect = $Home/Body/TopLine
+@onready var _rail_bottom_line: ColorRect = $Home/Body/BottomLine
 @onready var _secondary: HBoxContainer = $Home/Body/Secondary
 @onready var _best_button: Button = $Home/Body/Secondary/Best
 @onready var _best_value: Label = $Home/Body/Secondary/Best/Text/Value
@@ -411,6 +413,30 @@ func _refresh_home_facts() -> void:
 		_last_value.text = _format_stamp(_record_stamp(record))
 	_secondary.visible = has_best or has_record
 	_wire_home_focus()
+	_sync_rail_lines()
+
+## Rail 上下两条细线与按钮行同宽。ColorRect 默认 fill，会被版心拉成 1200px，
+## 比按钮（220×3 + 48×2 = 756）长出一截；场景里已把两条线改成不填充（SHRINK_BEGIN），
+## 这里再按「实际可见按钮的最小宽度 + separation」定宽：
+## Continue 没存档时只挂两个按钮，线也要跟着短，否则右端又会悬出一截。
+func _sync_rail_lines() -> void:
+	var rail: Container = _solo_button.get_parent() as Container
+	if rail == null:
+		return
+	var separation: int = rail.get_theme_constant("separation")
+	var total: float = 0.0
+	var shown: int = 0
+	for button: Button in [_continue_button, _solo_button, _multi_button]:
+		if not button.visible:
+			continue
+		if shown > 0:
+			total += float(separation)
+		total += button.get_combined_minimum_size().x
+		shown += 1
+	if shown == 0:
+		return
+	for line: ColorRect in [_rail_top_line, _rail_bottom_line]:
+		line.custom_minimum_size = Vector2(total, 1.0)
 
 func _loop_caption(loop_goal: int) -> String:
 	if loop_goal > 0:
