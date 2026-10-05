@@ -58,6 +58,11 @@
             background: #fff;
             transition: width 0.1s ease-out;
         }
+        .loading-error {
+            color: #f00;
+            text-align: center;
+            padding: 16px;
+        }
     </style>
 </head>
 <body>
@@ -69,117 +74,87 @@
     </div>
     <canvas id="canvas"></canvas>
 
+    <script src="$GODOT_URL"></script>
     <script>
         // Request fullscreen on load (including mobile)
         function requestFullscreen() {
             const elem = document.documentElement;
             
-            // Try standard fullscreen API
             if (elem.requestFullscreen) {
                 elem.requestFullscreen().catch(err => {
                     console.log('Fullscreen request failed:', err);
                 });
-            }
-            // iOS Safari (webkit)
-            else if (elem.webkitRequestFullscreen) {
+            } else if (elem.webkitRequestFullscreen) {
                 elem.webkitRequestFullscreen().catch(err => {
                     console.log('Fullscreen request failed:', err);
                 });
-            }
-            // Firefox
-            else if (elem.mozRequestFullScreen) {
+            } else if (elem.mozRequestFullScreen) {
                 elem.mozRequestFullScreen().catch(err => {
                     console.log('Fullscreen request failed:', err);
                 });
-            }
-            // IE/Edge
-            else if (elem.msRequestFullscreen) {
+            } else if (elem.msRequestFullscreen) {
                 elem.msRequestFullscreen().catch(err => {
                     console.log('Fullscreen request failed:', err);
                 });
             }
         }
 
-        // Request fullscreen on user interaction (required by browsers)
         function requestFullscreenOnInteraction() {
             document.addEventListener('click', requestFullscreen, { once: true });
             document.addEventListener('touchstart', requestFullscreen, { once: true });
             document.addEventListener('keydown', requestFullscreen, { once: true });
         }
 
-        // Try auto-fullscreen on load (works on some mobile browsers when launched from home screen)
-        // Also listen for visibility change to re-request
         function tryAutoFullscreen() {
-            // Check if already in fullscreen
             if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
                 return;
             }
-
-            // Try to request fullscreen immediately (may work on some mobile browsers)
             requestFullscreen();
-
-            // Also set up interaction listeners as fallback
             requestFullscreenOnInteraction();
         }
 
-        // Run when page loads
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', tryAutoFullscreen);
         } else {
             tryAutoFullscreen();
         }
 
-        // Handle visibility change (e.g., returning from background)
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 tryAutoFullscreen();
             }
         });
 
-        // Godot engine loading
         const canvas = document.getElementById('canvas');
         const loading = document.getElementById('loading');
         const loadingBarFill = document.getElementById('loading-bar-fill');
 
-        // Module configuration
-        const moduleConfig = {
-            canvas: canvas,
-            onProgress: (progress) => {
-                if (loadingBarFill) {
-                    loadingBarFill.style.width = `${Math.round(progress * 100)}%`;
-                }
-            },
-            onLoad: () => {
-                if (loading) {
-                    loading.classList.add('hidden');
-                }
-                // Re-request fullscreen after engine loads
-                tryAutoFullscreen();
-            },
-            onError: (err) => {
-                console.error('Engine load error:', err);
-                if (loading) {
-                    loading.innerHTML = '<div style="color: #f00;">Failed to load game</div>';
-                }
-            }
-        };
+        const engine = new Engine($GODOT_CONFIG);
 
-        // Load Godot engine
-        const script = document.createElement('script');
-        script.src = 'WPG.js';
-        script.onload = () => {
-            if (typeof Godot !== 'undefined') {
-                const engine = new Godot(moduleConfig);
-                engine.startGame();
-            } else if (typeof Module !== 'undefined') {
-                // Emscripten Module fallback
-                Module.canvas = canvas;
-                Module.onProgress = moduleConfig.onProgress;
-                Module.onRuntimeInitialized = moduleConfig.onLoad;
+        engine.startGame({
+            canvas: canvas,
+            onProgress: (current, total) => {
+                if (loadingBarFill && current > 0 && total > 0) {
+                    loadingBarFill.style.width = `${Math.round((current / total) * 100)}%`;
+                }
+            },
+            onPrint: (message) => {
+                console.log(message);
+            },
+            onPrintError: (message) => {
+                console.error(message);
             }
-        };
-        script.onerror = moduleConfig.onError;
-        document.head.appendChild(script);
+        }).then(() => {
+            if (loading) {
+                loading.classList.add('hidden');
+            }
+            tryAutoFullscreen();
+        }).catch((err) => {
+            console.error('Engine start error:', err);
+            if (loading) {
+                loading.innerHTML = '<div class="loading-error">Failed to load game</div>';
+            }
+        });
     </script>
 </body>
 </html>

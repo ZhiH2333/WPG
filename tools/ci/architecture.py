@@ -363,6 +363,28 @@ def _ui_display_guards() -> list:
     return failures
 
 
+def _web_shell_guards() -> list:
+    """Godot 4.6 Web custom HTML shell 必须包含 $GODOT_URL 和 $GODOT_CONFIG 占位符。
+    缺失会导致导出回退到默认模板，或生成无法启动的页面。"""
+    failures = []
+    shell = ROOT / "web_export.html"
+    if not shell.is_file():
+        failures.append("缺少 web_export.html（Web 自定义模板）")
+        return failures
+    text = shell.read_text(encoding="utf-8")
+    if "$GODOT_URL" not in text:
+        failures.append("web_export.html 缺少 $GODOT_URL 占位符（Godot 4.6 导出会注入 JS 路径）")
+    if "$GODOT_CONFIG" not in text:
+        failures.append("web_export.html 缺少 $GODOT_CONFIG 占位符（Godot 4.6 导出会注入引擎配置）")
+    if "WPG.js" in text:
+        failures.append("web_export.html 硬编码 WPG.js（导出产物文件名不固定，必须用 $GODOT_URL）")
+    if "new Godot(" in text:
+        failures.append("web_export.html 使用旧式 new Godot() API（Godot 4.6 用 new Engine($GODOT_CONFIG)）")
+    if "typeof Module" in text:
+        failures.append("web_export.html 包含 Emscripten Module 回退（Godot 4.6 不需要）")
+    return failures
+
+
 def _icon_guards() -> list:
     """图标接线守卫：预设引用的 res:// 图标必须真实存在，且导出期素材不进 PCK。"""
     failures = []
@@ -474,6 +496,7 @@ def main() -> int:
     failures.extend(_mobile_input_guards())
     failures.extend(_ui_display_guards())
     failures.extend(_icon_guards())
+    failures.extend(_web_shell_guards())
     presets = read(EXPORT_PRESETS)
     for key, name in PRESETS.items():
         if ('name="%s"' % name) not in presets:
