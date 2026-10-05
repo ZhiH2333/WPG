@@ -73,37 +73,54 @@ func _setup() -> void:
 	root.add_child(_lobby_manager)
 	_lobby_manager.bind_net(_lobby_net)
 
-	## 构造 P2P invite
-	var invite: JoinInvite = JoinInvite.create(
-		"127.0.0.1", 17777, _ticket, _room_id, "Host",
-		"", "", JoinInvite.DEFAULT_WAN_PORT,
-		true, "127.0.0.1", _rendezvous_port
-	)
-
-	## 开始 P2P join
-	var joined: JoinInvite = _lobby_manager.join_invite(invite.to_uri())
-	if joined.error != JoinInvite.InvalidReason.OK:
-		_write_result("FAIL: join_invite 失败: %d" % joined.error)
-		quit(1)
-
-	_p2p_connection = _lobby_manager._p2p_connection
-	if _p2p_connection == null:
-		_write_result("FAIL: 未创建 P2PConnection")
-		quit(1)
-
-	## 监听 P2P 状态
+	## 直接创建 P2PConnection 并使用预设 nonce（测试需要确定性 nonce）
+	_p2p_connection = P2PConnection.new()
+	_p2p_connection.bind_transport(_lobby_manager._connect_transport.bind(), _lobby_manager._close_transport.bind())
 	_p2p_connection.state_changed.connect(_on_p2p_state_changed)
 	_p2p_connection.finished.connect(_on_p2p_finished)
+	
+	## 创建 rendezvous client 并绑定
+	var client: RendezvousClient = RendezvousClient.new()
+	_p2p_connection.bind_rendezvous(client)
+	
+	## 构造 SessionIdentity 使用预设的 guest_nonce
+	var identity: RendezvousContract.SessionIdentity = RendezvousContract.make_identity(
+		_room_id, _ticket, GameLaunch.NET_PROTOCOL, RendezvousContract.Role.GUEST, _guest_nonce
+	)
+	
+	## 本地候选（用于 rendezvous 注册）
+	var local_candidates: Array = []
+	var cand: RendezvousContract.Candidate = RendezvousContract.Candidate.new()
+	cand.path = LobbyPlayer.Path.LAN_IPV4
+	cand.address = "127.0.0.1"
+	cand.port = 17777
+	local_candidates.append(cand)
+	
+	## 开始 P2P 连接流程（手动驱动，不通过 join_invite）
+	## 这里需要模拟 invite 的 begin 行为，但使用预设 nonce
+	var shared_udp: PacketPeerUDP = PacketPeerUDP.new()
+	var err: Error = shared_udp.bind(0)
+	if err != OK:
+		_write_result("FAIL: shared UDP bind 失败")
+		quit(1)
+	
+	if not _p2p_connection.begin_with_identity(identity, local_candidates, "127.0.0.1", _rendezvous_port, shared_udp):
+		_write_result("FAIL: P2P begin 失败")
+		quit(1)
+
+	_lobby_manager._p2p_connection = _p2p_connection
 
 	_state = "p2p_started"
 	print("GUEST: P2P join started")
-	_write_ready()
+	## 不在这里写 ready，等 rendezvous registered 后再写
 
 func _on_p2p_state_changed(from: int, to: int, event: int) -> void:
 	var from_name: String = P2PConnectionState.state_name(from)
 	var to_name: String = P2PConnectionState.state_name(to)
 	var event_name: String = P2PConnectionState.event_name(event)
 	print("GUEST: P2P state %s -> %s via %s" % [from_name, to_name, event_name])
+	if to == P2PConnectionState.State.RENDEZVOUS_REGISTERED:
+		_write_ready()
 
 func _on_p2p_finished(success: bool, reason: String) -> void:
 	print("GUEST: P2P finished success=%s reason=%s" % [success, reason])
@@ -145,13 +162,21 @@ func _write_ready() -> void:
 func _run() -> void:
 	## 等待 go 信号
 	while not FileAccess.file_exists(_go_file):
-		_p2p_connection.tick(0.016)
+		if _p2p_connection != null:
+			_p2p_connection.poll_rendezvous(0.016)
+			_p2p_connection.tick(0.016)
 		OS.delay_usec(16000)
 
 	## 开始主循环：推进 P2P 状态机直到完成
 	print("GUEST: go signal received, starting main loop")
 	while true:
-		_p2p_connection.tick(0.016)
+		if _p2p_connection != null:
+			_p2p_connection.poll_rendezvous(0.016)
+			_p2p_connection.tick(0.016)
+			## Debug: print hole punch pair states
+			if _p2p_connection._hole_punch != null and _p2p_connection._hole_punch.is_active():
+				for pair_state in _p2p_connection._hole_punch.debug_pair_states():
+					print("GUEST: hole punch pair: %s" % pair_state)
 		print("GUEST: p2p state = ", _p2p_connection.get_state_value(), " net_state = ", _net_state)
 		if _joined_lobby and _net_state == int(LobbyNet.NetState.LOBBY):
 			break

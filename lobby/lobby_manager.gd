@@ -600,6 +600,7 @@ func _on_net_connected() -> void:
 	# P2P Direct ENet path: route to P2PConnection
 	if _p2p_connection != null and _p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING:
 		_p2p_connection.notify_direct_enet_connected()
+		# P2P path: 不在这里发送 guest character，等 handshake_ok (seat_assigned) 再发
 		return
 	
 	# Legacy LAN/Invite path: use ConnectAttemptRunner
@@ -617,6 +618,15 @@ func _on_net_seat_assigned(seat: int) -> void:
 	# P2P Direct ENet path: route to P2PConnection
 	if _p2p_connection != null and (_p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING or _p2p_connection.get_state_value() == P2PConnectionState.State.HANDSHAKING):
 		_p2p_connection.notify_handshake_ok()
+		# P2P path: 必须完成 Guest 本地 Lobby 投影并 emit joined_lobby
+		var local: LobbyPlayer = get_local_player()
+		var character_id: String = local.selected_character_id if local != null else PlayerProfile.get_preferred_character_id()
+		# 协议 6：seat_assigned 后 Guest 发角色（已在 connected 时发过，这里确保幂等）
+		if _net != null:
+			_net.send_guest_character(character_id)
+		join_remote(str(_remote_seed.get("room_id", "")), str(_remote_seed.get("host_name", "")), str(_remote_seed.get("arena_id", "yard")), _remote_seed.get("net_play", GameLaunch.NetPlay.COOP), int(_remote_seed.get("loop_goal", 0)), seat)
+		set_local_character(character_id)
+		joined_lobby.emit()
 		return
 	
 	# Legacy LAN/Invite path: use ConnectAttemptRunner

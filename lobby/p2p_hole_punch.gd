@@ -135,6 +135,18 @@ func get_validated_endpoint() -> Dictionary:
 		return {}
 	return {"address": _validated_source_address, "port": _validated_source_port}
 
+## 显式设置 ENet target endpoint override（来自 rendezvous / STUN / 显式配置等权威来源）。
+## 存储在 validated candidate 的 enet_target_endpoint 字段，供 begin_direct_enet 使用。
+var _enet_target_override: Dictionary = {}
+
+func _set_enet_target_override(address: String, port: int) -> void:
+	_enet_target_override = {"address": address, "port": port}
+	if not _validated_candidate.is_empty():
+		_validated_candidate.enet_target_endpoint = _enet_target_override
+
+func get_enet_target_override() -> Dictionary:
+	return _enet_target_override.duplicate()
+
 ## 本端 socket 实际绑定的端口。
 func get_local_bound_endpoint() -> Dictionary:
 	if _socket == null or not _socket.is_open():
@@ -381,7 +393,8 @@ func _maybe_send_probes() -> void:
 			continue
 		## 每个 pair 独立节流（互不阻塞）。
 		var first_probe: bool = int(pair.probes_sent) == 0
-		if not first_probe and (now_ms - int(pair.last_probe_ms)) < PROBE_INTERVAL_MS:
+		var interval_check: int = now_ms - int(pair.last_probe_ms)
+		if not first_probe and interval_check < PROBE_INTERVAL_MS:
 			continue
 		_probe_id_counter += 1
 		var probe_id: int = _probe_id_counter
@@ -428,17 +441,24 @@ func _deactivate_all_pairs() -> void:
 		pair.pending_probe_ids.clear()
 
 func _build_validated_candidate(pair: Dictionary, src_addr: String, src_port: int, rtt: int) -> Dictionary:
-	var validated_remote: Dictionary = {
+	var validated_remote_dict: Dictionary = {
 		"candidate_type": pair.remote.candidate_type,
 		"address": src_addr,
 		"port": src_port,
 		"observed_address": src_addr,
 		"observed_port": src_port,
 	}
+	## legacy key `remote`：NetworkCandidates.Candidate 对象，用于 Direct ENet 兼容。
+	var legacy_remote: NetworkCandidates.Candidate = NetworkCandidates.Candidate.new()
+	legacy_remote.candidate_type = pair.remote.candidate_type
+	legacy_remote.address = src_addr
+	legacy_remote.port = src_port
+	legacy_remote.observed_address = src_addr
+	legacy_remote.observed_port = src_port
 	return {
 		"local": _copy_candidate(pair.local),
-		## legacy key `remote`：一定是真正回 ACK 的 validated endpoint（Direct ENet 用）。
-		"remote": validated_remote,
+		## legacy key `remote`：NetworkCandidates.Candidate（Direct ENet 兼容）。
+		"remote": legacy_remote,
 		"rtt_ms": rtt,
 		"remote_advertised": {
 			"address": str(pair.advertised_address),

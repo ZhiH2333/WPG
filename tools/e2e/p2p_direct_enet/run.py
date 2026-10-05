@@ -107,7 +107,8 @@ def main() -> int:
         stderr=subprocess.STDOUT,
         text=True,
     )
-    time.sleep(0.5)  # 等待服务端启动
+    # 等待服务端真正 ready（监听到端口输出），而非固定 sleep
+    _wait_rendezvous_ready(rendezvous_proc, rendezvous_port, BOOT_TIMEOUT_SEC)
 
     host_enet_port = args.host_port if args.host_port > 0 else _free_port()
     guest_enet_port = args.guest_port if args.guest_port > 0 else _free_port()
@@ -217,6 +218,35 @@ def _wait_file(path: Path, proc: subprocess.Popen, timeout_sec: float) -> bool:
             return False
         time.sleep(0.05)
     return path.is_file()
+
+
+def _wait_rendezvous_ready(proc: subprocess.Popen, port: int, timeout_sec: float) -> bool:
+    """等待 rendezvous 服务端真正开始监听（通过检查端口占用或日志输出）。"""
+    import socket
+    deadline = time.time() + timeout_sec
+    while time.time() < deadline:
+        # 尝试连接 UDP 端口（发空包测试是否有人在听）
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(0.2)
+            sock.sendto(b"\x00", ("127.0.0.1", port))
+            sock.close()
+        except OSError:
+            pass
+        # 检查进程是否还活着
+        if proc.poll() is not None:
+            return False
+        # 简单检查：端口是否可 bind（如果不可 bind 说明有人在听）
+        try:
+            test_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            test_sock.bind(("127.0.0.1", port))
+            test_sock.close()
+            # 如果能 bind 说明没人占用，继续等
+        except OSError:
+            # 端口被占用 = 服务端已经在听
+            return True
+        time.sleep(0.05)
+    return False
 
 
 if __name__ == "__main__":

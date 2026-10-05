@@ -53,6 +53,7 @@ var _elapsed_sec: float = 0.0
 var _last_error: int = RendezvousContract.ErrorCode.NONE
 var _last_detail: String = ""
 var _owns_udp: bool = false  ## 是否拥有 UDP 生命周期（外部传入则为 false）
+var _paused: bool = false  ## hole punch 期间暂停 poll，避免抢占共享 socket
 
 # ---- 查询 ----
 
@@ -172,12 +173,16 @@ func _send_register() -> bool:
 
 ## 每帧轮询。由上层驱动（P2PConnection.tick / MainMenu）。
 func poll() -> void:
-	if _udp == null:
+	if _udp == null or _paused:
 		return
 	while _udp.get_available_packet_count() > 0:
 		var packet: PackedByteArray = _udp.get_packet()
 		if not packet.is_empty():
 			_handle_packet(packet)
+
+## 设置暂停/恢复 poll（hole punch 期间暂停，避免抢占共享 socket）。
+func set_paused(paused: bool) -> void:
+	_paused = paused
 
 ## 推进超时。RENDEZVOUS_TIMEOUT 是注册阶段预算，由调用方的整体预算兜底。
 func tick(delta_sec: float, timeout_sec: float = RendezvousContract.RENDEZVOUS_TIMEOUT_SEC) -> bool:

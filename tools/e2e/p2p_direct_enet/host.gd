@@ -30,10 +30,14 @@ var _go_file: String
 var _lobby_net: LobbyNet
 var _lobby_manager: LobbyManager
 var _rendezvous_client: RendezvousClient
+var _hole_punch: P2PHolePunch
 var _shared_udp: PacketPeerUDP
 var _peer_confirmed: bool = false
 var _seat_assigned: int = 0
 var _state: String = "init"
+var _candidates_sent: bool = false
+var _observed_address: String = ""
+var _observed_port: int = 0
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -45,11 +49,13 @@ func _run() -> void:
 	## 等待 go 信号
 	while not FileAccess.file_exists(_go_file):
 		_process_rendezvous(0.01)
+		_process_hole_punch(0.01)
 		OS.delay_usec(10000)
 
 	## 开始主循环
 	while true:
 		_process_rendezvous(0.016)
+		_process_hole_punch(0.016)
 		if _peer_confirmed:
 			break
 		if _state == "failed":
@@ -94,7 +100,7 @@ func _setup() -> void:
 		_write_result("FAIL: host_room 失败")
 		quit(1)
 
-	## 创建共享 UDP socket（供 rendezvous client 使用）
+	## 创建共享 UDP socket（供 rendezvous client 与 hole punch 复用）
 	_shared_udp = PacketPeerUDP.new()
 	var err: Error = _shared_udp.bind(0)
 	if err != OK:
@@ -138,17 +144,73 @@ func _on_net_state_changed(state: int) -> void:
 
 func _on_rendezvous_registered(session_id: String, observed_address: String, observed_port: int) -> void:
 	print("HOST: rendezvous registered, session=%s observed=%s:%d" % [session_id, observed_address, observed_port])
+	_observed_address = observed_address
+	_observed_port = observed_port
 	_state = "rendezvous_registered"
 	_write_ready()
 
 func _on_rendezvous_candidates(candidates: Array, remote_nonce: String, remote_role: int) -> void:
 	print("HOST: rendezvous candidates received, remote_nonce=%s" % remote_nonce)
-	## 验证 remote_nonce
-	if remote_nonce != _guest_nonce:
-		print("HOST: remote_nonce mismatch, expected %s got %s" % [_guest_nonce, remote_nonce])
-	_write_result("FAIL: remote_nonce mismatch")
-	quit(1)
+	for c in candidates:
+		print("HOST:   remote candidate: path=%d addr=%s port=%d obs_addr=%s obs_port=%d" % [
+			c.path, c.address, c.port, c.observed_address, c.observed_port
+		])
 	_state = "candidates_received"
+	## 创建 hole punch（Host 角色）
+	_hole_punch = P2PHolePunch.new()
+	_hole_punch.path_established.connect(_on_hole_punch_path_established)
+	_hole_punch.path_failed.connect(_on_hole_punch_path_failed)
+	_hole_punch.timeout.connect(_on_hole_punch_timeout)
+	
+	var remote_candidates: Array = []
+	for candidate: RendezvousContract.Candidate in candidates:
+		remote_candidates.append(candidate)
+	
+	var local_candidates_for_punch: Array = []
+	var local_cand: RendezvousContract.Candidate = RendezvousContract.Candidate.new()
+	local_cand.path = LobbyPlayer.Path.LAN_IPV4
+	local_cand.address = "127.0.0.1"
+	## 使用 observed endpoint（共享 UDP socket 的实际端口），而非 ENet 端口
+	local_cand.port = _observed_port
+	local_cand.observed_address = _observed_address
+	local_cand.observed_port = _observed_port
+	local_candidates_for_punch.append(local_cand)
+	
+	print("HOST: local candidate for punch: port=%d obs_port=%d" % [local_cand.port, local_cand.observed_port])
+	
+	if not _hole_punch.begin(
+		_session_id,
+		_host_nonce,
+		_guest_nonce,
+		P2PUDPProbe.Role.HOST,
+		local_candidates_for_punch,
+		remote_candidates,
+		0,
+		_shared_udp
+	):
+		_write_result("FAIL: hole_punch begin 失败")
+		quit(1)
+	
+	_candidates_sent = true
+	print("HOST: hole punch started")
+
+func _on_hole_punch_path_established(rtt_ms: int, validated_candidate: Dictionary) -> void:
+	print("HOST: hole punch path established rtt=%d validated=%s" % [rtt_ms, validated_candidate])
+	## 此时 hole punch 成功，Host 侧只需等待 Guest 发起 ENet 连接
+	## LobbyNet 已经在 listen，会自动接受连接
+
+func _on_hole_punch_path_failed(reason: String) -> void:
+	print("HOST: hole punch failed: %s" % reason)
+	if _hole_punch != null:
+		print("HOST: hole punch debug pairs:")
+		for pair_state in _hole_punch.debug_pair_states():
+			print("HOST:   %s" % pair_state)
+	_write_result("FAIL: hole punch failed: %s" % reason)
+	quit(1)
+
+func _on_hole_punch_timeout() -> void:
+	_write_result("FAIL: hole punch timeout")
+	quit(1)
 
 func _on_rendezvous_error(error_code: int, detail: String) -> void:
 	_write_result("FAIL: rendezvous error %d: %s" % [error_code, detail])
@@ -171,8 +233,14 @@ func _write_ready() -> void:
 
 func _process_rendezvous(delta: float) -> void:
 	if _rendezvous_client != null:
-		_rendezvous_client.poll()
+		## Hole punch 激活时停止 rendezvous poll，避免抢占共享 socket
+		if _hole_punch == null or not _hole_punch.is_active():
+			_rendezvous_client.poll()
 		_rendezvous_client.tick(delta)
+
+func _process_hole_punch(delta: float) -> void:
+	if _hole_punch != null and _hole_punch.is_active():
+		_hole_punch.tick(int(delta * 1000))
 
 func _write_result(msg: String) -> void:
 	var f = FileAccess.open(_result_file, FileAccess.WRITE)

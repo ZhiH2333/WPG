@@ -219,6 +219,53 @@ func begin(invite: JoinInvite, rendezvous_host: String = "", rendezvous_port: in
 		return false
 	return true
 
+## 使用预设 SessionIdentity 和本地候选开始 P2P join（供测试/E2E 使用确定性 nonce）。
+## 与 begin() 不同，此方法：
+## - 接受外部传入的 identity（含预设 nonce）
+## - 接受外部传入的 local_candidates
+## - 接受外部传入的共享 UDP socket（避免自建）
+## - 直接调用 rendezvous client.begin()
+func begin_with_identity(
+	identity: RendezvousContract.SessionIdentity,
+	local_candidates: Array,
+	rendezvous_host: String,
+	rendezvous_port: int,
+	shared_udp: PacketPeerUDP
+) -> bool:
+	if identity == null or not identity.is_valid():
+		return false
+	if _client == null:
+		return false
+	if not _connect_fn.is_valid():
+		return false
+	if not _state.transition(P2PConnectionState.Event.BEGIN_RENDEZVOUS):
+		return false
+	_finished = false
+	_cancelling = false
+	_identity = identity
+	_session.local_nonce = identity.nonce
+	_session.local_candidates = _clone_rendezvous_candidates(local_candidates)
+	_state.set_local_candidate_count(_session.local_candidates.size())
+	## 真实 rendezvous：使用传入的共享 UDP socket
+	_shared_udp = shared_udp
+	if not _client.begin(rendezvous_host, rendezvous_port, _identity, _session.local_candidates, shared_udp):
+		_finish(false, "rendezvous_begin_failed")
+		return false
+	return true
+
+func _clone_rendezvous_candidates(source: Array) -> Array[RendezvousContract.Candidate]:
+	var out: Array[RendezvousContract.Candidate] = []
+	for candidate: RendezvousContract.Candidate in source:
+		var copy: RendezvousContract.Candidate = RendezvousContract.Candidate.new()
+		copy.transport = candidate.transport
+		copy.path = candidate.path
+		copy.address = candidate.address
+		copy.port = candidate.port
+		copy.observed_address = candidate.observed_address
+		copy.observed_port = candidate.observed_port
+		out.append(copy)
+	return out
+
 func _on_rendezvous_registered(session_id: String, observed_address: String, observed_port: int) -> void:
 	## 记录**服务端观测到的**本端端点，以及服务端分配的 session_id。
 	## session_id 是 hole punch probe 包的一部分，必须与服务端一致。
@@ -296,13 +343,16 @@ func _on_rendezvous_timeout(reason: String) -> void:
 ## **共享 socket 的解复用规则（Phase 9.2.2 R2）**：RendezvousClient 与 P2PHolePunch
 ## 复用同一个 PacketPeerUDP，而两者都用「取走所有包」的方式读取。任何时刻只能有
 ## 一个消费者在 drain：
-##   - 进入 DIRECT_PROBING（打洞）后，socket 归 P2PHolePunch 读，停止 client.poll()；
-##   - 打洞之前由 RendezvousClient 读。
+##   - 进入 DIRECT_PROBING（打洞）后，socket 归 P2PHolePunch 读，client.set_paused(true)；
+##   - 打洞结束（成功/失败/超时）后，client.set_paused(false) 恢复（可处理 BYE/ERROR 等）。
 ## 否则 rendezvous 的 poll 会把打洞 probe 吞掉，导致探测永远收不到。
 func poll_rendezvous(delta_sec: float) -> void:
 	if _client == null:
 		return
-	if not _hole_punch.is_active():
+	if _hole_punch.is_active():
+		_client.set_paused(true)
+	else:
+		_client.set_paused(false)
 		_client.poll()
 	_client.tick(delta_sec)
 
@@ -390,6 +440,12 @@ func _local_candidates_with_observed() -> Array:
 
 ## Hole punch 成功后，在 validated path 上发起 ENet 直连。
 ## 从 DIRECT_PATH_ESTABLISHED 状态调用。
+##
+## 关键设计：validated UDP endpoint 与 ENet target endpoint 必须分离。
+## validated UDP endpoint 只证明 UDP probe 双向可达，不等于 ENet server listen port。
+## ENet target 应使用 remote_advertised（对端自报的 ENet listen port）或 remote_observed，
+## 而非 remote_validated（UDP probe 实际源端口）。
+## 若有显式设置的 enet_target_override（来自权威来源），优先使用它。
 func begin_direct_enet() -> bool:
 	if not _state.transition(P2PConnectionState.Event.BEGIN_DIRECT_ENET):
 		return false
@@ -399,21 +455,43 @@ func begin_direct_enet() -> bool:
 		_state.transition(P2PConnectionState.Event.DIRECT_ENET_FAILED)
 		_finish(false, "no_validated_candidate")
 		return false
-	var remote: Dictionary = validated.remote
-	var address: String = remote.address
-	var port: int = remote.port
-	if address.is_empty() or port < 1:
+	## 优先使用显式设置的 ENet target endpoint override（权威来源）
+	var enet_override: Dictionary = _hole_punch.get_enet_target_override()
+	var enet_target_address: String
+	var enet_target_port: int
+	if not enet_override.is_empty() and not enet_override.address.is_empty() and enet_override.port >= 1:
+		enet_target_address = enet_override.address
+		enet_target_port = enet_override.port
+	else:
+		## 使用 remote_advertised（对端自报的 ENet listen 端口），
+		## 这是 rendezvous 交换的 candidate 原始端口，通常就是 ENet server port。
+		var advertised: Dictionary = validated.get("remote_advertised", {})
+		if not advertised.is_empty() and not advertised.address.is_empty() and advertised.port >= 1:
+			enet_target_address = advertised.address
+			enet_target_port = advertised.port
+		else:
+			## fallback：使用 remote_observed（服务端观测端点）
+			var observed: Dictionary = validated.get("remote_observed", {})
+			if not observed.is_empty() and not observed.address.is_empty() and observed.port >= 1:
+				enet_target_address = observed.address
+				enet_target_port = observed.port
+			else:
+				## 最后 fallback：validated UDP endpoint（仅 loopback 场景可行）
+				var validated_udp: Dictionary = validated.get("remote_validated", validated.remote)
+				enet_target_address = validated_udp.address
+				enet_target_port = validated_udp.port
+	if enet_target_address.is_empty() or enet_target_port < 1:
 		_state.transition(P2PConnectionState.Event.DIRECT_ENET_FAILED)
-		_finish(false, "invalid_validated_candidate")
+		_finish(false, "invalid_enet_target_endpoint")
 		return false
 	## 关闭 probe socket（hole punch 已完成，不再需要打洞探测）
 	_hole_punch.cancel()
-	## 复用现有 ConnectAttemptRunner 逻辑，但只试这一个 validated candidate
+	## 复用现有 ConnectAttemptRunner 逻辑，但只试这一个 ENet target candidate
 	var plan: ConnectionPath = ConnectionPath.new()
 	var candidate: ConnectionPath.Candidate = ConnectionPath.Candidate.new()
 	candidate.path = LobbyPlayer.Path.WAN_IPV4
-	candidate.address = address
-	candidate.port = port
+	candidate.address = enet_target_address
+	candidate.port = enet_target_port
 	plan._candidates.append(candidate)
 	_runner = ConnectAttemptRunner.new()
 	_runner.candidate_started.connect(_on_candidate_started)
@@ -424,17 +502,57 @@ func begin_direct_enet() -> bool:
 
 ## 获取当前 Direct ENet 连接目标（仅供查询/测试断言）。
 ## 返回包含 address, port, validated=true 的字典；若未进入 DIRECT_ENET_CONNECTING 则为空。
+## 同时返回 validated_udp_endpoint 与 enet_target_endpoint 的分离视图。
 func get_direct_enet_target() -> Dictionary:
 	if _state.get_state() != P2PConnectionState.State.DIRECT_ENET_CONNECTING:
 		return {}
 	var validated: Dictionary = _hole_punch.get_validated_candidate()
 	if validated.is_empty():
 		return {}
-	var remote: Dictionary = validated.remote
+	var validated_udp: Dictionary = validated.get("remote_validated", validated.remote)
+	var advertised: Dictionary = validated.get("remote_advertised", {})
+	var observed: Dictionary = validated.get("remote_observed", {})
+	var enet_override: Dictionary = _hole_punch.get_enet_target_override()
+	var enet_target_address: String
+	var enet_target_port: int
+	var endpoint_type: String
+	if not enet_override.is_empty() and not enet_override.address.is_empty() and enet_override.port >= 1:
+		enet_target_address = enet_override.address
+		enet_target_port = enet_override.port
+		endpoint_type = "enet_target_override"
+	elif not advertised.is_empty() and not advertised.address.is_empty() and advertised.port >= 1:
+		enet_target_address = advertised.address
+		enet_target_port = advertised.port
+		endpoint_type = "enet_target_from_advertised"
+	elif not observed.is_empty() and not observed.address.is_empty() and observed.port >= 1:
+		enet_target_address = observed.address
+		enet_target_port = observed.port
+		endpoint_type = "enet_target_from_observed"
+	else:
+		enet_target_address = validated_udp.address
+		enet_target_port = validated_udp.port
+		endpoint_type = "enet_target_from_validated_udp"
 	return {
-		"address": remote.address,
-		"port": remote.port,
-		"validated": true
+		"address": enet_target_address,
+		"port": enet_target_port,
+		"validated": true,
+		"endpoint_type": endpoint_type,
+		"validated_udp_endpoint": {
+			"address": validated_udp.address,
+			"port": validated_udp.port
+		},
+		"enet_target_endpoint": {
+			"address": enet_target_address,
+			"port": enet_target_port
+		},
+		"advertised_endpoint": {
+			"address": advertised.get("address", ""),
+			"port": advertised.get("port", 0)
+		},
+		"observed_endpoint": {
+			"address": observed.get("address", ""),
+			"port": observed.get("port", 0)
+		}
 	}
 
 ## ENet connected_to_server 回调（在 validated path 上）。
@@ -585,6 +703,21 @@ func get_validated_probe_target() -> Dictionary:
 	if _hole_punch == null:
 		return {}
 	return _hole_punch.get_validated_candidate().get("probe_target", {})
+
+## 显式设置 ENet target endpoint（来自 rendezvous / 显式配置 / STUN 等 transport-authoritative 来源）。
+## 当有权威 ENet public endpoint 时调用，覆盖 hole punch validated UDP endpoint。
+## Phase 9.2.3：当前默认使用 validated UDP endpoint，此方法为后续阶段预留。
+func set_enet_target_endpoint(address: String, port: int) -> void:
+	if address.is_empty() or port < 1 or port > 65535:
+		return
+	## 存储到 hole_punch 的 validated candidate 里（仅供 begin_direct_enet 读取）
+	if _hole_punch != null:
+		var validated: Dictionary = _hole_punch.get_validated_candidate()
+		if not validated.is_empty():
+			validated.enet_target_endpoint = {"address": address, "port": port}
+			## 通过内部方法更新（需要在 P2PHolePunch 暴露 setter，或直接修改内部字典）
+			## 当前简化：在 begin_direct_enet 里读取这个字段
+			_hole_punch._set_enet_target_override(address, port)
 
 # ---- 内部 ----
 
