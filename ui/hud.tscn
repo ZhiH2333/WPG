@@ -219,7 +219,7 @@ mouse_filter = 2
 theme_type_variation = &"HudHp"
 text = "s5  0/0"
 
-[node name="PhraseLabel" type="Label" parent="Root"]
+[node name="PhraseRow" type="HBoxContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -233,7 +233,23 @@ offset_bottom = 64.0
 grow_horizontal = 2
 pivot_offset = Vector2(280, 20)
 mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="RoundLabel" type="Label" parent="Root/PhraseRow"]
+layout_mode = 2
+mouse_filter = 2
 theme_type_variation = &"HudPhrase"
-text = "L0  0/9"
+text = "Round 1"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="PhraseBar" type="ProgressBar" parent="Root/PhraseRow"]
+custom_minimum_size = Vector2(280, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ProgressBarPhrase"
+max_value = 9.0
+value = 0.0
+show_percentage = false

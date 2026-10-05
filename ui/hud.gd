@@ -5,6 +5,7 @@ class_name Hud
 ## 血条/XP 条数值用指数缓动追目标（osu 式），数字仍瞬时；左下锚点布局不改。
 const HP_LOW_THRESHOLD: int = 20
 const BAR_SMOOTHING: float = 10.0
+const PHRASE_BAR_SMOOTHING: float = 6.0
 const ROSTER_MAX: int = 4
 const FILL_STYLE_NORMAL: StringName = &""
 const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
@@ -33,7 +34,9 @@ var _roster_seats: PackedInt32Array = PackedInt32Array()
 @onready var _weapon_label: Label = $Root/BottomLeft/WeaponLabel
 @onready var _ability_label: Label = $Root/BottomLeft/AbilityLabel
 @onready var _gold_label: Label = $Root/BottomLeft/GoldLabel
-@onready var _phrase_label: Label = $Root/PhraseLabel
+@onready var _phrase_row: HBoxContainer = $Root/PhraseRow
+@onready var _round_label: Label = $Root/PhraseRow/RoundLabel
+@onready var _phrase_bar: ProgressBar = $Root/PhraseRow/PhraseBar
 @onready var _rival_row: HBoxContainer = $Root/TopRight/RivalRow
 @onready var _rival_bar: ProgressBar = $Root/TopRight/RivalRow/HpBar
 @onready var _rival_label: Label = $Root/TopRight/RivalRow/HpLabel
@@ -146,6 +149,14 @@ func _approach_bar(current: float, target: float, delta: float) -> float:
 		return target
 	return lerpf(current, target, 1.0 - exp(-BAR_SMOOTHING * delta))
 
+func _approach_phrase_bar(current: float, target: float) -> float:
+	if absf(target - current) < 0.5:
+		return target
+	var delta: float = get_process_delta_time()
+	var t: float = 1.0 - exp(-PHRASE_BAR_SMOOTHING * delta)
+	var ease: float = 1.0 - pow(1.0 - t, 4.0)
+	return lerpf(current, target, ease)
+
 func _refresh_gold() -> void:
 	var gold: int = 0
 	if _run_session != null:
@@ -204,18 +215,19 @@ func _ability_state_text(controller: AbilityController, slot: int) -> String:
 
 func _refresh_phrase() -> void:
 	if _is_battle:
-		_phrase_label.text = "BATTLE"
+		_round_label.text = "BATTLE"
+		_phrase_bar.visible = false
 		return
-	var phrase: String = "-"
+	_phrase_bar.visible = true
+	var phrase_index: int = 0
 	if _encounter != null:
-		phrase = _encounter.get_phrase_label()
+		phrase_index = _encounter.get_phrase_index()
 	var loop_index: int = 0
 	if _run_session != null:
 		loop_index = _run_session.get_loop_index()
-	if _run_session != null and _run_session.get_loop_goal() > 0:
-		_phrase_label.text = "L%d/%d  %s" % [loop_index, _run_session.get_loop_goal(), phrase]
-		return
-	_phrase_label.text = "L%d  %s" % [loop_index, phrase]
+	_round_label.text = "Round %d" % (loop_index + 1)
+	_phrase_bar.max_value = float(EncounterPhrases.PHRASE_TOTAL)
+	_phrase_bar.value = _approach_phrase_bar(_phrase_bar.value, float(phrase_index))
 
 func _refresh_rival(delta: float) -> void:
 	if not _is_battle or _rival_row == null or not _rival_row.visible:
