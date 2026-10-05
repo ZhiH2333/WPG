@@ -57,6 +57,7 @@ var _top_bar_nav_min: float = 0.0
 @onready var _solo_button: Button = $Home/Body/Rail/Solo
 @onready var _multi_button: Button = $Home/Body/Rail/Multi
 @onready var _continue_caption: Label = $Home/Body/Rail/Continue/Text/Caption
+@onready var _continue_title: Label = $Home/Body/Rail/Continue/Text/Title
 @onready var _rail_top_line: ColorRect = $Home/Body/TopLine
 @onready var _rail_bottom_line: ColorRect = $Home/Body/BottomLine
 @onready var _secondary: HBoxContainer = $Home/Body/Secondary
@@ -125,6 +126,7 @@ func _ready() -> void:
 	_lobby.bind_net($LobbyNet)
 	_lan_overlay.bind_lobby(_lobby)
 	_record_selector.selected_record.connect(_enter_record)
+	_record_selector.resume_record.connect(_enter_record_resume)
 	_profile_overlay.view_ranking_pressed.connect(_enter_leaderboard)
 	_wire_button_sounds()
 	for row: Button in [_continue_button, _solo_button, _multi_button, _best_button, _last_button]:
@@ -361,23 +363,33 @@ func _set_home_slid(slid_out: bool, direction: int) -> void:
 	else:
 		UiAnim.slide_in(self, home, direction)
 
-## Continue = 续跑：该档还有 active_run 就 RESUME_RUN；否则退回「用该档新开一局」。
-## 但最新档已经 CLEARED 时**绝不**静默开新局：先开档位列表并弹「已通关 / START OVER?」。
-func _on_continue_pressed() -> void:
-	GameSaveStore.ensure_loaded()
-	var active: SaveSlot = GameSaveStore.get_latest_active_slot()
-	if active != null:
-		_enter_record(active.slot_id, GameLaunch.RunIntent.RESUME_RUN)
-		return
-	var record: GameRecord = _find_last_record()
-	if record == null:
-		return
-	if record.status == SaveSlot.status_name(SaveSlot.Status.CLEARED):
-		_show_completed_save(record.id)
-		return
-	_enter_record(record.id)
+## Home / Play / 档位列表的 Continue 指标**只**从这里取（§6/§15）。
+## 绝不自己读 records.json、绝不猜「这一档到哪了」——一律 SaveStore -> SaveSlot -> 投影。
+func get_continue_projection() -> SaveUiProjection:
+	return SaveUiProjection.load_continue()
 
-## 打开档位列表并直接把「这档已通关」确认条顶出来（§11/§12）。
+## Continue = 续跑：该档还有 active_run 就 RESUME_RUN；否则绝不静默开新局，先开档位列表。
+##   IN_PROGRESS -> 直接续这一局
+##   CLEARED     -> 列表 + 「COMPLETED / This save has already been cleared. / Start over?」
+##   NEW / FAILED -> 列表 + 详情确认浮层（§4）
+func _on_continue_pressed() -> void:
+	var cont: SaveUiProjection = get_continue_projection()
+	if cont == null:
+		return
+	if cont.status == SaveUiProjection.STATUS_IN_PROGRESS:
+		_enter_record(cont.slot_id, GameLaunch.RunIntent.RESUME_RUN)
+		return
+	_open_records(RecordOrigin.HOME)
+	if cont.status == SaveUiProjection.STATUS_CLEARED:
+		_record_selector.show_completed(cont.slot_id)
+	else:
+		_record_selector.show_detail(cont.slot_id)
+
+## 档位列表里点了「Continue Run」（RESUME_RUN）。
+func _enter_record_resume(id: String) -> void:
+	_enter_record(id, GameLaunch.RunIntent.RESUME_RUN)
+
+## 打开档位列表并直接把「这档已通关」确认条顶出来（§5）。
 func _show_completed_save(record_id: String) -> void:
 	_open_records(RecordOrigin.HOME)
 	_record_selector.show_completed(record_id)
@@ -415,11 +427,16 @@ func _refresh_player_labels() -> void:
 	_player_status.text = "Ready to play"
 
 func _refresh_home_facts() -> void:
+	var cont: SaveUiProjection = get_continue_projection()
+	var has_save: bool = cont != null
+	_continue_button.visible = has_save
+	if has_save:
+		## §6：标题 = 状态（CONTINUE / COMPLETED / RETRY / NEW SAVE），
+		## 指标 = 当前进度 / 最好成绩，且与档位列表里那一排**完全同源**。
+		_continue_title.text = cont.rail_title()
+		_continue_caption.text = cont.rail_caption()
 	var record: GameRecord = _find_last_record()
 	var has_record: bool = record != null
-	_continue_button.visible = has_record
-	if has_record:
-		_continue_caption.text = _loop_caption(record.loop_goal)
 	var has_best: bool = GameProgress.get_runs_played() > 0 or GameProgress.get_best_loop() > 0
 	_best_button.visible = has_best
 	if has_best:
@@ -453,11 +470,6 @@ func _sync_rail_lines() -> void:
 		return
 	for line: ColorRect in [_rail_top_line, _rail_bottom_line]:
 		line.custom_minimum_size = Vector2(total, 1.0)
-
-func _loop_caption(loop_goal: int) -> String:
-	if loop_goal > 0:
-		return "Loop %d" % loop_goal
-	return "Inf"
 
 func _find_last_record() -> GameRecord:
 	var newest: GameRecord = null

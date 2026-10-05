@@ -148,14 +148,12 @@ mouse_filter = 0
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 1
 
-[node name="Cards" type="GridContainer" parent="Sheet/Column/Content/ListRoot/Scroll"]
+[node name="Rows" type="VBoxContainer" parent="Sheet/Column/Content/ListRoot/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 mouse_filter = 2
-theme_override_constants/h_separation = 16
-theme_override_constants/v_separation = 16
-columns = 2
+theme_override_constants/separation = 12
 
 [node name="EditorRoot" type="Control" parent="Sheet/Column/Content"]
 visible = false
@@ -427,14 +425,22 @@ theme_type_variation = &"FloatingPanel"
 [node name="Column" type="VBoxContainer" parent="DeleteCenter/DeletePanel"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="DeleteCenter/DeletePanel/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "Delete this record?"
+text = "DELETE SAVE?"
 horizontal_alignment = 1
+
+[node name="Body" type="Label" parent="DeleteCenter/DeletePanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="Line" type="ColorRect" parent="DeleteCenter/DeletePanel/Column"]
 custom_minimum_size = Vector2(0, 1)
@@ -442,25 +448,32 @@ layout_mode = 2
 mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 0.35)
 
+[node name="Warning" type="Label" parent="DeleteCenter/DeletePanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "This cannot be undone."
+horizontal_alignment = 1
+
 [node name="Buttons" type="HBoxContainer" parent="DeleteCenter/DeletePanel/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="Yes" type="Button" parent="DeleteCenter/DeletePanel/Column/Buttons"]
-custom_minimum_size = Vector2(120, 48)
-layout_mode = 2
-mouse_filter = 0
-theme_type_variation = &"PillPink"
-text = "Yes"
-
-[node name="No" type="Button" parent="DeleteCenter/DeletePanel/Column/Buttons"]
+[node name="Cancel" type="Button" parent="DeleteCenter/DeletePanel/Column/Buttons"]
 custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "No"
+text = "Cancel"
+
+[node name="Delete" type="Button" parent="DeleteCenter/DeletePanel/Column/Buttons"]
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillRed"
+text = "Delete"
 
 
 [node name="CompletedDimmer" type="ColorRect" parent="."]
@@ -498,20 +511,36 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "THIS SAVE IS COMPLETED"
+text = "COMPLETED"
 horizontal_alignment = 1
 
-[node name="Sub" type="Label" parent="CompletedCenter/CompletedPanel/Column"]
+[node name="Name" type="Label" parent="CompletedCenter/CompletedPanel/Column"]
 layout_mode = 2
 mouse_filter = 2
-text = "START OVER?"
+theme_type_variation = &"Caption"
+text = ""
 horizontal_alignment = 1
+
+[node name="Body" type="Label" parent="CompletedCenter/CompletedPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"OfferDesc"
+text = "This save has already been cleared."
+horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="Line" type="ColorRect" parent="CompletedCenter/CompletedPanel/Column"]
 custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
 mouse_filter = 2
 color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Sub" type="Label" parent="CompletedCenter/CompletedPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SectionLabel"
+text = "Start over?"
+horizontal_alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="CompletedCenter/CompletedPanel/Column"]
 layout_mode = 2
@@ -527,6 +556,109 @@ theme_type_variation = &"PillPink"
 text = "Start New Run"
 
 [node name="Cancel" type="Button" parent="CompletedCenter/CompletedPanel/Column/Buttons"]
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "Cancel"
+
+
+[node name="DetailDimmer" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.55)
+
+[node name="DetailCenter" type="CenterContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DetailPanel" type="PanelContainer" parent="DetailCenter"]
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"FloatingPanel"
+
+[node name="Column" type="VBoxContainer" parent="DetailCenter/DetailPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="DetailCenter/DetailPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageTitle"
+text = "SAVE"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="DetailCenter/DetailPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Line" type="ColorRect" parent="DetailCenter/DetailPanel/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Grid" type="HBoxContainer" parent="DetailCenter/DetailPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 40
+
+[node name="Left" type="VBoxContainer" parent="DetailCenter/DetailPanel/Column/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Right" type="VBoxContainer" parent="DetailCenter/DetailPanel/Column/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="LineBottom" type="ColorRect" parent="DetailCenter/DetailPanel/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Buttons" type="HBoxContainer" parent="DetailCenter/DetailPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Continue" type="Button" parent="DetailCenter/DetailPanel/Column/Buttons"]
+custom_minimum_size = Vector2(170, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "Continue Run"
+
+[node name="Delete" type="Button" parent="DetailCenter/DetailPanel/Column/Buttons"]
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillRed"
+text = "Delete"
+
+[node name="Cancel" type="Button" parent="DetailCenter/DetailPanel/Column/Buttons"]
 custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0

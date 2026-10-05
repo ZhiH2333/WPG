@@ -171,7 +171,7 @@ text = "CONTINUE"
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Loop 0"
+text = "Resume run"
 
 [node name="Solo" type="Button" parent="Home/Body/Rail"]
 custom_minimum_size = Vector2(220, 84)

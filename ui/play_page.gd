@@ -25,6 +25,7 @@ const CONTENT_MAX_WIDTH: float = 1200.0
 @onready var _solo_button: Button = $Sheet/Column/Rail/Solo
 @onready var _multi_button: Button = $Sheet/Column/Rail/Multi
 @onready var _continue_caption: Label = $Sheet/Column/Rail/Continue/Text/Caption
+@onready var _continue_title: Label = $Sheet/Column/Rail/Continue/Text/Title
 @onready var _back_button: Button = $Sheet/Column/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
@@ -89,17 +90,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _refresh_continue() -> void:
 	var menu: MainMenu = get_parent() as MainMenu
-	var record: GameRecord = menu.latest_record() if menu != null else null
-	var has_record: bool = record != null
-	_continue_button.visible = has_record
-	if not has_record:
+	## §7/§10：Play 的 Continue 与 Home、档位列表走**同一个** SaveStore -> SaveSlot -> 投影。
+	var cont: SaveUiProjection = menu.get_continue_projection() if menu != null else null
+	var has_save: bool = cont != null
+	_continue_button.visible = has_save
+	if not has_save:
 		return
-	_continue_caption.text = _loop_caption(record.loop_goal)
-
-func _loop_caption(loop_goal: int) -> String:
-	if loop_goal > 0:
-		return "Loop %d" % loop_goal
-	return "Inf"
+	_continue_title.text = cont.rail_title()
+	_continue_caption.text = cont.rail_caption()
 
 func _first_rail() -> Button:
 	if _continue_button.visible:
