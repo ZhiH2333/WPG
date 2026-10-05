@@ -758,7 +758,7 @@ Theme 新增 `ModeTitle`（font_size=26，HudPhrase 同系）。不要脚本 `St
 
 节与键锁死：`[stats]` 的 `best_loop` / `best_kills` / `runs_played`；`[last]` 的 `loop` / `kills` / `gold` / `time_sec` / `owned`（升级 id 逗号拼接，空则 `""`）。缺文件或缺键用默认 0 / 0.0 / `""`，不 `push_error`。
 
-`record_run(session)` 开头必须 `load_from_disk()`，避免 F6 直进沙盒时内存默认 0 把磁盘 best 盖掉。best 取 max，`runs_played += 1`（进了沙盒又 Quit 也算一局），last 全部覆盖成这一局。不要按 gold 比大小。不要存 HP、句读、device_id、音量、Outcome。
+`record_result(result: RunResult)`（Part 1-B 起唯一入口，旧的 `record_run(session)` 已删除）开头必须 `load_from_disk()`，避免 F6 直进沙盒时内存默认 0 把磁盘 best 盖掉。best 取 max，`runs_played += 1`，last 全部覆盖成这一局。**只有真正跑到终局（cleared / dead）产生 RunResult 才更新**：中途 Quit 没有 RunResult，不计局数、不写 last。不要按 gold 比大小。不要存 HP、句读、device_id、音量、Outcome。GameProgress 不持有 active run 的任何状态。
 
 写盘时机只在 `CombatSandbox`：死亡后 `_run_session.tick` 之后写一次（`_progress_written` 防重入，死亡条停着看不会每帧 +1）；暂停 Quit、死了 Esc、商店/三选一开着 Esc 回菜单前若尚未 written 则 record。Continue / Retry / R 不写；R 与 Retry 把 `_progress_written` 清回 false。`_exit_tree` 只负责 `paused=false` + 鼠标可见，不悄悄 record。
 
@@ -996,8 +996,8 @@ sandbox/    CombatSandbox（有档用 `record.loop_goal`；F6 缺档走 Infinite
 - 算分只活在 `GameRecords.compute_score`：`loop * 1000 + kills * 5 + gold * 2 + floor(time_sec) + (cleared ? 5000 : 0)`。quit / dead 没有 +5000。history 按 score 降序，最多 10 条；`best_score` 是该档见过的最大分（被裁掉的低分不影响 best）。
 - 隐式档：没有 RecordSelector 时 Solo → `loop_goal=20` 的 boar 档，Infinite → `loop_goal=0`。同一 `character_id` + 同一 loop_goal 桶复用 `created_at` 最早的一条。本阶段 create / ensure 只写 `character_id=boar`。沙盒 CLEARED 仍读 `GameLaunch.SOLO_LOOP_GOAL`，不读 `record.loop_goal`。
 - `GameLaunch` 增补一次性 `active_record_id`（`set` / `take`，take 后打回 `""`）。本阶段 MainMenu 不 set，留给 Arc C。只传 id，不塞 Record 对象。
-- `CombatSandbox`：`take_mode` 之后 `take_active_record_id`；空或找不到则 `ensure_playable_record`。R / Retry 不换档、不 take Launch。`_record_progress_if_needed` 先 `GameProgress.record_run` 再 `GameRecords.append_run_result`。Continue / Retry / R 两套都不写；`_progress_written` 挡住死亡条停着看时每帧 append。`_exit_tree` 仍不写盘。
-- F6 直进沙盒走 Infinite 隐式档；`append_run_result` / `ensure` 开头 `load_from_disk`，不会用内存空档盖掉已有 Solo history。
+- `CombatSandbox`：`take_mode` 之后 `take_active_save_slot_id`；空或找不到则 `ensure_playable_slot`。R / Retry 不换档、不 take Launch。`_record_progress_if_needed` 是唯一写盘时机：quit → 只提交 `PRE_EXIT` 检查点（保留 `active_run`，档保持 `IN_PROGRESS`）；cleared / dead → 提交 `TERMINAL` 后 `mark_cleared` / `mark_failed`（清 `active_run`），并把 `RunResult` 交给 `GameProgress.record_result` 与 `slot.history`。`GameRecords.append_run_result` 已删除，history 只有 `mark_*` 一条写入口。`_progress_written` 挡住死亡条停着看时每帧写盘。`_exit_tree` 仍不写盘。
+- F6 直进沙盒走 Infinite 隐式档；`commit_checkpoint` / `ensure` 开头 `load_from_disk`，不会用内存空档盖掉已有 Solo history。
 - `DebugOverlay` 增补 `record` 末 6 位、`hist`、`best`、`goal`。不要 Theme/缩放器，不要第五块 HUD。
 - 第一次进沙盒后 `user://records.json` 存在。再打同一模式只往同一档 history 追加，不新增 records 条数。
 
@@ -1043,7 +1043,7 @@ Play 进档位列表，不再弹出 Solo / Infinite / Multi 三张卡。点已�
 
 - `ui/winner_page.gd`（`class_name WinnerPage`）+ `ui/winner_page.tscn`：信号 `retry_pressed` / `menu_pressed`。`present(record_id, session, previous_best)` 一次填死所有 Label，禁止 `_process` 轮询分数。Dimmer `Color(0,0,0,0.45)`。进场 `UiAnim.enter_overlay`，逻辑开关瞬时。PROCESS_MODE_INHERIT。
 - 只在 DEAD / CLEARED 弹出。活着暂停 Quit → `_record_progress_if_needed()`（outcome=quit）→ 主菜单，不 present。
-- 沙盒先读 `previous_best`，再 `GameProgress.record_run` + `GameRecords.append_run_result`，再 present。NEW BEST 用 `this_score > previous_best`，不要用写盘后的 `record.best_score`。
+- 沙盒先读 `previous_best`，再 `GameProgress.record_result(result)`（局末账本由 `_record_progress_if_needed` 统一写），再 present。NEW BEST 用 `this_score > previous_best`，不要用写盘后的 `record.best_score`。
 - 分数只调 `GameRecords.compute_score`：`loop*1000 + kills*5 + gold*2 + floori(time_sec) + (cleared?5000:0)`。WinnerPage 不再写一份。
 - 左列：CLEARED / DEAD、档名、大分、可选 NEW BEST、四行拆解、通关才 `cleared  +5000`、汇总 loop/kills/gold/time/owned。
 - 右列 THIS RECORD：本档 history 最多 10 行 `#N  score   Lloop  DEAD|CLEARED|QUIT  time`；用 timestamp+score 高亮本局（并列取第一条匹配）；`rank  %d / %d`。不跨档、不读 progress.cfg。

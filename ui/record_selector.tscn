@@ -463,6 +463,77 @@ theme_type_variation = &"PillNeutral"
 text = "No"
 
 
+[node name="CompletedDimmer" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.55)
+
+[node name="CompletedCenter" type="CenterContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CompletedPanel" type="PanelContainer" parent="CompletedCenter"]
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"FloatingPanel"
+
+[node name="Column" type="VBoxContainer" parent="CompletedCenter/CompletedPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CompletedCenter/CompletedPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageTitle"
+text = "THIS SAVE IS COMPLETED"
+horizontal_alignment = 1
+
+[node name="Sub" type="Label" parent="CompletedCenter/CompletedPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+text = "START OVER?"
+horizontal_alignment = 1
+
+[node name="Line" type="ColorRect" parent="CompletedCenter/CompletedPanel/Column"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.96, 0.93, 0.88, 0.35)
+
+[node name="Buttons" type="HBoxContainer" parent="CompletedCenter/CompletedPanel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="StartNew" type="Button" parent="CompletedCenter/CompletedPanel/Column/Buttons"]
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillPink"
+text = "Start New Run"
+
+[node name="Cancel" type="Button" parent="CompletedCenter/CompletedPanel/Column/Buttons"]
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "Cancel"
+
+
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 bus = &"SFX"
 

@@ -144,10 +144,16 @@ static func _make_meta_box(record: GameRecord) -> VBoxContainer:
 	title.text = record.name
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	## 状态必须写在卡上：玩家要一眼看出这档是 IN_PROGRESS（还能续）/ CLEARED（只能开新局）。
+	## 直接并进 meta 行，不额外加一行，卡片纵向高度不变；窄视口靠 autowrap 折行。
+	## NEW 档没跑过，不显示状态。
+	var status: String = str(record.status)
+	var head: String = "%s  ·  " % status if status != "NEW" else ""
 	var meta: Label = Label.new()
 	meta.name = "Meta"
 	meta.theme_type_variation = &"OfferDesc"
-	meta.text = "%s  %s  ·  %s" % [_read_display_name(record.character_id), format_loop_badge(record.loop_goal), format_arena_name(record.arena_id)]
+	meta.text = "%s%s  %s  ·  %s" % [head, _read_display_name(record.character_id), format_loop_badge(record.loop_goal), format_arena_name(record.arena_id)]
+	meta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(title)
 	box.add_child(meta)

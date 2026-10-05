@@ -316,8 +316,13 @@ func _bind_runtime() -> void:
 	_run_session.bind_companion_catalog(COMPANION_CATALOG)
 	_run_session.bind_consumable_catalog(CONSUMABLE_CATALOG)
 	_assert_upgrade_catalog()
-	_bind_playable_slot()
+	var run_intent: GameLaunch.RunIntent = _bind_playable_slot()
 	_arena_id = GameLaunch.take_arena_id()
+	if run_intent == GameLaunch.RunIntent.RESUME_RUN and _resume_checkpoint != null:
+		## 续跑以 checkpoint 里的 arena 为准：入口信封可能已经过期。
+		var saved_arena: String = _resume_checkpoint.shared_state.arena_id
+		if not saved_arena.is_empty():
+			_arena_id = saved_arena
 	if ARENA_CATALOG.get_by_id(StringName(_arena_id)) == null:
 		_arena_id = "yard"
 	_apply_arena(_arena_id)
@@ -327,8 +332,8 @@ func _bind_runtime() -> void:
 	else:
 		_run_session.configure_mode(_read_record_loop_goal())
 	_apply_record_character()
-	_run_session.restart()
-	_restore_resumed_checkpoint()
+	## 两条互斥流程：新开一局才 restart()；续跑只 restore_checkpoint()。
+	var resumed: bool = _begin_run_flow(run_intent)
 	if _is_battle():
 		_pause_battle_world()
 	elif not _is_guest():
@@ -339,7 +344,10 @@ func _bind_runtime() -> void:
 	_upgrade_applier.capture_baseline()
 	_upgrade_applier.apply_owned()
 	_restore_resumed_vitals()
-	_commit_checkpoint(RunCheckpoint.Kind.RUN_START)
+	if not resumed:
+		## 只有新开一局才打 RUN_START。续跑保留磁盘上原 checkpoint 的 kind / saved_at，
+		## 这样 Pause 上的 last_saved 仍然如实显示「上次存到 loop N」。
+		_commit_checkpoint(RunCheckpoint.Kind.RUN_START)
 	_upgrade_offer.bind_session(_run_session)
 	_upgrade_offer.bind_player_input(player_input)
 	_upgrade_offer.picked.connect(_on_upgrade_picked)
@@ -974,8 +982,8 @@ func _apply_character_id(pawn: Player, character_id: String) -> void:
 	pawn.apply_character(def)
 
 ## 绑定 SaveSlot：只 take id + 意图，不把 SaveSlot / RunSession 对象塞进下一场。
-## RESUME_RUN 且该档确有 active_run 时读出 checkpoint，等 restart() 之后再恢复。
-func _bind_playable_slot() -> void:
+## RESUME_RUN 且该档确有 active_run 时读出 checkpoint，交给 _begin_run_flow() 消费。
+func _bind_playable_slot() -> GameLaunch.RunIntent:
 	_resume_checkpoint = null
 	_resumed_from_checkpoint = false
 	if _is_lan():
@@ -983,7 +991,8 @@ func _bind_playable_slot() -> void:
 		GameLaunch.take_run_intent()
 		GameLaunch.take_mode()
 		_slot_id = ""
-		return
+		_pause_overlay.bind_save_slot_id(_slot_id)
+		return GameLaunch.RunIntent.START_NEW_RUN
 	GameSaveStore.load_from_disk()
 	_slot_id = GameLaunch.take_active_save_slot_id()
 	var intent: GameLaunch.RunIntent = GameLaunch.take_run_intent()
@@ -998,19 +1007,51 @@ func _bind_playable_slot() -> void:
 		_local_seat
 	)
 	_run_session.set_save_slot_id(_slot_id)
+	_pause_overlay.bind_save_slot_id(_slot_id)
 	if intent == GameLaunch.RunIntent.RESUME_RUN and not _slot_id.is_empty():
 		_resume_checkpoint = GameSaveStore.load_active_checkpoint(_slot_id)
+	return intent
 
-## restart() 之后立刻恢复 checkpoint（必须早于 _apply_loop_pressure / _encounter.restart），
-## 这样 loop 压力与敌人轮次都按恢复后的 loop_index 走。
-func _restore_resumed_checkpoint() -> void:
-	if _resume_checkpoint == null:
-		return
-	var checkpoint: RunCheckpoint = _resume_checkpoint
+## 两条互斥的开局流程（§5 / §6）。
+## - START_NEW_RUN -> RunSession.restart()：新 run_id + 清空 runtime state，然后提交 RUN_START。
+## - RESUME_RUN     -> 只 RunSession.restore_checkpoint()，**绝不调用 restart()**，
+##                     也**不**改写磁盘上原 checkpoint 的 kind / saved_at。
+## 保证 resume 不是「先生成一局新状态再覆盖一部分字段」。
+func _begin_run_flow(intent: GameLaunch.RunIntent) -> bool:
+	if intent != GameLaunch.RunIntent.RESUME_RUN:
+		_resume_checkpoint = null
+	if _resume_checkpoint != null and _run_session.restore_checkpoint(_resume_checkpoint):
+		_resume_checkpoint = null
+		_resumed_from_checkpoint = true
+		_restore_companions_from_state()
+		return true
 	_resume_checkpoint = null
-	if not _run_session.restore_checkpoint(checkpoint):
-		return
-	_resumed_from_checkpoint = true
+	_resumed_from_checkpoint = false
+	_run_session.restart()
+	return false
+
+## 把 checkpoint 里的跟班清单（只存 id + 武器槽）重新生成出来。
+func _restore_companions_from_state() -> void:
+	var rows: Array[Dictionary] = _run_session.get_local_companions()
+	for row: Dictionary in rows:
+		var id_text: String = str(row.get("id", ""))
+		if id_text.is_empty():
+			continue
+		_spawn_companion(StringName(id_text), int(row.get("weapon_index", 0)))
+	_run_session.set_living_companion_count(_count_living_companions())
+
+## 活着的跟班 -> 可序列化清单（id + 武器槽）。位置 / HP / AI 不进 checkpoint。
+func _export_companion_rows() -> Array:
+	var rows: Array = []
+	for companion: CompanionBase in _companions:
+		if companion == null or not is_instance_valid(companion) or companion.is_defeated():
+			continue
+		var ranged: RangedCompanion = companion as RangedCompanion
+		rows.append({
+			"id": String(companion.get_companion_id()),
+			"weapon_index": ranged.get_weapon_index() if ranged != null else 0,
+		})
+	return rows
 
 ## 恢复本机 Pawn 的 HP（在 UpgradeApplier.apply_owned 之后，先合升级再落血量）。
 func _restore_resumed_vitals() -> void:
@@ -1034,6 +1075,8 @@ func _commit_checkpoint(kind: int) -> void:
 	var terminal: bool = kind == RunCheckpoint.Kind.TERMINAL or kind == RunCheckpoint.Kind.PRE_EXIT
 	if not terminal and not _run_session.is_playing():
 		return
+	## 跟班会改变未来 gameplay（can_buy_companion 闸门），提交前必须先同步进 PlayerRunState。
+	_run_session.set_local_companions(_export_companion_rows())
 	GameSaveStore.commit_checkpoint(_slot_id, _run_session.export_checkpoint(kind, _slot_id))
 
 func _read_record_loop_goal() -> int:
@@ -1095,14 +1138,15 @@ func _on_winner_menu() -> void:
 
 ## 写盘时机唯一入口。职责：全局统计（GameProgress）+ 终局账本 / 续跑检查点（GameSaveStore）。
 ## - 还在打就退出（quit）→ 只提交 PRE_EXIT 检查点，保留 active_run，档位保持 IN_PROGRESS 可续。
+##   没有产生 RunResult，因此 GameProgress **不更新**（§10：GameProgress 只由 RunResult 驱动）。
 ## - 真正终局（cleared / dead）→ 提交 TERMINAL 检查点，再 mark_cleared / mark_failed，
-##   两者都会清掉 active_run 并把 status 定成 CLEARED / FAILED。
+##   两者都会清掉 active_run 并把 status 定成 CLEARED / FAILED；同时把 RunResult 交给
+##   GameProgress 与 slot.history（history 只追加，绝不覆盖）。
 func _record_progress_if_needed() -> void:
 	if _is_lan() or _started_as_lan:
 		return
 	if _progress_written:
 		return
-	GameProgress.record_run(_run_session)
 	var outcome: String = _record_outcome()
 	if outcome == "quit":
 		_commit_checkpoint(RunCheckpoint.Kind.PRE_EXIT)
@@ -1114,6 +1158,7 @@ func _record_progress_if_needed() -> void:
 		GameSaveStore.mark_cleared(_slot_id, result)
 	else:
 		GameSaveStore.mark_failed(_slot_id, result)
+	GameProgress.record_result(result)
 	_progress_written = true
 
 func _return_to_menu() -> void:

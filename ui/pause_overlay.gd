@@ -10,6 +10,7 @@ signal quit_pressed
 var _open: bool = false
 var _session: RunSession
 var _encounter: EncounterPhrases
+var _slot_id: String = ""
 var _anim_tween: Tween
 var _sfx_gate: Dictionary = {}
 var _last_clock_second: int = -1
@@ -65,6 +66,9 @@ func bind_run_session(session: RunSession) -> void:
 
 func bind_encounter(encounter: EncounterPhrases) -> void:
 	_encounter = encounter
+
+func bind_save_slot_id(slot_id: String) -> void:
+	_slot_id = slot_id
 
 func is_open() -> bool:
 	return _open
@@ -217,11 +221,30 @@ func _refresh_stats() -> void:
 	if _session == null:
 		_stats_label.text = "loop  0    gold  0    kills  0"
 		return
-	_stats_label.text = "loop  %d    gold  %d    kills  %d" % [
+	var text: String = "loop  %d    gold  %d    kills  %d" % [
 		_session.get_loop_index(),
 		_session.get_gold(),
 		_session.get_kill_count(),
 	]
+	var saved: String = _saved_line()
+	if not saved.is_empty():
+		text += "\n" + saved
+	_stats_label.text = text
+
+## last_saved 必须如实：读磁盘上**真正提交过**的那个 checkpoint（loop + kind），
+## 绝不显示「已保存」却其实只写了 slot metadata。没提交过就什么都不显示。
+func _saved_line() -> String:
+	if _slot_id.is_empty():
+		return ""
+	GameSaveStore.ensure_loaded()
+	var slot: SaveSlot = GameSaveStore.get_slot(_slot_id)
+	if slot == null or slot.active_run == null:
+		return ""
+	var checkpoint: RunCheckpoint = slot.active_run
+	var loop_index: int = 0
+	if checkpoint.shared_state != null:
+		loop_index = checkpoint.shared_state.loop_index
+	return "saved  loop %d  ·  %s" % [loop_index, RunCheckpoint.kind_name(checkpoint.checkpoint_kind)]
 
 func _refresh_run_status() -> void:
 	var phase: String = "-"

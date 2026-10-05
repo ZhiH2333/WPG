@@ -48,26 +48,12 @@ static func ensure_playable_record(character_id: String, loop_goal: int, arena_i
 		return null
 	return GameRecord.from_save_slot(slot)
 
-## 追加一局结果（历史 + best_score）。评分只调 RunResult.compute_score，
-## 规则版本记在 result.scoring_version，永远知道自己用的是哪套规则。
-static func append_run_result(record_id: String, session: RunSession, outcome: String) -> void:
-	if session == null:
-		return
-	if record_id.is_empty():
-		return
-	GameSaveStore.load_from_disk()
-	if GameSaveStore.get_slot(record_id) == null:
-		return
-	var resolved: String = _sanitize_outcome(outcome)
-	var result: RunResult = session.export_result(record_id, resolved)
-	GameSaveStore.append_result(record_id, result)
-
 ## 评分公式唯一真源在 RunResult；这里只做转发，算法一字不改。
+## 注意：这里**没有** append_run_result —— 局末账本的唯一写入点是
+## GameSaveStore.mark_cleared / mark_failed（由 CombatSandbox._record_progress_if_needed 调用），
+## 再开一个写入口就会出现重复写 result / 两套 source of truth。
 static func compute_score(loop_index: int, kills: int, gold: int, time_sec: float, outcome: String) -> int:
 	return RunResult.compute_score(loop_index, kills, gold, time_sec, outcome)
 
 static func get_max_records() -> int:
 	return MAX_RECORDS
-
-static func _sanitize_outcome(value: String) -> String:
-	return RunResult.sanitize_outcome(value)

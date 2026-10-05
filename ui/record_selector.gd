@@ -28,6 +28,7 @@ var _anim_tween: Tween
 var _modal_tween: Tween
 var _sfx_gate: Dictionary = {}
 var _pending_delete_id: String = ""
+var _pending_completed_id: String = ""
 var _selected_character_id: String = CHAR_BOAR
 var _selected_arena_id: String = "yard"
 var _list_drag: DragScroll
@@ -61,6 +62,12 @@ var _editor_drag: DragScroll
 @onready var _delete_panel: PanelContainer = $DeleteCenter/DeletePanel
 @onready var _delete_yes: Button = $DeleteCenter/DeletePanel/Column/Buttons/Yes
 @onready var _delete_no: Button = $DeleteCenter/DeletePanel/Column/Buttons/No
+## 已通关档的确认条：点了 CLEARED 卡必须先问 START OVER?，绝不静默开新局（§12）。
+@onready var _completed_dimmer: ColorRect = $CompletedDimmer
+@onready var _completed_center: CenterContainer = $CompletedCenter
+@onready var _completed_panel: PanelContainer = $CompletedCenter/CompletedPanel
+@onready var _completed_yes: Button = $CompletedCenter/CompletedPanel/Column/Buttons/StartNew
+@onready var _completed_no: Button = $CompletedCenter/CompletedPanel/Column/Buttons/Cancel
 @onready var _back_button: Button = $Sheet/Column/Header/Back
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
@@ -86,8 +93,10 @@ func _ready() -> void:
 	_confirm_button.pressed.connect(_on_confirm_pressed)
 	_delete_yes.pressed.connect(_on_delete_yes_pressed)
 	_delete_no.pressed.connect(_on_delete_no_pressed)
+	_completed_yes.pressed.connect(_on_completed_yes_pressed)
+	_completed_no.pressed.connect(_on_completed_no_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
-	for button: Button in [_new_button, _boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _delete_yes, _delete_no, _back_button]:
+	for button: Button in [_new_button, _boar_button, _chicken_button, _yard_button, _pit_button, _keep_button, _confirm_button, _delete_yes, _delete_no, _completed_yes, _completed_no, _back_button]:
 		_wire_hover(button)
 		UiAnim.wire_row_feedback(self, button, UiType.INK)
 	_list_drag = DragScroll.attach(_scroll, _list_root)
@@ -106,7 +115,9 @@ func open(direction: int = 0) -> void:
 	modulate.a = 1.0
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_pending_delete_id = ""
+	_pending_completed_id = ""
 	_reset_delete_modal()
+	_reset_completed_modal()
 	_show_list_nodes()
 	## 叠层的 _ready 早于 MainMenu._ready 的 GameSettings.apply()，拿到的还是旧 UI Scale；
 	## 打开这一刻按当前逻辑视口重算一遍版心 / 建档表单宽度。
@@ -124,8 +135,10 @@ func close(direction: int = 0) -> void:
 		return
 	_open = false
 	_pending_delete_id = ""
+	_pending_completed_id = ""
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hide_delete_modal()
+	_hide_completed_modal()
 	UiAnim.kill_tween(_anim_tween)
 	_anim_tween = UiAnim.exit_page(self, _dimmer, _sheet, false, direction)
 	_anim_tween.finished.connect(_finish_close)
@@ -175,7 +188,7 @@ func _input(event: InputEvent) -> void:
 	if UiFocus.handle_first_pad_input(self, event, _first_focus_target()):
 		get_viewport().set_input_as_handled()
 		return
-	if _view != View.EDITOR or _is_deleting():
+	if _view != View.EDITOR or _is_deleting() or _is_completed_open():
 		return
 	if _name_edit.has_focus():
 		return
@@ -191,6 +204,9 @@ func _input(event: InputEvent) -> void:
 
 func _handle_back() -> void:
 	_play_back()
+	if _is_completed_open():
+		_cancel_completed()
+		return
 	if _is_deleting():
 		_cancel_delete()
 		return
@@ -203,7 +219,7 @@ func _on_back_pressed() -> void:
 	_handle_back()
 
 func _on_new_pressed() -> void:
-	if not _open:
+	if not _open or _is_completed_open():
 		return
 	if GameRecords.list_records().size() >= GameRecords.get_max_records():
 		_play_error()
@@ -212,13 +228,53 @@ func _on_new_pressed() -> void:
 	_enter_editor()
 
 func _on_record_pressed(record_id: String) -> void:
-	if not _open or _view != View.LIST or _is_deleting():
+	if not _open or _view != View.LIST or _is_deleting() or _is_completed_open():
+		return
+	if _record_status(record_id) == SaveSlot.status_name(SaveSlot.Status.CLEARED):
+		## 已通关的档：先问「THIS SAVE IS COMPLETED / START OVER?」，绝不静默开新局。
+		_play_click()
+		show_completed(record_id)
 		return
 	_play_click()
 	selected_record.emit(record_id)
 
+## 外部（Continue）也能直接把已通关确认条顶出来。
+func show_completed(record_id: String) -> void:
+	if record_id.is_empty():
+		return
+	if not _open:
+		open()
+	_pending_completed_id = record_id
+	_show_completed_modal()
+
+func _is_completed_open() -> bool:
+	return not _pending_completed_id.is_empty()
+
+func _record_status(record_id: String) -> String:
+	var record: GameRecord = GameRecords.get_record(record_id)
+	return record.status if record != null else ""
+
+func _on_completed_yes_pressed() -> void:
+	_play_click()
+	var record_id: String = _pending_completed_id
+	_pending_completed_id = ""
+	_hide_completed_modal()
+	if record_id.is_empty():
+		return
+	## START OVER = 用该档**新开一局**（START_NEW_RUN）。
+	## 旧 history 挂在 slot.history 上，mark_cleared / mark_failed 只追加不覆盖，不会丢。
+	selected_record.emit(record_id)
+
+func _on_completed_no_pressed() -> void:
+	_handle_back()
+
+func _cancel_completed() -> void:
+	_pending_completed_id = ""
+	_hide_completed_modal()
+	_enter_list(true)
+
 func _on_delete_pressed(record_id: String) -> void:
-	if not _open or _view != View.LIST:
+	if not _open or _view != View.LIST or _is_completed_open():
 		return
 	_play_click()
 	_pending_delete_id = record_id
@@ -286,6 +342,7 @@ func _enter_list(refresh: bool) -> void:
 func _enter_editor() -> void:
 	_view = View.EDITOR
 	_pending_delete_id = ""
+	_pending_completed_id = ""
 	_list_root.visible = false
 	_editor_root.visible = true
 	## 右上角同一个槽位：建档态换成 Create，列表态是 + New Record。
@@ -293,6 +350,7 @@ func _enter_editor() -> void:
 	_confirm_button.visible = true
 	_subtitle.text = SUBTITLE_EDITOR
 	_hide_delete_modal()
+	_hide_completed_modal()
 	sync_content_width_for(_logical_viewport_width())
 	_reset_editor()
 	if _editor_drag != null:
@@ -307,6 +365,7 @@ func _show_list_nodes() -> void:
 	_confirm_button.visible = false
 	_subtitle.text = SUBTITLE_LIST
 	_hide_delete_modal()
+	_hide_completed_modal()
 
 func _show_delete_modal() -> void:
 	_delete_dimmer.visible = true
@@ -337,6 +396,33 @@ func _reset_delete_modal() -> void:
 
 func _is_deleting() -> bool:
 	return not _pending_delete_id.is_empty()
+
+func _show_completed_modal() -> void:
+	_completed_dimmer.visible = true
+	_completed_center.visible = true
+	UiAnim.kill_tween(_modal_tween)
+	_modal_tween = UiAnim.enter_modal(self, _completed_dimmer, _completed_panel)
+
+func _hide_completed_modal() -> void:
+	if not _completed_center.visible:
+		return
+	UiAnim.kill_tween(_modal_tween)
+	_modal_tween = UiAnim.exit_modal(self, _completed_dimmer, _completed_panel)
+	_modal_tween.finished.connect(_finish_completed_modal_close)
+
+func _finish_completed_modal_close() -> void:
+	if _is_completed_open():
+		return
+	_completed_dimmer.visible = false
+	_completed_center.visible = false
+
+func _reset_completed_modal() -> void:
+	UiAnim.kill_tween(_modal_tween)
+	_completed_dimmer.visible = false
+	_completed_center.visible = false
+	_completed_dimmer.modulate.a = 1.0
+	_completed_panel.modulate.a = 1.0
+	_completed_panel.scale = Vector2.ONE
 
 func _reset_editor() -> void:
 	_select_character(CHAR_BOAR)
@@ -386,10 +472,13 @@ func _fit_scroll() -> void:
 	_scroll.scroll_vertical = 0
 
 ## 当前状态的首选焦点：只在玩家第一次按键盘 / 手柄导航键时用（界面打开时不自动聚焦）。
-## 删除确认的「取消」必须排在「删除」前面，保住原来的安全默认。
+## 删除确认的「取消」必须排在「删除」前面，保住原来的安全默认；
+## 同理已通关确认条的「Cancel」排在「Start New Run」前面。
 func _first_focus_target() -> Array:
 	if _is_deleting():
 		return [_delete_no, _delete_yes]
+	if _is_completed_open():
+		return [_completed_no, _completed_yes]
 	if _view == View.EDITOR:
 		return _editor_focus_target()
 	return _list_focus_target()

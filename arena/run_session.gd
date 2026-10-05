@@ -120,6 +120,19 @@ func get_player_state(profile_id: String) -> PlayerRunState:
 func get_local_player_state() -> PlayerRunState:
 	return _local()
 
+## 由 CombatSandbox 在提交检查点前喂入本机跟班清单（只存 id + 武器槽，不存位置 / HP）。
+func set_local_companions(rows: Array) -> void:
+	var state: PlayerRunState = _local()
+	var parsed: Array[Dictionary] = []
+	for row: Variant in rows:
+		if typeof(row) != TYPE_DICTIONARY:
+			continue
+		parsed.append((row as Dictionary).duplicate(true))
+	state.companions = parsed
+
+func get_local_companions() -> Array[Dictionary]:
+	return _local().companions.duplicate(true)
+
 func set_save_slot_id(slot_id: String) -> void:
 	_shared.save_slot_id = slot_id
 
@@ -315,6 +328,9 @@ func clear_hp_timeline() -> void:
 
 # ---- 生命周期 ----
 
+## START_NEW_RUN 专用：换新的 run_id、清空所有 runtime state（升级 / loop / xp / level /
+## gold / kills / companions）。**RESUME_RUN 绝对不允许调用它** —— 续跑必须走
+## restore_checkpoint()，否则就是「先 reset 再覆盖部分字段」。
 func restart() -> void:
 	var loop_goal: int = _shared.loop_goal
 	var slot_id: String = _shared.save_slot_id
@@ -453,6 +469,10 @@ func export_result(save_slot_id: String, outcome: String) -> RunResult:
 		team_total += score
 	result.team_score = team_total
 	result.score = _local().score
+	## history 是**账本**：gold / kills 必须跟着走，否则记分板只剩一个总分，
+	## 旧局的「这局攒了多少」直接丢了（RunHistoryEntry.gold/kills 会永远是 0）。
+	result.kill_count = _local().kill_count
+	result.gold = _local().gold
 	return result
 
 ## 恢复最近一次已提交的 checkpoint（SAFE CHECKPOINT：只在 loop 边界 / 决策点恢复）。

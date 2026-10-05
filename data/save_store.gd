@@ -309,7 +309,7 @@ static func clear_active_run(id: String) -> bool:
 	return save_to_disk()
 
 ## 只追加局末账本（历史 + best_score），不改 active_run / 不改 status。
-## 给 GameRecords.append_run_result 这类兼容调用方用。
+## 正式终局请用 mark_cleared / mark_failed；本方法只给账本类调用方与测试用。
 static func append_result(id: String, result: RunResult) -> bool:
 	load_from_disk()
 	var slot: SaveSlot = get_slot(id)

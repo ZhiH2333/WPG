@@ -362,6 +362,7 @@ func _set_home_slid(slid_out: bool, direction: int) -> void:
 		UiAnim.slide_in(self, home, direction)
 
 ## Continue = 续跑：该档还有 active_run 就 RESUME_RUN；否则退回「用该档新开一局」。
+## 但最新档已经 CLEARED 时**绝不**静默开新局：先开档位列表并弹「已通关 / START OVER?」。
 func _on_continue_pressed() -> void:
 	GameSaveStore.ensure_loaded()
 	var active: SaveSlot = GameSaveStore.get_latest_active_slot()
@@ -371,7 +372,15 @@ func _on_continue_pressed() -> void:
 	var record: GameRecord = _find_last_record()
 	if record == null:
 		return
+	if record.status == SaveSlot.status_name(SaveSlot.Status.CLEARED):
+		_show_completed_save(record.id)
+		return
 	_enter_record(record.id)
+
+## 打开档位列表并直接把「这档已通关」确认条顶出来（§11/§12）。
+func _show_completed_save(record_id: String) -> void:
+	_open_records(RecordOrigin.HOME)
+	_record_selector.show_completed(record_id)
 
 func _enter_record(id: String, intent: GameLaunch.RunIntent = GameLaunch.RunIntent.START_NEW_RUN) -> void:
 	if _leaving:
