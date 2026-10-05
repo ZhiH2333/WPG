@@ -156,6 +156,10 @@ func _on_rendezvous_candidates(candidates: Array, remote_nonce: String, remote_r
 			c.path, c.address, c.port, c.observed_address, c.observed_port
 		])
 	_state = "candidates_received"
+	## 直接创建 hole punch（call_deferred 在紧凑循环中不生效）
+	_create_hole_punch(candidates)
+
+func _create_hole_punch(candidates: Array) -> void:
 	## 创建 hole punch（Host 角色）
 	_hole_punch = P2PHolePunch.new()
 	_hole_punch.path_established.connect(_on_hole_punch_path_established)

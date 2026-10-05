@@ -61,7 +61,8 @@ func _case_two_instance_bidirectional_punch() -> void:
 	## simultaneous probing：begin 后两个 pair 都是 active。
 	_expect(a.get_active_probe_count() == 2, "A 有 2 个同时 active 的 probe pair")
 
-	## 第一次 tick：两个 pair 都发出 probe（不再串行）。
+	## 第一次 tick：首帧不发（first_tick_skip），第二次 tick 发出 probe。
+	a.tick(0)
 	a.tick(0)
 	var states: Array[Dictionary] = a.debug_pair_states()
 	_expect(states.size() == 2, "A 构建了 2 个 candidate pair")
@@ -69,7 +70,7 @@ func _case_two_instance_bidirectional_punch() -> void:
 	for state: Dictionary in states:
 		if int(state.probes_sent) < 1:
 			sent_all = false
-	_expect(sent_all, "两个 pair 第一次 tick 都发了 probe（simultaneous）")
+	_expect(sent_all, "两个 pair 第二次 tick 都发了 probe（simultaneous）")
 
 	## stale ACK：probe_id 不匹配 -> 丢弃。
 	var real_pair: Dictionary = _find_pair_by_port(a, port_b)

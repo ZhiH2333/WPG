@@ -185,12 +185,19 @@ func _case_simultaneous_probing() -> void:
 	hp.begin("abcdef1234567890", "0123456789abcdef0123456789abcdef", "fedcba9876543210fedcba9876543210", P2PUDPProbe.Role.GUEST, local_candidates, remote_candidates)
 	_expect(hp.debug_pair_states().size() == 4, "构建 4 个 candidate pair")
 	_expect(hp.get_active_probe_count() == 4, "4 个 pair 同时 active")
+	## 第一帧不发送（first_tick 延迟），第二帧发送
+	hp.tick(0)
+	var all_sent_first: bool = true
+	for state: Dictionary in hp.debug_pair_states():
+		if int(state.probes_sent) >= 1:
+			all_sent_first = false
+	_expect(all_sent_first, "首帧不发送（first_tick 延迟）")
 	hp.tick(0)
 	var all_sent: bool = true
 	for state: Dictionary in hp.debug_pair_states():
 		if int(state.probes_sent) < 1:
 			all_sent = false
-	_expect(all_sent, "一次 tick 所有 pair 都发 probe（simultaneous）")
+	_expect(all_sent, "第二帧所有 pair 都发 probe（simultaneous）")
 	_expect(hp.get_active_probe_count() == 4, "发送后仍全部 active")
 	hp.cancel()
 	_expect(hp.get_active_probe_count() == 0, "cancel 后没有 active probe")

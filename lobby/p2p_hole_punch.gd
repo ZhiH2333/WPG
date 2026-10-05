@@ -89,6 +89,7 @@ var _validated_source_port: int = 0
 var _validated_pair_index: int = -1
 var _generation: int = 0
 var _finished: bool = false
+var _first_tick_skip: int = 1
 ## probe_id 单调递增（随机初值，跨 reset 不复用），从根上防「旧 ACK 撞上新 probe」。
 var _probe_id_counter: int = 0
 
@@ -284,6 +285,7 @@ func begin(
 	_validated_source_port = 0
 	_validated_pair_index = -1
 	_finished = false
+	_first_tick_skip = 1  # 跳过首帧发送，给对端 rendezvous client 时间暂停
 
 	_transition(State.PROBING)
 	return true
@@ -303,6 +305,11 @@ func tick(delta_ms: int) -> void:
 	_process_receive()
 	if _bidirectional_confirmed:
 		_finish(Result.SUCCESS, "bidirectional_confirmed")
+		return
+
+	## 前 2 帧不发送探测，给对端 rendezvous client 足够时间暂停，避免抢包
+	if _first_tick_skip > 0:
+		_first_tick_skip -= 1
 		return
 
 	## 同时发送探测（所有 active pair 并行推进）
@@ -628,4 +635,5 @@ func reset() -> void:
 	_validated_pair_index = -1
 	_generation = 0
 	_finished = false
+	_first_tick_skip = 1
 	## 注意：_probe_id_counter 不重置，保证 probe_id 单调、旧 ACK 不撞新 probe。
