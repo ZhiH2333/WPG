@@ -560,6 +560,35 @@ def installed_provisioning_profiles() -> List[Path]:
     return profiles
 
 
+_UDID_RE = re.compile(r"\(([0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3,5})\)")
+
+
+def usb_connected_ios_devices() -> List[str]:
+    """USB 连接着的 iOS 设备名（`xcrun xctrace list devices` 的 Devices 段）。"""
+    proc = run_cmd(["xcrun", "xctrace", "list", "devices"], timeout=120)
+    names: List[str] = []
+    in_devices = False
+    for line in (proc.stdout or "").splitlines():
+        if line.startswith("== "):
+            in_devices = line.startswith("== Devices ==")
+            continue
+        if not in_devices:
+            continue
+        found = re.match(r"\s*(.+?)\s+\([0-9A-Fa-f-]{20,}\)\s*$", line)
+        if found:
+            names.append(found.group(1).strip())
+    return names
+
+
+def development_ready_ios_devices() -> List[str]:
+    """已在 Xcode 里「Use for Development」的设备（`xcrun devicectl list devices`）。"""
+    proc = run_cmd(["xcrun", "devicectl", "list", "devices"], timeout=120)
+    out = proc.stdout or ""
+    if proc.returncode != 0 or "No devices found" in out:
+        return []
+    return _UDID_RE.findall(out)
+
+
 
 def find_android_sdk() -> Optional[Path]:
     for key in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
@@ -831,7 +860,37 @@ def ios_signing_check(team_id: str) -> IosCheck:
             "配置的 Team ID = %s，但 Xcode 账号里没有这个 Team" % team_id,
             "修复：Xcode → Settings → Accounts → 用拥有 Team %s 的 Apple ID 登录" % team_id,
         )
-    return _ios_pass(label, "codesigning identity 可用，Xcode 账号拥有 Team %s" % team_id, *tuple(notes))
+    if not profiles:
+        # 没有 profile 就一定归档不了；Apple 只有在团队里至少有一台已注册设备时
+        # 才会签发 development profile，所以这里必须把设备状态说清楚。
+        connected = usb_connected_ios_devices()
+        ready = development_ready_ios_devices()
+        notes.append("USB 连接的 iOS 设备：%s" % (", ".join(connected) if connected else "无"))
+        notes.append("已可用于开发的设备：%d 台" % len(ready))
+        if not ready:
+            if connected:
+                fix = (
+                    "Xcode → Window → Devices and Simulators → 选中 %s → "
+                    "Use for Development（手机需解锁、开启开发者模式并信任此电脑）" % connected[0]
+                )
+            else:
+                fix = (
+                    "用数据线连接 iPhone/iPad，在 Xcode → Window → Devices and Simulators 里 "
+                    "点 Use for Development"
+                )
+            return _ios_fail(
+                label,
+                "IOS_SIGNING_BLOCKED",
+                blocked,
+                *tuple(notes),
+                "Apple：Your team has no devices from which to generate a provisioning profile.",
+                "修复：" + fix,
+            )
+    return _ios_pass(
+        label,
+        "codesigning identity 可用，Xcode 账号拥有 Team %s" % team_id,
+        *tuple(notes),
+    )
 
 
 def ios_preflight(configuration: str = "development") -> List[IosCheck]:

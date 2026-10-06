@@ -50,12 +50,12 @@ Team ID 只有一个来源：`export_presets.cfg` 的 iOS preset。
 
 ```ini
 [preset.5.options]
-application/app_store_team_id="L6266LV3YM"
+application/app_store_team_id="334R786Y6V"
 ```
 
 - 这是 **Team ID**，不是 Apple ID，也不是账号邮箱。
 - 工具从 preset 读它，不再在别处复制一份，避免两边不一致。
-- Xcode 工程里对应 `DEVELOPMENT_TEAM = L6266LV3YM`、`CODE_SIGN_STYLE = Automatic`，
+- Xcode 工程里对应 `DEVELOPMENT_TEAM` = 同一个 Team ID、`CODE_SIGN_STYLE = Automatic`，
   导出后工具用 `xcodebuild -showBuildSettings` 反查这三项是否真的写进工程。
 
 换 Team ID：只改 `export_presets.cfg` 这一行，然后重跑 `--check`。
@@ -113,6 +113,35 @@ python3 tools/build/build_all.py --platform ios
 python3 tools/build/export_platform.py ios --release            # 拒绝 distribution 命名
 python3 tools/build/export_platform.py ios --configuration release   # 拒绝 App Store 路径
 ```
+
+---
+
+## iOS 图标（preset 必须接线）
+
+`export_presets.cfg` 的 iOS preset 里所有 `icons/*` 键都必须指向真实存在的
+`res://` 文件，否则 `tools/ci/architecture.py` 的「图标接线」守卫会 FAIL（CI 红）。
+
+当前接线：每个尺寸键指向 `icons/ios/AppIcon.appiconset/` 里**同像素尺寸**的成品，
+且同时覆盖 light / dark / tinted 三套：
+
+```
+icons/settings_58x58      = res://icons/ios/AppIcon.appiconset/Icon-29@2x.png        (58px)
+icons/notification_114x114= res://icons/ios/AppIcon.appiconset/Icon-38@3x.png        (114px)
+icons/iphone_180x180      = res://icons/ios/AppIcon.appiconset/Icon-60@3x.png        (180px)
+icons/ipad_167x167        = res://icons/ios/AppIcon.appiconset/Icon-83.5@2x.png      (167px)
+icons/ios_192x192         = res://icons/ios/AppIcon.appiconset/Icon-64@3x.png        (192px)
+… 共 45 个键
+icons/icon_1024x1024      = res://icons/ios/icon-1024.png                            (母版)
+icons/app_store_1024x1024 = res://icons/ios/appstore-1024.png                        (母版)
+```
+
+- 图标唯一真源是 `wpg.icon/`，用 `python3 tools/icons/generate_icons.py` 重新生成；
+  它会同时重建 `icons/ios/AppIcon.appiconset/`，**改完图标记得把 preset 里对应键指回去**。
+- `icons/ios/.gdignore` 会让这些 PNG 不进 PCK（导出期素材不能进包），
+  但 Godot 导出时仍能按 `res://` 路径读到它们。
+- Godot 导出后会在工程里生成 `WPG/Images.xcassets/AppIcon.appiconset`
+  （16 个尺寸 × light/dark/tinted = 48 张），Xcode 直接使用。
+- 不要留空键：空值 = 守卫失败。
 
 ---
 
@@ -215,6 +244,31 @@ Xcode → Settings → Accounts → 用拥有该 Team 的 Apple ID 登录
 
 Automatic Signing 还没拿到 development profile。同样先确认账号登录，
 然后重跑构建让 Xcode 去申请；不要手工往 preset 里写 `provisioning_profile_uuid_*`。
+
+### `Your team has no devices from which to generate a provisioning profile`
+
+免费 Personal Team **必须先有一台已注册的设备**，Apple 才会签发 development
+provisioning profile；没有设备就一定出不了 `.app` / `.ipa`。
+
+```text
+Xcode → Window → Devices and Simulators → 选中你的 iPhone/iPad → Use for Development
+```
+
+前提（缺一不可）：
+
+- 数据线连接，电脑弹窗点「信任」
+- 手机已解锁；iOS 16+ 要打开 `设置 → 隐私与安全性 → 开发者模式`
+- 设备在 Xcode 里显示为可用（`xcrun devicectl list devices` 能看到它）
+
+验证：
+
+```bash
+xcrun devicectl list devices      # 应列出你的设备
+python3 tools/build/export_platform.py ios --check
+```
+
+`--check` 在「有 profile」之前会先看设备状态，直接把上面那条修复命令打出来，
+不会假装环境就绪（`IOS_SIGNING_BLOCKED`，退出码 2）。
 
 ### `xcode-select is not pointing to Xcode: /Library/Developer/CommandLineTools`
 

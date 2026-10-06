@@ -663,6 +663,7 @@ def export_ios(args: argparse.Namespace) -> int:
             "generic/platform=iOS",
             "archive",
             "-allowProvisioningUpdates",
+            "-allowProvisioningDeviceRegistration",
             "-archivePath",
             str(archive_path),
         ],
