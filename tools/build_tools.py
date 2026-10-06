@@ -62,7 +62,9 @@ def print_menu() -> None:
     print("10. Check Release Readiness")
     print("11. Create Release Tag")
     print("12. Deploy Web to Netlify")
-    print("13. Exit")
+    print("13. Build iOS (本地 Personal Team development)")
+    print("14. iOS Doctor (环境检查)")
+    print("15. Exit")
     print("")
 
 
@@ -264,6 +266,10 @@ def dispatch(choice: str) -> int:
     if choice == "12":
         return run_script("tools/deploy/deploy_netlify.py", [])
     if choice == "13":
+        return run_script("tools/build/export_platform.py", ["ios"])
+    if choice == "14":
+        return run_script("tools/build/export_platform.py", ["ios", "--check"])
+    if choice == "15":
         return 0
     emit("FAIL", "没有这个选项：%s" % choice)
     return 1
@@ -296,7 +302,7 @@ def main() -> int:
         except EOFError:
             print("")
             return 0
-        if choice == "13":
+        if choice == "15":
             return 0
         code = dispatch(choice)
         if code != 0:

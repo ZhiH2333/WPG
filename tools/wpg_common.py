@@ -71,8 +71,13 @@ PRESETS: Dict[str, str] = {
     "linux": "Linux",
     "android": "Android",
     "web": "Web",
+    # iOS 只做**本地 Personal Team development 构建**，不进正式 Release 流程。
+    "ios": "iOS",
 }
 
+# 正式 Release（GitHub Release / checksums / build_all）仍然只有这五个平台。
+# iOS 刻意不放进 PLATFORMS：本地 development toolchain 与 distribution 语义无关，
+# 混进去会让 stable release 误以为存在 iOS 分发产物。
 PLATFORMS: Tuple[str, ...] = ("windows", "macos", "linux", "android", "web")
 
 TEMPLATE_FILES: Dict[str, Tuple[str, ...]] = {
@@ -81,9 +86,52 @@ TEMPLATE_FILES: Dict[str, Tuple[str, ...]] = {
     "linux": ("linux_release.x86_64",),
     "android": ("android_release.apk", "android_debug.apk"),
     "web": ("web_nothreads_release.zip", "web_release.zip"),
+    "ios": ("ios.zip",),
 }
 
 WEB_PACKAGE_SUFFIXES: Tuple[str, ...] = (".wasm", ".js", ".pck")
+
+# ---------------------------------------------------------------------------
+# iOS 本地 development 构建的常量
+# ---------------------------------------------------------------------------
+# Apple Team ID：Xcode Personal Team。不是 Apple ID，也不是密码。
+IOS_TEAM_ID_RE = re.compile(r"^[A-Z0-9]{10}$")
+# reverse-DNS Bundle ID：只允许 A-Z a-z 0-9 . -
+IOS_BUNDLE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*(\.[A-Za-z0-9][A-Za-z0-9-]*)+$")
+# Godot iOS 导出方式枚举：App Store,Development,Ad-Hoc,Enterprise
+IOS_EXPORT_METHOD_DEVELOPMENT = "1"
+IOS_PLACEHOLDER_BUNDLE_TOKENS: Tuple[str, ...] = (
+    "example",
+    "placeholder",
+    "yourcompany",
+    "yourdomain",
+    "changeme",
+    "sample",
+    "acme",
+    "bundleidentifier",
+    "com.company",
+    "org.godotengine",
+)
+IOS_CONFIGURATION_ALIASES: Dict[str, str] = {
+    "development": "development",
+    "ios-development": "development",
+    "ios-dev": "development",
+    "debug": "development",
+    "ios-debug": "development",
+}
+# 明确拒绝把本地构建说成 distribution / release。
+IOS_UNSUPPORTED_CONFIGURATIONS: Tuple[str, ...] = (
+    "release",
+    "distribution",
+    "app-store",
+    "appstore",
+    "ad-hoc",
+    "adhoc",
+    "enterprise",
+    "testflight",
+    "ios-release",
+    "ios-distribution",
+)
 
 
 @dataclass
@@ -358,6 +406,161 @@ def preset_exists(platform_key: str) -> bool:
     ) in text
 
 
+# ---------------------------------------------------------------------------
+# export_presets.cfg 解析（iOS toolchain 只读，不写回正式配置）
+# ---------------------------------------------------------------------------
+def _preset_section_bounds(text: str, header_pattern: str) -> Optional[Tuple[int, int]]:
+    """返回某个 [preset.N...] 段落在文本里的 (start, end)，找不到返回 None。"""
+    match = re.search(header_pattern, text, re.MULTILINE)
+    if match is None:
+        return None
+    start = match.start()
+    nxt = re.search(r"^\[", text[match.end() :], re.MULTILINE)
+    end = match.end() + nxt.start() if nxt else len(text)
+    return start, end
+
+
+def preset_index(platform_key: str) -> Optional[str]:
+    """返回 preset 序号（例如 iOS 是 "5"）。找不到 preset 返回 None。"""
+    if not EXPORT_PRESETS.is_file():
+        return None
+    text = EXPORT_PRESETS.read_text(encoding="utf-8")
+    preset_name = PRESETS[platform_key]
+    for match in re.finditer(r"^\[preset\.(\d+)\]\s*$", text, re.MULTILINE):
+        bounds = _preset_section_bounds(text, r"^\[preset\.%s\]\s*$" % match.group(1))
+        if bounds is None:
+            continue
+        body = text[bounds[0] : bounds[1]]
+        if 'name="%s"' % preset_name in body:
+            return match.group(1)
+    return None
+
+
+def _parse_cfg_options(body: str) -> Dict[str, str]:
+    """解析 Godot 的 preset options 段。多行字符串值（引号未闭合）会继续收集。"""
+    options: Dict[str, str] = {}
+    key: Optional[str] = None
+    chunks: List[str] = []
+    for line in body.splitlines():
+        if key is None:
+            found = re.match(r"^([A-Za-z0-9_./-]+)=(.*)$", line)
+            if found is None:
+                continue
+            key, value = found.group(1), found.group(2)
+            if value.startswith('"') and not (len(value) >= 2 and value.endswith('"')):
+                chunks = [value]
+                continue
+            options[key] = value[1:-1] if value.startswith('"') and value.endswith('"') else value
+            key = None
+            continue
+        chunks.append(line)
+        if line.endswith('"'):
+            joined = "\n".join(chunks)
+            options[key] = joined[1:] if joined.startswith('"') else joined
+            options[key] = options[key][:-1] if options[key].endswith('"') else options[key]
+            key = None
+            chunks = []
+    return options
+
+
+def preset_options(platform_key: str) -> Dict[str, str]:
+    """读取某个 preset 的 options 键值。preset 不存在返回 {}。"""
+    index = preset_index(platform_key)
+    if index is None:
+        return {}
+    text = EXPORT_PRESETS.read_text(encoding="utf-8")
+    bounds = _preset_section_bounds(text, r"^\[preset\.%s\.options\]\s*$" % index)
+    if bounds is None:
+        return {}
+    return _parse_cfg_options(text[bounds[0] : bounds[1]])
+
+
+def ios_team_id() -> str:
+    return preset_options("ios").get("application/app_store_team_id", "").strip()
+
+
+def ios_bundle_identifier() -> str:
+    return preset_options("ios").get("application/bundle_identifier", "").strip()
+
+
+def bundle_identifier_problem(value: str) -> Optional[str]:
+    """Bundle ID 不可用时返回原因，可用返回 None。
+
+    占位值（com.example.* 之类）必须显式失败，绝不能被当成配置成功蒙混过去。
+    """
+    if not value:
+        return "bundle identifier 为空（preset 需要 application/bundle_identifier）"
+    if IOS_BUNDLE_ID_RE.match(value) is None:
+        return "invalid bundle identifier: %s（只允许 A-Z a-z 0-9 . -，至少两级）" % value
+    lowered = value.lower()
+    for token in IOS_PLACEHOLDER_BUNDLE_TOKENS:
+        if token in lowered:
+            return "invalid/example bundle identifier: %s（仍是占位值，含 %r）" % (value, token)
+    return None
+
+
+def codesigning_identity_names() -> List[str]:
+    """keychain 里可用的 codesigning identity 的 CN 列表。"""
+    proc = run_cmd(["security", "find-identity", "-v", "-p", "codesigning"])
+    names: List[str] = []
+    for line in (proc.stdout or "").splitlines():
+        found = re.search(r'^\s*\d+\)\s+[0-9A-F]{40}\s+"(.+)"\s*$', line)
+        if found:
+            names.append(found.group(1))
+    return names
+
+
+def _certificate_organizational_unit(common_name: str) -> str:
+    """证书 subject 里的 OU，Apple 用它承载真正的 Team ID。"""
+    proc = run_cmd(["security", "find-certificate", "-c", common_name, "-p"])
+    pem = proc.stdout or ""
+    if proc.returncode != 0 or "BEGIN CERTIFICATE" not in pem:
+        return ""
+    try:
+        parsed = subprocess.run(
+            ["openssl", "x509", "-noout", "-subject", "-nameopt", "multiline"],
+            input=pem,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    for line in (parsed.stdout or "").splitlines():
+        if "organizationalUnitName" in line and "=" in line:
+            return line.split("=", 1)[1].strip()
+    return ""
+
+
+def xcode_account_teams() -> Tuple[Optional[List[str]], str]:
+    """Xcode 账号里注册过的 Team ID 列表。
+
+    返回 (None, 原因) 表示读不出来（不能据此判成功也不能据此判失败）；
+    返回 ([...], "") 表示确实读到了账号团队列表。
+    """
+    proc = run_cmd(["defaults", "read", "com.apple.dt.Xcode", "IDEProvisioningTeamByIdentifier"])
+    if proc.returncode != 0:
+        return None, "defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 失败"
+    teams = sorted(set(re.findall(r"teamID\s*=\s*([A-Z0-9]{10})", proc.stdout or "")))
+    if not teams:
+        return None, "Xcode 账号 Team 列表为空/格式无法解析"
+    return teams, ""
+
+
+def installed_provisioning_profiles() -> List[Path]:
+    folders = [
+        Path.home() / "Library/MobileDevice/Provisioning Profiles",
+        Path.home() / "Library/Developer/Xcode/UserData/Provisioning Profiles",
+    ]
+    profiles: List[Path] = []
+    for folder in folders:
+        if folder.is_dir():
+            profiles.extend(sorted(folder.glob("*.mobileprovision")))
+    return profiles
+
+
+
 def find_android_sdk() -> Optional[Path]:
     for key in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
         value = os.environ.get(key, "").strip()
@@ -542,7 +745,223 @@ def game_mode_outcome() -> Outcome:
     return Outcome("PASS", "Android 游戏模式声明就绪")
 
 
+# ---------------------------------------------------------------------------
+# iOS 本地 development 环境检查（doctor / preflight 共用）
+# ---------------------------------------------------------------------------
+@dataclass
+class IosCheck:
+    label: str
+    ok: bool
+    code: str = ""
+    detail: str = ""
+    notes: Tuple[str, ...] = ()
+
+    @property
+    def message(self) -> str:
+        if self.ok:
+            return self.detail or self.label
+        if self.code:
+            return "%s: %s" % (self.code, self.detail)
+        return self.detail
+
+
+def _ios_pass(label: str, detail: str, *notes: str) -> IosCheck:
+    return IosCheck(label, True, "", detail, tuple(notes))
+
+
+def _ios_fail(label: str, code: str, detail: str, *notes: str) -> IosCheck:
+    return IosCheck(label, False, code, detail, tuple(notes))
+
+
+def xcode_developer_dir() -> Tuple[int, str]:
+    proc = run_cmd(["xcode-select", "-p"])
+    return proc.returncode, (proc.stdout or "").strip()
+
+
+def xcodebuild_version() -> Tuple[int, str]:
+    if shutil.which("xcodebuild") is None:
+        return 1, "xcodebuild 不在 PATH"
+    proc = run_cmd(["xcodebuild", "-version"])
+    lines = [line for line in (proc.stdout or "").strip().splitlines() if line.strip()]
+    return proc.returncode, " / ".join(lines[:2])
+
+
+def ios_signing_check(team_id: str) -> IosCheck:
+    """Apple development signing 是否可用。
+
+    判定标准：keychain 里有 codesigning identity，**并且** Xcode 账号里确实有这个
+    Team（Automatic Signing 靠 Xcode 账号去要 provisioning profile）。读不到就明确
+    FAIL，绝不因为「大概可以」就输出 PASS。
+    """
+    label = "Apple signing availability"
+    blocked = "No usable Apple development signing identity / Personal Team provisioning is available."
+    if not team_id:
+        return _ios_fail(label, "IOS_SIGNING_BLOCKED", "Team ID 为空，无法确定签名目标")
+    identities = codesigning_identity_names()
+    if not identities:
+        return _ios_fail(
+            label,
+            "IOS_SIGNING_BLOCKED",
+            blocked,
+            "security find-identity -p codesigning：0 个 identity",
+            "修复：Xcode → Settings → Accounts → 登录 Apple ID → Manage Certificates → Apple Development",
+        )
+    notes: List[str] = ["keychain identity: %s" % identities[0]]
+    cert_team = _certificate_organizational_unit(identities[0])
+    if cert_team:
+        notes.append("证书 OU Team = %s（Apple 用 OU 承载真正的 Team ID）" % cert_team)
+    profiles = installed_provisioning_profiles()
+    notes.append("本机 provisioning profile 数量：%d" % len(profiles))
+    teams, reason = xcode_account_teams()
+    if teams is None:
+        return _ios_fail(
+            label,
+            "IOS_SIGNING_BLOCKED",
+            "无法检查 Xcode 账号是否拥有 Team %s（%s）" % (team_id, reason),
+            "Automatic Signing 需要 Xcode 账号；读不到就不能算通过",
+            "修复：Xcode → Settings → Accounts → 登录拥有 Team %s 的 Apple ID" % team_id,
+        )
+    notes.append("Xcode 账号里的 Team：%s" % ", ".join(teams))
+    if team_id not in teams:
+        return _ios_fail(
+            label,
+            "IOS_SIGNING_BLOCKED",
+            blocked,
+            *tuple(notes),
+            "配置的 Team ID = %s，但 Xcode 账号里没有这个 Team" % team_id,
+            "修复：Xcode → Settings → Accounts → 用拥有 Team %s 的 Apple ID 登录" % team_id,
+        )
+    return _ios_pass(label, "codesigning identity 可用，Xcode 账号拥有 Team %s" % team_id, *tuple(notes))
+
+
+def ios_preflight(configuration: str = "development") -> List[IosCheck]:
+    """iOS 构建前的全部检查。顺序即执行顺序：macOS 不通过就立刻停。"""
+    checks: List[IosCheck] = []
+    if platform.system() != "Darwin":
+        checks.append(_ios_fail("macOS", "IOS_EXPORT_BLOCKED", "iOS export requires macOS and Xcode"))
+        return checks
+    checks.append(_ios_pass("macOS", "macOS %s" % (platform.mac_ver()[0] or platform.system())))
+
+    code, dev_dir = xcode_developer_dir()
+    if code != 0 or not dev_dir:
+        checks.append(_ios_fail("Xcode", "IOS_EXPORT_BLOCKED", "xcode-select -p 执行失败：%s" % (dev_dir or "无输出")))
+    elif not Path(dev_dir).is_dir():
+        checks.append(_ios_fail("Xcode", "IOS_EXPORT_BLOCKED", "Xcode developer directory 不存在：%s" % dev_dir))
+    elif "Xcode.app" not in dev_dir:
+        checks.append(
+            _ios_fail(
+                "Xcode",
+                "IOS_EXPORT_BLOCKED",
+                "xcode-select is not pointing to Xcode: %s" % dev_dir,
+                "修复：sudo xcode-select -s /Applications/Xcode.app/Contents/Developer",
+            )
+        )
+    else:
+        checks.append(_ios_pass("Xcode", dev_dir))
+
+    xcode_build_code, xcode_build = xcodebuild_version()
+    if xcode_build_code != 0 or not xcode_build.startswith("Xcode"):
+        checks.append(_ios_fail("xcodebuild", "IOS_EXPORT_BLOCKED", "xcodebuild 不可用：%s" % xcode_build))
+    else:
+        checks.append(_ios_pass("xcodebuild", xcode_build))
+
+    if code != 0 or not dev_dir:
+        checks.append(_ios_fail("xcode-select", "IOS_EXPORT_BLOCKED", "xcode-select -p 执行失败"))
+    elif dev_dir == "/Library/Developer/CommandLineTools" or "CommandLineTools" in dev_dir:
+        checks.append(
+            _ios_fail(
+                "xcode-select",
+                "IOS_EXPORT_BLOCKED",
+                "xcode-select is not pointing to Xcode: %s" % dev_dir,
+                "当前指向 Command Line Tools，iOS 构建需要完整 Xcode",
+                "修复：sudo xcode-select -s /Applications/Xcode.app/Contents/Developer && xcodebuild -license accept",
+            )
+        )
+    else:
+        checks.append(_ios_pass("xcode-select", dev_dir))
+
+    godot = find_godot()
+    if godot is None:
+        checks.append(_ios_fail("Godot 4.6.2", "IOS_EXPORT_BLOCKED", "找不到 Godot"))
+    else:
+        version_line = godot_version_line(godot)
+        if not godot_version_ok(version_line):
+            checks.append(
+                _ios_fail(
+                    "Godot 4.6.2",
+                    "IOS_EXPORT_BLOCKED",
+                    "Godot 版本是 %s，本仓库要求 %s" % (version_line or "未知", GODOT_VERSION),
+                )
+            )
+        else:
+            checks.append(_ios_pass("Godot 4.6.2", "%s（%s）" % (GODOT_VERSION, godot)))
+
+    templates = templates_ready("ios")
+    if templates.status != "PASS":
+        checks.append(_ios_fail("iOS export template", "IOS_EXPORT_BLOCKED", templates.message))
+    else:
+        checks.append(_ios_pass("iOS export template", templates.message))
+
+    team_id = ios_team_id()
+    if not team_id:
+        checks.append(
+            _ios_fail(
+                "Team ID",
+                "IOS_EXPORT_BLOCKED",
+                "preset 缺少 application/app_store_team_id（需要 Xcode Personal Team 的 Team ID）",
+            )
+        )
+    elif IOS_TEAM_ID_RE.match(team_id) is None:
+        checks.append(_ios_fail("Team ID", "IOS_EXPORT_BLOCKED", "Team ID 格式不对：%r（应为 10 位大写字母数字）" % team_id))
+    else:
+        checks.append(_ios_pass("Team ID", team_id))
+
+    bundle_id = ios_bundle_identifier()
+    problem = bundle_identifier_problem(bundle_id)
+    if problem is None:
+        checks.append(_ios_pass("Bundle ID", bundle_id))
+    else:
+        checks.append(_ios_fail("Bundle ID", "IOS_EXPORT_BLOCKED", problem))
+
+    if not preset_exists("ios"):
+        checks.append(_ios_fail("iOS preset", "IOS_EXPORT_BLOCKED", "export preset 缺失：iOS"))
+    else:
+        checks.append(_ios_pass("iOS preset", 'name="iOS" platform="iOS"'))
+
+    options = preset_options("ios")
+    if options.get("architectures/arm64") == "true":
+        checks.append(_ios_pass("ARM64", "architectures/arm64=true"))
+    else:
+        checks.append(_ios_fail("ARM64", "IOS_EXPORT_BLOCKED", "iOS preset 未启用 architectures/arm64=true"))
+
+    export_method = options.get("application/export_method_debug", "")
+    if export_method == IOS_EXPORT_METHOD_DEVELOPMENT:
+        checks.append(_ios_pass("development export method", "application/export_method_debug=1 (Development)"))
+    else:
+        checks.append(
+            _ios_fail(
+                "development export method",
+                "IOS_EXPORT_BLOCKED",
+                "application/export_method_debug=%r，本地 Personal Team 构建必须是 1 (Development)；"
+                "不要把 export_method_release=0 (App Store) 当成本阶段构建路径" % export_method,
+            )
+        )
+
+    checks.append(ios_signing_check(team_id))
+    return checks
+
+
+def ios_prereq(_platform_key: str) -> Outcome:
+    """platform_prereq 的 iOS 分支：返回第一条不通过的检查。"""
+    for check in ios_preflight():
+        if not check.ok:
+            return Outcome("BLOCKED", check.message)
+    return Outcome("PASS", "ios development 构建条件满足（Godot %s）" % GODOT_VERSION)
+
+
 def platform_prereq(platform_key: str) -> Outcome:
+    if platform_key == "ios":
+        return ios_prereq(platform_key)
     godot = find_godot()
     if godot is None:
         return Outcome("BLOCKED", "Missing: Godot")
@@ -610,7 +1029,23 @@ def game_category_outcome() -> Outcome:
     return Outcome("PASS", "所有平台的游戏分类标记就绪")
 
 
+def ios_artifact_basename(configuration: str = "development", include_sha: bool = True) -> str:
+    """本地 development 产物名。
+
+    永远带 development 字样：这台机器（免费 Personal Team）只能签 development，
+    任何输出都不允许暗示 App Store / TestFlight / Ad Hoc 分发。
+    """
+    configuration = IOS_CONFIGURATION_ALIASES.get(configuration, configuration)
+    name = "WPG-ios-%s" % configuration
+    if include_sha:
+        return "%s-%s.ipa" % (name, git_commit(short=True))
+    return "%s.ipa" % name
+
+
 def package_basename(platform_key: str, release: bool) -> str:
+    if platform_key == "ios":
+        # iOS 只有本地 development 构建，没有 release/distribution 语义。
+        return ios_artifact_basename("development", include_sha=True)
     if release:
         version = read_project_version() or "UNKNOWN"
         if platform_key == "android":
