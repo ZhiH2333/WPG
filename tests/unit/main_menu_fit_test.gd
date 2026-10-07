@@ -101,18 +101,25 @@ func _case_top_bar_drops_clock_only_when_needed(menu: MainMenu) -> void:
 		"1920 宽下顶栏放得下")
 
 ## 玩家名会改 PROFILE 按钮宽度 -> 顶栏最小宽度，所以 refresh_profile_label 必须重新量。
+##
+## 基准量 nav 档（`get_top_bar_nav_min_width()`，量时把时钟藏掉），不能量 full 档：
+## `_ready()` 里 `refresh_profile_label()`(ui/main_menu.gd:96) 早于 `_refresh_clock(true)`(:134)，
+## 所以 full 档那次缓存是时钟还写着场景默认 "00:00:00" 时量出来的；而之后每次量用的都是真时钟。
+## 主题字体数字是比例字宽，时钟里 '1' 够多就窄 1px（"00:00:00" 162px -> "11:17:53" 161px），
+## full 档因此会随墙上时钟抖 1px，这条断言就成了看当前几点。nav 档完全不含时钟，是稳定的量。
 func _case_long_name_remeasures(menu: MainMenu) -> void:
 	var original: String = PlayerProfile.get_display_name()
-	var before: float = menu.get_top_bar_full_min_width()
+	menu._measure_top_bar()
+	var before: float = menu.get_top_bar_nav_min_width()
 	PlayerProfile.set_display_name("AVeryLongPlayerName")
 	menu.refresh_profile_label()
 	await process_frame
-	var after: float = menu.get_top_bar_full_min_width()
+	var after: float = menu.get_top_bar_nav_min_width()
 	_expect(after > before + 1.0, "名字变长后顶栏最小宽度被重新量到（%.0f -> %.0f）" % [before, after])
 	PlayerProfile.set_display_name(original)
 	menu.refresh_profile_label()
 	await process_frame
-	_expect(is_equal_approx(menu.get_top_bar_full_min_width(), before),
+	_expect(is_equal_approx(menu.get_top_bar_nav_min_width(), before),
 		"名字改回去后最小宽度回到原值")
 
 func _finish() -> void:
