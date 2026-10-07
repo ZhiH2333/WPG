@@ -206,7 +206,8 @@ func close() -> void:
 func close_socket() -> void:
 	if _udp != null and _owns_udp:
 		_udp.close()
-	_udp = null
+	if _owns_udp:
+		_udp = null
 	_owns_udp = false
 
 ## 重置到 IDLE（可重新 begin）。

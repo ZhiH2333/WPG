@@ -1,17 +1,17 @@
 #!/usr/bin/env godot -s
-## Host 进程：创建房间，监听 ENet，启动 rendezvous client，等待 Guest 连接。
+## Host 进程：使用真实 LobbyManager 流程创建房间并监听 ENet，启动 rendezvous client，等待 Guest 连接。
 ##
-## 参数：
-##   [0] host_enet_port     - ENet 监听端口
-##   [1] rendezvous_port    - Rendezvous 服务端端口
-##   [2] session_id         - 会话 ID
-##   [3] host_nonce         - Host nonce
-##   [4] guest_nonce        - Guest nonce（预期）
-##   [5] room_id            - 房间 ID
-##   [6] ticket             - 房间票据
-##   [7] result_file        - 结果文件路径
-##   [8] ready_file         - 就绪标记文件
-##   [9] go_file            - 启动信号文件
+## 环境变量参数：
+##   HOST_ENET_PORT     - ENet 监听端口
+##   RENDEZVOUS_PORT    - Rendezvous 服务端端口
+##   SESSION_ID         - 会话 ID
+##   HOST_NONCE         - Host nonce
+##   GUEST_NONCE        - Guest nonce（预期）
+##   ROOM_ID            - 房间 ID
+##   TICKET             - 房间票据
+##   RESULT_FILE        - 结果文件路径
+##   READY_FILE         - 就绪标记文件
+##   GO_FILE            - 启动信号文件
 
 @tool
 extends SceneTree
@@ -29,33 +29,29 @@ var _go_file: String
 
 var _lobby_net: LobbyNet
 var _lobby_manager: LobbyManager
-var _rendezvous_client: RendezvousClient
-var _hole_punch: P2PHolePunch
-var _shared_udp: PacketPeerUDP
+var _p2p_connection: P2PConnection
 var _peer_confirmed: bool = false
 var _seat_assigned: int = 0
 var _state: String = "init"
-var _candidates_sent: bool = false
-var _observed_address: String = ""
-var _observed_port: int = 0
+var _got_candidates: bool = false
 
 func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
 	PlayerProfile.load_from_disk()
-	_parse_args()
+	_parse_env()
 	_setup()
 	## 等待 go 信号
+	print("HOST: Entering wait loop for go file")
 	while not FileAccess.file_exists(_go_file):
-		_process_rendezvous(0.01)
-		_process_hole_punch(0.01)
+		print("HOST: Wait loop iteration, go_file exists = %s" % str(FileAccess.file_exists(_go_file)))
+		_process_p2p(0.01)
 		OS.delay_usec(10000)
 
 	## 开始主循环
 	while true:
-		_process_rendezvous(0.016)
-		_process_hole_punch(0.016)
+		_process_p2p(0.016)
 		if _peer_confirmed:
 			break
 		if _state == "failed":
@@ -65,27 +61,38 @@ func _run() -> void:
 	_write_result("OK: peer_confirmed seat=%d" % _seat_assigned)
 	quit(0)
 
-func _parse_args() -> void:
-	var args: PackedStringArray = OS.get_cmdline_user_args()
-	if args.size() < 10:
-		printerr("HOST_FAIL: 参数不足 %d" % args.size())
+func _parse_env() -> void:
+	_host_enet_port = int(_get_env("HOST_ENET_PORT"))
+	_rendezvous_port = int(_get_env("RENDEZVOUS_PORT"))
+	_session_id = _get_env("SESSION_ID")
+	_host_nonce = _get_env("HOST_NONCE")
+	_guest_nonce = _get_env("GUEST_NONCE")
+	_room_id = _get_env("ROOM_ID")
+	_ticket = _get_env("TICKET")
+	_result_file = _get_env("RESULT_FILE")
+	_ready_file = _get_env("READY_FILE")
+	_go_file = _get_env("GO_FILE")
+
+	if _host_enet_port == 0 or _rendezvous_port == 0 or _session_id.is_empty() or _host_nonce.is_empty() or _guest_nonce.is_empty() or _room_id.is_empty() or _ticket.is_empty() or _result_file.is_empty() or _ready_file.is_empty() or _go_file.is_empty():
+		printerr("HOST_FAIL: 环境变量参数不全")
 		quit(1)
-	_host_enet_port = int(args[0])
-	_rendezvous_port = int(args[1])
-	_session_id = args[2]
-	_host_nonce = args[3]
-	_guest_nonce = args[4]
-	_room_id = args[5]
-	_ticket = args[6]
-	_result_file = args[7]
-	_ready_file = args[8]
-	_go_file = args[9]
+
+func _get_env(key: String) -> String:
+	var val = OS.get_environment(key)
+	## OS.get_environment returns false (bool) if not set, or the string value
+	## Use typeof to check before auto-conversion
+	if typeof(val) == TYPE_BOOL:
+		return ""
+	if val == "":
+		return ""
+	return str(val)
 
 func _setup() -> void:
 	## 创建 LobbyNet
 	_lobby_net = LobbyNet.new()
 	root.add_child(_lobby_net)
 	_lobby_net.listen_ok.connect(_on_listen_ok)
+	_lobby_net.peer_joined.connect(_on_peer_joined)
 	_lobby_net.peer_confirmed.connect(_on_peer_confirmed)
 	_lobby_net.state_changed.connect(_on_net_state_changed)
 
@@ -94,28 +101,33 @@ func _setup() -> void:
 	root.add_child(_lobby_manager)
 	_lobby_manager.bind_net(_lobby_net)
 
-	## 创建房间并监听
+	## 设置 rendezvous 端点（用于 P2P invite）
+	_lobby_manager.set_rendezvous_endpoint("127.0.0.1", _rendezvous_port)
+
+	## 创建房间并监听 ENet
+	## 使用预设的 ticket，确保与 Guest 一致
 	_lobby_manager._room_ticket = _ticket
 	if not _lobby_manager.host_room("yard", GameLaunch.NetPlay.COOP, 0):
 		_write_result("FAIL: host_room 失败")
 		quit(1)
 
-	## 创建共享 UDP socket（供 rendezvous client 与 hole punch 复用）
-	_shared_udp = PacketPeerUDP.new()
-	var err: Error = _shared_udp.bind(0)
-	if err != OK:
-		_write_result("FAIL: shared UDP bind 失败")
+	## 创建 P2P invite（包含 rendezvous 端点）
+	var invite: JoinInvite = _lobby_manager.create_p2p_invite("127.0.0.1")
+	if invite == null or not invite.is_valid():
+		_write_result("FAIL: create_p2p_invite 失败")
 		quit(1)
-	var shared_port: int = _shared_udp.get_local_port()
 
-	## 创建 rendezvous client
-	_rendezvous_client = RendezvousClient.new()
-	_rendezvous_client.registered.connect(_on_rendezvous_registered)
-	_rendezvous_client.candidates_received.connect(_on_rendezvous_candidates)
-	_rendezvous_client.server_error.connect(_on_rendezvous_error)
-	_rendezvous_client.timed_out.connect(_on_rendezvous_timeout)
+	## 开始 P2P join（Host 侧作为 HOST 角色注册到 rendezvous）
+	_p2p_connection = _lobby_manager._get_or_create_p2p_connection()
+	var client: RendezvousClient = RendezvousClient.new()
+	_p2p_connection.bind_rendezvous(client)
 
-	## 本地候选：包含 observed endpoint（由服务端在 REGISTERED 里回填）
+	## 构造 SessionIdentity（使用预设 nonce）
+	var identity: RendezvousContract.SessionIdentity = RendezvousContract.make_identity(
+		_room_id, _ticket, GameLaunch.NET_PROTOCOL, RendezvousContract.Role.HOST, _host_nonce
+	)
+
+	## 本地候选：ENet listen 端点
 	var local_candidates: Array = []
 	var cand: RendezvousContract.Candidate = RendezvousContract.Candidate.new()
 	cand.path = LobbyPlayer.Path.LAN_IPV4
@@ -123,15 +135,22 @@ func _setup() -> void:
 	cand.port = _host_enet_port
 	local_candidates.append(cand)
 
-	## 开始 rendezvous 注册
-	if not _rendezvous_client.begin("127.0.0.1", _rendezvous_port,
-		RendezvousContract.make_identity(_room_id, _ticket, GameLaunch.NET_PROTOCOL, RendezvousContract.Role.HOST, _host_nonce),
-		local_candidates, _shared_udp):
-		_write_result("FAIL: rendezvous begin 失败")
+	## 创建共享 UDP socket（供 rendezvous client 与 hole punch 复用）
+	var shared_udp: PacketPeerUDP = PacketPeerUDP.new()
+	var err: Error = shared_udp.bind(0)
+	if err != OK:
+		_write_result("FAIL: shared UDP bind 失败")
 		quit(1)
 
+## 开始 rendezvous 注册（使用预设 identity 和 shared UDP）
+	printerr("HOST: Before begin_with_identity, shared_udp valid = %s" % str(shared_udp != null))
+	if not _p2p_connection.begin_with_identity(identity, local_candidates, "127.0.0.1", _rendezvous_port, shared_udp):
+		_write_result("FAIL: P2P begin_with_identity 失败")
+		quit(1)
+	printerr("HOST: After begin_with_identity, client udp = %s" % str(_p2p_connection.get_rendezvous_client().get_udp() != null))
+
 	_state = "rendezvous_registering"
-	print("HOST: 等待 rendezvous registered...")
+	print("HOST: P2P join started, waiting for rendezvous...")
 
 func _on_listen_ok() -> void:
 	print("HOST: ENet listen_ok on port %d" % _host_enet_port)
@@ -142,87 +161,8 @@ func _on_net_state_changed(state: int) -> void:
 	if state == int(LobbyNet.NetState.LOBBY):
 		_state = "lobby"
 
-func _on_rendezvous_registered(session_id: String, observed_address: String, observed_port: int) -> void:
-	print("HOST: rendezvous registered, session=%s observed=%s:%d" % [session_id, observed_address, observed_port])
-	_observed_address = observed_address
-	_observed_port = observed_port
-	_state = "rendezvous_registered"
-	_write_ready()
-
-func _on_rendezvous_candidates(candidates: Array, remote_nonce: String, remote_role: int) -> void:
-	print("HOST: rendezvous candidates received, remote_nonce=%s" % remote_nonce)
-	for c in candidates:
-		print("HOST:   remote candidate: path=%d addr=%s port=%d obs_addr=%s obs_port=%d" % [
-			c.path, c.address, c.port, c.observed_address, c.observed_port
-		])
-	_state = "candidates_received"
-	## 直接创建 hole punch（call_deferred 在紧凑循环中不生效）
-	_create_hole_punch(candidates)
-
-func _create_hole_punch(candidates: Array) -> void:
-	## 创建 hole punch（Host 角色）
-	_hole_punch = P2PHolePunch.new()
-	_hole_punch.path_established.connect(_on_hole_punch_path_established)
-	_hole_punch.path_failed.connect(_on_hole_punch_path_failed)
-	_hole_punch.timeout.connect(_on_hole_punch_timeout)
-	
-	var remote_candidates: Array = []
-	for candidate: RendezvousContract.Candidate in candidates:
-		remote_candidates.append(candidate)
-	
-	var local_candidates_for_punch: Array = []
-	var local_cand: RendezvousContract.Candidate = RendezvousContract.Candidate.new()
-	local_cand.path = LobbyPlayer.Path.LAN_IPV4
-	local_cand.address = "127.0.0.1"
-	## 使用 observed endpoint（共享 UDP socket 的实际端口），而非 ENet 端口
-	local_cand.port = _observed_port
-	local_cand.observed_address = _observed_address
-	local_cand.observed_port = _observed_port
-	local_candidates_for_punch.append(local_cand)
-	
-	print("HOST: local candidate for punch: port=%d obs_port=%d" % [local_cand.port, local_cand.observed_port])
-	
-	if not _hole_punch.begin(
-		_session_id,
-		_host_nonce,
-		_guest_nonce,
-		P2PUDPProbe.Role.HOST,
-		local_candidates_for_punch,
-		remote_candidates,
-		0,
-		_shared_udp
-	):
-		_write_result("FAIL: hole_punch begin 失败")
-		quit(1)
-	
-	_candidates_sent = true
-	print("HOST: hole punch started")
-
-func _on_hole_punch_path_established(rtt_ms: int, validated_candidate: Dictionary) -> void:
-	print("HOST: hole punch path established rtt=%d validated=%s" % [rtt_ms, validated_candidate])
-	## 此时 hole punch 成功，Host 侧只需等待 Guest 发起 ENet 连接
-	## LobbyNet 已经在 listen，会自动接受连接
-
-func _on_hole_punch_path_failed(reason: String) -> void:
-	print("HOST: hole punch failed: %s" % reason)
-	if _hole_punch != null:
-		print("HOST: hole punch debug pairs:")
-		for pair_state in _hole_punch.debug_pair_states():
-			print("HOST:   %s" % pair_state)
-	_write_result("FAIL: hole punch failed: %s" % reason)
-	quit(1)
-
-func _on_hole_punch_timeout() -> void:
-	_write_result("FAIL: hole punch timeout")
-	quit(1)
-
-func _on_rendezvous_error(error_code: int, detail: String) -> void:
-	_write_result("FAIL: rendezvous error %d: %s" % [error_code, detail])
-	quit(1)
-
-func _on_rendezvous_timeout(reason: String) -> void:
-	_write_result("FAIL: rendezvous timeout: %s" % reason)
-	quit(1)
+func _on_peer_joined(peer_id: int, seat: int) -> void:
+	print("HOST: peer_joined peer_id=%d seat=%d" % [peer_id, seat])
 
 func _on_peer_confirmed(peer_id: int, seat: int) -> void:
 	print("HOST: peer_confirmed peer_id=%d seat=%d" % [peer_id, seat])
@@ -235,16 +175,31 @@ func _write_ready() -> void:
 		f.store_line("ready")
 		f.close()
 
-func _process_rendezvous(delta: float) -> void:
-	if _rendezvous_client != null:
-		## Hole punch 激活时停止 rendezvous poll，避免抢占共享 socket
-		if _hole_punch == null or not _hole_punch.is_active():
-			_rendezvous_client.poll()
-		_rendezvous_client.tick(delta)
+func _process_p2p(delta: float) -> void:
+	if _p2p_connection == null:
+		return
 
-func _process_hole_punch(delta: float) -> void:
-	if _hole_punch != null and _hole_punch.is_active():
-		_hole_punch.tick(int(delta * 1000))
+	_p2p_connection.poll_rendezvous(delta)
+	_p2p_connection.tick(delta)
+
+	## 检查 rendezvous 状态
+	var p2p: P2PConnection = _p2p_connection
+	var state_val: int = p2p.get_state_value()
+
+	if state_val == P2PConnectionState.State.RENDEZVOUS_REGISTERED and _state == "rendezvous_registering":
+		print("HOST: Rendezvous registered")
+		_state = "rendezvous_registered"
+		_write_ready()
+
+	if state_val == P2PConnectionState.State.CANDIDATES_RECEIVED and not _got_candidates:
+		print("HOST: Received candidates from rendezvous")
+		_got_candidates = true
+		_state = "candidates_received"
+
+	## 当 hole punch 成功后，_on_p2p_direct_path_established 会在 LobbyManager 里自动调用 begin_direct_enet
+	## Host 侧只需等待 ENet 连接
+
+var _last_client_state: int = -1
 
 func _write_result(msg: String) -> void:
 	var f = FileAccess.open(_result_file, FileAccess.WRITE)

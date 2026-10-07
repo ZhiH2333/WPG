@@ -1,7 +1,7 @@
 # WPG UI / UX / Lobby Architecture Specification
 
 **版本:** 1.1-ui-lobby-arch
-**状态:** Phase 1（UI/UX 统一重构）、Phase 2（PlayerProfile）、Phase 3（Lobby domain 离线 mock）、表中 Phase 4/5（移动端输入抽象 + Vertical Slice）、**Phase 6 Ability Framework（DONE，已冻结，不再扩展）**、Phase 7（`LobbyNet` + Ready 网络同步）、旧编号 Phase 5（Multiplayer UX）、Guest Start 换场修复（Lobby → CombatSandbox）以及**表中 Phase 8（`JoinInvite` + `ConnectionPath` + protocol 6 ticket handshake）**均已落地：§3.1–3.6 的 `PlayerProfile` / `LobbyPlayer` / `Room` 在 `ui/player_profile.gd`、`lobby/` 下实现；§4 的 `LobbyManager` 是唯一状态机与命令入口，`LobbyNet` 独占 ENet 与大厅 `@rpc`，`ui/lan_overlay.gd` 已不再持有 `ENetMultiplayerPeer` / `@rpc`（由 `tools/ci/architecture.py` 守卫）。仍未建立：P2P（STUN / TURN / UPnP / rendezvous / NAT 穿透，= Phase 9）。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
+**状态:** Phase 1（UI/UX 统一重构）、Phase 2（PlayerProfile）、Phase 3（Lobby domain 离线 mock）、表中 Phase 4/5（移动端输入抽象 + Vertical Slice）、**Phase 6 Ability Framework（DONE，已冻结，不再扩展）**、Phase 7（`LobbyNet` + Ready 网络同步）、旧编号 Phase 5（Multiplayer UX）、Guest Start 换场修复（Lobby → CombatSandbox）以及**表中 Phase 8（`JoinInvite` + `ConnectionPath` + protocol 6 ticket handshake）**、**Phase 9.1（P2P state machine + rendezvous contract）**、**Phase 9.2.1（Rendezvous + observed endpoint）**、**Phase 9.2.2（NAT hole punching）**、**Phase 9.2.3（Direct ENet validation）**均已落地：§3.1–3.6 的 `PlayerProfile` / `LobbyPlayer` / `Room` 在 `ui/player_profile.gd`、`lobby/` 下实现；§4 的 `LobbyManager` 是唯一状态机与命令入口，`LobbyNet` 独占 ENet 与大厅 `@rpc`，`ui/lan_overlay.gd` 已不再持有 `ENetMultiplayerPeer` / `@rpc`（由 `tools/ci/architecture.py` 守卫）。阶段排期以 `roadmap.md` 的「阶段划分」表为准。
 **配套:** 根目录 [`roadmap.md`](../roadmap.md)（阶段 / 硬约束）· [`ui_screen_spec.md`](ui_screen_spec.md)（页面布局 / 动效 / 导航栈）
 
 布局、CTA 层级、wireframe、Back 栈以 `ui_screen_spec.md` 为准。本文件管领域模型、职责、网络与换场。冲突时 `roadmap.md` 最高。
@@ -552,7 +552,6 @@ message type / 错误码；**绝不输出完整 ticket 或完整 nonce**。
 **不引入** 完整 STUN server / ICE / TURN / WebRTC / 第三方 NAT 库。
 无应答返回 `None` —— **绝不伪造**。
 
-**本阶段明确不做**（属 9.2.2 / 9.2.3）：UDP simultaneous open、多端口快速探测、
-hole punch retry storm、完整 ICE、TURN、Relay、UPnP、Host migration、reconnect。
+**本阶段明确不做**（属 9.2.2 / 9.2.3 的后续扩展）：TURN、Relay、UPnP、Host migration、reconnect、完整 ICE、完整 STUN server、第三方 NAT 库。
 
 [Showing lines 1-300 of 578. Use :301 to continue]

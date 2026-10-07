@@ -304,6 +304,13 @@ func _on_rendezvous_candidates(
 	if not begin_direct_probing():
 		## begin_direct_probing() 内部已在失败时进入终态并 _finish。
 		pass
+	else:
+		## Hole punch 已启动，rendezvous client 已完成使命（候选交换完成）。
+		## 共享 UDP socket 归 hole punch 使用，rendezvous client 可优雅关闭。
+		## 避免服务端因 idle timeout 清理会话导致 client 进入 TIMEOUT。
+		## 保留 _client 引用但不再轮询（通过 get_udp() 判断 socket 是否已关闭）。
+		if _client != null:
+			_client.close()
 
 ## 如果服务端给了会话级 remote observed，但候选里没带 per-candidate observed，
 ## 则补一个 OBSERVED_PUBLIC 候选 —— 打洞必须有真实的 observed 目标。
@@ -347,7 +354,7 @@ func _on_rendezvous_timeout(reason: String) -> void:
 ##   - 打洞结束（成功/失败/超时）后，client.set_paused(false) 恢复（可处理 BYE/ERROR 等）。
 ## 否则 rendezvous 的 poll 会把打洞 probe 吞掉，导致探测永远收不到。
 func poll_rendezvous(delta_sec: float) -> void:
-	if _client == null:
+	if _client == null or _client.get_udp() == null:
 		return
 	if _hole_punch.is_active():
 		_client.set_paused(true)

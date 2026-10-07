@@ -1,0 +1,1823 @@
+Godot Engine v4.6.2.stable.official.71f334935 - https://godotengine.org
+
+HOST: NetState -> HOSTING
+HOST: ENet listen_ok on port 60888
+HOST: Before begin_with_identity, shared_udp valid = true
+HOST: After begin_with_identity, client udp = true
+HOST: P2P join started, waiting for rendezvous...
+HOST: Entering wait loop for go file
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient state = 1
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.010, client_state = 1
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient state = 2
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.020, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Rendezvous registered
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.030, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.040, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.050, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.060, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.070, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.080, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.090, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.100, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.110, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.120, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.130, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.140, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.150, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.160, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.170, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.180, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.190, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.200, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.210, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.220, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.230, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.240, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.250, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.260, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.270, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.280, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.290, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.300, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.310, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.320, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.330, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.340, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.350, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.360, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.370, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.380, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.390, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.400, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.410, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.420, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.430, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.440, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.450, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.460, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.470, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.480, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.490, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.500, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.510, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.520, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.530, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.540, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.550, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.560, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.570, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.580, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.590, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.600, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.610, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.620, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.630, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.640, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.650, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.660, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.670, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.680, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.690, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.700, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.710, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.720, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.730, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.740, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.750, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.760, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.770, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.780, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.790, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.800, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.810, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.820, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.830, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.840, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.850, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.860, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.870, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.880, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.890, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.900, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.910, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.920, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.930, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.940, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.950, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.960, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.970, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.980, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 0.990, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.000, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.010, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.020, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.030, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.040, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.050, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.060, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.070, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.080, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.090, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.100, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.110, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.120, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.130, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.140, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.150, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.160, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.170, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.180, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.190, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.200, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.210, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.220, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.230, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.240, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.250, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.260, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.270, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.280, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.290, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.300, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.310, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.320, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.330, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.340, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.350, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.360, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.370, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.380, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.390, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.400, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.410, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.420, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.430, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.440, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.450, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.460, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.470, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.480, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.490, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.500, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.510, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.520, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.530, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.540, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.550, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.560, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.570, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.580, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.590, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.600, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.610, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.620, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.630, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.640, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.650, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.660, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.670, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.680, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.690, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.700, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.710, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.720, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.730, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.740, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.750, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.760, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.770, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.780, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.790, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.800, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
+HOST: Before poll_rendezvous: hole_punch state=0, is_active=false
+HOST: Manual poll_rendezvous: hp.is_active() = false
+HOST: Calling set_paused(false)
+HOST: After manual poll_rendezvous: client._paused = false
+HOST: After tick(delta): client._paused = false, client_id = <RefCounted#-9223371995633154551>
+HOST: Fresh client _paused = false, fresh_client_id = <RefCounted#-9223371995633154551>
+HOST: RendezvousClient paused = true, udp = false, elapsed_sec = 1.810, client_state = 2
+HOST: HolePunch state = 0, is_active = false
+HOST: Wait loop iteration, go_file exists = false
+HOST: _process_p2p called, delta=0.010000
