@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -1102,30 +1103,142 @@ def ios_artifact_basename(configuration: str = "development", include_sha: bool 
 
 
 def package_basename(platform_key: str, release: bool) -> str:
-    if platform_key == "ios":
-        # iOS 只有本地 development 构建，没有 release/distribution 语义。
-        return ios_artifact_basename("development", include_sha=True)
     if release:
+        # 正式 Release 命名：WPG-vX.Y.Z-<platform>.zip / WPG-vX.Y.Z-android.apk。
+        # Dev 命名重构绝对不许改这一支。
+        if platform_key == "ios":
+            # iOS 只有本地 development 构建，没有 release/distribution 语义。
+            return ios_artifact_basename("development", include_sha=True)
         version = read_project_version() or "UNKNOWN"
         if platform_key == "android":
             return "WPG-v%s-android.apk" % version
         return "WPG-v%s-%s.zip" % (version, platform_key)
-    commit = git_commit(short=True)
-    if platform_key == "android":
-        return "WPG-android-%s.apk" % commit
-    return "WPG-%s-%s.zip" % (platform_key, commit)
+    return dev_package_basename(platform_key)
 
 
-def github_artifact_name(platform_key: str) -> str:
-    commit = os.environ.get("GITHUB_SHA", git_commit(short=False))[:7]
-    ref_name = os.environ.get("GITHUB_REF_NAME", git_branch())
-    if ref_name.startswith("dev/"):
-        leaf = ref_name.split("/", 1)[1].replace("/", "-")
-        return "WPG-dev-%s-%s-%s" % (leaf, platform_key, commit)
-    if ref_name == "main":
-        return "WPG-main-%s-%s" % (platform_key, commit)
-    safe = ref_name.replace("/", "-")
-    return "WPG-%s-%s-%s" % (safe, platform_key, commit)
+# ---------------------------------------------------------------------------
+# Dev build 命名（唯一的命名真源）
+# ---------------------------------------------------------------------------
+# 规则：WPG_YYYYMMDD_<7位commit>_<platform>.<ext>
+#
+# 日期来自**触发那次构建的 commit 的 commit timestamp**，不是 workflow 运行日期：
+# 同一个 commit 无论在哪天重跑，前缀都一样；同一次 push 的六个平台也必然同前缀。
+# 短 SHA 严格 7 位。
+#
+# 正式 Release 命名（WPG-vX.Y.Z-...）与这里完全分开，互不影响。
+DEV_PLATFORM_EXTENSIONS: Dict[str, str] = {
+    "windows": "zip",
+    "macos": "zip",
+    "linux": "zip",
+    "android": "apk",
+    "web": "zip",
+    "ios": "zip",
+}
+
+# Dev CD 的六个平台（顺序即 SHA256SUMS / manifest 里的顺序）。
+DEV_PLATFORMS: Tuple[str, ...] = tuple(DEV_PLATFORM_EXTENSIONS.keys())
+
+DEV_BUILD_PREFIX_ENV = "WPG_DEV_BUILD_PREFIX"
+DEV_DATE_ENV = "WPG_DEV_DATE"
+DEV_SHA_ENV = "WPG_DEV_SHA"
+DEV_BRANCH_ENV = "WPG_DEV_BRANCH"
+
+DEV_DATE_RE = re.compile(r"^\d{8}$")
+
+
+def git_commit_date(sha: str = "") -> str:
+    """某个 commit 的 YYYYMMDD（committer date）。取不到返回 ""。"""
+    args = ["log", "-1", "--format=%cs"]
+    if sha:
+        args.append(sha)
+    code, text = git_output(args)
+    if code != 0 or not text.strip():
+        return ""
+    first = text.strip().split()[0]
+    digits = re.sub(r"\D", "", first)
+    if len(digits) != 8:
+        return ""
+    return digits
+
+
+def dev_commit_date(sha: str = "") -> str:
+    """Dev 构建前缀里的日期。优先级：显式值 > 环境变量 > commit timestamp。
+
+    最后兜底用当天日期，只是为了让「拿不到 git」时构建脚本不要因为命名而崩，
+    正常的 CI / 本地 / Netlify 环境里 git 一定在，走不到这一支。
+    """
+    env = os.environ.get(DEV_DATE_ENV, "").strip()
+    if DEV_DATE_RE.match(env):
+        return env
+    found = git_commit_date(sha or os.environ.get(DEV_SHA_ENV, "").strip())
+    if found:
+        return found
+    return time.strftime("%Y%m%d", time.gmtime())
+
+
+def dev_short_sha(sha: str = "") -> str:
+    """严格 7 位短 SHA。"""
+    if sha:
+        return sha[:7]
+    env = os.environ.get(DEV_SHA_ENV, "").strip()
+    if env:
+        return env[:7]
+    return git_commit(short=True)
+
+
+def dev_build_prefix(commit_date: str = "", short_sha: str = "") -> str:
+    """WPG_YYYYMMDD_7sha —— 所有 Dev 产物名的共同前缀。
+
+    prepare job 算一次，写进 WPG_DEV_BUILD_PREFIX 环境变量；六个平台 job、
+    verify、aggregate 全都读同一个值，杜绝「Windows 一个日期、Android 另一个」。
+    """
+    if commit_date and short_sha:
+        return "WPG_%s_%s" % (commit_date, short_sha)
+    env = os.environ.get(DEV_BUILD_PREFIX_ENV, "").strip()
+    if env:
+        return env
+    return "WPG_%s_%s" % (commit_date or dev_commit_date(), short_sha or dev_short_sha())
+
+
+def dev_package_basename(platform_key: str) -> str:
+    if platform_key not in DEV_PLATFORM_EXTENSIONS:
+        raise ValueError("未知平台：%s" % platform_key)
+    ext = DEV_PLATFORM_EXTENSIONS[platform_key]
+    return "%s_%s.%s" % (dev_build_prefix(), platform_key, ext)
+
+
+def dev_artifact_name(platform_key: str) -> str:
+    """GitHub Actions artifact 名（不含扩展名）。
+
+    upload-artifact 是 immutable 语义：一个 artifact 只能由一个 job 写一次，
+    所以六个平台必须各自一个唯一名字。
+    """
+    if platform_key not in DEV_PLATFORM_EXTENSIONS:
+        raise ValueError("未知平台：%s" % platform_key)
+    return "%s_%s" % (dev_build_prefix(), platform_key)
+
+
+def dev_checksums_name() -> str:
+    return "%s_SHA256SUMS.txt" % dev_build_prefix()
+
+
+def dev_manifest_name() -> str:
+    return "%s_manifest.json" % dev_build_prefix()
+
+
+def read_branch_or_env() -> str:
+    """分支名：优先 WPG_DEV_BRANCH（prepare 写的），再看 git，最后 GITHUB_REF_NAME。
+
+    checkout 一个精确 SHA 时 HEAD 是 detached，`abbrev-ref` 只会给出 HEAD，
+    所以 CI 里必须由 prepare 把分支名塞进环境变量。
+    """
+    env = os.environ.get(DEV_BRANCH_ENV, "").strip()
+    if env:
+        return env
+    branch = git_branch()
+    if branch and branch != "HEAD":
+        return branch
+    return os.environ.get("GITHUB_REF_NAME", "").strip() or "UNKNOWN"
 
 
 def zip_directory(source: Path, destination: Path) -> None:

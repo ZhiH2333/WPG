@@ -1,6 +1,6 @@
 # WPG CI/CD 新手手册
 
-这份手册只描述当前仓库已经落地的流程。游戏版本只认 `project.godot` 里的 `application/config/version`。Git 只用 `main` 和临时分支 `dev/<name>`。
+这份手册只描述当前仓库已经落地的流程。游戏版本只认 `project.godot` 里的 `application/config/version`。长期分支有两个：默认分支 `dev`（日常开发 + Netlify 生产分支）和 `main`（只进正式 Release），临时分支是 `dev/<name>`。
 
 当前事实：
 
@@ -8,6 +8,7 @@
 - 本机 Godot 是 `4.6.2`
 - GitHub 仓库默认分支现在是长期分支 `dev`，不是 `main`
 - `dev`、`dev/<name>`、`main` 的 push 都会触发 WPG CI
+- **WPG CI 成功 + push 到 `dev` 或 `dev/<name>`，会自动触发 WPG Dev CD，打出六个平台的 Dev 包**
 - `dev` 上每来一个 commit，**Netlify 自己**会构建 Web 并发布到 <https://bwpg.netlify.app>，不用 GitHub Actions
 
 ## 三个按钮 + Netlify，不要混
@@ -15,11 +16,13 @@
 | 名字 | 做什么 | 什么时候跑 |
 |---|---|---|
 | WPG CI | 检查代码能不能过 | PR 到 main、push 到 main、push 到 `dev` 和 `dev/<name>` |
-| WPG Build | 打五个平台的测试包 | 你手动 Run，或者 main 上的 WPG CI 成功之后 |
+| WPG Dev CD | 打**六个平台**的 Dev 包，上传 GitHub artifact | WPG CI 成功，而且这次 CI 是 `dev` / `dev/<name>` 的 push；也可以手动 Run |
 | WPG Release | 按 tag 重新打包并发布到 GitHub Release | 只有 push `vX.Y.Z`，而且这个 tag 正好指向 `origin/main` 的最新提交 |
 | Netlify 构建 | 构建 Web 并发布到 <https://bwpg.netlify.app> | push 到 `dev`（生产分支），由 Netlify 的 Git 集成负责 |
 
-`dev/<name>` 的每一次 push 只跑 CI，不会自动打五个平台，也不会部署 Web。
+WPG Dev CD **只上传 artifact**：不创建 Release、不打 tag、不 commit、不 push，也不碰 Netlify。
+
+CI 失败、CI 被取消、事件不是 push（PR、`main`、schedule 之类）时，`prepare` 会静默把 `should_build` 设成 `false`，六个构建 job 和 `aggregate` 全部跳过——不构建、不上传，整个 run 仍然是绿的，不会因为"没构建"而报错。
 
 ## 日常开发
 
@@ -41,10 +44,10 @@ python3 tools/build_tools.py
 9. 必须看到 WPG CI 成功，并且有人 Review / Approve。
 10. 合并到 `main`。
 11. 合并产生一次 push `main`，再跑 **WPG CI**。
-12. 只有这次 CI 成功，**WPG Build** 才会自动打五个平台。CI 失败时 Build 的 `decide` 会把 `should_build` 设为 false，五个构建 job 不运行。
-13. 到 Actions 里下载 main 的测试包，自己再玩一次。
+12. `main` 上的 CI 只是门禁，**不会**自动打任何平台的包。WPG Dev CD 只认 `dev` 和 `dev/<name>` 的 push；`main` 上的 CI 成功，`prepare` 会静默设 `should_build=false`。
+13. 想看最新代码的六个平台包，就去 Actions 里下 `dev` 那次 **WPG Dev CD** 的 artifact。
 
-想在 `dev/<name>` 上提前看包：Actions → WPG Build → Run workflow，选这个分支。这是手动的，不是 push 自动触发。
+在 `dev` 或 `dev/<name>` 上 push 一个 commit，WPG CI 一通过 WPG Dev CD 就自动开打，不用手动点。想打一个不是"刚 push"的 commit：Actions → WPG Dev CD → Run workflow，`ref` 填分支 / tag / 完整 SHA，留空就是当前分支最新提交。
 
 ## 本地菜单
 
@@ -56,7 +59,7 @@ python3 tools/build_tools.py
 
 | 选项 | 做什么 |
 |---|---|
-| 1 Run CI Checks | 和 GitHub 同一套：Godot 导入与脚本 parse、Architecture Guard、主场景 Smoke、仓库里如果有 `tests/` 或 `*_test.gd` 就跑。失败返回非 0 |
+| 1 Run CI Checks | 和 GitHub 同一套：Godot 导入与脚本 parse、Architecture Guard、主场景 Smoke、Dev 包命名单元测试（`tools/test/test_dev_naming.py`）。失败返回非 0 |
 | 2–6 | 只打一个平台，输出到 `build/<平台>/` 和 `artifacts/` |
 | 7 Build All | 按 Windows、macOS、Linux、Android、Web 顺序打。任何一个不是 PASS，整体就是 FAIL |
 | 8 Show Version | 打印 project.godot 版本、分支、短 commit。如果 HEAD 正好是 tag，会多一行 Tag |
@@ -103,20 +106,58 @@ tag 必须同时满足：
 - 同一套 CI 检查通过
 - 五个平台重新构建都通过
 
-## 五个平台现在怎么算
+## 六个平台现在怎么算
 
-| 平台 | 测试包文件名 | 正式 Release 文件名 |
+Dev 包（WPG Dev CD）和正式 Release 包（WPG Release）是两套命名，**不要混**：
+
+| 平台 | Dev 包文件名 | 正式 Release 文件名 |
 |---|---|---|
-| Windows | `WPG-windows-<7位commit>.zip` | `WPG-vX.Y.Z-windows.zip` |
-| macOS | `WPG-macos-<commit>.zip` | `WPG-vX.Y.Z-macos.zip` |
-| Linux | `WPG-linux-<commit>.zip` | `WPG-vX.Y.Z-linux.zip` |
-| Android | `WPG-android-<commit>.apk` | `WPG-vX.Y.Z-android.apk` |
-| Web | `WPG-web-<commit>.zip` | `WPG-vX.Y.Z-web.zip` |
+| Windows | `WPG_20261005_e34723f_windows.zip` | `WPG-vX.Y.Z-windows.zip` |
+| macOS | `WPG_20261005_e34723f_macos.zip` | `WPG-vX.Y.Z-macos.zip` |
+| Linux | `WPG_20261005_e34723f_linux.zip` | `WPG-vX.Y.Z-linux.zip` |
+| Android | `WPG_20261005_e34723f_android.apk` | `WPG-vX.Y.Z-android.apk` |
+| Web | `WPG_20261005_e34723f_web.zip` | `WPG-vX.Y.Z-web.zip` |
+| iOS | `WPG_20261005_e34723f_ios.zip` | 正式 Release **不打** iOS |
 
-GitHub Actions 上的 artifact 名字另外规定：
+Dev 包命名规则：
 
-- `dev/phase1-ui` 手动构建：`WPG-dev-phase1-ui-windows-<commit>` 这种
-- `main` 自动构建：`WPG-main-windows-<commit>` 这种
+- `20261005` 是**那次 commit 的日期**（`git log -1 --format=%cs`，committer date），不是 workflow 跑的那天。
+- `e34723f` 是触发 WPG CI 的那个 commit 的前 7 位，固定 7 位。
+- 前缀 `WPG_20261005_e34723f` 由 WPG Dev CD 的 `prepare` job 算**一次**，通过 `WPG_DEV_BUILD_PREFIX` / `WPG_DEV_DATE` / `WPG_DEV_SHA` / `WPG_DEV_BRANCH` 下发给六个构建 job 和 `aggregate`。六个 job 不各自计算，所以不会出现两个平台名字对不上。
+- 构建的必须是**触发 WPG CI 的那个 commit**（`github.event.workflow_run.head_sha`），`prepare` 会比对 `git rev-parse HEAD`，对不上直接 `[FAIL]`。绝不用 `github.sha`——那时 `dev` 可能已经有新提交了。
+- 命名真源是 `tools/wpg_common.py` 的 `dev_build_prefix()` / `dev_package_basename()`。本地跑 `python3 tools/build/print_meta.py <平台>` 会打印同名的 `artifact_name` / `file_name`。
+
+GitHub Actions 上的 artifact 名：
+
+- **Dev**：文件名去掉扩展名，即 `WPG_20261005_e34723f_windows` 这种，六个平台各一个。另外还有一个 `WPG_20261005_e34723f_meta`，里面是六个包 + `WPG_20261005_e34723f_SHA256SUMS.txt` + `WPG_20261005_e34723f_manifest.json`
+- **Release**：`release-windows`、`release-macos`、`release-linux`、`release-android`、`release-web`
+
+`manifest.json` 记录 `project` / `branch` / `commit` / `short_commit` / `commit_date` / `godot` / `build_type`，以及六个平台各自的 `filename`、`sha256`、`size_bytes`。`SHA256SUMS.txt` 是 `哈希␣␣文件名` 两列，Linux 上 `sha256sum -c` 可以直接校验，macOS 上用 `shasum -a 256 -c`。
+
+### WPG Dev CD 的 job 结构
+
+```text
+WPG CI 成功（push 到 dev / dev/*）
+  └─ WPG Dev CD
+       ├─ prepare      gate → 解析 ref → checkout 那个精确 commit → 算一次前缀
+       ├─ build-windows   ┐
+       ├─ build-macos     │
+       ├─ build-linux     │ 六个并行，各自 checkout 同一个 SHA，
+       ├─ build-android   │ 用 prepare 下发的前缀命名，
+       ├─ build-web       │ 打包后先 verify_package.py 再上传
+       └─ build-ios       ┘
+       └─ aggregate      下载六个 artifact → SHA256SUMS.txt + manifest.json → 上传 <前缀>_meta
+```
+
+每个构建 job 在上传前都会先跑 `python tools/build/verify_package.py <平台>`：包不存在、是空的、zip 打不开、或者缺关键内容（Web 缺 `index.html` + wasm/js/pck，iOS 缺 `WPG.app/Info.plist` + `WPG.xcodeproj/project.pbxproj`），一律 `[FAIL]`，不上传半成品。
+
+### iOS 是未签名的 CI 包
+
+`build-ios` 跑 `tools/build/export_ios_ci.py`：不读 Team ID、不找 .p12 / .mobileprovision、不跑签名预检，`xcodebuild` 全程 `CODE_SIGNING_ALLOWED=NO`，产出的是 **`.zip`，里面是 `WPG.app` + `WPG.xcodeproj`**。
+
+- 它**不是**可以装到手机上的 `.ipa`。真机安装继续走本地 Personal Team：`python3 tools/build/export_platform.py ios`。
+- 导出期间 `export_presets.cfg` 里的 `application/export_project_only` 会被临时置 `true`，结束后按**原始字节**恢复并校验，所以本地 iOS 构建不受影响。
+- 正式 Release（WPG Release）只有五个平台，没有 iOS，这条边界没有变。
 
 macOS 第一版不做 Apple 签名，也不做公证。签不了就保持未签名包；环境根本导不出就记 `BLOCKED`，不能写成 PASS。
 
@@ -145,6 +186,7 @@ push dev
 ```
 
 - WPG CI 和部署是两条独立的路。CI 挂了 Netlify 照样会构建；它只看 Netlify 自己那次构建成不成功。
+- WPG Dev CD 也和 Netlify 无关。它打出来的 Web 包只是一个 GitHub artifact，Netlify 既不读 `artifacts/`，也不读包名；`netlify.toml` 和 `tools/deploy/netlify_build.py` 在 Dev CD 落地过程中**一行没改**。Dev 包改名成 `WPG_20261005_e34723f_web.zip` 对 <https://bwpg.netlify.app> 没有任何影响。
 - `dev/<name>`、`main`、PR 都不影响正式站，因为生产分支是 `dev`。
 - Web 导出是 `variant/thread_support=false`，不需要 COOP/COEP 响应头，Netlify 静态托管直接能跑。
 - 发布前会检查 `build/web/raw` 里有没有 `index.html` 和 wasm / js / pck；缺了就 `FAIL`，Netlify 不会发布坏包。
@@ -196,8 +238,10 @@ NETLIFY_AUTH_TOKEN=xxx NETLIFY_SITE_ID=yyy python3 tools/deploy/deploy_netlify.p
 
 这些不能靠 workflow 文件自己打开。
 
-1. **把默认分支改成 `main`。**  
-   现在 `origin/HEAD` 指向 `dev`。`WPG Build` 用的 `workflow_run` 只读取**默认分支**上的 workflow 文件。在 Settings → General → Default branch，改成 `main`。改之前，先把 `build.yml` 合并进 `main`，否则默认分支上没有这个 workflow，自动 Build 不会挂上。Web 部署不经过 Actions，不受这条影响。
+1. **默认分支必须是 `dev`，而且 `build.yml` 必须存在于 `dev` 上。**  
+   `WPG Dev CD` 用 `workflow_run` 触发，GitHub 只会去**默认分支**上读这次 workflow 文件。现在 `origin/HEAD` 指向 `dev`，`build.yml` 也在 `dev` 上，所以 `dev` / `dev/<name>` 的 WPG CI 一成功就会挂上 Dev CD。  
+   **不要把默认分支改成 `main`**——那样 `workflow_run` 会去 `main` 找 `build.yml`，`dev` 的自动构建会静默不触发（还不报错）。真要改，先把 `build.yml` 合并进 `main` 再改。Web 部署不经过 Actions，不受这条影响。  
+   WPG Dev CD 只上传 artifact，声明了 `permissions: contents: read`，不需要改仓库的 Workflow permissions。
 
 2. **保护 `main`。** Settings → Branches → Add branch ruleset（或经典 Branch protection rule），分支选 `main`：
    - 要求 Pull Request 才能合并
@@ -224,7 +268,12 @@ python3 tools/build_tools.py
         ├─ tools/ci/validate.py
         ├─ tools/ci/architecture.py
         ├─ tools/ci/smoke.py
+        ├─ tools/test/test_dev_naming.py     （Dev 包命名单元测试）
         ├─ tools/build/export_platform.py
+        ├─ tools/build/export_ios_ci.py      （未签名 iOS CI 包，GitHub Actions 用）
+        ├─ tools/build/print_meta.py         （算 Dev 前缀、artifact 名）
+        ├─ tools/build/verify_package.py     （上传前复检产物）
+        ├─ tools/build/dev_meta.py           （SHA256SUMS.txt + manifest.json）
         ├─ tools/deploy/netlify_build.py     （Netlify 用它构建 Web）
         ├─ tools/deploy/deploy_netlify.py    （手动兜底发布）
         └─ tools/release/guard.py 里也会再调用 tools/ci/run_ci.py

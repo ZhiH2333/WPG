@@ -7,6 +7,8 @@ run-name: >-
     || format('WPG CI — {0} — {1}', github.ref_name, github.sha)
   }}
 
+# WPG CI 只负责代码质量验证，不负责发布构建。
+# Dev 产物由 WPG Dev CD（build.yml）在本 workflow 成功之后通过 workflow_run 触发。
 on:
   pull_request:
     branches:
@@ -29,8 +31,10 @@ jobs:
     name: validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install Godot 4.6.2
@@ -42,19 +46,25 @@ jobs:
     name: architecture
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Architecture Guard
         run: python tools/ci/architecture.py
+      - name: Dev build naming unit tests
+        run: python tools/test/test_dev_naming.py
 
   smoke:
     name: smoke
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install Godot 4.6.2

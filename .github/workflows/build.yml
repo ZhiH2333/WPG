@@ -1,14 +1,28 @@
-name: WPG Build
+name: WPG Dev CD
 
 run-name: >-
   ${{
     github.event_name == 'workflow_dispatch'
-    && format('WPG Build — {0} — {1}', github.ref_name, github.sha)
-    || format('WPG Build — {0} — {1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha)
+    && format('WPG Dev CD — 手动 — {0}', inputs.ref || github.ref_name)
+    || format('WPG Dev CD — {0} — {1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha)
   }}
 
+# WPG Dev CD：WPG CI 成功 + push 到 dev / dev/* ⇒ 六平台并行 Dev 构建。
+#
+# 硬性规则：
+#   1. 构建的必须是**触发 WPG CI 的那个 commit**（workflow_run.head_sha），
+#      绝不用 github.sha —— workflow_run 启动时 dev 可能已经有新提交了。
+#   2. 非 dev push / CI 失败 / CI 取消 / PR / main：prepare 静默 should_build=false，
+#      后续 job 全部跳过，不构建、不上传 artifact、也不报错退出。
+#   3. 只上传 artifact，不创建 GitHub Release、不打 tag、不 commit、不 push。
+#   4. Web 包只是额外的 GitHub artifact，Netlify 部署链完全不受影响。
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "要构建的 ref（分支 / tag / 完整 SHA）。留空 = 当前分支最新提交"
+        required: false
+        default: ""
   workflow_run:
     workflows:
       - WPG CI
@@ -18,128 +32,228 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: wpg-dev-cd-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  decide:
-    name: decide
+  prepare:
+    name: prepare
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.gate.outputs.should_build }}
-      sha: ${{ steps.gate.outputs.sha }}
+      reason: ${{ steps.gate.outputs.reason }}
+      sha: ${{ steps.meta.outputs.sha }}
+      short_sha: ${{ steps.meta.outputs.short_sha }}
+      branch: ${{ steps.meta.outputs.branch }}
+      commit_date: ${{ steps.meta.outputs.commit_date }}
+      build_prefix: ${{ steps.meta.outputs.build_prefix }}
     steps:
       - id: gate
+        name: gate
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_EVENT: ${{ github.event.workflow_run.event }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
-            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-            echo "[INFO] 手动 Run WPG Build"
+            echo "reason=workflow_dispatch" >> "$GITHUB_OUTPUT"
+            echo "[INFO] 手动触发 WPG Dev CD"
             exit 0
           fi
-          conclusion="${{ github.event.workflow_run.conclusion }}"
-          event_name="${{ github.event.workflow_run.event }}"
-          branch="${{ github.event.workflow_run.head_branch }}"
-          sha="${{ github.event.workflow_run.head_sha }}"
-          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
-          if [ "${event_name}" = "push" ] && [ "${branch}" = "main" ] && [ "${conclusion}" != "success" ]; then
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
-            echo "[FAIL] main 的 WPG CI 未通过（${conclusion}），不构建"
-            exit 1
-          fi
-          if [ "${conclusion}" = "success" ] && [ "${event_name}" = "push" ] && [ "${branch}" = "main" ]; then
+          if [ "$RUN_EVENT" = "push" ] \
+             && [ "$RUN_CONCLUSION" = "success" ] \
+             && { [ "$RUN_BRANCH" = "dev" ] || [ "${RUN_BRANCH#dev/}" != "$RUN_BRANCH" ]; }; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
-            echo "[PASS] main 的 WPG CI 已通过，开始 Build"
+            echo "reason=WPG CI success on $RUN_BRANCH" >> "$GITHUB_OUTPUT"
+            echo "[INFO] WPG CI 在 $RUN_BRANCH 上成功，开始 Dev Build"
             exit 0
           fi
           echo "should_build=false" >> "$GITHUB_OUTPUT"
-          echo "[INFO] 不构建。conclusion=${conclusion} event=${event_name} branch=${branch}"
+          echo "reason=event=$RUN_EVENT conclusion=$RUN_CONCLUSION branch=$RUN_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "[INFO] 不构建（不上传 artifact，也不算失败）：event=$RUN_EVENT conclusion=$RUN_CONCLUSION branch=$RUN_BRANCH"
+
+      - id: ref
+        name: resolve build ref
+        if: steps.gate.outputs.should_build == 'true'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_REF: ${{ inputs.ref }}
+          DISPATCH_REF: ${{ github.ref }}
+          RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            REF="${INPUT_REF:-$DISPATCH_REF}"
+          else
+            # 只认触发 WPG CI 的那个 commit。绝不使用 github.sha。
+            REF="$RUN_HEAD_SHA"
+          fi
+          if [ -z "$REF" ]; then
+            echo "[FAIL] 解析不到要构建的 ref" >&2
+            exit 1
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "[INFO] 构建 ref: $REF"
+
+      - name: Checkout exact commit
+        if: steps.gate.outputs.should_build == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.ref.outputs.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Python
+        if: steps.gate.outputs.should_build == 'true'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - id: meta
+        name: dev build naming
+        if: steps.gate.outputs.should_build == 'true'
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          CONTEXT_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [ -n "$EXPECTED_SHA" ] && [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+            echo "[FAIL] 构建 commit ($ACTUAL_SHA) != WPG CI 的 head_sha ($EXPECTED_SHA)" >&2
+            exit 1
+          fi
+          echo "[PASS] 构建 commit == WPG CI commit: $ACTUAL_SHA"
+          BRANCH="$CONTEXT_BRANCH"
+          if [ -z "$BRANCH" ]; then
+            BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+            if [ "$BRANCH" = "HEAD" ]; then
+              BRANCH="$REF_NAME"
+            fi
+          fi
+          export WPG_DEV_BRANCH="$BRANCH"
+          python tools/build/print_meta.py --prefix >> "$GITHUB_OUTPUT"
 
   build-windows:
     name: build-windows
-    needs: decide
-    if: needs.decide.outputs.should_build == 'true'
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     runs-on: windows-latest
+    env:
+      WPG_DEV_BUILD_PREFIX: ${{ needs.prepare.outputs.build_prefix }}
+      WPG_DEV_DATE: ${{ needs.prepare.outputs.commit_date }}
+      WPG_DEV_SHA: ${{ needs.prepare.outputs.sha }}
+      WPG_DEV_BRANCH: ${{ needs.prepare.outputs.branch }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.decide.outputs.sha }}
-      - uses: actions/setup-python@v5
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install Godot 4.6.2
         run: python tools/ci/install_godot.py
       - name: Build Windows
         run: python tools/build/export_platform.py windows
-      - id: meta
-        shell: pwsh
-        run: python tools/build/print_meta.py windows >> $env:GITHUB_OUTPUT
-      - uses: actions/upload-artifact@v4
+      - name: Verify package
+        run: python tools/build/verify_package.py windows
+      - uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.meta.outputs.artifact_name }}
-          path: artifacts/${{ steps.meta.outputs.file_name }}
+          name: ${{ needs.prepare.outputs.build_prefix }}_windows
+          path: artifacts/${{ needs.prepare.outputs.build_prefix }}_windows.zip
           if-no-files-found: error
 
   build-macos:
     name: build-macos
-    needs: decide
-    if: needs.decide.outputs.should_build == 'true'
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     runs-on: macos-latest
+    env:
+      WPG_DEV_BUILD_PREFIX: ${{ needs.prepare.outputs.build_prefix }}
+      WPG_DEV_DATE: ${{ needs.prepare.outputs.commit_date }}
+      WPG_DEV_SHA: ${{ needs.prepare.outputs.sha }}
+      WPG_DEV_BRANCH: ${{ needs.prepare.outputs.branch }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.decide.outputs.sha }}
-      - uses: actions/setup-python@v5
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install Godot 4.6.2
         run: python tools/ci/install_godot.py
       - name: Build macOS
         run: python tools/build/export_platform.py macos
-      - id: meta
-        run: python tools/build/print_meta.py macos >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - name: Verify package
+        run: python tools/build/verify_package.py macos
+      - uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.meta.outputs.artifact_name }}
-          path: artifacts/${{ steps.meta.outputs.file_name }}
+          name: ${{ needs.prepare.outputs.build_prefix }}_macos
+          path: artifacts/${{ needs.prepare.outputs.build_prefix }}_macos.zip
           if-no-files-found: error
 
   build-linux:
     name: build-linux
-    needs: decide
-    if: needs.decide.outputs.should_build == 'true'
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     runs-on: ubuntu-latest
+    env:
+      WPG_DEV_BUILD_PREFIX: ${{ needs.prepare.outputs.build_prefix }}
+      WPG_DEV_DATE: ${{ needs.prepare.outputs.commit_date }}
+      WPG_DEV_SHA: ${{ needs.prepare.outputs.sha }}
+      WPG_DEV_BRANCH: ${{ needs.prepare.outputs.branch }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.decide.outputs.sha }}
-      - uses: actions/setup-python@v5
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install Godot 4.6.2
         run: python tools/ci/install_godot.py
       - name: Build Linux
         run: python tools/build/export_platform.py linux
-      - id: meta
-        run: python tools/build/print_meta.py linux >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - name: Verify package
+        run: python tools/build/verify_package.py linux
+      - uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.meta.outputs.artifact_name }}
-          path: artifacts/${{ steps.meta.outputs.file_name }}
+          name: ${{ needs.prepare.outputs.build_prefix }}_linux
+          path: artifacts/${{ needs.prepare.outputs.build_prefix }}_linux.zip
           if-no-files-found: error
 
   build-android:
     name: build-android
-    needs: decide
-    if: needs.decide.outputs.should_build == 'true'
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     runs-on: ubuntu-latest
+    env:
+      WPG_DEV_BUILD_PREFIX: ${{ needs.prepare.outputs.build_prefix }}
+      WPG_DEV_DATE: ${{ needs.prepare.outputs.commit_date }}
+      WPG_DEV_SHA: ${{ needs.prepare.outputs.sha }}
+      WPG_DEV_BRANCH: ${{ needs.prepare.outputs.branch }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.decide.outputs.sha }}
-      - uses: actions/setup-python@v5
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -148,34 +262,135 @@ jobs:
         run: python tools/ci/install_godot.py
       - name: Build Android APK
         run: python tools/build/export_platform.py android
-      - id: meta
-        run: python tools/build/print_meta.py android >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - name: Verify package
+        run: python tools/build/verify_package.py android
+      - uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.meta.outputs.artifact_name }}
-          path: artifacts/${{ steps.meta.outputs.file_name }}
+          name: ${{ needs.prepare.outputs.build_prefix }}_android
+          path: artifacts/${{ needs.prepare.outputs.build_prefix }}_android.apk
           if-no-files-found: error
 
   build-web:
     name: build-web
-    needs: decide
-    if: needs.decide.outputs.should_build == 'true'
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     runs-on: ubuntu-latest
+    env:
+      WPG_DEV_BUILD_PREFIX: ${{ needs.prepare.outputs.build_prefix }}
+      WPG_DEV_DATE: ${{ needs.prepare.outputs.commit_date }}
+      WPG_DEV_SHA: ${{ needs.prepare.outputs.sha }}
+      WPG_DEV_BRANCH: ${{ needs.prepare.outputs.branch }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.decide.outputs.sha }}
-      - uses: actions/setup-python@v5
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install Godot 4.6.2
         run: python tools/ci/install_godot.py
       - name: Build Web
         run: python tools/build/export_platform.py web
-      - id: meta
-        run: python tools/build/print_meta.py web >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - name: Verify Web package
+        run: python tools/build/verify_package.py web
+      - uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.meta.outputs.artifact_name }}
-          path: artifacts/${{ steps.meta.outputs.file_name }}
+          name: ${{ needs.prepare.outputs.build_prefix }}_web
+          path: artifacts/${{ needs.prepare.outputs.build_prefix }}_web.zip
+          if-no-files-found: error
+
+  build-ios:
+    name: build-ios
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
+    runs-on: macos-latest
+    env:
+      WPG_DEV_BUILD_PREFIX: ${{ needs.prepare.outputs.build_prefix }}
+      WPG_DEV_DATE: ${{ needs.prepare.outputs.commit_date }}
+      WPG_DEV_SHA: ${{ needs.prepare.outputs.sha }}
+      WPG_DEV_BRANCH: ${{ needs.prepare.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install Godot 4.6.2
+        run: python tools/ci/install_godot.py
+      - name: Build unsigned iOS CI package
+        run: python tools/build/export_ios_ci.py
+      - name: Verify package
+        run: python tools/build/verify_package.py ios
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ needs.prepare.outputs.build_prefix }}_ios
+          path: artifacts/${{ needs.prepare.outputs.build_prefix }}_ios.zip
+          if-no-files-found: error
+
+  aggregate:
+    name: aggregate
+    needs:
+      - prepare
+      - build-windows
+      - build-macos
+      - build-linux
+      - build-android
+      - build-web
+      - build-ios
+    if: needs.prepare.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    env:
+      WPG_DEV_BUILD_PREFIX: ${{ needs.prepare.outputs.build_prefix }}
+      WPG_DEV_DATE: ${{ needs.prepare.outputs.commit_date }}
+      WPG_DEV_SHA: ${{ needs.prepare.outputs.sha }}
+      WPG_DEV_BRANCH: ${{ needs.prepare.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: ${{ needs.prepare.outputs.build_prefix }}_*
+          merge-multiple: true
+          path: downloaded
+      - name: Collect packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          count=0
+          while IFS= read -r -d '' file; do
+            name="$(basename "$file")"
+            if [ "$file" != "artifacts/$name" ]; then
+              mv -f "$file" "artifacts/$name"
+            fi
+            count=$((count + 1))
+          done < <(find downloaded -type f \( -name '*.zip' -o -name '*.apk' \) -print0)
+          echo "[INFO] 收集了 $count 个包到 artifacts/"
+          if [ "$count" -ne 6 ]; then
+            echo "[FAIL] 期望 6 个平台包，实际 $count 个" >&2
+            find downloaded -type f >&2 || true
+            exit 1
+          fi
+          ls -la artifacts/
+      - name: SHA256SUMS + manifest
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
+          BUILD_BRANCH: ${{ needs.prepare.outputs.branch }}
+        run: python tools/build/dev_meta.py --sha "$EXPECTED_SHA" --branch "$BUILD_BRANCH"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ needs.prepare.outputs.build_prefix }}_meta
+          path: artifacts/
           if-no-files-found: error
