@@ -17,6 +17,21 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 
+# Windows CI stdout/stderr 可能是 cp1252，导致中文日志触发 UnicodeEncodeError。
+# 统一在进程启动时把标准流重配为 UTF-8（若已是 UTF-8 则幂等），
+# 保证 emit() 里的中文在所有平台都能安全打印。
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 ROOT = Path(__file__).resolve().parent.parent
 PROJECT_GODOT = ROOT / "project.godot"
 EXPORT_PRESETS = ROOT / "export_presets.cfg"

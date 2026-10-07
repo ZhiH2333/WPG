@@ -104,7 +104,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
       - name: Install Godot 4.6.2
         run: python tools/ci/install_godot.py
       - name: Build Android APK
