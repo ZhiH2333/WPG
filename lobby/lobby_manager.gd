@@ -56,6 +56,13 @@ var _active_path: int = LobbyPlayer.Path.LAN_IPV4
 var _runner: ConnectAttemptRunner = null
 ## P2P 连接编排器（Phase 9.2）：处理 rendezvous + hole punch + ENet 直连。
 var _p2p_connection: P2PConnection = null
+## Host 侧本次建房生成的那张 P2P invite（start_p2p_hosting() 的注册依据）。
+## 只保存真实生成的那一张，绝不由调用方另行拼装 room_id / ticket / 端口。
+var _host_invite: JoinInvite = null
+## 已经明确判定的终态失败原因（version_mismatch / ticket_rejected / timeout / hole_punch_timeout…）。
+## 一旦确定，后面到达的 transport 噪声（refused / host closed）不得覆盖它：
+## Host 主动 disconnect 被拒 Guest 后，Guest 的最终语义必须仍是 TICKET_REJECTED。
+var _terminal_failure: String = ""
 ## 本机默认 rendezvous 服务端（可由 MainMenu / 测试注入；为空则必须由 invite 携带 rv=）。
 var _rendezvous_host: String = ""
 var _rendezvous_port: int = RendezvousClient.DEFAULT_PORT
@@ -155,6 +162,7 @@ func host_room(arena_id: String, net_play: GameLaunch.NetPlay, loop_goal: int, b
 func join_room_address(address: String) -> bool:
 	if _net == null:
 		return false
+	_terminal_failure = ""
 	_guest_ticket = ""
 	var plan: ConnectionPath = ConnectionPath.from_address(address)
 	if plan.is_empty():
@@ -226,6 +234,7 @@ func get_guest_ticket() -> String:
 ##   connection_failed / timeout => 自动 close peer 后换下一个候选
 ##   VERSION_MISMATCH / TICKET_REJECTED => 立即停止，不再换路径
 func join_invite(raw: String) -> JoinInvite:
+	_terminal_failure = ""
 	var invite: JoinInvite = JoinInvite.parse(raw)
 	if not invite.is_valid():
 		return invite
@@ -311,7 +320,52 @@ func create_p2p_invite(lan_host: String, rendezvous_host: String = "", rendezvou
 		return null
 	if _net != null:
 		_net.set_ticket(_room_ticket)
+	## 保存**这一张真实生成的**邀请：Host 的 rendezvous 注册（start_p2p_hosting）
+	## 必须复用它，绝不允许调用方另行拼装 room_id / ticket / 端口。
+	_host_invite = invite
 	return invite
+
+## Host 侧：把本房注册到 rendezvous 并开始响应 Guest 的 UDP hole punch（Phase 9.2.3）。
+##
+## 与 Guest 的 join_invite_p2p() 对称，但角色语义相反：
+## - Host 只注册 + 打洞，**不发起 ENet 连接**；
+## - Host 已有的 ENet server（host_listen()）保持不变，等 Guest 主动连上来。
+##
+## 前置条件：create_room()/host_room() 已建房，且 create_p2p_invite() 已生成真实邀请。
+func start_p2p_hosting() -> bool:
+	if _room == null or _role != Role.HOST:
+		return false
+	if _host_invite == null or not _host_invite.is_valid() or not _host_invite.is_p2p():
+		return false
+	var rv_host: String = _host_invite.rendezvous_host.strip_edges()
+	if rv_host.is_empty():
+		rv_host = _rendezvous_host
+	if rv_host.is_empty():
+		return false
+	var rv_port: int = _host_invite.rendezvous_port
+	if rv_port < 1 or rv_port > 65535:
+		rv_port = _rendezvous_port
+	## 每次 hosting 用新的 P2PConnection，避免复用上一个的终态 / 残留 socket。
+	if _p2p_connection != null:
+		_p2p_connection.reset()
+		_p2p_connection = null
+	var p2p: P2PConnection = _get_or_create_p2p_connection()
+	var client: RendezvousClient = RendezvousClient.new()
+	p2p.bind_rendezvous(client)
+	if not p2p.begin_as_host(_host_invite, rv_host, rv_port):
+		_p2p_connection = null
+		return false
+	return true
+
+## 当前 P2P 连接编排器（无则 null）。UI / 测试只读。
+func get_p2p_connection() -> P2PConnection:
+	return _p2p_connection
+
+## 已明确判定的终态失败原因（"" = 无）。
+## 保证「被拒 / 协议不符 / 超时」这些明确结论不会被随后到达的 transport 事件
+##（refused / host closed）覆盖 —— 负向 E2E 的最终语义断言依赖它。
+func get_terminal_failure() -> String:
+	return _terminal_failure
 
 ## 开始通过 rendezvous + hole punch 的 P2P join。
 ## invite 必须包含有效的 room_id / ticket / candidates。
@@ -382,7 +436,11 @@ func _on_p2p_finished(success: bool, reason: String) -> void:
 		_networked = true
 		room_changed.emit()
 	else:
-		## 失败：清理并通知 UI
+		## 失败：先锁定终态原因，再清理并通知 UI。
+		## 顺序很重要：清理后 _p2p_connection 变成 null，之后到达的 transport 事件
+		## （Host 踢人后的 server_disconnected）只能靠这个 latch 判断「已有定论」。
+		if reason != "cancelled":
+			_latch_terminal_failure(reason)
 		if _net != null:
 			_net.close()
 		network_failed.emit(reason)
@@ -391,13 +449,26 @@ func _on_p2p_finished(success: bool, reason: String) -> void:
 		_p2p_connection.reset()
 	_p2p_connection = null
 
+## 锁定终态失败原因：第一次写入生效，之后不覆盖。
+func _latch_terminal_failure(reason: String) -> void:
+	if _terminal_failure.is_empty() and not reason.is_empty():
+		_terminal_failure = reason
+
 ## Hole punch 成功，得到 validated path。
-## Phase 9.2.3：自动发起 Direct ENet，接到 LobbyNet 单 peer，跑 protocol 6 握手。
+## Phase 9.2.3：**只有 Guest** 在 validated path 上主动发起 Direct ENet，
+## 接到 LobbyNet 单 peer，跑 protocol 6 握手。Host 到此为止。
 func _on_p2p_direct_path_established(rtt_ms: int, validated_candidate: Dictionary) -> void:
 	p2p_path_established.emit(rtt_ms, validated_candidate)
-	## 在 validated path 上发起 ENet 直连。
-	if _p2p_connection != null:
-		_p2p_connection.begin_direct_enet()
+	if _p2p_connection == null:
+		return
+	## 核心硬规则：Host 已经持有 host_listen() 建好的 ENet server。
+	## 若 Host 在这里也调用 begin_direct_enet()，最终会走到 LobbyNet.client_connect()，
+	## 而 client_connect() 第一步就 close() 当前 peer —— 等于 Host 亲手拆掉自己的
+	## ENet server，并在同一进程里试图造出第二个 active multiplayer_peer。
+	## Host 的正确行为是：保持现有 server，继续等 Guest 主动连上来。
+	if not _p2p_connection.is_guest_role():
+		return
+	_p2p_connection.begin_direct_enet()
 
 ## Hole punch 失败。
 func _on_p2p_direct_path_failed(reason: String) -> void:
@@ -464,6 +535,8 @@ func close_network() -> void:
 ## 建房：本地 Profile 直接进 seat 1，Host = true。默认离线 mock，bind 成功后调 mark_networked()。
 func create_room(arena_id: String = "yard", net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP, loop_goal: int = 0, borrowed_record_id: String = "") -> Room:
 	leave_room()
+	_terminal_failure = ""
+	_host_invite = null
 	if PlayerProfile.get_profile_id().is_empty():
 		PlayerProfile.load_from_disk()
 	_local_profile_id = PlayerProfile.get_profile_id()
@@ -677,6 +750,11 @@ func _on_net_connection_failed() -> void:
 	# 有进行中的 join：交给 runner 决定「换下一个候选」。它自己会 close peer，
 	# 只有候选全部耗尽才 emit network_failed（由 _on_join_exhausted 负责）。
 	
+	## 已有明确终态结论（被拒 / 协议不符 / 超时）：transport 层的 failed 是同一件事的
+	## 伴生噪声，不得把它覆盖成模糊的 "refused"。
+	if not _terminal_failure.is_empty():
+		return
+	
 	# P2P Direct ENet path: route to P2PConnection
 	if _p2p_connection != null and (_p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING or _p2p_connection.get_state_value() == P2PConnectionState.State.HANDSHAKING):
 		_p2p_connection.notify_direct_enet_failed("refused")
@@ -692,6 +770,7 @@ func _on_net_connection_failed() -> void:
 
 func _on_net_version_mismatch() -> void:
 	# 协议不符：换 IP 也解决不了，立即终结本次 join，不做普通重试。
+	_latch_terminal_failure("version_mismatch")
 	
 	# P2P Direct ENet path: route to P2PConnection
 	if _p2p_connection != null and (_p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING or _p2p_connection.get_state_value() == P2PConnectionState.State.HANDSHAKING):
@@ -706,11 +785,19 @@ func _on_net_version_mismatch() -> void:
 	network_failed.emit("Version mismatch")
 
 func _on_net_join_rejected(reason: int) -> void:
-	# ticket 被拒：换 IP 也解决不了，立即终结本次 join，不做普通重试。
+	# ticket / 协议被拒：换 IP 也解决不了，立即终结本次 join，不做普通重试。
+	## BAD_PROTOCOL 与 BAD_TOKEN 都是终态，但语义不同：前者是协议不符
+	##（VERSION_MISMATCH），后者才是 ticket 不对（TICKET_REJECTED）。
+	## Host 在 rpc_hello 里用同一个 rpc_join_rejected 通道回执，所以 Guest 必须按 reason 分流。
+	var is_protocol: bool = reason == int(LobbyNet.TicketReject.BAD_PROTOCOL)
+	_latch_terminal_failure("version_mismatch" if is_protocol else "ticket_rejected")
 	
 	# P2P Direct ENet path: route to P2PConnection
 	if _p2p_connection != null and (_p2p_connection.get_state_value() == P2PConnectionState.State.DIRECT_ENET_CONNECTING or _p2p_connection.get_state_value() == P2PConnectionState.State.HANDSHAKING):
-		_p2p_connection.notify_ticket_rejected()
+		if is_protocol:
+			_p2p_connection.notify_version_mismatch()
+		else:
+			_p2p_connection.notify_ticket_rejected()
 		return
 	
 	# Legacy LAN/Invite path: use ConnectAttemptRunner
@@ -721,6 +808,10 @@ func _on_net_join_rejected(reason: int) -> void:
 	network_failed.emit("ticket rejected")
 
 func _on_net_host_closed() -> void:
+	## 已有明确终态结论时，Host 掉线只是它的必然结果（Host 踢掉被拒 Guest 之后
+	## Guest 就会看到 server_disconnected），不得覆盖成 "host closed"。
+	if not _terminal_failure.is_empty():
+		return
 	_networked = false
 	network_failed.emit("host closed")
 

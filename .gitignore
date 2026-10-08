@@ -24,6 +24,13 @@ export_credentials.cfg
 data_*/
 mono_crash.*.json
 
+# Godot 运行期生成的 user data：某些环境下 user:// 会落到仓库根的 Godot/app_userdata/。
+# 日志 / profile.json.tmp 都是运行产物，不是源码，任何情况下都不入库。
+/Godot/app_userdata/
+
+# E2E / 测试运行产生的临时输出（result / ready / go / 原始 stdout-stderr / godot 日志）
+/e2e_tmp/
+
 # 导出产物（自行放到这些目录，或落在项目根）
 /export/
 /builds/

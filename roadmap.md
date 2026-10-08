@@ -89,7 +89,7 @@ README 曾写「下一步 Day 86 = 主动技能」。**本路线图取代该指�
 | 9.1 | P2P state machine + rendezvous contract | 已完成 | `lobby/p2p_connection_state.gd`（纯状态机：DISCONNECTED → RENDEZVOUS_* → CANDIDATES_RECEIVED → DIRECT_CONNECTING → HANDSHAKING → CONNECTED，终态含 FAILED / TIMEOUT / TICKET_REJECTED / VERSION_MISMATCH；非法转换返回 false 且状态不变；不依赖 SceneTree / 不持有 peer）+ `lobby/rendezvous_contract.gd`（纯数据 contract：会话身份 / 候选 / 会话状态 + 版本化编解码，`observed_*` 为 NAT 穿透预留且不伪造）+ `lobby/p2p_connection.gd`（编排器，经 `bind_transport()` 复用 LobbyNet 单 peer 建连） | **不实现真 NAT hole punching**；不做 STUN / TURN / UPnP / Relay / Host migration / reconnect；rendezvous 不承载游戏流量；`NetSession` 不接手 rendezvous；UI 不接触 packet format；不改 CombatNetSession / snapshot v3 / Ability Framework |
 | 9.2.1 | Rendezvous + observed endpoint | 已完成 | `tools/p2p/rendezvous/`（纯标准库 Python 服务端：register / match / candidate exchange / observed endpoint / session 生命周期 / idle cleanup；`server.py` / `protocol.py` / `stun.py` / `test_server.py` / README）+ `lobby/rendezvous_client.gd`（**PacketPeerUDP，非 ENet**，不占 SceneTree peer；REGISTER / REGISTERED / PEER_READY / CANDIDATES / ERROR / BYE）+ `RendezvousContract` **升 wire v2**（每条消息带 `session_id`，新增 `PEER_READY` / `ERROR`，observed endpoint 承载；v1 包明确 `BAD_VERSION`）+ 最小 RFC 5389 STUN Binding Request 客户端（`XOR-MAPPED-ADDRESS` 解析，只为拿 NAT 映射端点）+ `P2PConnection.bind_rendezvous()` / `poll_rendezvous()` 接缝（状态真实走 RENDEZVOUS_CONNECTING → RENDEZVOUS_REGISTERED → CANDIDATES_RECEIVED，**不直接假装 CONNECTED**） | **不做真 NAT hole punching**；不做 UDP simultaneous open / 多端口快速探测 / ICE / TURN / Relay / UPnP / Host migration / reconnect；rendezvous **不是 Relay**、不承载游戏流量、不分配 seat、不拥有 `Room.players`、不是最终准入权威（最终仍由 Host protocol 6 ticket handshake 决定）；observed endpoint 只能由服务端 / STUN 写入，严禁用本地地址或客户端自报值伪造；server 不访问 Combat |
 | 9.2.2 | NAT hole punching | 已完成 | `lobby/p2p_hole_punch.gd` / `lobby/p2p_udp_probe.gd`：UDP simultaneous open、多端口快速探测、probe_id correlation、source address/port 验证、shared PacketPeerUDP、rendezvous observed endpoint 复用、bounded real-frame pumping、cancel/reset 清理；`tests/integration/p2p_hole_punch_integration_test.gd` 真 loopback 回归 | 不做 TURN / Relay；不承诺所有 NAT 都能直连（对称 NAT 需 Relay，属后续） |
-| 9.2.3 | Direct ENet validation | 已完成 | `lobby/p2p_connection.gd`：validated path 上自动 `begin_direct_enet()` → `LobbyNet.client_connect()` → 真实 `connected_to_server` → protocol 6 `rpc_hello(protocol, ticket)` → Host 权威校验 → `rpc_hello_ok` + `rpc_assign_seat(seat=2)` → `peer_confirmed` → `CONNECTED`；rendezvous client 优雅关闭避免 idle cleanup；`tests/integration/p2p_production_flow_test.gd` 回归覆盖 | 不改战斗 snapshot v3；不同时两个 peer |
+| 9.2.3 | Direct ENet validation | 已完成（真多进程 E2E 验证） | 只有 **Guest** 在 validated path 上 `begin_direct_enet()` → `LobbyNet.client_connect()` → 真实 `connected_to_server` → protocol 6 `rpc_hello(protocol, ticket)` → Host 权威校验 → `rpc_hello_ok` + `rpc_assign_seat(seat=2)` → `peer_confirmed` → `CONNECTED`；Host 侧 `start_p2p_hosting()` 只注册 rendezvous 并**保持自己的 ENet server**，绝不 client_connect；负向路径（坏 ticket / 坏协议号）走完 rendezvous → hole punch → Direct ENet → protocol 6 → Host `check_ticket()` 判 BAD_TOKEN / BAD_PROTOCOL → `rpc_join_rejected` → 踢人，Guest 终态 TICKET_REJECTED / VERSION_MISMATCH 且不占座（ENet 连上 ≠ 大厅连上）；真多进程 E2E：success 20/20、wrong ticket 5/5、wrong protocol 5/5（`tools/p2p/e2e_direct_enet_test.py`，产物只在临时目录）；9.2.2 打洞回归 20/20；`tests/integration/p2p_production_flow_test.gd` + `tests/integration/p2p_hole_punch_integration_test.gd` 回归覆盖 | 不改战斗 snapshot v3；不同时两个 peer；不做 TURN / Relay / UPnP / Host migration / reconnect |
 | 10 | 最终集成 | 待开始 | Desktop Solo/LAN/WAN + Android Solo/LAN/WAN；再做 Skill multiplayer、多人 UX、reconnect、timeout、profiling、release | 不为 P2P 改战斗快照结构（除非规格明确要求） |
 
 阶段 3 起每阶的硬性验收（沿用 Architecture Rules）：能 F5 进 Solo、无 Autoload、`NetSession` 只服务战斗、Lobby 网络全归 `LobbyNet`、UI 不碰 ENet、Touch 不复制 Combat、Skill 不绑设备、四份存档继续分离、LAN 不写档、每阶完成同步 roadmap / README。
@@ -333,7 +333,7 @@ Phase 8 hardening（异步回退 + ticket lifecycle） ← 已完成
 Phase 9.1 P2P state machine + rendezvous 契约   ← 已完成（不含真 NAT 打洞）
 Phase 9.2.1 公网 rendezvous + observed endpoint   ← 已完成（真实 UDP 交换已跑通）
 Phase 9.2.2 NAT hole punching                     ← 已完成（UDP simultaneous open / probe_id correlation / shared UDP / bounded pumping / cancel-reset）
-Phase 9.2.3 Direct ENet validation                 ← 已完成（validated path → LobbyNet → protocol 6 handshake → seat 2 → CONNECTED）
+Phase 9.2.3 Direct ENet validation                 ← 已完成（真多进程 E2E：success 20/20 / wrong ticket 5/5 / wrong protocol 5/5；只有 Guest 发起 Direct ENet，Host 保持自己的 ENet server）
 ```
 
 不要先把所有 UI 做完再接 Network。也不要先继续写 UPnP。
@@ -344,7 +344,7 @@ Phase 9.2.3 Direct ENet validation                 ← 已完成（validated pat
 **Phase 8 hardening = DONE（ConnectAttempt / 三级超时 / ticket 复用）**，
 **Phase 9.1 = P2P state machine + rendezvous contract = DONE（不含真打洞）**，
 **Phase 9.2.1 = 公网 rendezvous service + Guest/Host 注册与候选交换 + observed endpoint = DONE**，
-**Phase 9.2.2 = 真 NAT 穿透 = DONE**，**Phase 9.2.3 = Direct ENet validation = DONE**。
+**Phase 9.2.2 = 真 NAT 穿透 = DONE**，**Phase 9.2.3 = Direct ENet validation = DONE**（判定依据是真多进程 E2E，不是 `startswith("OK")`：success 20/20、wrong ticket 5/5、wrong protocol 5/5，逐条校验 Guest 走的是 `LobbyManager.join_invite()` 生产入口、rendezvous 注册 → 候选交换 → hole punch → Direct ENet → protocol 6 握手 → seat=2 的真实状态轨迹；坏 ticket / 坏协议号必须在 Host 侧被 `check_ticket()` 判死并踢人，且不占正式座位）。
 
 其它轨道（不写入上述阶段的 DoD）：
 

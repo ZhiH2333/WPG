@@ -1,46 +1,32 @@
 #!/usr/bin/env python3
-"""Phase 9.2.3 Direct ENet validation — 真正的双进程 E2E 测试。
+"""Phase 9.2.3 Direct ENet — 真实多进程 E2E（无 mock，无 SKIPPED）。
 
-架构：
-  Test Runner (Python)
-      ├── Rendezvous Server (tools/p2p/rendezvous/server.py) on 127.0.0.1:PORT
-      ├── Host Godot Headless Process
-      │   ├── 创建 LobbyManager + LobbyNet
-      │   ├── host_room() -> ENet listen on random port
-      │   ├── create_p2p_invite() -> 生成 room ticket + P2P invite
-      │   ├── 连接 Rendezvous (REGISTER as HOST)
-      │   ├── 等待 Guest 注册
-      │   ├── 收到 CANDIDATES -> 开始 Hole Punch
-      │   ├── Hole Punch 成功 (validated UDP path)
-      │   ├── 等待 Guest 发起 ENet 连接
-      │   ├── 收到 connected_to_server -> HANDSHAKING
-      │   ├── 收到 rpc_hello(protocol=6, ticket) -> 校验 ticket
-      │   ├── 通过 -> send_hello_ok + rpc_assign_seat(seat=2)
-      │   └── peer_confirmed -> 进入 Lobby
-      │
-      └── Guest Godot Headless Process
-          ├── 解析 P2P invite (JoinInvite.parse)
-          ├── LobbyManager.join_invite() -> 进入 P2PConnection
-          ├── 连接 Rendezvous (REGISTER as GUEST)
-          ├── 收到 REGISTERED (拿到自己的 observed endpoint)
-          ├── 收到 CANDIDATES (Host 的 candidates + observed endpoint)
-          ├── 自动开始 Hole Punch (simultaneous probing)
-          ├── Hole Punch 成功 -> validated path
-          ├── begin_direct_enet() -> 使用 validated endpoint 作为 ENet 目标
-          ├── LobbyNet.client_connect() -> 真实 connected_to_server
-          ├── 发送 rpc_hello(protocol=6, ticket)
-          ├── 收到 rpc_hello_ok + rpc_assign_seat(seat=2)
-          ├── seat_assigned -> joined_lobby
-          └── P2PConnection 最终状态 = CONNECTED
+真进程 / 真 UDP / 真 ENet / 真 protocol 6：
+    Test Runner (Python)
+        ├── Rendezvous Server (tools/p2p/rendezvous/server.py)
+        ├── Host  Godot headless：create_room -> host_room -> create_p2p_invite
+        │                        -> start_p2p_hosting（rendezvous 注册 + hole punch）
+        │                        -> 保持 ENet server，等 Guest 主动连
+        │                        -> rpc_hello -> check_ticket -> peer_confirmed
+        └── Guest Godot headless：读 **Host 真实生成的 invite URI**
+                                 -> LobbyManager.join_invite(raw_uri)   ← 唯一生产入口
+                                 -> rendezvous -> CANDIDATES -> hole punch
+                                 -> direct_path_established -> begin_direct_enet
+                                 -> LobbyNet.client_connect -> connected_to_server
+                                 -> protocol 6 hello -> rpc_assign_seat(2) -> CONNECTED
 
-关键验证点：
-1. 两个独立 Godot 进程，各自一个 SceneTree，各自一个 ENet peer
-2. Rendezvous 服务端真实运行，observed endpoint 来自 recvfrom
-3. Hole Punch 真实运行，双向 UDP probe + probe_id correlation
-4. Direct ENet 连接真实的 connected_to_server
-5. Protocol 6 真实执行，Host 权威校验 ticket
-6. Seat assignment 真实发生，Guest 拿到 seat 2
-7. 最终状态 CONNECTED 由真实 handshake_ok 驱动，不是 mock callback
+三个用例（PASS 由真实状态文件逐条断言决定，不看“进程是否正常退出”）：
+    success         完整链路 + Host 侧 seat 2 + Guest 侧 CONNECTED
+    wrong_ticket    同样走到 direct ENet + hello，Host check_ticket -> BAD_TOKEN -> 踢人
+    wrong_protocol  同样走到 direct ENet + hello(protocol!=6) -> BAD_PROTOCOL -> 踢人
+                    负向用例必须证明：ENet connected != Lobby connected，
+                    且 Guest 最终语义仍是 TICKET_REJECTED / VERSION_MISMATCH（不是 HOST_CLOSED）。
+
+产物放置：全部在 tempfile.mkdtemp() 里（invite / ready / result / Godot --log-file），
+跑完自动删除；失败时加 --keep-tmp 可保留现场。
+
+用法：
+    python3 tools/p2p/e2e_direct_enet_test.py --test-case all --runs 1
 """
 
 from __future__ import annotations
@@ -48,458 +34,408 @@ from __future__ import annotations
 import argparse
 import os
 import secrets
-import signal
+import select
+import shutil
+import socket
 import subprocess
 import sys
 import tempfile
 import time
-from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
+ROOT = Path(__file__).resolve().parent.parent.parent
+TOOLS_DIR = ROOT / "tools"
+sys.path.insert(0, str(TOOLS_DIR))
 
-GODOT = "/Applications/Godot.app/Contents/MacOS/godot"
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-TOOLS_DIR = PROJECT_ROOT / "tools"
+from wpg_common import find_godot  # noqa: E402
+
 RENDEZVOUS_SERVER = TOOLS_DIR / "p2p" / "rendezvous" / "server.py"
 HOST_SCRIPT = TOOLS_DIR / "e2e" / "p2p_direct_enet" / "host.gd"
 GUEST_SCRIPT = TOOLS_DIR / "e2e" / "p2p_direct_enet" / "guest.gd"
 
+BOOT_TIMEOUT_SEC = 25.0
+RESULT_TIMEOUT_SEC = 45.0
+RV_READY_TIMEOUT_SEC = 15.0
+DEADLINE_SEC = 25
 
-@dataclass
-class TestConfig:
-    rendezvous_port: int
-    host_enet_port: int
-    guest_enet_port: int
-    session_id: str
-    host_nonce: str
-    guest_nonce: str
-    room_id: str
-    ticket: str
-    result_dir: Path
-    overall_timeout_sec: float = 30.0
+# LobbyNet.TicketReject
+BAD_PROTOCOL = 1
+BAD_TOKEN = 2
+# 生产协议号（GameLaunch.NET_PROTOCOL）。runner 只做断言，不注入生产默认值。
+NET_PROTOCOL = 6
+# 故意与生产协议号不同的「未来协议号」：模拟对端版本更新，Host 必须判 BAD_PROTOCOL。
+WRONG_PROTOCOL = NET_PROTOCOL + 1
+
+# Guest 侧必须真实经过的 P2P 状态（顺序无关，逐项必须出现）
+#   handshaking = connected_to_server 之后进入 protocol 6 握手
+REQUIRED_P2P_STATES = (
+    "rendezvous_registered",
+    "candidates_received",
+    "direct_probing",
+    "direct_path_established",
+    "direct_enet_connecting",
+    "handshaking",
+)
+# Host 侧必须真实经过的 P2P 状态（Host 不建 ENet，所以没有 direct_enet_connecting）
+REQUIRED_HOST_P2P_STATES = (
+    "rendezvous_registered",
+    "candidates_received",
+    "direct_probing",
+    "direct_path_established",
+)
+
+CASES = ("success", "wrong_ticket", "wrong_protocol")
 
 
-@dataclass
-class ProcessHandles:
-    rendezvous: Optional[subprocess.Popen] = None
-    host: Optional[subprocess.Popen] = None
-    guest: Optional[subprocess.Popen] = None
+class Failure(Exception):
+    pass
 
 
-def generate_session_id() -> str:
-    return secrets.token_hex(8)  # 16 hex chars
-
-
-def generate_nonce() -> str:
-    return secrets.token_hex(16)  # 32 hex chars
-
-
-def generate_ticket() -> str:
-    return secrets.token_hex(16)  # 32 hex chars
-
-
-def pick_free_port() -> int:
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("127.0.0.1", 0))
-    port = s.getsockname()[1]
-    s.close()
+def _free_udp_port() -> int:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
     return port
 
 
-def pick_free_udp_port() -> int:
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind(("127.0.0.1", 0))
-    port = s.getsockname()[1]
-    s.close()
-    return port
+def _parse_result(path: Path) -> Tuple[str, Dict[str, str]]:
+    if not path.is_file():
+        return "", {}
+    fields: Dict[str, str] = {}
+    status = ""
+    for raw in path.read_text(errors="replace").splitlines():
+        line = raw.strip()
+        if not line or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip()
+        if key == "STATUS":
+            status = value
+        fields[key] = value
+    return status, fields
 
 
-def wait_for_file(path: Path, timeout_sec: float = 10.0) -> bool:
-    deadline = time.time() + timeout_sec
-    while time.time() < deadline:
-        if path.exists():
-            return True
-        time.sleep(0.05)
-    return False
+def _require(fields: Dict[str, str], key: str, expected: str, where: str) -> None:
+    actual = fields.get(key)
+    if actual != expected:
+        raise Failure("%s: %s=%r（期望 %r）" % (where, key, actual, expected))
 
 
-def read_result_file(path: Path) -> str:
-    if path.exists():
-        return path.read_text().strip()
-    return ""
+def _require_not(fields: Dict[str, str], key: str, forbidden: str, where: str) -> None:
+    if fields.get(key) == forbidden:
+        raise Failure("%s: %s 不得为 %r" % (where, key, forbidden))
 
 
-@contextmanager
-def temp_dir():
-    d = Path(tempfile.mkdtemp(prefix="wpg_e2e_"))
-    try:
-        yield d
-    finally:
-        import shutil
-        shutil.rmtree(d, ignore_errors=True)
+def _require_states(fields: Dict[str, str], required: Tuple[str, ...], where: str) -> None:
+    seen = [s for s in fields.get("P2P_STATES", "").split(",") if s]
+    missing = [s for s in required if s not in seen]
+    if missing:
+        raise Failure("%s: 未经历 P2P 状态 %s（实际 %s）" % (where, missing, seen))
 
 
-def launch_rendezvous(port: int, verbose: bool = False) -> subprocess.Popen:
-    cmd = [sys.executable, str(RENDEZVOUS_SERVER), "--port", str(port)]
-    if verbose:
-        cmd.append("--verbose")
-    print(f"[RUNNER] Starting rendezvous server on port {port}")
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-    )
-    # Wait for server to bind
-    time.sleep(0.5)
-    if proc.poll() is not None:
-        stdout, stderr = proc.communicate()
-        raise RuntimeError(f"Rendezvous server failed to start: {stderr}")
-    return proc
+def _tail(text: str, limit: int = 300) -> str:
+    """只取少量诊断信息；不倾倒完整 Godot / CI 日志。"""
+    lines = [line for line in (text or "").splitlines() if line.strip()]
+    return " | ".join(lines[-3:])[:limit]
 
 
-def launch_host(config: TestConfig, verbose: bool = False) -> subprocess.Popen:
-    # Create result and ready files
-    result_file = config.result_dir / "host_result.txt"
-    ready_file = config.result_dir / "host_ready.txt"
-    go_file = config.result_dir / "go.txt"
+class Session:
+    """一次用例：rendezvous + host + guest，全部产物落在临时目录。"""
 
-    env = os.environ.copy()
-    env.update({
-        "HOST_ENET_PORT": str(config.host_enet_port),
-        "RENDEZVOUS_PORT": str(config.rendezvous_port),
-        "SESSION_ID": config.session_id,
-        "HOST_NONCE": config.host_nonce,
-        "GUEST_NONCE": config.guest_nonce,
-        "ROOM_ID": config.room_id,
-        "TICKET": config.ticket,
-        "RESULT_FILE": str(result_file),
-        "READY_FILE": str(ready_file),
-        "GO_FILE": str(go_file),
-    })
+    def __init__(self, case: str, godot: Path, verbose: bool, keep_tmp: bool) -> None:
+        self.case = case
+        self.godot = godot
+        self.verbose = verbose
+        self.keep_tmp = keep_tmp
+        self.work = Path(tempfile.mkdtemp(prefix="wpg_e2e_9_2_3_"))
+        self.invite_file = self.work / "invite.uri"
+        self.rv_port = _free_udp_port()
+        self.procs: Dict[str, subprocess.Popen] = {}
+        self.out: Dict[str, str] = {}
 
-    cmd = [
-        str(GODOT),
-        "--headless",
-        "--path", str(PROJECT_ROOT),
-        "--script", str(HOST_SCRIPT),
-    ]
-    print(f"[RUNNER] Starting Host process on ENet port {config.host_enet_port}")
-    if verbose:
-        print(f"[RUNNER] Host cmd: {' '.join(cmd)}")
+    # ---- 进程管理 ----
 
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-        env=env,
-    )
-    return proc
+    def _godot_cmd(self, script: Path, log_name: str) -> List[str]:
+        return [
+            str(self.godot),
+            "--headless",
+            "--log-file",
+            str(self.work / log_name),
+            "--path",
+            str(ROOT),
+            "--script",
+            str(script),
+        ]
 
+    def _spawn(self, name: str, script: Path, env: Dict[str, str], log_name: str) -> None:
+        full_env = dict(os.environ)
+        full_env.update(env)
+        self.procs[name] = subprocess.Popen(
+            self._godot_cmd(script, log_name),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=full_env,
+        )
+        if self.verbose:
+            print("[RUNNER] %s -> %s" % (name, " ".join(self._godot_cmd(script, log_name))))
 
-def launch_guest(config: TestConfig, verbose: bool = False) -> subprocess.Popen:
-    result_file = config.result_dir / "guest_result.txt"
-    ready_file = config.result_dir / "guest_ready.txt"
-    go_file = config.result_dir / "go.txt"
+    def _wait_file(self, path: Path, name: str, timeout: float) -> None:
+        deadline = time.time() + timeout
+        proc = self.procs.get(name)
+        while time.time() < deadline:
+            if path.is_file() and path.stat().st_size > 0:
+                return
+            if proc is not None and proc.poll() is not None:
+                raise Failure("%s 进程提前退出（exit=%s）" % (name, proc.returncode))
+            time.sleep(0.05)
+        raise Failure("%s 未在 %.0fs 内就绪" % (name, timeout))
 
-    env = os.environ.copy()
-    env.update({
-        "GUEST_ENET_PORT": str(config.guest_enet_port),
-        "RENDEZVOUS_PORT": str(config.rendezvous_port),
-        "SESSION_ID": config.session_id,
-        "GUEST_NONCE": config.guest_nonce,
-        "HOST_NONCE": config.host_nonce,
-        "ROOM_ID": config.room_id,
-        "TICKET": config.ticket,
-        "RESULT_FILE": str(result_file),
-        "READY_FILE": str(ready_file),
-        "GO_FILE": str(go_file),
-    })
+    def _wait_exit(self, name: str, timeout: float) -> str:
+        proc = self.procs[name]
+        try:
+            out = proc.communicate(timeout=timeout)[0] or ""
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            out = proc.communicate()[0] or ""
+            self.out[name] = out
+            raise Failure("%s 进程超时未退出" % name)
+        self.out[name] = out
+        return out
 
-    cmd = [
-        str(GODOT),
-        "--headless",
-        "--path", str(PROJECT_ROOT),
-        "--script", str(GUEST_SCRIPT),
-    ]
-    print(f"[RUNNER] Starting Guest process")
-    if verbose:
-        print(f"[RUNNER] Guest cmd: {' '.join(cmd)}")
+    def _kill_all(self) -> None:
+        for proc in self.procs.values():
+            if proc.poll() is None:
+                try:
+                    proc.kill()
+                except OSError:
+                    pass
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
+        self.procs.clear()
 
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-        env=env,
-    )
-    return proc
-
-
-def signal_go(go_file: Path) -> None:
-    go_file.write_text("go\n")
-
-
-def cleanup_processes(handles: ProcessHandles) -> None:
-    for name, proc in [("rendezvous", handles.rendezvous), ("host", handles.host), ("guest", handles.guest)]:
-        if proc and proc.poll() is None:
-            print(f"[RUNNER] Terminating {name} process...")
+    def cleanup(self) -> None:
+        self._kill_all()
+        ## 诊断留痕（只在临时目录里，不进仓库）：完整 stdout 便于事后定位时序问题。
+        for name, text in self.out.items():
             try:
-                proc.terminate()
-                proc.wait(timeout=2.0)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait()
-
-
-def run_e2e_test(config: TestConfig, verbose: bool = False) -> tuple[bool, str]:
-    """运行单次 E2E 测试，返回 (success, details)。"""
-    handles = ProcessHandles()
-    deadline = time.time() + config.overall_timeout_sec
-
-    try:
-        # 1. 启动 Rendezvous 服务端
-        handles.rendezvous = launch_rendezvous(config.rendezvous_port, verbose)
-
-        # 2. 启动 Host 进程
-        handles.host = launch_host(config, verbose)
-
-        # 3. 等待 Host ready 信号（表示 rendezvous registered，可以开始 Hole Punch）
-        if not wait_for_file(config.result_dir / "host_ready.txt", timeout_sec=15.0):
-            # Collect host output for debugging
-            host_stdout, host_stderr = "", ""
-            if handles.host:
-                try:
-                    host_stdout, host_stderr = handles.host.communicate(timeout=1.0)
-                except:
-                    pass
-            return False, f"Host did not become ready (rendezvous registered timeout). Host stdout: {host_stdout[:500] if host_stdout else 'empty'}, stderr: {host_stderr[:500] if host_stderr else 'empty'}"
-
-        # 4. 启动 Guest 进程
-        handles.guest = launch_guest(config, verbose)
-
-        # 5. 等待 Guest ready 信号
-        if not wait_for_file(config.result_dir / "guest_ready.txt", timeout_sec=15.0):
-            guest_stdout, guest_stderr = "", ""
-            if handles.guest:
-                try:
-                    guest_stdout, guest_stderr = handles.guest.communicate(timeout=1.0)
-                except:
-                    pass
-            return False, f"Guest did not become ready (rendezvous registered timeout). Guest stdout: {guest_stdout[:500] if guest_stdout else 'empty'}, stderr: {guest_stderr[:500] if guest_stderr else 'empty'}"
-
-        # 6. 发送 GO 信号，开始主循环
-        signal_go(config.result_dir / "go.txt")
-
-        # 7. 等待两个进程完成
-        host_done = False
-        guest_done = False
-        host_result = ""
-        guest_result = ""
-
-        while time.time() < deadline:
-            if not host_done and handles.host and handles.host.poll() is not None:
-                host_done = True
-                host_result = read_result_file(config.result_dir / "host_result.txt")
-                print(f"[RUNNER] Host exited with code {handles.host.returncode}: {host_result}")
-
-            if not guest_done and handles.guest and handles.guest.poll() is not None:
-                guest_done = True
-                guest_result = read_result_file(config.result_dir / "guest_result.txt")
-                print(f"[RUNNER] Guest exited with code {handles.guest.returncode}: {guest_result}")
-
-            if host_done and guest_done:
-                break
-
-            time.sleep(0.1)
-
-        if not host_done or not guest_done:
-            return False, f"Timeout waiting for processes to complete (host_done={host_done}, guest_done={guest_done})"
-
-        # 8. 检查结果
-        host_ok = host_result.startswith("OK:")
-        guest_ok = guest_result.startswith("OK:")
-
-        if host_ok and guest_ok:
-            return True, f"Host: {host_result}; Guest: {guest_result}"
+                (self.work / ("%s.stdout" % name)).write_text(text or "", encoding="utf-8")
+            except OSError:
+                pass
+        if self.keep_tmp:
+            print("[RUNNER] 保留临时目录：%s" % self.work)
         else:
-            details = f"Host: {host_result} (code={handles.host.returncode}); Guest: {guest_result} (code={handles.guest.returncode})"
-            return False, details
+            shutil.rmtree(self.work, ignore_errors=True)
 
-    except Exception as e:
-        return False, f"Test exception: {e}"
-    finally:
-        cleanup_processes(handles)
+    # ---- 用例执行 ----
 
+    def run(self) -> None:
+        rv = subprocess.Popen(
+            [sys.executable, str(RENDEZVOUS_SERVER), "--port", str(self.rv_port)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        try:
+            self._wait_rendezvous(rv)
+            self._run_case()
+        finally:
+            if rv.poll() is None:
+                rv.kill()
+            rv.wait(timeout=5)
 
-def run_negative_ticket_test(base_config: TestConfig, verbose: bool = False) -> tuple[bool, str]:
-    """测试错误 ticket：Guest 使用错误 ticket，预期 TICKET_REJECTED。"""
-    config = TestConfig(
-        rendezvous_port=base_config.rendezvous_port,
-        host_enet_port=base_config.host_enet_port,
-        guest_enet_port=pick_free_udp_port(),
-        session_id=generate_session_id(),
-        host_nonce=generate_nonce(),
-        guest_nonce=generate_nonce(),
-        room_id=base_config.room_id,
-        ticket="wrong_ticket_" + secrets.token_hex(12),  # 错误的 ticket
-        result_dir=base_config.result_dir / "negative_ticket",
-        overall_timeout_sec=15.0,
-    )
-    config.result_dir.mkdir(parents=True, exist_ok=True)
-
-    handles = ProcessHandles()
-    deadline = time.time() + config.overall_timeout_sec
-
-    try:
-        handles.rendezvous = launch_rendezvous(config.rendezvous_port, verbose)
-        handles.host = launch_host(config, verbose)
-
-        if not wait_for_file(config.result_dir / "host_ready.txt", timeout_sec=10.0):
-            return False, "Host did not become ready"
-
-        handles.guest = launch_guest(config, verbose)
-
-        if not wait_for_file(config.result_dir / "guest_ready.txt", timeout_sec=10.0):
-            return False, "Guest did not become ready"
-
-        signal_go(config.result_dir / "go.txt")
-
-        host_done = False
-        guest_done = False
-        host_result = ""
-        guest_result = ""
-
+    def _wait_rendezvous(self, rv: subprocess.Popen) -> None:
+        """等服务端真的开始监听（读它的 listening 行），而不是固定 sleep。"""
+        deadline = time.time() + RV_READY_TIMEOUT_SEC
         while time.time() < deadline:
-            if not host_done and handles.host and handles.host.poll() is not None:
-                host_done = True
-                host_result = read_result_file(config.result_dir / "host_result.txt")
-            if not guest_done and handles.guest and handles.guest.poll() is not None:
-                guest_done = True
-                guest_result = read_result_file(config.result_dir / "guest_result.txt")
-            if host_done and guest_done:
-                break
-            time.sleep(0.1)
+            if rv.poll() is not None:
+                raise Failure("rendezvous server 启动即退出")
+            ready, _, _ = select.select([rv.stdout], [], [], 0.2)
+            if ready:
+                line = rv.stdout.readline()
+                if "listening" in line:
+                    return
+        raise Failure("rendezvous server 未在 %.0fs 内监听" % RV_READY_TIMEOUT_SEC)
 
-        # Host 应该成功（建立了连接但拒绝了 Guest），Guest 应该失败并报告 join_rejected / ticket_rejected
-        host_ok = host_result.startswith("OK:") or "peer_confirmed" in host_result  # Host 可能没有显式失败
-        guest_rejected = "join_rejected" in guest_result or "ticket_rejected" in guest_result or "TICKET_REJECTED" in guest_result
+    def _env_common(self, result_name: str) -> Dict[str, str]:
+        return {
+            "RV_HOST": "127.0.0.1",
+            "RV_PORT": str(self.rv_port),
+            "LAN_HOST": "127.0.0.1",
+            "INVITE_FILE": str(self.invite_file),
+            "RESULT_FILE": str(self.work / result_name),
+            "READY_FILE": str(self.work / (result_name + ".ready")),
+            "CASE": self.case,
+            "DEADLINE_SEC": str(DEADLINE_SEC),
+        }
 
-        if guest_rejected:
-            return True, f"Guest correctly rejected: {guest_result}; Host: {host_result}"
+    def _run_case(self) -> None:
+        host_env = self._env_common("host.result")
+        self._spawn("host", HOST_SCRIPT, host_env, "host.godot.log")
+        self._wait_file(self.work / "host.result.ready", "host", BOOT_TIMEOUT_SEC)
+
+        guest_env = self._env_common("guest.result")
+        if self.case == "wrong_protocol":
+            guest_env["HELLO_PROTOCOL"] = str(WRONG_PROTOCOL)
+        if self.case == "wrong_ticket":
+            guest_env["HELLO_TICKET"] = secrets.token_hex(16)  # 同长度、不同内容
+        self._spawn("guest", GUEST_SCRIPT, guest_env, "guest.godot.log")
+        self._wait_file(self.work / "guest.result.ready", "guest", BOOT_TIMEOUT_SEC)
+
+        self._wait_exit("guest", RESULT_TIMEOUT_SEC)
+        self._wait_exit("host", RESULT_TIMEOUT_SEC)
+
+        host_status, host = _parse_result(self.work / "host.result")
+        guest_status, guest = _parse_result(self.work / "guest.result")
+
+        if self.case == "success":
+            self._assert_success(host_status, host, guest_status, guest)
         else:
-            return False, f"Expected ticket rejection but got: Guest={guest_result}, Host={host_result}"
+            self._assert_rejected(host_status, host, guest_status, guest)
+        return
 
-    except Exception as e:
-        return False, f"Test exception: {e}"
+    # ---- 断言 ----
+
+    def _assert_success(self, h_status: str, h: Dict[str, str], g_status: str, g: Dict[str, str]) -> None:
+        # Host：真实 server 仍在 hosting，Guest 拿到正式 seat 2。
+        _require(h, "STATUS", "HOST_OK", "Host")
+        _require(h, "PROTOCOL", str(NET_PROTOCOL), "Host")
+        _require(h, "INVITE_WRITTEN", "1", "Host")
+        _require(h, "INVITE_IS_P2P", "1", "Host")
+        _require(h, "ENET_SERVER", "1", "Host")
+        _require(h, "SINGLE_PEER", "1", "Host")
+        _require(h, "PEER_CONNECTED", "1", "Host")
+        _require(h, "PEER_CONFIRMED", "1", "Host")
+        _require(h, "TICKET_ACCEPTED", "1", "Host")
+        _require(h, "SEAT", "2", "Host")
+        _require(h, "PLAYERS", "2", "Host")
+        _require(h, "OCCUPIED", "2", "Host")
+        _require(h, "ROOM_OPEN", "1", "Host")
+        _require(h, "REJECTED_NONE", "1", "Host")
+        _require(h, "P2P_ROLE", "host", "Host")
+        _require_states(h, REQUIRED_HOST_P2P_STATES, "Host")
+
+        # Guest：生产入口 join_invite -> 完整 P2P -> protocol 6 -> seat 2 -> CONNECTED。
+        _require(g, "STATUS", "GUEST_OK", "Guest")
+        _require(g, "ENTRY", "join_invite", "Guest")
+        _require(g, "JOIN_INVITE_VALID", "1", "Guest")
+        _require(g, "JOIN_ACCEPTED", "1", "Guest")
+        _require(g, "JOIN_IS_P2P", "1", "Guest")
+        _require(g, "USES_RENDEZVOUS", "1", "Guest")
+        _require(g, "P2P_ROLE", "guest", "Guest")
+        _require(g, "CONNECTED_TO_SERVER", "1", "Guest")
+        _require(g, "SEAT_ASSIGNED", "1", "Guest")
+        _require(g, "SEAT", "2", "Guest")
+        _require(g, "P2P_STATE", "connected", "Guest")
+        _require(g, "NET_STATE", "LOBBY", "Guest")
+        _require(g, "SINGLE_PEER", "1", "Guest")
+        _require(g, "HELLO_OVERRIDE_PROTOCOL", "0", "Guest")
+        _require_states(g, REQUIRED_P2P_STATES + ("connected",), "Guest")
+        if g.get("TERMINAL", ""):
+            raise Failure("Guest: 成功用例不应有终态失败原因（%r）" % g.get("TERMINAL"))
+
+    def _assert_rejected(self, h_status: str, h: Dict[str, str], g_status: str, g: Dict[str, str]) -> None:
+        protocol_case = self.case == "wrong_protocol"
+        expected_code = str(BAD_PROTOCOL if protocol_case else BAD_TOKEN)
+        expected_terminal = "version_mismatch" if protocol_case else "ticket_rejected"
+
+        # Host：真实拒绝，且没把 Guest 放进 Room.players / 正式 seat；server 仍在。
+        _require(h, "STATUS", "HOST_REJECTED", "Host")
+        _require(h, "PROTOCOL", str(NET_PROTOCOL), "Host")
+        _require(h, "ENET_SERVER", "1", "Host")
+        _require(h, "SINGLE_PEER", "1", "Host")
+        _require(h, "PEER_CONNECTED", "1", "Host")
+        _require(h, "PEER_REJECTED", "1", "Host")
+        _require(h, "REJECT_REASON_CODE", expected_code, "Host")
+        _require(h, "PEER_CONFIRMED", "0", "Host")
+        _require(h, "PLAYERS", "1", "Host")
+        _require(h, "OCCUPIED", "1", "Host")
+        _require(h, "SEAT2_PEER", "0", "Host")
+        _require(h, "SEAT2_IS_GUEST", "0", "Host")
+        _require_states(h, REQUIRED_HOST_P2P_STATES, "Host")
+
+        # Guest：真的连上过 ENet + 跑完 hello，才被 Host 拒绝；最终语义不得被覆写成 HOST_CLOSED。
+        _require(g, "STATUS", "GUEST_REJECTED", "Guest")
+        ## 负向用例只改 hello 内容：wrong_protocol 出示未来协议号；
+        ## wrong_ticket 仍用生产协议号（证明那一路纯粹是 ticket 被判死，不是协议不符）。
+        _require(
+            g,
+            "HELLO_OVERRIDE_PROTOCOL",
+            str(WRONG_PROTOCOL) if protocol_case else "0",
+            "Guest",
+        )
+        _require(g, "ENTRY", "join_invite", "Guest")
+        _require(g, "JOIN_ACCEPTED", "1", "Guest")
+        _require(g, "CONNECTED_TO_SERVER", "1", "Guest")  # ENet connected != Lobby connected
+        _require(g, "JOIN_REJECTED", "1", "Guest")
+        _require(g, "SEAT_ASSIGNED", "0", "Guest")
+        _require(g, "P2P_STATE", expected_terminal, "Guest")
+        _require(g, "TERMINAL", expected_terminal, "Guest")
+        _require(g, "SEAT", "0", "Guest")
+        _require(g, "REJECT_REASON_CODE", expected_code, "Guest")
+        _require_not(g, "NET_STATE", "HOST_CLOSED", "Guest")
+        _require(g, "OVERRIDDEN_BY_HOST_CLOSED", "0", "Guest")
+        _require_states(g, REQUIRED_P2P_STATES, "Guest")
+
+
+def run_case(case: str, godot: Path, verbose: bool, keep_tmp: bool) -> Tuple[bool, str]:
+    session = Session(case, godot, verbose, keep_tmp)
+    try:
+        session.run()
+        return True, "ok"
+    except Failure as exc:
+        return False, str(exc)
+    except Exception as exc:  # noqa: BLE001
+        return False, "exception: %s" % exc
     finally:
-        cleanup_processes(handles)
+        session.cleanup()
 
 
-def run_negative_protocol_test(base_config: TestConfig, verbose: bool = False) -> tuple[bool, str]:
-    """测试错误协议版本：Guest 发送 protocol != 6，预期 VERSION_MISMATCH。
-    
-    注意：当前 LobbyNet 在 rpc_hello 中硬编码发送 GameLaunch.NET_PROTOCOL (6)。
-    要测试版本不匹配，我们需要修改 Guest 进程发送不同的协议号。
-    这里我们通过使用一个修改版的 guest 脚本来实现，或者通过测试覆盖来验证。
-    """
-    # 由于 LobbyNet.send_hello() 硬编码发送 NET_PROTOCOL (6)，
-    # 我们需要创建一个变体的 guest 测试来发送错误的 protocol。
-    # 暂时通过验证现有单测覆盖，这里返回跳过。
-    return True, "SKIPPED: Protocol mismatch test requires modified guest script (LobbyNet hardcodes NET_PROTOCOL)"
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Phase 9.2.3 Direct ENet E2E Test")
-    parser.add_argument("--runs", type=int, default=1, help="Number of test runs (default: 1)")
-    parser.add_argument("--verbose", action="store_true", help="Verbose output")
-    parser.add_argument("--test-case", choices=["success", "wrong_ticket", "wrong_protocol", "all"], default="all")
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Phase 9.2.3 Direct ENet 真实多进程 E2E")
+    parser.add_argument("--test-case", choices=[*CASES, "all"], default="all")
+    parser.add_argument("--runs", type=int, default=1)
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--keep-tmp", action="store_true", help="失败时保留临时目录（默认全部清理）")
     args = parser.parse_args()
 
     if args.runs < 1:
-        print("[FAIL] runs must be >= 1")
+        print("[FAIL] --runs 必须 >= 1")
         return 1
 
-    print(f"=== Phase 9.2.3 Direct ENet E2E Test ===")
-    print(f"Godot: {GODOT}")
-    print(f"Project: {PROJECT_ROOT}")
-    print(f"Runs: {args.runs}")
-    print(f"Test case: {args.test_case}")
-
-    # Verify Godot exists
-    if not Path(GODOT).exists():
-        print(f"[FAIL] Godot not found at {GODOT}")
+    godot = find_godot()
+    if godot is None:
+        print("[FAIL] 找不到 Godot 可执行文件（可设置 GODOT_BIN）")
         return 1
 
-    overall_pass = 0
-    overall_fail = 0
+    cases = list(CASES) if args.test_case == "all" else [args.test_case]
+    print("=== Phase 9.2.3 Direct ENet E2E ===")
+    print("Godot: %s" % godot)
+    print("Cases: %s | Runs: %d" % (",".join(cases), args.runs))
 
-    for run_idx in range(1, args.runs + 1):
-        print(f"\n--- Run {run_idx}/{args.runs} ---")
+    totals: Dict[str, List[int]] = {case: [0, 0] for case in cases}
+    for run in range(1, args.runs + 1):
+        for case in cases:
+            ok, detail = run_case(case, godot, args.verbose, args.keep_tmp)
+            totals[case][0 if ok else 1] += 1
+            tag = "PASS" if ok else "FAIL"
+            print("[%s] run=%d case=%s %s" % (tag, run, case, "" if ok else detail))
 
-        with temp_dir() as result_dir:
-            base_config = TestConfig(
-                rendezvous_port=pick_free_udp_port(),
-                host_enet_port=pick_free_udp_port(),
-                guest_enet_port=pick_free_udp_port(),
-                session_id=generate_session_id(),
-                host_nonce=generate_nonce(),
-                guest_nonce=generate_nonce(),
-                room_id="e2e_" + secrets.token_hex(4),
-                ticket=generate_ticket(),
-                result_dir=result_dir,
-            )
+    print("--- Summary ---")
+    failed = 0
+    for case in cases:
+        passed, rejected = totals[case]
+        failed += rejected
+        print("%-15s %d/%d" % (case, passed, passed + rejected))
 
-            # Test Case A: Success
-            if args.test_case in ("success", "all"):
-                print(f"[RUN {run_idx}] Test Case A: Success (full E2E flow)")
-                success, details = run_e2e_test(base_config, args.verbose)
-                if success:
-                    print(f"[RUN {run_idx}] PASS: {details}")
-                    overall_pass += 1
-                else:
-                    print(f"[RUN {run_idx}] FAIL: {details}")
-                    overall_fail += 1
-
-            # Test Case B: Wrong Ticket
-            if args.test_case in ("wrong_ticket", "all"):
-                print(f"[RUN {run_idx}] Test Case B: Wrong Ticket -> TICKET_REJECTED")
-                success, details = run_negative_ticket_test(base_config, args.verbose)
-                if success:
-                    print(f"[RUN {run_idx}] PASS: {details}")
-                    overall_pass += 1
-                else:
-                    print(f"[RUN {run_idx}] FAIL: {details}")
-                    overall_fail += 1
-
-            # Test Case C: Wrong Protocol
-            if args.test_case in ("wrong_protocol", "all"):
-                print(f"[RUN {run_idx}] Test Case C: Wrong Protocol -> VERSION_MISMATCH")
-                success, details = run_negative_protocol_test(base_config, args.verbose)
-                if success:
-                    print(f"[RUN {run_idx}] PASS: {details}")
-                    overall_pass += 1
-                else:
-                    print(f"[RUN {run_idx}] FAIL: {details}")
-                    overall_fail += 1
-
-    print(f"\n=== Summary ===")
-    print(f"Passed: {overall_pass}")
-    print(f"Failed: {overall_fail}")
-    print(f"Total:  {overall_pass + overall_fail}")
-
-    if overall_fail > 0:
-        print("[FAIL] Some tests failed")
+    if failed:
+        print("E2E_FAIL")
         return 1
-    print("[PASS] All tests passed")
+    print("E2E_OK")
     return 0
 
 

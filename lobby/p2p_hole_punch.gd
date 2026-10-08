@@ -9,7 +9,8 @@ class_name P2PHolePunch
 ## - 收集 local candidates（含 observed endpoint）
 ## - **同时**探测多个 candidate pair（不是一个一个串行）
 ## - 每个 active pair 独立拥有 probe_id / 重试 / 超时状态
-## - 验证双向可达（同时收到对方 probe 且我方 probe 收到匹配 ACK）
+## - 验证双向可达：**同时**收到对方 probe 且我方 probe 收到匹配 ACK，缺一不可；
+##   判定放在「本轮收包 drain 结束之后」统一做，先满足条件的一侧也不会提前收手
 ## - 标记 DIRECT_PATH_ESTABLISHED 或 DIRECT_PATH_FAILED
 ##
 ## 严格不做：
@@ -195,6 +196,7 @@ func debug_pair_states() -> Array[Dictionary]:
 			"failed": bool(pair.failed),
 			"probes_sent": int(pair.probes_sent),
 			"ack_received": bool(pair.ack_received),
+			"peer_probe_received": bool(pair.peer_probe_received),
 			"rtt_ms": int(pair.rtt_ms),
 			"target_address": str(pair.target_address),
 			"target_port": int(pair.target_port),
@@ -301,8 +303,9 @@ func tick(delta_ms: int) -> void:
 		_finish(Result.TIMEOUT, "probe_timeout")
 		return
 
-	## 接收处理（对方 probe / 我方 ACK）
+	## 接收处理（对方 probe / 我方 ACK），随后统一做双向确认判定。
 	_process_receive()
+	_evaluate_confirmation()
 	if _bidirectional_confirmed:
 		_finish(Result.SUCCESS, "bidirectional_confirmed")
 		return
@@ -321,6 +324,37 @@ func tick(delta_ms: int) -> void:
 	## 所有 pair 都耗尽 -> 失败
 	if _all_pairs_exhausted():
 		_finish(Result.FAILED, "all_candidates_exhausted")
+
+## 双向确认判定：**必须在本轮 drain 结束后**统一评估，不能边收边判。
+##
+## 判据（缺一不可，与文件头语义一致）：
+##   1) 本 pair 收到过对端 probe（对方确实在打洞，且我方已回了 ACK）
+##   2) 本 pair 自己的 probe 收到过匹配 probe_id 的 ACK（我方出方向可达）
+##   3) 本 pair 至少真的发过 probe（排除「只收不发」的假象）
+## 先满足条件的一侧必须继续读完本轮包再收手，否则对端会卡在
+## 「永远等不到 ACK」的半开路径上（真实 E2E 表现为 Host 成功 / Guest 超时）。
+func _evaluate_confirmation() -> void:
+	if _bidirectional_confirmed:
+		return
+	for i: int in _candidate_pairs.size():
+		var pair: Dictionary = _candidate_pairs[i]
+		if int(pair.generation) != _generation:
+			continue
+		if not bool(pair.ack_received) or not bool(pair.peer_probe_received):
+			continue
+		if int(pair.probes_sent) <= 0:
+			continue
+		_bidirectional_confirmed = true
+		_validated_rtt_ms = int(pair.rtt_ms)
+		_validated_source_address = str(pair.validated_source_address)
+		_validated_source_port = int(pair.validated_source_port)
+		_validated_pair_index = i
+		_validated_candidate = _build_validated_candidate(
+			pair, _validated_source_address, _validated_source_port, _validated_rtt_ms
+		)
+		## 其他 active probe 必须安全停下，且不能再改变最终状态。
+		_stop_other_pairs(i)
+		return
 
 func _all_pairs_exhausted() -> bool:
 	if _candidate_pairs.is_empty():
@@ -354,7 +388,8 @@ func _process_receive() -> void:
 		if int(pair.generation) != _generation:
 			continue
 		if decoded.is_probe():
-			## 收到对端 probe -> 回 ACK（必须 echo probe_id）。
+			## 收到对端 probe -> 回 ACK（必须 echo probe_id），并记下双向确认的一半。
+			pair.peer_probe_received = true
 			var now_ms: int = Time.get_ticks_msec()
 			var ack: PackedByteArray = P2PUDPProbe.encode_ack(
 				_session_id, _local_nonce, _local_role, now_ms, decoded.timestamp_ms, decoded.probe_id
@@ -370,21 +405,18 @@ func _process_receive() -> void:
 			if not pair.pending_probe_ids.has(decoded.probe_id):
 				## 旧 attempt 的 ACK / 伪造包 / 已过期的 probe：忽略。
 				continue
+			## 这里**只记录证据**，成功与否不在收到包的当刻判定：
+			## 双向确认要「对端 probe 到达」+「我方 probe 收到 ACK」同时成立，
+			## 而这两件事可能落在同一轮 drain 里且顺序不定（ACK 经常先到）。
+			## 若在读到 ACK 的当下因为「还没看到对端 probe」把它丢掉，就会白等：
+			## 已经确认的一侧随即停止读 socket，我方再也等不到第二个 ACK ——
+			## 结果就是我方打洞超时、永不发起 Direct ENet（Host 成功 / Guest 超时）。
+			## 判定统一放到本轮 drain 结束后（见 _evaluate_confirmation）。
 			var now_ms: int = Time.get_ticks_msec()
-			var rtt: int = P2PUDPProbe.calculate_rtt(now_ms, decoded.original_timestamp_ms)
 			pair.ack_received = true
-			pair.rtt_ms = rtt
+			pair.rtt_ms = P2PUDPProbe.calculate_rtt(now_ms, decoded.original_timestamp_ms)
 			pair.validated_source_address = src_addr
 			pair.validated_source_port = src_port
-			if int(pair.probes_sent) > 0:
-				_bidirectional_confirmed = true
-				_validated_rtt_ms = rtt
-				_validated_source_address = src_addr
-				_validated_source_port = src_port
-				_validated_pair_index = pair_index
-				_validated_candidate = _build_validated_candidate(pair, src_addr, src_port, rtt)
-				## 其他 active probe 必须安全停下，且不能再改变最终状态。
-				_stop_other_pairs(pair_index)
 
 func _maybe_send_probes() -> void:
 	var now_ms: int = Time.get_ticks_msec()
@@ -564,6 +596,8 @@ func _build_candidate_pairs() -> Array[Dictionary]:
 				"failed": false,
 				"probes_sent": 0,
 				"ack_received": false,
+				## 是否真的收到过**对端**在这个 pair 上发来的 probe（双向确认的一半）。
+				"peer_probe_received": false,
 				"rtt_ms": 0,
 				"last_probe_ms": 0,
 				"pending_probe_ids": {},

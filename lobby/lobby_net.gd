@@ -95,9 +95,27 @@ var _ticket: String = ""
 var _guest_ticket: String = ""
 ## Host 侧：peer_id -> 已通过 ticket 校验（0/1）。未通过的 peer 不得进 Room、不得占正式座位。
 var _peer_ticket_ok: Dictionary = {}
+## 被拒 peer 的延迟踢人表：peer_id -> 到期时刻(ms)。见 disconnect_peer_deferred()。
+var _pending_disconnects: Dictionary = {}
+## Host 侧当前真实连接的 peer（由 SceneTree multiplayer 的 connected/disconnected 维护）。
+## 只用于「踢人前先确认 peer 还在」，避免对已离开的 peer 调 disconnect_peer 触发引擎报错。
+var _connected_peers: Dictionary = {}
+## 拒绝回执与踢人之间的最小间隔（毫秒）。
+## 依据：ENet 的 enet_peer_disconnect() 会 reset 该 peer 的收发队列，
+## 把「已收到但尚未派发」的可靠命令一起丢掉。同一次 recv 批里到达的
+## rpc_join_rejected + DISCONNECT，Guest 只会看到后者。留出一个真实的服务窗口，
+## 让回执先被派发出去；窗口到点无条件踢人（不依赖 Guest 配合）。
+const KICK_GRACE_MS: int = 400
+## 测试专用：覆盖 send_hello() 发出的协议号（0 = 用 GameLaunch.NET_PROTOCOL）。
+## 生产路径永远不设置它；只有 E2E 为了让 Host 真的走到 BAD_PROTOCOL 分支才显式注入。
+var _hello_protocol_override: int = 0
+## 测试专用：覆盖 send_hello() 出示的 ticket（"" = 用真实 _guest_ticket）。
+var _hello_ticket_override: String = ""
 
 func _ready() -> void:
 	_reset_seats()
+	## _process 用来收尾「被拒 peer 的延迟踢人」（见 disconnect_peer_deferred），必须显式开启。
+	set_process(true)
 
 func _exit_tree() -> void:
 	close()
@@ -190,6 +208,8 @@ func close() -> void:
 	_reset_seats()
 	_roster_character_ids = PackedStringArray()
 	_peer_ticket_ok.clear()
+	_pending_disconnects.clear()
+	_connected_peers.clear()
 	## _ticket 是房间级凭据，由 LobbyManager 显式注入 / 清空，这里不擅自丢，
 	## 否则 Host 一关连重开就变成「无 ticket 房间」而拒绝所有 Guest。
 	var peer: MultiplayerPeer = multiplayer.multiplayer_peer
@@ -217,7 +237,20 @@ func send_hello() -> void:
 	if is_server() or multiplayer.multiplayer_peer == null:
 		return
 	set_state(NetState.HANDSHAKING)
-	rpc_hello.rpc_id(HOST_PEER, GameLaunch.NET_PROTOCOL, _guest_ticket)
+	var protocol: int = _hello_protocol_override if _hello_protocol_override > 0 else GameLaunch.NET_PROTOCOL
+	var ticket: String = _hello_ticket_override if not _hello_ticket_override.is_empty() else _guest_ticket
+	rpc_hello.rpc_id(HOST_PEER, protocol, ticket)
+
+## 测试专用注入（E2E 负向用例）：让 Guest 真的发出一个非法 hello。
+## - 只影响 send_hello() 发出的 (protocol, ticket)，不改 GameLaunch.NET_PROTOCOL；
+## - 不设置时（默认 0 / ""）生产行为完全不变：protocol=6 + 真实 _guest_ticket；
+## - 不伪造 Host 状态、不 monkey patch：Host 仍走真实 rpc_hello → 真实校验 → 真实拒绝。
+func set_hello_protocol_for_test(protocol: int) -> void:
+	_hello_protocol_override = protocol if protocol > 0 else 0
+
+## 测试专用注入：让 Guest 在 hello 里出示一个**错误** ticket（rendezvous 注册仍用真实 ticket）。
+func set_hello_ticket_for_test(ticket: String) -> void:
+	_hello_ticket_override = ticket.strip_edges()
 
 ## Host 侧：ticket 校验通过后回执握手，并把座位发给该 Guest。
 ## 座位是握手成功的产物 —— 没通过 ticket 的 peer 永远走不到这里。
@@ -235,6 +268,42 @@ func disconnect_peer(peer_id: int) -> void:
 	if multiplayer.multiplayer_peer == null:
 		return
 	multiplayer.multiplayer_peer.disconnect_peer(peer_id)
+
+## Host 侧：把被拒 peer 的断开推迟一个小窗口，让拒绝回执先抵达。
+##
+## 用于「先 rpc_join_rejected 回执、再踢人」的拒绝路径。ENet 的硬约束：
+## enet_peer_disconnect() 会重置该 peer 的收发队列，丢掉**已收到但还没派发**的
+## 可靠命令；Guest 侧同一轮 recv 里同时拿到 rpc_join_rejected 与 DISCONNECT 时，
+## 回执会被 DISCONNECT 一起吃掉 —— Guest 就只剩一个没有原因的「Host 关了」，
+## 永远等不到 BAD_TOKEN / BAD_PROTOCOL。
+## 因此这里给回执一个真实的服务窗口再踢人：窗口内 Guest 会先收到拒绝原因，
+## 并自行关闭连接；窗口到点无条件断开，不依赖 Guest 配合（恶意/挂死的 peer 照踢）。
+func disconnect_peer_deferred(peer_id: int) -> void:
+	if peer_id <= 1:
+		return
+	if _pending_disconnects.has(peer_id):
+		return
+	_pending_disconnects[peer_id] = Time.get_ticks_msec() + KICK_GRACE_MS
+
+## 每帧收尾：放走排在窗口里的被拒 peer。
+func _process(_delta: float) -> void:
+	if _pending_disconnects.is_empty():
+		return
+	var now: int = Time.get_ticks_msec()
+	var due: Array = []
+	for peer_id: int in _pending_disconnects.keys():
+		if int(_pending_disconnects[peer_id]) <= now:
+			due.append(peer_id)
+	for peer_id: int in due:
+		_pending_disconnects.erase(peer_id)
+		if _has_remote_peer(peer_id):
+			disconnect_peer(peer_id)
+
+## peer 是否还在连接里（避免对已断开的 peer 重复 disconnect 产生引擎报错）。
+func _has_remote_peer(peer_id: int) -> bool:
+	if multiplayer.multiplayer_peer == null:
+		return false
+	return _connected_peers.has(peer_id)
 
 # ---- 发送（Host 侧）----
 
@@ -307,7 +376,7 @@ func rpc_hello(protocol: int, ticket: String) -> void:
 			var mismatched: int = multiplayer.get_remote_sender_id()
 			peer_rejected.emit(mismatched, int(TicketReject.BAD_PROTOCOL))
 			rpc_join_rejected.rpc_id(mismatched, int(TicketReject.BAD_PROTOCOL))
-			disconnect_peer(mismatched)
+			disconnect_peer_deferred(mismatched)
 		return
 	## 没有 peer = 离线状态机自检 / 收尾关连：不回执、不校验 ticket，但状态照常推进
 	##（与协议 5 行为一致，单进程测试依赖这条）。
@@ -323,7 +392,7 @@ func rpc_hello(protocol: int, ticket: String) -> void:
 		_peer_ticket_ok.erase(sender)
 		peer_rejected.emit(sender, int(reject))
 		rpc_join_rejected.rpc_id(sender, int(reject))
-		disconnect_peer(sender)
+		disconnect_peer_deferred(sender)
 		return
 	_peer_ticket_ok[sender] = 1
 	## ticket 过了才走座位确认：未过 ticket 的 peer 永远拿不到 seat，
@@ -334,7 +403,7 @@ func rpc_hello(protocol: int, ticket: String) -> void:
 		_peer_ticket_ok.erase(sender)
 		peer_rejected.emit(sender, int(TicketReject.NO_SEAT))
 		rpc_join_rejected.rpc_id(sender, int(TicketReject.NO_SEAT))
-		disconnect_peer(sender)
+		disconnect_peer_deferred(sender)
 		return
 	send_hello_ok(sender)
 	set_state(NetState.CONNECTED)
@@ -594,12 +663,14 @@ func _unwire() -> void:
 		multiplayer.server_disconnected.disconnect(_on_server_disconnected)
 
 func _on_peer_connected(id: int) -> void:
+	_connected_peers[id] = true
 	if not multiplayer.is_server():
 		return
 	set_state(NetState.LOBBY if _state == NetState.HOSTING else _state)
 	peer_joined.emit(id, 0)
 
 func _on_peer_disconnected(id: int) -> void:
+	_connected_peers.erase(id)
 	if not multiplayer.is_server():
 		return
 	clear_seat_of_peer(id)
@@ -616,5 +687,11 @@ func _on_connection_failed() -> void:
 	connection_failed.emit()
 
 func _on_server_disconnected() -> void:
+	## server_disconnected 只是 transport 事件：不能覆盖已经明确判定的终态原因。
+	## 例：Host 拒绝非法 Guest 后主动 disconnect_peer()，Guest 必然收到
+	## server_disconnected —— 但它这次的结论早已是 VERSION_MISMATCH / FAILED
+	##（被拒），不能被覆写成模糊的 HOST_CLOSED。
+	if _state == NetState.VERSION_MISMATCH or _state == NetState.FAILED:
+		return
 	set_state(NetState.HOST_CLOSED)
 	host_closed.emit()

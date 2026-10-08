@@ -177,6 +177,25 @@ func _unbind_rendezvous() -> void:
 func get_rendezvous_client() -> RendezvousClient:
 	return _client
 
+## 本次 join 的会话身份（未 begin 时为 null）。
+func get_identity() -> RendezvousContract.SessionIdentity:
+	return _identity
+
+## 本端在本次 P2P join 中的 rendezvous 角色（HOST / GUEST）。
+## 无 identity（尚未 begin）时返回 GUEST —— 与历史默认一致，是无害默认。
+func get_role() -> int:
+	if _identity == null:
+		return RendezvousContract.Role.GUEST
+	return _identity.role
+
+## 本端是否是发起方（Guest）。只有 Guest 在 validated path 上主动发起 Direct ENet。
+func is_guest_role() -> bool:
+	return get_role() == RendezvousContract.Role.GUEST
+
+## 本端是否是房主（Host）。Host 已经持有 ENet server，绝不主动 client_connect()。
+func is_host_role() -> bool:
+	return get_role() == RendezvousContract.Role.HOST
+
 ## 是否使用真实 rendezvous（false = 9.1 的本地装配模式）。
 func uses_rendezvous() -> bool:
 	return _client != null
@@ -248,6 +267,51 @@ func begin_with_identity(
 	_state.set_local_candidate_count(_session.local_candidates.size())
 	## 真实 rendezvous：使用传入的共享 UDP socket
 	_shared_udp = shared_udp
+	if not _client.begin(rendezvous_host, rendezvous_port, _identity, _session.local_candidates, shared_udp):
+		_finish(false, "rendezvous_begin_failed")
+		return false
+	return true
+
+## Host 侧：把本房注册到 rendezvous 并参与 UDP hole punch（Phase 9.2.3）。
+##
+## 与 begin() 的**角色差异**（9.2.3 的核心硬规则）：
+## - identity.role = HOST，hole punch 的 local_role 由此推导；
+## - **绝不**在 validated path 上发起 Direct ENet：Host 已经持有 host_listen() 建好的
+##   ENet server，必须保持「一进程一个 multiplayer_peer」，等 Guest 主动 client_connect()；
+## - 因此没有 `begin()` 那种「本地装配」退化路径：没有 rendezvous 端点就无法注册。
+func begin_as_host(
+	invite: JoinInvite,
+	rendezvous_host: String,
+	rendezvous_port: int = RendezvousClient.DEFAULT_PORT
+) -> bool:
+	if invite == null or not invite.is_valid():
+		return false
+	if not _connect_fn.is_valid():
+		return false
+	if _client == null:
+		return false
+	if rendezvous_host.strip_edges().is_empty():
+		return false
+	if not _state.transition(P2PConnectionState.Event.BEGIN_RENDEZVOUS):
+		return false
+	_finished = false
+	_cancelling = false
+	_invite = invite
+	_identity = RendezvousContract.make_identity(
+		invite.room_id,
+		invite.token,
+		GameLaunch.NET_PROTOCOL,
+		RendezvousContract.Role.HOST
+	)
+	_session.local_nonce = _identity.nonce
+	## Host 对外公布的候选**就是**真实邀请里那张 invite 携带的端点
+	## （lan_host + ENet listen 端口），不在这里伪造第二个端口。
+	_session.local_candidates = RendezvousContract.candidates_from_invite(invite)
+	_state.set_local_candidate_count(_session.local_candidates.size())
+	var shared_udp: PacketPeerUDP = _get_or_create_shared_udp(0)
+	if shared_udp == null:
+		_finish(false, "shared_udp_create_failed")
+		return false
 	if not _client.begin(rendezvous_host, rendezvous_port, _identity, _session.local_candidates, shared_udp):
 		_finish(false, "rendezvous_begin_failed")
 		return false
@@ -454,6 +518,11 @@ func _local_candidates_with_observed() -> Array:
 ## 而非 remote_validated（UDP probe 实际源端口）。
 ## 若有显式设置的 enet_target_override（来自权威来源），优先使用它。
 func begin_direct_enet() -> bool:
+	## 硬规则（9.2.3）：Host 绝不主动建 ENet —— 它自己就是 server。
+	## 这里再兜一层：即使调用方漏了角色判定，也不会出现「Host 自己 client_connect()」
+	## 把现有 ENet server close() 掉、或在一个进程里同时存在两个 active peer。
+	if is_host_role():
+		return false
 	if not _state.transition(P2PConnectionState.Event.BEGIN_DIRECT_ENET):
 		return false
 	## 从 validated candidate 取 remote address/port
