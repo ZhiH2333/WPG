@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """运行所有 E2E tests。
 
-用法：python3 tools/test/run_e2e.py [p2p_hole_punch|rendezvous|lan_e2e|lan_ui|all]
+用法：python3 tools/test/run_e2e.py [solo|p2p_hole_punch|rendezvous|p2p_direct_enet|p2p_wan_battle|lobby_recovery|lan_e2e|lan_ui|all]
 """
 
 from __future__ import annotations
@@ -109,15 +109,18 @@ def main() -> int:
         "suite",
         nargs="?",
         default="all",
-        choices=["p2p_hole_punch", "rendezvous", "p2p_direct_enet", "lan_e2e", "lan_ui", "all"],
+        choices=["solo", "p2p_hole_punch", "rendezvous", "p2p_direct_enet", "p2p_wan_battle", "lobby_recovery", "lan_e2e", "lan_ui", "all"],
         help="E2E test suite to run",
     )
     args = parser.parse_args()
 
     suites = {
+        "solo": ("python", E2E_DIR / "solo" / "run.py"),
         "p2p_hole_punch": ("python", E2E_DIR / "p2p_hole_punch" / "run.py"),
         "rendezvous": ("python", E2E_DIR / "rendezvous" / "run.py"),
         "p2p_direct_enet": ("python", E2E_DIR / "p2p_direct_enet" / "run.py"),
+        "p2p_wan_battle": ("python", E2E_DIR / "p2p_wan_battle" / "run.py"),
+        "lobby_recovery": ("python", E2E_DIR / "lobby_recovery" / "run.py"),
         "lan_e2e": ("godot", E2E_DIR / "lan" / "run.gd"),
         "lan_ui": ("python", E2E_DIR / "lan" / "ui_run.py"),
     }

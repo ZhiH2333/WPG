@@ -554,4 +554,45 @@ message type / 错误码；**绝不输出完整 ticket 或完整 nonce**。
 
 **本阶段明确不做**（属 9.2.2 / 9.2.3 的后续扩展）：TURN、Relay、UPnP、Host migration、reconnect、完整 ICE、完整 STUN server、第三方 NAT 库。
 
+### 5.4 Phase 10.1：LOBBY → BATTLE 的 peer 交接合同（已落地）
+
+**问题（真实 bug，2026-10 修复）**：ENet peer 挂在 `SceneTree.multiplayer` 上，而
+`LobbyNet` / `LobbyManager` / `LanOverlay` 是 `MainMenu` 的子节点。MainMenu 换场到
+`CombatSandbox` 时 `current_scene` 被释放 → `LobbyNet._exit_tree()` → `close()` →
+关掉 peer 并把 `multiplayer.multiplayer_peer` 置空 → 战斗一进 sandbox 就发现没有 peer
+（或触发 LAN 守卫）退回主菜单。
+
+**合同（两条命令，职责互斥）**：
+
+| 命令 | 语义 | 谁调用 |
+|---|---|---|
+| `LobbyNet.release_peer_for_handoff()` | **交出所有权**：解绑大厅信号、复位座位/缓存/ticket，状态置 `STARTING`；**不关 peer、不清空 `multiplayer.multiplayer_peer`**。置 `_released_for_handoff=true`，使随后的 `close()`（换场 `_exit_tree`）不再碰这个 peer。无 peer 时是空操作。 | `LobbyManager.start_match()`（Host 联网开局）/ `_on_net_match_begin()`（Guest 收到 Host begin） |
+| `LobbyNet.force_close_peer()` | **真断网**：忽略交接标记，关 peer 并清空 `multiplayer.multiplayer_peer`。 | `LobbyManager.close_network()`（Host 关房 / Guest 离开 / 关叠层） |
+
+**顺序硬规则**：`release_peer_for_handoff()` 必须在换场前同步完成（`start_match()`
+内部），换场后 `LobbyManager` / `LobbyNet` 已被释放，谁也不能再去碰那个 peer。战斗侧
+（`NetSession`）成为 peer 的唯一 owner，结束时由它关闭。`_manager` 在换场后即失效，
+因此所有「开局后状态」断言都必须放在换场前，或改看 `CombatSandbox` 自身的字段。
+
+**Guest 信封**：`_write_guest_envelope()` 必须带 `GameLaunch.set_local_seat(get_local_seat())`，
+否则 Guest 进战斗会拿到 Host 的座位（旧 bug：Guest 显示 seat 1）。
+
+**验证**：真多进程 E2E（`python3 tools/test/run_e2e.py all`）—— Solo（离线建房 → 真换场
+`CombatSandbox`(role OFFLINE / 无 peer) → 退回菜单）、LAN UI（建房/加入/READY/START/双方
+Battle/退回清场）、WAN P2P（invite → `join_invite()` → rendezvous → 打洞 → Direct ENet →
+protocol 6 → seat 2 → Battle → 清场）、失败清理（错 ticket 被拒 → Host `close_network()`
+重建房 → Guest 重连 seat 2 → Battle → 无残留 peer）。单测
+`tests/unit/lobby_peer_handoff_test.gd` 覆盖交接/真断网/取消/Solo 无 peer/主菜单无 peer。
+
+**判定「有没有活的 peer」**：Godot 启动时 `multiplayer_peer` 默认是
+`OfflineMultiplayerPeer`（非 null）；Host 关服后 Guest 手里的 `ENetMultiplayerPeer`
+对象也仍然存在。所以只能用 `peer is ENetMultiplayerPeer and peer.get_connection_status()
+== CONNECTED` 判定（服务端监听时 `get_connection_status()` 也是 CONNECTED）。
+
+**WAN 部署配置**：rendezvous 服务端地址来自项目设置 `wpg/network/rendezvous_host` /
+`wpg/network/rendezvous_port`（`project.godot` 的 `[wpg]` 段，默认空 + 17779），
+由 `MainMenu` 在 `bind_net()` 之后注入 `LobbyManager.set_rendezvous_endpoint()`。
+默认空 = 未配置：WAN 建房明确显示 `no rendezvous` 并拒绝假装联网（LAN 不受影响）。
+
+
 [Showing lines 1-300 of 578. Use :301 to continue]

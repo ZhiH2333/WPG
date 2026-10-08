@@ -68,6 +68,13 @@ var _rendezvous_host: String = ""
 var _rendezvous_port: int = RendezvousClient.DEFAULT_PORT
 
 func _exit_tree() -> void:
+	## 换场 / 关页都可能在房间还活着时把本对象释放：P2P 编排（rendezvous + 共享 UDP）
+	## 与 join 驱动必须先停掉，否则下一次 session 会带着上一局的残留 socket / 回调。
+	## 用 reset() 而不是 cancel()：销毁时不再派发 finished / network_failed。
+	if _p2p_connection != null:
+		_p2p_connection.reset()
+		_p2p_connection = null
+	_runner = null
 	if _net != null and _net.get_parent() == self:
 		_net.queue_free()
 	_net = null
@@ -361,6 +368,11 @@ func start_p2p_hosting() -> bool:
 func get_p2p_connection() -> P2PConnection:
 	return _p2p_connection
 
+## 本房最近一次生成的邀请（create_invite / create_p2p_invite）。只读；
+## Host 的 start_p2p_hosting() 复用的就是这一张，UI / E2E 可以据此展示或断言。
+func get_host_invite() -> JoinInvite:
+	return _host_invite
+
 ## 已明确判定的终态失败原因（"" = 无）。
 ## 保证「被拒 / 协议不符 / 超时」这些明确结论不会被随后到达的 transport 事件
 ##（refused / host closed）覆盖 —— 负向 E2E 的最终语义断言依赖它。
@@ -439,11 +451,14 @@ func _on_p2p_finished(success: bool, reason: String) -> void:
 		## 失败：先锁定终态原因，再清理并通知 UI。
 		## 顺序很重要：清理后 _p2p_connection 变成 null，之后到达的 transport 事件
 		## （Host 踢人后的 server_disconnected）只能靠这个 latch 判断「已有定论」。
+		## 主动 cancel（离开 Lobby / 关闭 P2P hosting）不是失败：照常关掉 transport，
+		## 但不 latch、不向 UI 报错。
 		if reason != "cancelled":
 			_latch_terminal_failure(reason)
 		if _net != null:
 			_net.close()
-		network_failed.emit(reason)
+		if reason != "cancelled":
+			network_failed.emit(reason)
 	## 终态后彻底清理（socket / client / probe 状态），不留「看似可继续」的残骸。
 	if _p2p_connection != null:
 		_p2p_connection.reset()
@@ -523,10 +538,14 @@ func cancel_join() -> void:
 func get_active_path() -> int:
 	return _active_path
 
-## 关掉网络。Host 关房 / Guest 断线都走这里。
+## 关掉网络。Host 关房 / Guest 断线 / 离开 Lobby 都走这里。
+## 先停掉进行中的 join / P2P hosting（含 rendezvous + 共享 UDP socket），再关 ENet peer。
+## 用 force_close_peer()：这是明确的断网，必须真的关，不能让「曾经交接给战斗层」的
+## 标记把 peer 留下来（那只适用于换场释放）。
 func close_network() -> void:
+	cancel_join()
 	if _net != null:
-		_net.close()
+		_net.force_close_peer()
 	_networked = false
 	room_changed.emit()
 
@@ -743,6 +762,8 @@ func _on_net_match_begin(loop_goal: int, arena_id: String, net_play: int) -> voi
 	_write_guest_envelope(loop_goal, arena_id, net_play)
 	if _room != null:
 		_room.room_state = Room.RoomState.STARTING
+	## Host 已经宣布开战：Guest 也在此交接 peer 给战斗层（同一个 ENet 连接）。
+	_handoff_peer_to_battle()
 	match_started.emit()
 	room_changed.emit()
 
@@ -1176,12 +1197,30 @@ func start_match() -> bool:
 		_write_host_envelope()
 		if _net != null and _net.is_server():
 			_net.begin_match(_roster_characters(), _roster_peer_ids(), _room.loop_goal, _room.arena_id, int(_room.net_play))
+		_handoff_peer_to_battle()
 	else:
 		_write_offline_envelope()
 	_room.room_state = Room.RoomState.STARTING
 	match_started.emit()
 	room_changed.emit()
 	return true
+
+## LOBBY -> BATTLE 的唯一 peer 交接点。
+##
+## 分工（Phase 10.1）：
+## - Lobby 侧：停掉 P2P 编排（Host 的 rendezvous/hole punch hosting、Guest 残留 join）
+##   与 join 驱动，并让 LobbyNet 放弃 peer 引用（**不关 peer**）。
+## - 战斗侧：CombatSandbox 的 NetSession 接管同一个 SceneTree.multiplayer_peer。
+##
+## 全程只有一个 multiplayer_peer：旧 owner 先放手，新 owner 后接手。
+## 无 peer（离线 Solo）时是空操作。
+func _handoff_peer_to_battle() -> void:
+	if _p2p_connection != null:
+		_p2p_connection.reset()
+		_p2p_connection = null
+	_runner = null
+	if _net != null:
+		_net.release_peer_for_handoff()
 
 func get_snapshot() -> Dictionary:
 	if _room == null:
@@ -1344,6 +1383,9 @@ func _write_guest_envelope(loop_goal: int, arena_id: String, net_play: int) -> v
 		character_ids.resize(GameLaunch.NET_MAX_SEATS)
 	GameLaunch.set_lan_roster(character_ids, PackedInt32Array(), loop_goal)
 	GameLaunch.set_net_role(GameLaunch.NetRole.GUEST)
+	## Guest 的战斗座位 = Host rpc_assign_seat 给它的正式座位（不是缺省 1）。
+	## 不写进信封的话 sandbox 会把 Host 的 pawn 当成自己的本地玩家（seat 1）。
+	GameLaunch.set_local_seat(get_local_seat())
 	GameLaunch.set_arena_id(arena_id)
 	GameLaunch.set_net_play(GameLaunch.NetPlay.BATTLE if net_play == int(GameLaunch.NetPlay.BATTLE) else GameLaunch.NetPlay.COOP)
 

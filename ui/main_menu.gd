@@ -124,6 +124,13 @@ func _ready() -> void:
 	_lan_overlay.start_lan.connect(_enter_lan)
 	# LobbyNet 必须挂上：没有它 host_room() 只能返回失败，建房页会一直显示 bind failed。
 	_lobby.bind_net($LobbyNet)
+	## WAN / P2P 的 rendezvous 服务端是部署配置，不是代码常量：
+	## 读项目设置 wpg/network/rendezvous_host / _port；未配置时保持为空，
+	## WAN 建房会明确报 “no rendezvous”，绝不假装已联网。
+	_lobby.set_rendezvous_endpoint(
+		str(ProjectSettings.get_setting("wpg/network/rendezvous_host", "")),
+		int(ProjectSettings.get_setting("wpg/network/rendezvous_port", JoinInvite.DEFAULT_RENDEZVOUS_PORT))
+	)
 	_lan_overlay.bind_lobby(_lobby)
 	_record_selector.selected_record.connect(_enter_record)
 	_record_selector.resume_record.connect(_enter_record_resume)

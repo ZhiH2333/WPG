@@ -1,40 +1,45 @@
 extends SceneTree
 
-## LAN UI 换场 E2E —— Guest 端真进程（由 tools/e2e/lan/ui_run.py 拉起，不单独跑）。
+## WAN / P2P 完整闭环 E2E —— Guest 端真进程（由 tools/e2e/p2p_wan_battle/run.py 拉起）。
 ##
-## 这是唯一能证明换场合同真被修好的路径：真进程 + 真 ENet + 真 ui/main_menu.tscn。
-## 旧 tools/e2e/lan/guest.gd 只断言 room_state == STARTING，那在 bug 存在时也为真，
-## 所以它必须看到 current_scene 变成 CombatSandbox 才算数，并且还要断言：
-##   1. 换场后 multiplayer_peer 仍然活着；
-##   2. Guest 座位 = 2（Host rpc_assign_seat 给的正式座位，不是缺省 1）、role = GUEST；
-##   3. 从 Battle 退回菜单后 multiplayer_peer 被清空。
+## Guest 的唯一生产入口是 LobbyManager.join_invite(raw_uri)（经 LanOverlay 的 JOIN 页）。
+## 它必须真实经过 rendezvous -> hole punch -> direct ENet -> protocol 6 -> seat=2，
+## 然后 READY -> Host START -> 进 Battle -> 退回菜单无残留。
 ##
-## 用法：godot --headless --path . --script res://tools/e2e/lan/ui_guest.gd -- <result_file>
+## 用法：godot --headless --path . --script res://tools/e2e/p2p_wan_battle/guest.gd
+##       环境变量：INVITE_FILE / RESULT_FILE / READY_FILE（READY_FILE 只是 Guest 自检用）
 
 const TIMEOUT_MS: int = 50000
 const SANDBOX_MARKER: String = "CombatSandbox"
 const MENU_MARKER: String = "MainMenu"
 const SETTLE_MS: int = 1200
 
-var _result_path: String = ""
+var _invite_file: String = ""
+var _result_file: String = ""
+var _ready_file: String = ""
+
 var _menu: Node = null
 var _overlay: LanOverlay = null
 var _manager: LobbyManager = null
 var _done: bool = false
 var _deadline: int = 0
 var _phase: int = 0
-var _ready_sent: bool = false
 var _saw_starting: bool = false
 var _sandbox_at: int = -1
 
 func _initialize() -> void:
-	var args: PackedStringArray = OS.get_cmdline_user_args()
-	if args.size() < 1:
-		printerr("UI_GUEST_FAIL -: 缺少 result_file")
+	_invite_file = _env("INVITE_FILE", "")
+	_result_file = _env("RESULT_FILE", "")
+	_ready_file = _env("READY_FILE", "")
+	if _invite_file.is_empty() or _result_file.is_empty():
+		printerr("WAN_GUEST_FAIL: 缺少环境变量")
 		quit(1)
 		return
-	_result_path = args[0]
 	_run.call_deferred()
+
+func _env(name: String, fallback: String) -> String:
+	var value: String = OS.get_environment(name)
+	return fallback if value.is_empty() else value
 
 func _run() -> void:
 	PlayerProfile.load_from_disk()
@@ -50,32 +55,31 @@ func _run() -> void:
 	if _manager == null or _overlay == null:
 		_fail("主菜单缺 LobbyManager / LanOverlay")
 		return
-	## 两条合同都必须接上：LobbyManager.match_started -> LanOverlay，以及
-	## LanOverlay.start_lan -> MainMenu。缺任一条 Guest 都切不了场。
 	if not _overlay.start_lan.is_connected(_menu._enter_lan):
 		_fail("MainMenu 没把 start_lan 接到 _enter_lan")
 		return
 	if not _manager.match_started.is_connected(_overlay._on_lobby_match_started):
-		_fail("LanOverlay 没把 match_started 接到 _on_lobby_match_started（本 bug）")
+		_fail("LanOverlay 没把 match_started 接到 _on_lobby_match_started")
 		return
-	## 走真实 UI：开叠层 -> JOIN 页，把 Host 的 invite 文本粘进地址栏 -> CONNECT。
-	## 粘贴的是完整 wpg:// URI，因此会走 JoinInvite + ticket 全链路（而不是裸地址）。
-	var uri: String = _read_invite_uri()
+	var uri: String = _wait_for_invite()
 	if uri.is_empty():
-		_fail("读不到 Host invite")
+		_fail("读不到 Host P2P invite")
 		return
+	if not JoinInvite.parse(uri).is_p2p():
+		_fail("Host invite 不是 P2P")
+		return
+	## 唯一生产入口：JOIN 页粘 URI -> CONNECT -> LobbyManager.join_invite(raw)。
 	_overlay.open()
 	_overlay._enter_join()
 	_overlay._join_edit.text = uri
 	_overlay._connect_button.pressed.emit()
 	_wait()
 
-## 同目录的 host.result.invite：Host 写、Guest 读。
-func _read_invite_uri() -> String:
-	var path: String = _result_path.replace("guest.result", "host.result") + ".invite"
-	for _attempt: int in 100:
-		if FileAccess.file_exists(path):
-			var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+## Host 写、Guest 读的 P2P invite 文件。
+func _wait_for_invite() -> String:
+	for _attempt: int in 200:
+		if FileAccess.file_exists(_invite_file):
+			var file: FileAccess = FileAccess.open(_invite_file, FileAccess.READ)
 			if file != null:
 				var text: String = file.get_as_text().strip_edges()
 				file.close()
@@ -92,14 +96,26 @@ func _wait() -> void:
 	if _tick():
 		if not _done:
 			_done = true
-			_write_result("OK scene=%s peer=released seat=%d cleanup=ok" % [SANDBOX_MARKER, 2])
-			print("UI_GUEST_OK")
+			_write_result("OK scene=%s peer=released seat=2 cleanup=ok" % SANDBOX_MARKER)
+			print("WAN_GUEST_OK")
 			quit(0)
 		return
 	if Time.get_ticks_msec() > _deadline:
-		_fail("超时（phase=%d scene=%s starting=%s）" % [_phase, _scene_name(), _saw_starting])
+		_fail("超时（phase=%d scene=%s starting=%s | %s）" % [_phase, _scene_name(), _saw_starting, _diag()])
 		return
 	create_timer(0.05).timeout.connect(_wait)
+
+func _diag() -> String:
+	if not is_instance_valid(_manager):
+		return "manager=gone"
+	var p2p: P2PConnection = _manager.get_p2p_connection()
+	var p2p_state: String = "null" if p2p == null else P2PConnectionState.state_name(p2p.get_state_value())
+	var room: Room = _manager.get_room()
+	var room_state: String = "null" if room == null else str(room.room_state)
+	var seat: int = -1 if not is_instance_valid(_manager) else _manager.get_local_seat()
+	return "p2p=%s net=%s room=%s seat=%d term=%s" % [
+		p2p_state, str(_manager.is_networked()), room_state, seat, _manager.get_terminal_failure()
+	]
 
 func _tick() -> bool:
 	match _phase:
@@ -115,8 +131,6 @@ func _tick() -> bool:
 			return _tick_cleanup()
 	return false
 
-## 换场会 change_scene_to_file，旧 MainMenu 连同其子节点 LobbyManager 一起被释放；
-## 此时若还有一次 timer 回调在飞，直接摸 _manager 会踩空指针崩进程。
 func _lobby_alive() -> bool:
 	return is_instance_valid(_manager) and is_instance_valid(_overlay)
 
@@ -124,9 +138,9 @@ func _tick_join() -> bool:
 	if not _lobby_alive():
 		return false
 	var room: Room = _manager.get_room()
+	## P2P 全程：rendezvous 注册 -> candidates -> hole punch -> direct ENet -> seat 2。
 	if room == null or _manager.get_local_seat() <= 1:
 		return false
-	## 落座且 Guest 自己的 Lobby 页真的可见，再按 READY。
 	if not _overlay.is_open() or _overlay._view != LanOverlay.View.LOBBY:
 		return false
 	_phase = 1
@@ -136,25 +150,20 @@ func _tick_ready() -> bool:
 	if not _lobby_alive():
 		return false
 	_overlay._on_lobby_ready_pressed()
-	_ready_sent = true
 	_phase = 2
 	return false
 
 func _tick_wait_start() -> bool:
-	## 换场一到就交出 _manager / _overlay（对象已被释放），转入 Battle 断言阶段。
 	if _scene_name() == SANDBOX_MARKER:
 		_phase = 3
 		return false
 	if not _lobby_alive():
 		return false
 	var room: Room = _manager.get_room()
-	## Host 开局后会广播 begin -> LobbyManager 进 STARTING -> match_started。
-	## 记录「看见了 STARTING」只为区分「状态到了但没换场」这种失败形态。
 	if room != null and room.room_state == Room.RoomState.STARTING:
 		_saw_starting = true
 	return false
 
-## 真 · 换场判据：current_scene 必须变成 CombatSandbox，且 peer 活着、座位正确。
 func _tick_lan_preserved() -> bool:
 	if _scene_name() != SANDBOX_MARKER:
 		return false
@@ -163,13 +172,13 @@ func _tick_lan_preserved() -> bool:
 		return false
 	if Time.get_ticks_msec() - _sandbox_at < SETTLE_MS:
 		return false
-	## 等 Host 先宣布「已在 Battle 站稳」（host.result.battle）。Host 只要还有活跃 peer 就
-	## 仍持有 LAN 房；Guest 先退会触发 Host 的 _on_peer_lost -> 降级 Solo（peer 被清空）。
+	## 等 Host 先宣布「已在 Battle 站稳」（host.result.battle）。Host 只要还有活跃 peer
+	## 就仍持有房；Guest 先退会触发 Host 的 _on_peer_lost -> 降级 Solo（peer 被清空）。
 	if not FileAccess.file_exists(_host_battle_marker()):
 		return false
 	var sandbox: Node = current_scene
 	if not _has_live_peer():
-		_fail("进 CombatSandbox 后没有活的 multiplayer_peer（换场把 peer 掐断了）")
+		_fail("进 CombatSandbox 后没有活的 multiplayer_peer（换场把 P2P 连接掐断了）")
 		return false
 	if int(sandbox.get("_net_role")) != int(GameLaunch.NetRole.GUEST):
 		_fail("Guest 换场后 role 不是 GUEST（%s）" % str(sandbox.get("_net_role")))
@@ -177,8 +186,7 @@ func _tick_lan_preserved() -> bool:
 	if int(sandbox.get("_local_seat")) != 2:
 		_fail("Guest 换场后座位不是 2（%s）" % str(sandbox.get("_local_seat")))
 		return false
-	## 通知 Host：Guest 已经在 Battle 里站稳了，Host 可以开始走退回菜单。
-	## 没有这个握手机，Host 可能先退回菜单并关掉 peer，把 Guest 打成 server_disconnected。
+	## 通知 Host：Guest 已在 Battle 站稳，可以开始退回菜单（避免 Host 先关 peer）。
 	_write_result("OK scene=%s peer=live seat=2" % SANDBOX_MARKER, ".battle")
 	sandbox.call("_return_to_menu")
 	_phase = 4
@@ -209,7 +217,7 @@ func _has_no_network_peer() -> bool:
 
 ## Host 写、Guest 读的「Host 已在 Battle 站稳」标记。
 func _host_battle_marker() -> String:
-	return _result_path.replace("guest.result", "host.result") + ".battle"
+	return _result_file.replace("guest.result", "host.result") + ".battle"
 
 func _scene_name() -> String:
 	var scene: Node = current_scene
@@ -222,13 +230,13 @@ func _fail(reason: String) -> void:
 		return
 	_done = true
 	_write_result("FAIL: %s" % reason)
-	printerr("UI_GUEST_FAIL: %s" % reason)
+	printerr("WAN_GUEST_FAIL: %s" % reason)
 	quit(1)
 
 func _write_result(text: String, suffix: String = "") -> void:
-	var file: FileAccess = FileAccess.open(_result_path + suffix, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(_result_file + suffix, FileAccess.WRITE)
 	if file == null:
-		printerr("UI_GUEST_FAIL: 无法写结果文件 %s" % _result_path)
+		printerr("WAN_GUEST_FAIL: 无法写结果文件 %s" % _result_file)
 		return
 	file.store_string(text)
 	file.close()

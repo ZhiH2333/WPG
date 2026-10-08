@@ -106,6 +106,10 @@ var _connected_peers: Dictionary = {}
 ## rpc_join_rejected + DISCONNECT，Guest 只会看到后者。留出一个真实的服务窗口，
 ## 让回执先被派发出去；窗口到点无条件踢人（不依赖 Guest 配合）。
 const KICK_GRACE_MS: int = 400
+## true = 本对象的 SceneTree peer 已经移交给战斗层（NetSession），本对象不再拥有它。
+## 换场合同（docs/ui_lobby_architecture.md §0）：进沙盒后大厅对象销毁，peer 必须还在；
+## 因此 _exit_tree()/close() 遇到这个标记时**不得**关闭 peer，否则会掐断战斗网络。
+var _released_for_handoff: bool = false
 ## 测试专用：覆盖 send_hello() 发出的协议号（0 = 用 GameLaunch.NET_PROTOCOL）。
 ## 生产路径永远不设置它；只有 E2E 为了让 Host 真的走到 BAD_PROTOCOL 分支才显式注入。
 var _hello_protocol_override: int = 0
@@ -213,10 +217,45 @@ func close() -> void:
 	## _ticket 是房间级凭据，由 LobbyManager 显式注入 / 清空，这里不擅自丢，
 	## 否则 Host 一关连重开就变成「无 ticket 房间」而拒绝所有 Guest。
 	var peer: MultiplayerPeer = multiplayer.multiplayer_peer
-	if peer != null:
+	## 换场交接（LOBBY -> BATTLE）：peer 已经归战斗层，这里只能放弃大厅引用，
+	## 绝不能关掉它 —— 否则 MainMenu 被换场释放时会顺手拆掉战斗网络。
+	if peer != null and not _released_for_handoff:
 		peer.close()
-	multiplayer.multiplayer_peer = null
+	if not _released_for_handoff:
+		multiplayer.multiplayer_peer = null
+	_released_for_handoff = false
 	set_state(NetState.DISCONNECTED)
+
+## 换场交接：把当前 SceneTree peer 的所有权让给战斗层（NetSession）。
+## 与 close() 的唯一区别：**不关闭 peer、不清空 multiplayer.multiplayer_peer**，
+## 只解绑大厅信号 / 复位大厅缓存 / 进入 STARTING。交接后本对象即使随后被换场释放
+##（_exit_tree -> close()），也不会碰这个 peer。
+##
+## 为什么需要它：ENet peer 挂在 SceneTree.multiplayer 上，MainMenu 换场到 CombatSandbox
+## 时大厅对象（LobbyManager / LobbyNet）会被一起释放。若走普通 close()，peer 会被
+## 提前关闭，Battle 一进 sandbox 就发现 multiplayer_peer == null 而退回菜单。
+## 无 peer（离线 Solo / 未联网建房）时是空操作。
+func release_peer_for_handoff() -> void:
+	if multiplayer.multiplayer_peer == null:
+		return
+	_unwire()
+	_reset_seats()
+	_roster_character_ids = PackedStringArray()
+	_peer_ticket_ok.clear()
+	_pending_disconnects.clear()
+	_connected_peers.clear()
+	_guest_ticket = ""
+	_released_for_handoff = true
+	set_state(NetState.STARTING)
+
+## 显式强制关闭：忽略「已交接」标记，务必关掉当前 peer 并清空 multiplayer_peer。
+##
+## 用于**明确的** Lobby 关闭（Host 关房 / Guest 离开 / 关叠层）：那些路径必须真的
+## 断网，不能因为曾经交接给过战斗层就留下一个悬挂的 ENet server。
+## 与「换场释放」区分开：换场释放走 close()（尊重交接标记），保留 peer 给 NetSession。
+func force_close_peer() -> void:
+	_released_for_handoff = false
+	close()
 
 # ---- 发送（Guest 侧）----
 

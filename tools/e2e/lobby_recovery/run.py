@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""LAN Start UI 换场 E2E：真双进程 + 真 ENet + 真 MainMenu/LanOverlay -> CombatSandbox。
+"""失败清理 / 重建 Lobby E2E：错误 ticket 被拒 -> Host 重建 -> 正确 Guest 进 Battle。
 
-与 tests/lan_e2e_test.gd 的分工：
-  那个 E2E 只驱动 LobbyManager，断言到 Room.room_state == STARTING 为止，
-  所以它在「bind_lobby 漏连 match_started」这个 bug 存在时**依然通过**。
-  这里补上缺失的一环：两个真进程各自加载 ui/main_menu.tscn，
-  Host 真实按 START、Guest 真实按 READY，最后只认 current_scene 变成 CombatSandbox。
+真双进程 + 真 ENet + 真 MainMenu/LanOverlay：
+  Host   建房 -> 公布 invite
+  Guest  篡改 ticket 去连 -> 必须被拒、必须清干净（无残留 peer）
+  Host   收到拒绝 -> close_network -> 重新建房（新 invite）-> 仍在 hosting
+  Guest  读新 invite -> 正确连接 -> seat 2 -> READY
+  Host   START -> 双方 CombatSandbox -> 退回菜单无残留
 
-用法：python3 tools/e2e/lan/ui_run.py
-通过输出 LAN_START_UI_OK；失败输出 LAN_START_UI_FAIL 并返回非 0。
+用法：python3 tools/e2e/lobby_recovery/run.py
+通过输出 LOBBY_RECOVERY_OK；失败输出 LOBBY_RECOVERY_FAIL 并返回非 0。
 """
 
 from __future__ import annotations
@@ -23,14 +24,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from wpg_common import LOG_DIR, ROOT, emit, find_godot, godot_log_args  # noqa: E402
 
 E2E_DIR = Path(__file__).resolve().parent
-HOST_SCRIPT = str(E2E_DIR / "ui_host.gd")
-GUEST_SCRIPT = str(E2E_DIR / "ui_guest.gd")
+HOST_SCRIPT = str(E2E_DIR / "host.gd")
+GUEST_SCRIPT = str(E2E_DIR / "guest.gd")
 BOOT_TIMEOUT_SEC = 25.0
 PEER_TIMEOUT_SEC = 90.0
 
 
 def _out_dir() -> Path:
-    path = LOG_DIR / "e2e" / "lan_start_ui"
+    path = LOG_DIR / "e2e" / "lobby_recovery"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -60,32 +61,37 @@ def main() -> int:
     godot = find_godot()
     if godot is None:
         emit("FAIL", "找不到 Godot 可执行文件")
+        print("LOBBY_RECOVERY_FAIL")
         return 1
 
     out = _out_dir()
     host_result = out / "host.result"
     guest_result = out / "guest.result"
-    host_ready = Path(str(host_result) + ".ready")
-    ## 协议 6：Host 还会写 invite（含 ticket），Guest 必须读到它才能进房。
-    host_invite = Path(str(host_result) + ".invite")
-    ## Guest 进 Battle 后写的就绪标记：Host 据此才退回菜单，避免先关 peer。
-    guest_battle = Path(str(guest_result) + ".battle")
-    host_battle = Path(str(host_result) + ".battle")
-    for path in (host_result, guest_result, host_ready, host_invite, guest_battle, host_battle):
+    stale = [
+        host_result,
+        guest_result,
+        Path(str(host_result) + ".ready"),
+        Path(str(host_result) + ".invite"),
+        Path(str(host_result) + ".invite2"),
+        Path(str(host_result) + ".recreated"),
+        Path(str(host_result) + ".battle"),
+        Path(str(guest_result) + ".bad_done"),
+        Path(str(guest_result) + ".battle"),
+    ]
+    for path in stale:
         path.unlink(missing_ok=True)
 
-    host_log = out / "host.log"
-    guest_log = out / "guest.log"
-
     host = subprocess.Popen(
-        _peer_cmd(godot, HOST_SCRIPT, host_result, host_log),
+        _peer_cmd(godot, HOST_SCRIPT, host_result, out / "host.log"),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
     )
+    host_output = ""
+    guest_output = ""
     try:
-        ## 等 Host 写出 .ready（监听已建立）再起 Guest，避免抢跑连不上。
         deadline = time.time() + BOOT_TIMEOUT_SEC
+        host_ready = Path(str(host_result) + ".ready")
         while time.time() < deadline:
             if host_ready.is_file():
                 break
@@ -95,10 +101,11 @@ def main() -> int:
         if not host_ready.is_file():
             host_output = host.communicate(timeout=10)[0] or ""
             emit("FAIL", "Host 未进入监听：%s" % host_output.strip()[-400:])
+            print("LOBBY_RECOVERY_FAIL")
             return 1
 
         guest = subprocess.Popen(
-            _peer_cmd(godot, GUEST_SCRIPT, guest_result, guest_log),
+            _peer_cmd(godot, GUEST_SCRIPT, guest_result, out / "guest.log"),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -109,6 +116,7 @@ def main() -> int:
             guest.kill()
             guest_output = guest.communicate()[0] or ""
             emit("FAIL", "Guest 进程超时")
+            print("LOBBY_RECOVERY_FAIL")
             return 1
         try:
             host_output = host.communicate(timeout=PEER_TIMEOUT_SEC)[0] or ""
@@ -116,31 +124,29 @@ def main() -> int:
             host.kill()
             host_output = host.communicate()[0] or ""
             emit("FAIL", "Host 进程超时")
+            print("LOBBY_RECOVERY_FAIL")
             return 1
     finally:
-        for proc in (host,):
-            if proc.poll() is None:
-                proc.kill()
+        if host.poll() is None:
+            host.kill()
 
     host_text = _read(host_result)
     guest_text = _read(guest_result)
 
     problems = []
-    ## 结果行形如 "OK scene=CombatSandbox peer=released seat=2 cleanup=ok"：
-    ## 只要以 OK 开头就算通过，后面的字段是诊断信息，便于失败时定位。
-    if not host_text.startswith("OK"):
+    if not (host_text.startswith("OK") and "rejected=1" in host_text and "recreated=1" in host_text):
         problems.append("Host: %s" % (host_text or host_output.strip()[-400:] or "无结果"))
-    if not guest_text.startswith("OK"):
+    if not (guest_text.startswith("OK") and "failed_clean=1" in guest_text and "rejoined=1" in guest_text):
         problems.append("Guest: %s" % (guest_text or guest_output.strip()[-400:] or "无结果"))
 
     if problems:
         for problem in problems:
             emit("FAIL", problem)
-        print("LAN_START_UI_FAIL")
+        print("LOBBY_RECOVERY_FAIL")
         return 1
 
-    emit("PASS", "Host Create Room -> Guest Join/READY -> Host START -> 双方 Battle -> 退回菜单清场")
-    print("LAN_START_UI_OK")
+    emit("PASS", "错误 ticket 被拒 -> Host 重启房 -> Guest 重连 seat 2 -> 双方 Battle -> 清场")
+    print("LOBBY_RECOVERY_OK")
     return 0
 
 

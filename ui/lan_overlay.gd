@@ -27,6 +27,9 @@ var _anim_tween: Tween
 var _sfx_gate: Dictionary = {}
 var _selected_character_id: String = CHAR_BOAR
 var _host_started: bool = false
+## 本房是否走 WAN / P2P（rendezvous + hole punch）。由 HOME 的两个建房入口设定：
+## CREATE ROOM = LAN（host_listen 后公布内网 invite）；HOST OVER INTERNET = P2P。
+var _p2p_hosting: bool = false
 var _picked_record_id: String = ""
 var _selected_arena_id: String = "yard"
 var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
@@ -36,6 +39,7 @@ var _recent_rooms: Array[Dictionary] = []
 ## 首页导航行（代码生成，见 _build_home_nav）：行顺序 = 焦点顺序。
 var _home_rows: Array[Button] = []
 var _row_create: Button = null
+var _row_host_wan: Button = null
 var _row_join_invite: Button = null
 var _row_lan_rooms: Button = null
 var _row_quick_join: Button = null
@@ -634,6 +638,10 @@ func _enter_multiplayer() -> void:
 	_host_root.visible = false
 	_join_root.visible = false
 	_lobby_root.visible = false
+	## 回到首页 = 上一间房的 invite / P2P 模式作废；下一次建房必须重新生成，
+	## 否则会把上一局的 stale URI 或 P2P 模式带进新 session。
+	_p2p_hosting = false
+	_last_invite_uri = ""
 	_refresh_recent()
 	_start_guest_beacon()
 	_refresh_home_captions()
@@ -643,10 +651,11 @@ func _build_home_nav() -> void:
 	if _home_nav == null or _row_create != null:
 		return
 	_row_create = _make_home_row("CREATE ROOM", "HOST A GAME", _on_home_host_pressed)
+	_row_host_wan = _make_home_row("HOST OVER INTERNET", "P2P / WAN", _on_home_host_p2p_pressed)
 	_row_join_invite = _make_home_row("JOIN INVITE", "IP / INVITE", _on_home_invite_pressed)
 	_row_lan_rooms = _make_home_row("LAN ROOMS", "SEARCHING", _on_home_join_pressed)
 	_row_quick_join = _make_home_row("QUICK JOIN", "FIRST OPEN ROOM", _on_quick_join_pressed)
-	_home_rows = [_row_create, _row_join_invite, _row_lan_rooms, _row_quick_join]
+	_home_rows = [_row_create, _row_host_wan, _row_join_invite, _row_lan_rooms, _row_quick_join]
 	for index: int in _home_rows.size():
 		if index > 0:
 			_home_nav.add_child(_make_nav_divider())
@@ -726,12 +735,24 @@ func _on_home_host_pressed() -> void:
 	if _view != View.HOME and _view != View.JOIN and _view != View.PICK:
 		return
 	_play_click()
+	_p2p_hosting = false
+	_enter_host()
+
+## HOST OVER INTERNET：建房后走 WAN / P2P（rendezvous 注册 + hole punch）。
+## 与 CREATE ROOM 走同一条 UI 流程，差别只在 _p2p_hosting：
+## 它决定 _begin_host() 里公布的是内网 invite 还是 P2P invite。
+func _on_home_host_p2p_pressed() -> void:
+	if not _open or _view != View.HOME:
+		return
+	_play_click()
+	_p2p_hosting = true
 	_enter_host()
 
 func _on_custom_pressed() -> void:
 	if not _open or _view != View.PICK:
 		return
 	_play_click()
+	_p2p_hosting = false
 	_enter_host()
 
 func _on_pick_record_pressed(record_id: String) -> void:
@@ -773,6 +794,7 @@ func _enter_host() -> void:
 	_begin_host()
 
 func _enter_host_from_record(record: GameRecord) -> void:
+	_p2p_hosting = false
 	_picked_record_id = record.id
 	_select_character(record.character_id)
 	_select_arena(record.arena_id)
@@ -792,6 +814,7 @@ func _begin_host() -> void:
 	_join_root.visible = false
 	_lobby_root.visible = false
 	_host_root.visible = true
+	_last_invite_uri = ""
 	_host_address.text = _format_addresses()
 	if not _lobby.host_room(_selected_arena_id, _net_play, _host_loop_goal(), _picked_record_id):
 		_refresh_host_start()
@@ -805,6 +828,26 @@ func _begin_host() -> void:
 	_remember_room(_primary_address(), _selected_arena_id, int(_net_play), _host_loop_goal(), _occupied(), GameLaunch.NET_MAX_SEATS)
 	_start_host_beacon()
 	_refresh_host_status()
+	if _p2p_hosting:
+		_begin_p2p_hosting()
+
+## WAN / P2P：建房后注册 rendezvous 并公布**真实** P2P invite。
+## UI 只调 LobbyManager 命令；invite 的 room_id / ticket / rendezvous / 端口全部由
+## LobbyManager.create_p2p_invite() 生成，UI 绝不自己拼一个字段。
+func _begin_p2p_hosting() -> void:
+	var invite: JoinInvite = _lobby.create_p2p_invite(_primary_address())
+	if invite == null:
+		_host_status.text = "no rendezvous"
+		_play_error()
+		return
+	## Host 绝不发起 Direct ENet：start_p2p_hosting() 只注册 rendezvous + 打洞，
+	## 保持 host_listen() 建好的 ENet server 等 Guest 主动连。
+	if not _lobby.start_p2p_hosting():
+		_host_status.text = "no rendezvous"
+		_play_error()
+		return
+	_last_invite_uri = invite.to_uri()
+	_host_address.text = invite.to_uri()
 
 ## Guest 的 Lobby 视图：握手成功后进入，只画 Room 快照 + Ready / Character。
 func _enter_lobby() -> void:
@@ -955,9 +998,12 @@ func get_invite_uri() -> String:
 	return invite.to_uri()
 
 ## 经 LobbyManager 生成真 invite（含随机 ticket）。UI 不做任何 token / URI 拼接。
+## P2P 房公布的是 P2P invite（带 p2p=1 + rendezvous 端点），LAN 房公布内网 invite。
 func _make_invite() -> JoinInvite:
 	if _lobby == null or not _lobby.has_room():
 		return null
+	if _p2p_hosting:
+		return _lobby.create_p2p_invite(_primary_address())
 	return _lobby.create_invite(_primary_address(), GameLaunch.NET_PORT)
 
 ## 粘贴进来的邀请文本可能带前缀 / 端口：先按 IPv4 解析，解析不到再当主机名原样用。
@@ -1442,8 +1488,16 @@ func _on_lobby_ready_pressed() -> void:
 
 func _on_invite_pressed() -> void:
 	_play_click()
-	# Invite 是 shell：本阶段只复制地址，不实现 WAN / token / QR 真连接。
-	DisplayServer.clipboard_set(_format_addresses())
+	## 分享出去的一律是 LobbyManager 真实生成的 JoinInvite URI（含 ticket / P2P 标记），
+	## 不是裸地址表：协议 6 下 Guest 必须拿到 ticket 才能进 Lobby。
+	var uri: String = get_invite_uri()
+	if uri.is_empty():
+		if _view == View.INVITE:
+			_invite_notice.text = "no room"
+		_play_error()
+		return
+	_last_invite_uri = uri
+	DisplayServer.clipboard_set(uri)
 	if _view == View.INVITE:
 		_invite_notice.text = "invite copied"
 
