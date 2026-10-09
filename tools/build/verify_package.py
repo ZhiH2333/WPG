@@ -23,6 +23,9 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import axml  # noqa: E402
 
 from wpg_common import (  # noqa: E402
     ARTIFACTS_DIR,
@@ -33,6 +36,12 @@ from wpg_common import (  # noqa: E402
     package_basename,
     web_package_problem,
 )
+
+# Android 的 ENet / PacketPeerUDP 联机全部依赖 INTERNET；缺了它整条网络路径直接失效。
+# 这里断言的是**编译进 APK 的 manifest**，而不是 export_presets.cfg —— 历史上
+# permissions/internet 一直是 false，但旧校验只看「APK 里有 AndroidManifest.xml」，
+# 所以配置错了 CI 也照样绿。只断言这一条，不批量引入无关权限。
+ANDROID_REQUIRED_PERMISSIONS = ("android.permission.INTERNET",)
 
 
 def open_zip(path: Path) -> Tuple[Optional[zipfile.ZipFile], Optional[str]]:
@@ -73,6 +82,21 @@ def platform_problem(platform_key: str, names: List[str]) -> Optional[str]:
             return "iOS 包里没有 WPG.app/Info.plist（unsigned CI package 至少要有 .app）"
         if "WPG.xcodeproj/project.pbxproj" not in names:
             return "iOS 包里没有 WPG.xcodeproj/project.pbxproj"
+    return None
+
+
+def android_permissions_problem(path: Path) -> Optional[str]:
+    """直接从 APK 的编译后 manifest 里核对必需权限。"""
+    try:
+        declared = axml.apk_permissions(path)
+    except (axml.AxmlError, zipfile.BadZipFile, OSError) as error:
+        return "读不出 APK manifest 权限：%s" % error
+    missing = [permission for permission in ANDROID_REQUIRED_PERMISSIONS if permission not in declared]
+    if missing:
+        return "APK manifest 缺少权限：%s（实际声明：%s）" % (
+            ", ".join(missing),
+            ", ".join(declared) or "无",
+        )
     return None
 
 
@@ -127,6 +151,10 @@ def verify(platform_key: str, release: bool) -> int:
         names = archive.namelist()
         archive.close()
         failure = platform_problem("android", names)
+        if failure is not None:
+            emit("FAIL", "%s：%s" % (name, failure))
+            return EXIT_FAIL
+        failure = android_permissions_problem(path)
         if failure is not None:
             emit("FAIL", "%s：%s" % (name, failure))
             return EXIT_FAIL

@@ -151,6 +151,8 @@ WPG CI 成功（push 到 dev / dev/*）
 
 每个构建 job 在上传前都会先跑 `python tools/build/verify_package.py <平台>`：包不存在、是空的、zip 打不开、或者缺关键内容（Web 缺 `index.html` + wasm/js/pck，iOS 缺 `WPG.app/Info.plist` + `WPG.xcodeproj/project.pbxproj`），一律 `[FAIL]`，不上传半成品。
 
+Android 还多一道**编译后 manifest** 断言：`verify_package.py` 直接解析 APK 里的二进制 `AndroidManifest.xml`（`tools/build/axml.py`，纯标准库），要求声明 `android.permission.INTERNET`，否则 `[FAIL]`。原因很实在——`permissions/internet` 曾在 `export_presets.cfg` 里长期是 `false`，而旧校验只看"APK 里有 AndroidManifest.xml"，配置错了也照样绿。`tools/test/test_axml.py` 覆盖这个读取器（CI architecture job 会跑）。
+
 ### iOS 是未签名的 CI 包
 
 `build-ios` 跑 `tools/build/export_ios_ci.py`：不读 Team ID、不找 .p12 / .mobileprovision、不跑签名预检，`xcodebuild` 全程 `CODE_SIGNING_ALLOWED=NO`，产出的是 **`.zip`，里面是 `WPG.app` + `WPG.xcodeproj`**。
