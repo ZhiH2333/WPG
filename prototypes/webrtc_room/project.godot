@@ -1,0 +1,20 @@
+; Engine configuration file.
+; 独立原型。不是 WPG 生产工程，不进入 LobbyNet。
+
+config_version=5
+
+[application]
+
+config/name="WPG WebRTC Room Prototype"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+run/main_scene="res://main.tscn"
+config/description="Isolated WebRTC room-code prototype. Not production multiplayer."
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=640
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

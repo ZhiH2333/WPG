@@ -1,0 +1,104 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="1_main"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+text = "WPG WebRTC 房间码原型（不是生产联机）"
+
+[node name="SignalingEdit" type="LineEdit" parent="Margin/VBox"]
+layout_mode = 2
+text = "http://127.0.0.1:8787"
+placeholder_text = "信令地址 http://host:8787"
+
+[node name="ModeButton" type="OptionButton" parent="Margin/VBox"]
+layout_mode = 2
+
+[node name="TurnUrl" type="LineEdit" parent="Margin/VBox"]
+layout_mode = 2
+placeholder_text = "turn:host:3478"
+
+[node name="TurnUser" type="LineEdit" parent="Margin/VBox"]
+layout_mode = 2
+placeholder_text = "TURN 用户名"
+
+[node name="TurnSecret" type="LineEdit" parent="Margin/VBox"]
+layout_mode = 2
+placeholder_text = "TURN 密码"
+secret = true
+
+[node name="HostRow" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+
+[node name="HostButton" type="Button" parent="Margin/VBox/HostRow"]
+layout_mode = 2
+text = "创建房间"
+
+[node name="RoomLabel" type="Label" parent="Margin/VBox/HostRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "房间码会出现在这里"
+
+[node name="JoinRow" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+
+[node name="RoomEdit" type="LineEdit" parent="Margin/VBox/JoinRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "输入房间码"
+
+[node name="JoinButton" type="Button" parent="Margin/VBox/JoinRow"]
+layout_mode = 2
+text = "加入"
+
+[node name="ActionRow" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+
+[node name="SendEdit" type="LineEdit" parent="Margin/VBox/ActionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "数据通道消息"
+
+[node name="SendButton" type="Button" parent="Margin/VBox/ActionRow"]
+layout_mode = 2
+text = "发送"
+
+[node name="CancelButton" type="Button" parent="Margin/VBox/ActionRow"]
+layout_mode = 2
+text = "取消"
+
+[node name="StatusLabel" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+text = "未连接"
+
+[node name="Log" type="TextEdit" parent="Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 220)
+editable = false
+wrap_mode = 1
