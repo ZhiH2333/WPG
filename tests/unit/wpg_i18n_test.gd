@@ -224,9 +224,10 @@ func _case_runtime_refresh() -> void:
 	overlay._on_language_selected(zh_index)
 	await process_frame
 	_expect(menu._player_status.text == "准备就绪", "切到 zh_CN 后主菜单状态行立刻更新，实际 %s" % menu._player_status.text)
-	_expect(menu._solo_button.text == "单人", "切到 zh_CN 后 SOLO 按钮立刻更新")
-	## 场景里静态 key 由引擎自动重译：atr() 即显示出来的文本。
-	_expect(menu._solo_button.atr(menu._solo_button.text) == "单人", "静态按钮自动翻译")
+	## Rail EmptyButton 自身不带 text；标题在子 Label，靠 key 自动重译。
+	_expect(menu._solo_button.text.is_empty(), "SOLO Rail 不写 button.text，避免与子 Label 叠字")
+	var solo_title: Label = menu._solo_button.get_node("Text/Title") as Label
+	_expect(solo_title != null and solo_title.atr(solo_title.text) == "单人", "切到 zh_CN 后 SOLO 标题立刻更新")
 	_expect(overlay._status_label != null, "设置层仍在")
 	overlay._on_language_selected(locales.find("en"))
 	await process_frame

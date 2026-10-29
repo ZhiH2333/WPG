@@ -432,8 +432,7 @@ func _finish_leave_to_sandbox() -> void:
 	LOADING_SCREEN_SCRIPT.switch_current(get_tree())
 
 func refresh_locale() -> void:
-	_solo_button.text = tr("MENU_SOLO")
-	_multi_button.text = tr("MENU_MULTIPLAYER")
+	## Solo/Multi 标题在子 Label，勿写 button.text（会叠字）。
 	_top_settings_button.text = tr("MENU_SETTINGS")
 	_top_multi_button.text = tr("MENU_MULTIPLAYER")
 	if _quit_button.visible:
