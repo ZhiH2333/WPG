@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"boar"
-display_name = "Boar"
-description = "Tanky."
+display_name = "CHARACTER_BOAR_NAME"
+description = "CHARACTER_BOAR_DESC"
 base_max_hp = 100
 base_move_speed = 420.0
 base_acceleration = 2400.0

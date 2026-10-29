@@ -35,6 +35,9 @@ func _run_all() -> void:
 	_case_guest_ticket_is_separate_from_room_ticket()
 	_case_close_clears_peer_ticket_state()
 	_case_version_mismatch_rejects_before_ticket()
+	_case_host_room_installs_ticket_before_invite()
+	_case_join_address_keeps_guest_ticket()
+	_case_beacon_carries_ticket_but_hides_it()
 	_finish()
 
 # ---- 用例 ----
@@ -217,6 +220,64 @@ func _case_version_mismatch_rejects_before_ticket() -> void:
 	_expect(net.get_state() != LobbyNet.NetState.CONNECTED, "v5 不得进入 CONNECTED")
 	net.close()
 	net.queue_free()
+
+## LAN 建房必须在复制 invite 之前就把同一张票写进 LobbyNet。
+## 否则 Guest 走 LAN Rooms / 手打地址时，Host 会把 hello 判成 NO_ROOM 并立刻踢人。
+func _case_host_room_installs_ticket_before_invite() -> void:
+	var net: LobbyNet = LobbyNet.new()
+	root.add_child(net)
+	var manager: LobbyManager = LobbyManager.new()
+	root.add_child(manager)
+	manager.bind_net(net)
+	_expect(manager.host_room("yard", GameLaunch.NetPlay.COOP, 20), "host_room 成功")
+	var room_ticket: String = manager.get_room_ticket()
+	_expect(not room_ticket.is_empty(), "host_room 已生成 room ticket")
+	_expect(net.get_ticket() == room_ticket, "host_room 把同一张票写进 LobbyNet")
+	net.set_seat_peer(2, 42)
+	_expect(net.check_ticket(42, room_ticket) == LobbyNet.TicketReject.NONE, "本房票可通过校验")
+	_expect(net.check_ticket(42, "") == LobbyNet.TicketReject.BAD_TOKEN, "空票仍然被拒")
+	var invite: JoinInvite = manager.create_invite("127.0.0.1", GameLaunch.NET_PORT)
+	_expect(invite != null and invite.token == room_ticket, "之后的 invite 复用 host_room 的票")
+	manager.leave_room()
+	_expect(manager.get_room_ticket().is_empty(), "离房后 room ticket 作废")
+	_expect(net.get_ticket().is_empty(), "离房后 LobbyNet 不再接受旧票")
+	net.close()
+	net.queue_free()
+	manager.queue_free()
+
+## 手打地址 / LAN Rooms 必须把发现到的票交给连接，不能在入口清成空串。
+func _case_join_address_keeps_guest_ticket() -> void:
+	var net: LobbyNet = LobbyNet.new()
+	root.add_child(net)
+	var manager: LobbyManager = LobbyManager.new()
+	root.add_child(manager)
+	manager.bind_net(net)
+	var started: bool = manager.join_room_address("127.0.0.1", GOOD_TICKET)
+	_expect(started, "带票的地址加入已发起")
+	_expect(manager.get_guest_ticket() == GOOD_TICKET, "guest ticket 就是传入的票")
+	_expect(net.get_guest_ticket() == GOOD_TICKET, "LobbyNet 持有同一张 guest ticket")
+	manager.cancel_join()
+	net.close()
+	net.queue_free()
+	manager.queue_free()
+
+## 发现包携带门票，但房间列表的公开字段不包含它。
+func _case_beacon_carries_ticket_but_hides_it() -> void:
+	var beacon: LanBeacon = LanBeacon.new()
+	beacon._ticket = GOOD_TICKET
+	beacon._room_id = "room0123"
+	beacon._host_display_name = "NightFox"
+	var parsed: Dictionary = beacon._parse_room(beacon._encode_room())
+	_expect(str(parsed.get("ticket", "")) == GOOD_TICKET, "发现包来回后门票不变")
+	parsed["address"] = "127.0.0.1"
+	beacon._rooms["127.0.0.1"] = parsed
+	_expect(beacon.ticket_for_address("127.0.0.1") == GOOD_TICKET, "按地址能取回门票")
+	var public_rooms: Array[Dictionary] = beacon.get_rooms()
+	_expect(public_rooms.size() == 1, "公开列表有这一间房")
+	_expect(not public_rooms[0].has("ticket"), "房间列表不带门票字段")
+	beacon._ticket = "not a ticket"
+	var stripped: Dictionary = beacon._parse_room(beacon._encode_room())
+	_expect(str(stripped.get("ticket", "x")).is_empty(), "非法票不会被原样转发")
 
 # ---- 夹具 ----
 

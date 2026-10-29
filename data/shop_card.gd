@@ -31,34 +31,34 @@ func get_title() -> String:
 	if kind == Kind.CONSUMABLE:
 		if consumable == null:
 			return ""
-		return consumable.display_name
+		return WpgI18n.t(consumable.display_name)
 	if kind == Kind.COMPANION:
 		if companion == null:
 			return ""
-		return companion.display_name
+		return WpgI18n.t(companion.display_name)
 	if upgrade == null:
 		return ""
-	return upgrade.title
+	return WpgI18n.t(upgrade.title)
 
 func get_description() -> String:
 	if kind == Kind.CONSUMABLE:
 		if consumable == null:
 			return ""
-		return consumable.description
+		return WpgI18n.t(consumable.description)
 	if kind == Kind.COMPANION:
 		if companion == null:
 			return ""
-		return companion.description
+		return WpgI18n.t(companion.description)
 	if upgrade == null:
 		return ""
-	return upgrade.description
+	return WpgI18n.t(upgrade.description)
 
 func get_kind_label() -> String:
 	if kind == Kind.CONSUMABLE:
-		return "Consumable"
+		return WpgI18n.t("SHOP_KIND_CONSUMABLE")
 	if kind == Kind.COMPANION:
-		return "Companion"
-	return "Upgrade"
+		return WpgI18n.t("SHOP_KIND_COMPANION")
+	return WpgI18n.t("SHOP_KIND_UPGRADE")
 
 func get_cost(session: RunSession) -> int:
 	if kind == Kind.CONSUMABLE:

@@ -215,21 +215,21 @@ func _fill_left(record: GameRecord, outcome: String, loop_index: int, kills: int
 	_final_time_sec = time_sec
 	_breakdown.visible = true
 	if outcome == "cleared":
-		_title.text = "CLEARED"
+		_title.text = tr("RESULT_CLEARED")
 		_title.theme_type_variation = &"ClearedTitle"
 	else:
-		_title.text = "DEAD"
+		_title.text = tr("RESULT_DEAD")
 		_title.theme_type_variation = &"RunSummaryTitle"
 	if lan:
-		_record_name.text = "LAN"
+		_record_name.text = tr("RESULT_LAN")
 	elif record != null and not record.name.is_empty():
 		_record_name.text = record.name
 	else:
 		_record_name.text = "-"
 	_cleared_bonus.visible = outcome == "cleared"
-	_cleared_bonus.text = "cleared  +5000"
+	_cleared_bonus.text = tr("RESULT_CLEARED_BONUS")
 	## 只报这一局的计分事实。硬规定：任何界面都不显示本局获得的升级 / 物品 / 状态清单。
-	_summary_text = "loop  %d    kills  %d    gold  %d    time  %.1fs" % [
+	_summary_text = tr("RESULT_SUMMARY") % [
 		loop_index,
 		kills,
 		gold,
@@ -237,7 +237,7 @@ func _fill_left(record: GameRecord, outcome: String, loop_index: int, kills: int
 	]
 	_summary.text = _summary_text
 	_write_break_texts(0, 0, 0, 0)
-	_score_label.text = "score  0"
+	_score_label.text = tr("RESULT_SCORE") % 0
 	_new_best.visible = false
 
 func _fill_history(record: GameRecord) -> void:
@@ -246,7 +246,7 @@ func _fill_history(record: GameRecord) -> void:
 	if record == null or record.history.is_empty():
 		_hist_empty.visible = true
 		_hist_empty.text = "-"
-		_rank_label.text = "rank  -"
+		_rank_label.text = tr("RESULT_RANK_NONE")
 		return
 	_hist_empty.visible = false
 	var highlight: int = _find_highlight_index(record.history)
@@ -261,7 +261,7 @@ func _fill_history(record: GameRecord) -> void:
 		var rank: Label = row.get_child(0) as Label
 		var body: Label = row.get_child(1) as Label
 		rank.text = "#%d" % (i + 1)
-		body.text = "%d   L%d   %s   %.1fs" % [
+		body.text = tr("RESULT_HISTORY_ROW") % [
 			int(entry.get("score", 0)),
 			int(entry.get("loop", 0)),
 			_format_outcome(str(entry.get("outcome", "quit"))),
@@ -269,32 +269,32 @@ func _fill_history(record: GameRecord) -> void:
 		]
 		body.theme_type_variation = &"ProfileHeader" if i == highlight else &"RunSummaryBody"
 	if highlight < 0:
-		_rank_label.text = "rank  -"
+		_rank_label.text = tr("RESULT_RANK_NONE")
 	else:
-		_rank_label.text = "rank  %d / %d" % [highlight + 1, record.history.size()]
+		_rank_label.text = tr("RESULT_RANK") % [highlight + 1, record.history.size()]
 
 func _apply_battle_result(winner_seat: int, local_seat: int) -> void:
 	if winner_seat == 0:
-		_title.text = "DRAW"
+		_title.text = tr("RESULT_DRAW")
 		_title.theme_type_variation = &"RunSummaryTitle"
 	elif local_seat == winner_seat:
-		_title.text = "KO"
+		_title.text = tr("RESULT_KO")
 		_title.theme_type_variation = &"ClearedTitle"
 	else:
-		_title.text = "KO"
+		_title.text = tr("RESULT_KO")
 		_title.theme_type_variation = &"RunSummaryTitle"
-	_record_name.text = "BATTLE"
+	_record_name.text = tr("MODE_BATTLE").to_upper()
 	_breakdown.visible = false
 	_cleared_bonus.visible = false
 	_new_best.visible = false
-	_score_label.text = "time  0.0s"
+	_score_label.text = tr("RESULT_TIME") % 0.0
 
 func _reset_score_visuals() -> void:
 	_new_best.visible = false
 	if _is_battle_result:
-		_score_label.text = "time  0.0s"
+		_score_label.text = tr("RESULT_TIME") % 0.0
 	else:
-		_score_label.text = "score  0"
+		_score_label.text = tr("RESULT_SCORE") % 0
 	_write_break_texts(0, 0, 0, 0)
 	for item: CanvasItem in _list_roll_fade_items():
 		item.modulate.a = 0.0
@@ -368,10 +368,10 @@ func _assign_time_points(value: float) -> void:
 	_time_value.text = str(roundi(value))
 
 func _assign_score_points(value: float) -> void:
-	_score_label.text = "score  %d" % roundi(value)
+	_score_label.text = tr("RESULT_SCORE") % roundi(value)
 
 func _assign_battle_time(value: float) -> void:
-	_score_label.text = "time  %.1fs" % value
+	_score_label.text = tr("RESULT_TIME") % value
 
 func _snap_score_roll() -> void:
 	if _roll_done:
@@ -385,18 +385,18 @@ func _snap_score_roll() -> void:
 func _write_final_score_texts() -> void:
 	_write_break_texts(_final_loop * 1000, _final_kills * 5, _final_gold * 2, floori(_final_time_sec))
 	if _is_battle_result:
-		_score_label.text = "time  %.1fs" % _final_time_sec
+		_score_label.text = tr("RESULT_TIME") % _final_time_sec
 	else:
-		_score_label.text = "score  %d" % _this_score
+		_score_label.text = tr("RESULT_SCORE") % _this_score
 	_summary.text = _summary_text
 	for item: CanvasItem in _list_roll_fade_items():
 		item.modulate.a = 1.0
 
 func _write_break_texts(loop_pts: int, kill_pts: int, gold_pts: int, time_pts: int) -> void:
-	_loop_label.text = "loop  %d  ×1000" % _final_loop
-	_kills_label.text = "kills  %d  ×5" % _final_kills
-	_gold_label.text = "gold  %d  ×2" % _final_gold
-	_time_label.text = "time  %.1fs" % _final_time_sec
+	_loop_label.text = tr("RESULT_LOOP_MULT") % _final_loop
+	_kills_label.text = tr("RESULT_KILLS_MULT") % _final_kills
+	_gold_label.text = tr("RESULT_GOLD_MULT") % _final_gold
+	_time_label.text = tr("RESULT_TIME") % _final_time_sec
 	_loop_value.text = str(loop_pts)
 	_kills_value.text = str(kill_pts)
 	_gold_value.text = str(gold_pts)
@@ -434,10 +434,10 @@ func _find_highlight_index(history: Array[Dictionary]) -> int:
 
 func _format_outcome(value: String) -> String:
 	if value == "cleared":
-		return "CLEARED"
+		return tr("RESULT_CLEARED")
 	if value == "dead":
-		return "DEAD"
-	return "QUIT"
+		return tr("RESULT_DEAD")
+	return tr("RESULT_QUIT")
 
 func _build_hist_rows() -> void:
 	_hist_rows.clear()

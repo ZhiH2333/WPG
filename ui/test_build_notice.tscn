@@ -66,7 +66,7 @@ mouse_filter = 2
 theme_type_variation = &"PageTitle"
 theme_override_fonts/font = ExtResource("5_cjk_bold")
 theme_override_font_sizes/font_size = 40
-text = "这是一个测试版构建"
+text = "NOTICE_TEST_BUILD_TITLE"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -77,7 +77,7 @@ mouse_filter = 2
 theme_type_variation = &"PageSubtitle"
 theme_override_fonts/font = ExtResource("4_cjk")
 theme_override_font_sizes/font_size = 22
-text = "您正在游玩的是 WPG 测试版，可能会出现 Bug，不代表最终品质"
+text = "NOTICE_TEST_BUILD_BODY"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -87,7 +87,7 @@ mouse_filter = 2
 theme_type_variation = &"PageSubtitle"
 theme_override_fonts/font = ExtResource("4_cjk")
 theme_override_font_sizes/font_size = 20
-text = "报告 Bug 至：zhih2333@gmail.com 或获得帮助"
+text = "NOTICE_REPORT_BUG"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -102,7 +102,7 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
 theme_override_fonts/font = ExtResource("5_cjk_bold")
-text = "调整您的初始设置："
+text = "NOTICE_ADJUST_SETTINGS"
 
 [node name="FullscreenRow" type="HBoxContainer" parent="Scroll/Center/Column"]
 custom_minimum_size = Vector2(0, 40)
@@ -115,7 +115,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Fullscreen"
+text = "SETTINGS_FULLSCREEN"
 
 [node name="FullscreenCheck" type="CheckBox" parent="Scroll/Center/Column/FullscreenRow"]
 unique_name_in_owner = true
@@ -132,7 +132,7 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Render Resolution  100%"
+text = "SETTINGS_RENDER_SCALE"
 
 [node name="RenderScaleSlider" type="HSlider" parent="Scroll/Center/Column/RenderBlock"]
 unique_name_in_owner = true
@@ -149,7 +149,7 @@ scrollable = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "Takes effect in combat / on Continue"
+text = "SETTINGS_RENDER_HINT"
 
 [node name="UiBlock" type="VBoxContainer" parent="Scroll/Center/Column"]
 layout_mode = 2
@@ -161,7 +161,7 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "UI Scale  100%"
+text = "SETTINGS_UI_SCALE"
 
 [node name="UiScaleSlider" type="HSlider" parent="Scroll/Center/Column/UiBlock"]
 unique_name_in_owner = true
@@ -183,7 +183,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Touch Controls"
+text = "SETTINGS_TOUCH_CONTROLS"
 
 [node name="TouchOption" type="OptionButton" parent="Scroll/Center/Column/TouchBlock"]
 unique_name_in_owner = true
@@ -201,7 +201,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Manual Fire Button"
+text = "SETTINGS_MANUAL_FIRE"
 
 [node name="ManualFireOption" type="OptionButton" parent="Scroll/Center/Column/ManualFireRow"]
 unique_name_in_owner = true
@@ -226,7 +226,7 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 0
 theme_override_fonts/font = ExtResource("4_cjk")
-text = "不再提示"
+text = "NOTICE_DONT_SHOW_AGAIN"
 
 [node name="StartRow" type="HBoxContainer" parent="Scroll/Center/Column"]
 layout_mode = 2
@@ -241,7 +241,7 @@ mouse_filter = 0
 theme_type_variation = &"PillPink"
 theme_override_fonts/font = ExtResource("5_cjk_bold")
 theme_override_font_sizes/font_size = 26
-text = "开始游玩"
+text = "NOTICE_START_PLAYING"
 
 [node name="BottomPad" type="Control" parent="Scroll/Center/Column"]
 custom_minimum_size = Vector2(0, 8)

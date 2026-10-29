@@ -43,6 +43,8 @@ var _has_last_mouse: bool = false
 var _remote_driven: bool = false
 var _pending_weapon_slot: int = -1
 var _pending_dash: bool = false
+## Guest→Host 技能边沿锁存：bit0=ability_0，bit1=ability_1。take 后清零，避免 20Hz 重复施放。
+var _pending_ability_bits: int = 0
 var _abilities_suppressed: bool = false
 ## Touch 技能边沿队列（每槽 0/1）：由 queue_touch_ability() 写入，_physics_process 消费。
 var _touch_ability_pending: PackedByteArray = PackedByteArray()
@@ -178,6 +180,7 @@ func set_abilities_suppressed(suppressed: bool) -> void:
 	if suppressed:
 		ability_0_just_pressed = false
 		ability_1_just_pressed = false
+		_pending_ability_bits = 0
 		_clear_touch_ability_pending()
 
 func is_abilities_suppressed() -> bool:
@@ -204,7 +207,7 @@ func _clear_touch_state() -> void:
 	_touch_weapon_slot_pending = -1
 	_clear_touch_ability_pending()
 
-func apply_remote_frame(move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int) -> void:
+func apply_remote_frame(move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int, ability_bits: int = 0) -> void:
 	move_vector = move
 	if aim.is_zero_approx():
 		_keep_last_aim()
@@ -225,6 +228,13 @@ func apply_remote_frame(move: Vector2, aim: Vector2, fire: bool, dash: bool, wea
 		_pending_dash = true
 	_weapon_slot_just_pressed = weapon_slot
 	_pending_weapon_slot = weapon_slot
+	## Host 权威：远程边沿只写 just_pressed，不写本地 pending（pending 只服务 Guest 发包）。
+	if _abilities_suppressed:
+		ability_0_just_pressed = false
+		ability_1_just_pressed = false
+	else:
+		ability_0_just_pressed = (ability_bits & 1) != 0
+		ability_1_just_pressed = (ability_bits & 2) != 0
 
 func take_pending_weapon_slot() -> int:
 	var slot: int = _pending_weapon_slot
@@ -235,6 +245,11 @@ func take_pending_dash() -> bool:
 	var pressed: bool = _pending_dash
 	_pending_dash = false
 	return pressed
+
+func take_pending_ability_bits() -> int:
+	var bits: int = _pending_ability_bits
+	_pending_ability_bits = 0
+	return bits
 
 func update_input(_delta: float = 0.0) -> void:
 	if _remote_driven:
@@ -552,3 +567,5 @@ func _set_ability_edge(slot: int, edge: bool) -> void:
 		ability_0_just_pressed = edge
 	elif slot == 1:
 		ability_1_just_pressed = edge
+	if edge and slot >= 0 and slot < ABILITY_SLOT_COUNT:
+		_pending_ability_bits |= (1 << slot)

@@ -78,6 +78,9 @@ static var _render_scale: float = 1.0
 static var _ui_scale: float = 1.0
 static var _vsync_enabled: bool = true
 static var _msaa_index: int = 0
+## 玩家语言（locale/wpg.csv 的语言列）。启动时由 WpgI18n.apply_locale 应用。
+## 默认：settings.cfg 里没存过就按系统语言（zh* -> zh_CN，其余 en）。
+static var _locale: String = default_locale()
 ## 测试版提示页的「不再提示」。网页版专用，桌面版不读也不写。
 static var _test_build_notice_muted: bool = false
 static var _web_override: int = WebOverride.AUTO
@@ -93,6 +96,7 @@ static func load_from_disk() -> void:
 	_ui_scale = 1.0
 	_vsync_enabled = true
 	_msaa_index = 0
+	_locale = default_locale()
 	_touch_controls_mode = TouchControlsMode.AUTO
 	_touch_manual_fire = false
 	_test_build_notice_muted = false
@@ -111,6 +115,7 @@ static func load_from_disk() -> void:
 	_ui_scale = clampf(float(cfg.get_value("display", "ui_scale", 1.0)), UI_SCALE_MIN, UI_SCALE_MAX)
 	_vsync_enabled = bool(cfg.get_value("display", "vsync", true))
 	_msaa_index = clampi(int(cfg.get_value("display", "msaa", 0)), 0, 3)
+	_locale = _sanitize_locale(str(cfg.get_value("display", "locale", default_locale())))
 	_touch_controls_mode = clampi(int(cfg.get_value("input", "touch_controls", int(TouchControlsMode.AUTO))), 0, 2)
 	_touch_manual_fire = bool(cfg.get_value("input", "touch_manual_fire", false))
 	_test_build_notice_muted = bool(cfg.get_value("notice", "test_build_muted", false))
@@ -135,6 +140,7 @@ static func save_to_disk() -> void:
 	cfg.set_value("display", "ui_scale", _ui_scale)
 	cfg.set_value("display", "vsync", _vsync_enabled)
 	cfg.set_value("display", "msaa", _msaa_index)
+	cfg.set_value("display", "locale", _locale)
 	cfg.set_value("input", "touch_controls", int(_touch_controls_mode))
 	cfg.set_value("input", "touch_manual_fire", _touch_manual_fire)
 	cfg.set_value("notice", "test_build_muted", _test_build_notice_muted)
@@ -148,6 +154,7 @@ static func apply() -> void:
 	_apply_bus_volume("Master", _volume)
 	_apply_bus_volume("Music", _music_volume)
 	_apply_bus_volume("SFX", _sfx_volume)
+	WpgI18n.apply_locale(_locale)
 	if _fullscreen:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	else:
@@ -164,6 +171,24 @@ static func apply() -> void:
 		][_msaa_index]
 		root.content_scale_factor = _ui_scale
 	_apply_key_bindings()
+
+static func get_locale() -> String:
+	return _locale
+
+## 首次启动 / 设置里没有语言时的默认语言：系统语言是中文就 zh_CN，否则 en。
+static func default_locale() -> String:
+	return "zh_CN" if OS.get_locale_language() == "zh" else "en"
+
+static func set_locale(locale: String) -> void:
+	_locale = _sanitize_locale(locale)
+
+static func _sanitize_locale(locale: String) -> String:
+	var text: String = locale.strip_edges()
+	if text == "zh" or text == "zh-CN" or text == "zh_Hans":
+		return "zh_CN"
+	if WpgI18n.supported_locales().has(text):
+		return text
+	return WpgI18n.DEFAULT_LOCALE
 
 ## 只清键位覆盖。调用方再 apply / save。音量与显示不动。
 static func reset_controls() -> void:
@@ -366,50 +391,50 @@ static func _joy_button_string(button: int) -> String:
 		JOY_BUTTON_Y:
 			return "Y"
 		JOY_BUTTON_BACK:
-			return "Back"
+			return WpgI18n.t("JOY_BACK")
 		JOY_BUTTON_GUIDE:
-			return "Guide"
+			return WpgI18n.t("JOY_GUIDE")
 		JOY_BUTTON_START:
-			return "Start"
+			return WpgI18n.t("JOY_START")
 		JOY_BUTTON_LEFT_STICK:
-			return "Left Stick"
+			return WpgI18n.t("JOY_LEFT_STICK")
 		JOY_BUTTON_RIGHT_STICK:
-			return "Right Stick"
+			return WpgI18n.t("JOY_RIGHT_STICK")
 		JOY_BUTTON_LEFT_SHOULDER:
-			return "Left Shoulder"
+			return WpgI18n.t("JOY_LEFT_SHOULDER")
 		JOY_BUTTON_RIGHT_SHOULDER:
-			return "Right Shoulder"
+			return WpgI18n.t("JOY_RIGHT_SHOULDER")
 		JOY_BUTTON_DPAD_UP:
-			return "D-pad Up"
+			return WpgI18n.t("JOY_DPAD_UP")
 		JOY_BUTTON_DPAD_DOWN:
-			return "D-pad Down"
+			return WpgI18n.t("JOY_DPAD_DOWN")
 		JOY_BUTTON_DPAD_LEFT:
-			return "D-pad Left"
+			return WpgI18n.t("JOY_DPAD_LEFT")
 		JOY_BUTTON_DPAD_RIGHT:
-			return "D-pad Right"
+			return WpgI18n.t("JOY_DPAD_RIGHT")
 		_:
 			return ""
 
 static func action_display_name(action: String) -> String:
 	match action:
 		"move_up":
-			return "Move Up"
+			return WpgI18n.t("ACTION_MOVE_UP")
 		"move_down":
-			return "Move Down"
+			return WpgI18n.t("ACTION_MOVE_DOWN")
 		"move_left":
-			return "Move Left"
+			return WpgI18n.t("ACTION_MOVE_LEFT")
 		"move_right":
-			return "Move Right"
+			return WpgI18n.t("ACTION_MOVE_RIGHT")
 		"dash":
-			return "Dash"
+			return WpgI18n.t("ACTION_DASH")
 		"weapon_pistol":
-			return "Pistol"
+			return WpgI18n.t("WEAPON_PISTOL")
 		"weapon_shotgun":
-			return "Shotgun"
+			return WpgI18n.t("WEAPON_SHOTGUN")
 		"weapon_rifle":
-			return "Rifle"
+			return WpgI18n.t("WEAPON_RIFLE")
 		"weapon_smg":
-			return "Smg"
+			return WpgI18n.t("WEAPON_SMG")
 		_:
 			return action
 

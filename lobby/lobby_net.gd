@@ -168,12 +168,14 @@ func host_listen() -> bool:
 	var err: Error = peer.create_server(GameLaunch.NET_PORT, MAX_SEATS - 1)
 	if err != OK:
 		set_state(NetState.FAILED)
+		_log_lan("CONNECTION_REJECTED", 0, "bind_failed", "host")
 		listen_failed.emit()
 		return false
 	multiplayer.multiplayer_peer = peer
 	_reset_seats()
 	_wire()
 	set_state(NetState.HOSTING)
+	_log_lan("LAN_CONNECT_STARTED", HOST_PEER, "listening")
 	listen_ok.emit()
 	return true
 
@@ -181,16 +183,18 @@ func host_listen() -> bool:
 ## 一次只建一个 peer —— 调用方负责在失败后 close() 再试下一个候选。
 func client_connect(address: String, port: int = GameLaunch.NET_PORT, ticket: String = "") -> bool:
 	close()
-	_guest_ticket = ticket
+	_guest_ticket = ticket.strip_edges()
 	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
 	var err: Error = peer.create_client(address.strip_edges(), clampi(port, 1, 65535))
 	if err != OK:
 		set_state(NetState.FAILED)
+		_log_lan("CONNECTION_REJECTED", 0, "connect_failed")
 		connection_failed.emit()
 		return false
 	multiplayer.multiplayer_peer = peer
 	_wire()
 	set_state(NetState.CONNECTING)
+	_log_lan("LAN_CONNECT_STARTED", 0, "ok")
 	return true
 
 ## Host 侧：注入本房 ticket（由 LobbyManager 在建房时给出）。
@@ -278,6 +282,7 @@ func send_hello() -> void:
 	set_state(NetState.HANDSHAKING)
 	var protocol: int = _hello_protocol_override if _hello_protocol_override > 0 else GameLaunch.NET_PROTOCOL
 	var ticket: String = _hello_ticket_override if not _hello_ticket_override.is_empty() else _guest_ticket
+	_log_lan("HELLO_SENT", _local_peer_id(), "ok")
 	rpc_hello.rpc_id(HOST_PEER, protocol, ticket)
 
 ## 测试专用注入（E2E 负向用例）：让 Guest 真的发出一个非法 hello。
@@ -413,6 +418,9 @@ func rpc_hello(protocol: int, ticket: String) -> void:
 		## 只有真有 peer 时才谈得上回执 / 踢人；离线自检没有 sender。
 		if multiplayer.multiplayer_peer != null:
 			var mismatched: int = multiplayer.get_remote_sender_id()
+			_log_lan("HELLO_RECEIVED", mismatched, "bad_protocol")
+			_log_lan("TICKET_VALIDATION_RESULT", mismatched, "bad_protocol")
+			_log_lan("CONNECTION_REJECTED", mismatched, "bad_protocol")
 			peer_rejected.emit(mismatched, int(TicketReject.BAD_PROTOCOL))
 			rpc_join_rejected.rpc_id(mismatched, int(TicketReject.BAD_PROTOCOL))
 			disconnect_peer_deferred(mismatched)
@@ -425,10 +433,13 @@ func rpc_hello(protocol: int, ticket: String) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender: int = multiplayer.get_remote_sender_id()
+	_log_lan("HELLO_RECEIVED", sender, "ok")
 	var reject: TicketReject = check_ticket(sender, ticket)
+	_log_lan("TICKET_VALIDATION_RESULT", sender, _reject_reason_name(int(reject)))
 	if reject != TicketReject.NONE:
 		## ticket 不过 = 不确认、不占正式座位、不进 Room.players，并立刻断开。
 		_peer_ticket_ok.erase(sender)
+		_log_lan("CONNECTION_REJECTED", sender, _reject_reason_name(int(reject)))
 		peer_rejected.emit(sender, int(reject))
 		rpc_join_rejected.rpc_id(sender, int(reject))
 		disconnect_peer_deferred(sender)
@@ -440,11 +451,13 @@ func rpc_hello(protocol: int, ticket: String) -> void:
 	if seat == 0:
 		## 没座位（满员 / 未占 pending）-> 明确拒绝，不静默丢包。
 		_peer_ticket_ok.erase(sender)
+		_log_lan("CONNECTION_REJECTED", sender, "no_seat")
 		peer_rejected.emit(sender, int(TicketReject.NO_SEAT))
 		rpc_join_rejected.rpc_id(sender, int(TicketReject.NO_SEAT))
 		disconnect_peer_deferred(sender)
 		return
 	send_hello_ok(sender)
+	_log_lan("HANDSHAKE_COMPLETED", sender, "ok")
 	set_state(NetState.CONNECTED)
 
 ## Host 权威 ticket 校验（纯逻辑，便于单测）。
@@ -482,6 +495,7 @@ func rpc_hello_ok() -> void:
 @rpc("authority", "call_remote", "reliable")
 func rpc_join_rejected(reason: int) -> void:
 	set_state(NetState.FAILED)
+	_log_lan("CONNECTION_REJECTED", _local_peer_id(), _reject_reason_name(reason))
 	join_rejected.emit(reason)
 	connection_failed.emit()
 
@@ -492,6 +506,7 @@ func accept_hello_ok(peer_id: int) -> int:
 	if seat < Room.HOST_SEAT + 1 or seat > MAX_SEATS:
 		return 0
 	_seat_handshake[seat - 1] = 1
+	_log_lan("SEAT_ASSIGNED", peer_id, "ok")
 	peer_confirmed.emit(peer_id, seat)
 	return seat
 
@@ -523,7 +538,10 @@ func rpc_apply_ready(seat: int, ready: bool) -> void:
 @rpc("authority", "call_remote", "reliable")
 func rpc_assign_seat(seat: int) -> void:
 	set_state(NetState.LOBBY)
-	seat_assigned.emit(clampi(seat, 1, MAX_SEATS))
+	var assigned: int = clampi(seat, 1, MAX_SEATS)
+	_log_lan("SEAT_ASSIGNED", _local_peer_id(), "ok")
+	_log_lan("HANDSHAKE_COMPLETED", _local_peer_id(), "ok")
+	seat_assigned.emit(assigned)
 
 @rpc("authority", "call_remote", "reliable")
 func rpc_roster(data: PackedByteArray) -> void:
@@ -671,6 +689,36 @@ func send_session_to_peer(peer: int, character_ids: PackedStringArray, loop_goal
 	rpc_arena.rpc_id(peer, arena_id)
 	rpc_play_mode.rpc_id(peer, net_play)
 
+## 阶段日志。只打阶段、角色、peer、协议号和原因，不打 ticket / 密码。
+func _log_lan(stage: String, peer_id: int, reason: String, role: String = "") -> void:
+	var who: String = role
+	if who.is_empty():
+		who = "host" if is_server() else "guest"
+	var why: String = reason if not reason.is_empty() else "-"
+	print("[LAN] role=%s stage=%s peer=%d protocol=%d reason=%s" % [who, stage, peer_id, GameLaunch.NET_PROTOCOL, why])
+
+func _local_peer_id() -> int:
+	if multiplayer.multiplayer_peer == null:
+		return 0
+	return multiplayer.get_unique_id()
+
+func _reject_reason_name(reason: int) -> String:
+	match reason:
+		TicketReject.NONE:
+			return "ok"
+		TicketReject.BAD_PROTOCOL:
+			return "bad_protocol"
+		TicketReject.BAD_TOKEN:
+			return "bad_token"
+		TicketReject.NO_ROOM:
+			return "no_room"
+		TicketReject.FULL:
+			return "full"
+		TicketReject.NO_SEAT:
+			return "no_seat"
+		_:
+			return "unknown"
+
 func _wire() -> void:
 	if _wired:
 		return
@@ -705,11 +753,13 @@ func _on_peer_connected(id: int) -> void:
 	_connected_peers[id] = true
 	if not multiplayer.is_server():
 		return
+	_log_lan("LAN_CONNECTED", id, "ok")
 	set_state(NetState.LOBBY if _state == NetState.HOSTING else _state)
 	peer_joined.emit(id, 0)
 
 func _on_peer_disconnected(id: int) -> void:
 	_connected_peers.erase(id)
+	_log_lan("PEER_DISCONNECTED", id, "peer_left")
 	if not multiplayer.is_server():
 		return
 	clear_seat_of_peer(id)
@@ -717,12 +767,16 @@ func _on_peer_disconnected(id: int) -> void:
 
 func _on_connected_to_server() -> void:
 	set_state(NetState.HANDSHAKING)
+	_log_lan("LAN_CONNECTED", _local_peer_id(), "ok")
 	connected.emit()
 	## 协议 6：连上后由 Guest 主动出示 ticket。Host 校验通过才会 assign seat。
 	send_hello()
 
 func _on_connection_failed() -> void:
+	var prior: NetState = _state
 	set_state(NetState.FAILED)
+	if prior != NetState.FAILED and prior != NetState.VERSION_MISMATCH:
+		_log_lan("CONNECTION_REJECTED", _local_peer_id(), "connect_failed")
 	connection_failed.emit()
 
 func _on_server_disconnected() -> void:
@@ -731,6 +785,8 @@ func _on_server_disconnected() -> void:
 	## server_disconnected —— 但它这次的结论早已是 VERSION_MISMATCH / FAILED
 	##（被拒），不能被覆写成模糊的 HOST_CLOSED。
 	if _state == NetState.VERSION_MISMATCH or _state == NetState.FAILED:
+		_log_lan("PEER_DISCONNECTED", _local_peer_id(), "after_reject")
 		return
 	set_state(NetState.HOST_CLOSED)
+	_log_lan("PEER_DISCONNECTED", _local_peer_id(), "host_closed")
 	host_closed.emit()

@@ -3,7 +3,7 @@ class_name NetSession
 
 ## 沙盒内局域网会话。不是 Autoload。Host 权威，Guest 发输入收快照。手写 RPC，不要 MultiplayerSynchronizer。座位 1～5，peer→seat 查表，禁止写死 seat 2。
 signal peer_lost(peer_id: int)
-signal input_received(seat: int, move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int)
+signal input_received(seat: int, move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int, ability_bits: int)
 signal snapshot_received(data: PackedByteArray)
 signal fire_fx_received(seat: int, origin: Vector2, direction: Vector2, weapon_index: int)
 signal offer_open_received(kind: int, id0: String, id1: String, id2: String, gold: int)
@@ -101,6 +101,7 @@ func send_input(payload: Dictionary) -> void:
 		bool(payload.get("fire", false)),
 		bool(payload.get("dash", false)),
 		int(payload.get("weapon_slot", -1)),
+		int(payload.get("ability_bits", 0)),
 	)
 
 func send_snapshot(data: PackedByteArray) -> void:
@@ -219,13 +220,15 @@ func _seat_from_sender() -> int:
 	return seat_for_peer(multiplayer.get_remote_sender_id())
 
 @rpc("any_peer", "call_remote", "unreliable")
-func rpc_input(mx: float, my: float, ax: float, ay: float, fire: bool, dash: bool, weapon_slot: int) -> void:
+func rpc_input(mx: float, my: float, ax: float, ay: float, fire: bool, dash: bool, weapon_slot: int, ability_bits: int = 0) -> void:
 	if not is_host():
 		return
 	var seat: int = _seat_from_sender()
 	if seat < 2 or seat > GameLaunch.NET_MAX_SEATS:
 		return
-	input_received.emit(seat, Vector2(mx, my), Vector2(ax, ay), fire, dash, weapon_slot)
+	## 只接受合法边沿位；伪造高位直接丢弃，不改权威战斗状态。
+	var bits: int = ability_bits & 0x3
+	input_received.emit(seat, Vector2(mx, my), Vector2(ax, ay), fire, dash, weapon_slot, bits)
 
 @rpc("authority", "call_remote", "unreliable")
 func rpc_snapshot(data: PackedByteArray) -> void:

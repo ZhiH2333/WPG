@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 id = &"thick_hide"
-title = "Thick Hide"
-description = "Knockback taken -20%"
+title = "UPGRADE_THICK_HIDE_TITLE"
+description = "UPGRADE_THICK_HIDE_DESC"
 kind = 8
 value = -0.2

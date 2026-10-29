@@ -33,10 +33,14 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	if tab_icon != null:
 		_icon.texture = tab_icon
-	_caption.text = caption
+	_caption.text = tr(caption)
 	mouse_entered.connect(_on_hover_changed)
 	mouse_exited.connect(_on_hover_changed)
 	_apply_state(true)
+
+## 语言切换后重写目录标题（caption 是翻译 key）。
+func refresh_locale() -> void:
+	_caption.text = tr(caption)
 
 func _on_hover_changed() -> void:
 	_apply_state(false)

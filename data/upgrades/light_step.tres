@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"light_step"
-title = "Light Step"
-description = "Move speed +10%"
+title = "UPGRADE_LIGHT_STEP_TITLE"
+description = "UPGRADE_LIGHT_STEP_DESC"
 kind = 1
 value = 0.1
 stackable = true

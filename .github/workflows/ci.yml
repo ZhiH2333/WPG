@@ -58,6 +58,8 @@ jobs:
         run: python tools/test/test_dev_naming.py
       - name: APK manifest (AXML) unit tests
         run: python tools/test/test_axml.py
+      - name: i18n audit (static coverage + negative cases)
+        run: python tools/test/test_i18n_audit.py
 
   smoke:
     name: smoke

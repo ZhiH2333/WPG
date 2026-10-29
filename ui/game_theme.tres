@@ -1,5 +1,7 @@
 [gd_resource type="Theme" format=3 uid="uid://b772hyjkxh87v"]
 
+[ext_resource type="FontFile" path="res://ui/fonts/wpg_notice_cjk_bold.ttf" id="cjk_bold"]
+
 [sub_resource type="StyleBoxFlat" id="sb_bar_btn_normal"]
 content_margin_left = 14.0
 content_margin_top = 8.0
@@ -68,6 +70,7 @@ corner_radius_bottom_left = 6
 font_names = PackedStringArray("Inter", "Segoe UI", "Noto Sans", "Arial")
 font_weight = 700
 subpixel_positioning = 0
+fallbacks = [ExtResource("cjk_bold")]
 
 [sub_resource type="StyleBoxEmpty" id="sb_empty"]
 

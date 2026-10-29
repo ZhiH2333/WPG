@@ -94,7 +94,7 @@ func _ready() -> void:
 	layer = LAYER_INDEX
 	visible = true
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
-	_version_label.text = "version  %s" % GameSettings.get_version()
+	_version_label.text = tr("COMMON_VERSION") % GameSettings.get_version()
 	_root.modulate.a = 0.0
 	_bind_target()
 
@@ -182,14 +182,14 @@ func _tick_bar(delta: float) -> void:
 func _tick_status(delta: float, loaded: bool) -> void:
 	_status_time += delta
 	if _items.is_empty():
-		_status_label.text = "ready" if loaded else "loading"
+		_status_label.text = tr("LOADING_READY") if loaded else tr("LOADING_STATUS")
 		return
 	var last: int = _items.size() - 1
 	var stepped: int = mini(int(_status_time / STATUS_STEP_SEC), last)
 	if loaded and stepped >= last:
-		_status_label.text = "ready"
+		_status_label.text = tr("LOADING_READY")
 		return
-	_status_label.text = "loading  %s" % _items[stepped]
+	_status_label.text = tr("LOADING_ITEM") % _items[stepped]
 
 func _collect_items(path: String) -> PackedStringArray:
 	var items: PackedStringArray = PackedStringArray()

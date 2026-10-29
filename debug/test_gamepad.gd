@@ -23,7 +23,7 @@ func _process(_delta: float) -> void:
 		return
 	var pads: Array[int] = Input.get_connected_joypads()
 	if pads.is_empty():
-		_label.text = "没有连接手柄"
+		_label.text = tr("GAMEPAD_DEBUG_NONE")
 		return
 	var id: int = pads[0]
 	var left_x: float = Input.get_joy_axis(id, JOY_AXIS_LEFT_X)
@@ -36,12 +36,7 @@ func _process(_delta: float) -> void:
 	var dpad_u: bool = Input.is_joy_button_pressed(id, JOY_BUTTON_DPAD_UP)
 	var dpad_r: bool = Input.is_joy_button_pressed(id, JOY_BUTTON_DPAD_RIGHT)
 	var dpad_d: bool = Input.is_joy_button_pressed(id, JOY_BUTTON_DPAD_DOWN)
-	_label.text = """手柄 %d（按 G 隐藏）
-左摇杆: (%.2f, %.2f) len=%.2f
-右摇杆: (%.2f, %.2f) len=%.2f
-右扳机: %.2f  RB: %s
-十字键: L=%s U=%s R=%s D=%s
-死区阈值 0.25，扳机阈值 0.45""" % [
+	_label.text = tr("GAMEPAD_DEBUG_STATUS") % [
 		id,
 		left_x, left_y, Vector2(left_x, left_y).length(),
 		right_x, right_y, Vector2(right_x, right_y).length(),

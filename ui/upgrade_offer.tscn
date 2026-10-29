@@ -62,7 +62,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "PICK ONE"
+text = "UPGRADE_PICK_ONE"
 vertical_alignment = 1
 
 [node name="TopLine" type="ColorRect" parent="Root/Center/Panel/Column"]

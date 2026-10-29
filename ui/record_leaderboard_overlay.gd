@@ -106,7 +106,7 @@ func _clear_rows() -> void:
 func _make_empty_hint() -> Label:
 	var hint: Label = Label.new()
 	hint.theme_type_variation = &"RunSummaryHint"
-	hint.text = "NO RECORDS YET"
+	hint.text = tr("PROFILE_NO_RECORDS")
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return hint
 

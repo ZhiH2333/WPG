@@ -53,13 +53,13 @@ theme_override_constants/separation = 24
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "PLAY"
+text = "MENU_PLAY"
 
 [node name="Subtitle" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageSubtitle"
-text = "Choose a run"
+text = "PLAY_SUBTITLE"
 
 [node name="Gap" type="Control" parent="Sheet/Column"]
 layout_mode = 2
@@ -112,13 +112,13 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "CONTINUE"
+text = "MENU_CONTINUE"
 
 [node name="Caption" type="Label" parent="Sheet/Column/Rail/Continue/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Resume run"
+text = "SAVE_CAPTION_IN_PROGRESS"
 
 [node name="Solo" type="Button" parent="Sheet/Column/Rail"]
 custom_minimum_size = Vector2(0, 84)
@@ -155,13 +155,13 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "SOLO"
+text = "MENU_SOLO"
 
 [node name="Caption" type="Label" parent="Sheet/Column/Rail/Solo/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Records"
+text = "PLAY_RECORDS_CAPTION"
 
 [node name="Multi" type="Button" parent="Sheet/Column/Rail"]
 custom_minimum_size = Vector2(0, 84)
@@ -198,13 +198,13 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "MULTIPLAYER"
+text = "MENU_MULTIPLAYER"
 
 [node name="Caption" type="Label" parent="Sheet/Column/Rail/Multi/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Rooms"
+text = "PLAY_ROOMS_CAPTION"
 
 [node name="BottomLine" type="ColorRect" parent="Sheet/Column"]
 custom_minimum_size = Vector2(0, 1)
@@ -218,7 +218,7 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 0
 theme_type_variation = &"EmptyButtonMuted"
-text = "Back"
+text = "COMMON_BACK"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 bus = &"SFX"

@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"swift"
-title = "Swift"
-description = "Move speed +12%"
+title = "UPGRADE_SWIFT_TITLE"
+description = "UPGRADE_SWIFT_DESC"
 kind = 1
 value = 0.12
 stackable = true

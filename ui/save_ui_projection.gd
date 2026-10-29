@@ -20,33 +20,33 @@ const STATUS_FAILED := "FAILED"
 
 ## 界面上的状态**文字**。色觉不敏感用户靠它，不靠颜色（§3：不能只用颜色区分）。
 const STATUS_TEXT: Dictionary = {
-	STATUS_NEW: "NEW",
-	STATUS_IN_PROGRESS: "IN PROGRESS",
-	STATUS_CLEARED: "COMPLETED",
-	STATUS_FAILED: "FAILED",
+	STATUS_NEW: "SAVE_STATUS_NEW",
+	STATUS_IN_PROGRESS: "SAVE_STATUS_IN_PROGRESS",
+	STATUS_CLEARED: "SAVE_STATUS_CLEARED",
+	STATUS_FAILED: "SAVE_STATUS_FAILED",
 }
 
 ## rail 标题 = 「这个存档现在该干什么」。
 const RAIL_TEXT: Dictionary = {
-	STATUS_NEW: "NEW SAVE",
-	STATUS_IN_PROGRESS: "CONTINUE",
-	STATUS_CLEARED: "COMPLETED",
-	STATUS_FAILED: "RETRY",
+	STATUS_NEW: "SAVE_RAIL_NEW",
+	STATUS_IN_PROGRESS: "MENU_CONTINUE",
+	STATUS_CLEARED: "SAVE_STATUS_CLEARED",
+	STATUS_FAILED: "SAVE_RAIL_FAILED",
 }
 
 ## rail 标题下面那行 = 跟 SOLO「New run」、MULTIPLAYER「Play with friends」一样的一句话，
 ## **不放具体数字**（Loop / Score / Best 这些去档位列表那一排和详情浮层里看）。
 const RAIL_CAPTION: Dictionary = {
-	STATUS_NEW: "New run",
-	STATUS_IN_PROGRESS: "Resume run",
-	STATUS_CLEARED: "Start over",
-	STATUS_FAILED: "Try again",
+	STATUS_NEW: "SAVE_CAPTION_NEW",
+	STATUS_IN_PROGRESS: "SAVE_CAPTION_IN_PROGRESS",
+	STATUS_CLEARED: "SAVE_CAPTION_CLEARED",
+	STATUS_FAILED: "SAVE_CAPTION_FAILED",
 }
 
 const RESULT_TEXT: Dictionary = {
-	RunResult.OUTCOME_CLEARED: "CLEARED",
-	RunResult.OUTCOME_DEAD: "DEAD",
-	RunResult.OUTCOME_QUIT: "QUIT",
+	RunResult.OUTCOME_CLEARED: "RESULT_CLEARED",
+	RunResult.OUTCOME_DEAD: "RESULT_DEAD",
+	RunResult.OUTCOME_QUIT: "RESULT_QUIT",
 }
 
 var slot_id: String = ""
@@ -180,8 +180,8 @@ static func xp_needed_for_level(level: int) -> int:
 
 static func status_label(value: String) -> String:
 	if STATUS_TEXT.has(value):
-		return String(STATUS_TEXT[value])
-	return String(STATUS_TEXT[STATUS_NEW])
+		return WpgI18n.t(String(STATUS_TEXT[value]))
+	return WpgI18n.t(String(STATUS_TEXT[STATUS_NEW]))
 
 
 static func format_score(value: int) -> String:
@@ -208,7 +208,7 @@ func identity_line() -> String:
 
 func loop_goal_text() -> String:
 	if loop_goal <= 0:
-		return "Inf"
+		return WpgI18n.t("LOOP_INFINITE")
 	return str(loop_goal)
 
 
@@ -222,25 +222,25 @@ func progress_facts() -> Array[Dictionary]:
 	match status:
 		STATUS_IN_PROGRESS:
 			return [
-				_fact("Loop", _active_loop_value(), "loop"),
-				_fact("Level", "%d  ·  XP %d / %d" % [level, xp, xp_to_next], "level"),
-				_fact("Gold", str(gold), "gold"),
-				_fact("Score", format_score(score), "score"),
+				_fact(WpgI18n.t("SAVE_FACT_LOOP"), _active_loop_value(), "loop"),
+				_fact(WpgI18n.t("SAVE_FACT_LEVEL"), WpgI18n.t("SAVE_FACT_LEVEL_XP") % [level, xp, xp_to_next], "level"),
+				_fact(WpgI18n.t("SAVE_FACT_GOLD"), str(gold), "gold"),
+				_fact(WpgI18n.t("SAVE_FACT_SCORE"), format_score(score), "score"),
 			]
 		STATUS_CLEARED:
 			return [
 				_fact("", _cleared_loop_line(), "loop"),
-				_fact("Best Score", format_score(best_score), "best"),
+				_fact(WpgI18n.t("SAVE_FACT_BEST_SCORE"), format_score(best_score), "best"),
 			]
 		STATUS_FAILED:
 			return [
-				_fact("", "Failed at loop %d" % loop_index, "loop"),
-				_fact("Best Score", format_score(best_score), "best"),
+				_fact("", WpgI18n.t("SAVE_FAILED_AT") % loop_index, "loop"),
+				_fact(WpgI18n.t("SAVE_FACT_BEST_SCORE"), format_score(best_score), "best"),
 			]
 		_:
 			return [
-				_fact("", "Not started", "loop"),
-				_fact("Loop goal", loop_goal_text(), "goal"),
+				_fact("", WpgI18n.t("SAVE_NOT_STARTED"), "loop"),
+				_fact(WpgI18n.t("SAVE_FACT_LOOP_GOAL"), loop_goal_text(), "goal"),
 			]
 
 
@@ -257,44 +257,44 @@ func progress_lines() -> PackedStringArray:
 func time_label() -> String:
 	match status:
 		STATUS_IN_PROGRESS:
-			return "Updated %s" % _relative_time(updated_at)
+			return WpgI18n.t("SAVE_TIME_UPDATED") % _relative_time(updated_at)
 		STATUS_CLEARED:
-			return "Completed %s" % _relative_time(last_history_at if last_history_at > 0 else updated_at)
+			return WpgI18n.t("SAVE_TIME_COMPLETED") % _relative_time(last_history_at if last_history_at > 0 else updated_at)
 		STATUS_FAILED:
-			return "Failed %s" % _relative_time(last_history_at if last_history_at > 0 else updated_at)
+			return WpgI18n.t("SAVE_TIME_FAILED") % _relative_time(last_history_at if last_history_at > 0 else updated_at)
 		_:
-			return "Created %s" % _relative_time(created_at)
+			return WpgI18n.t("SAVE_TIME_CREATED") % _relative_time(created_at)
 
 
 func rail_title() -> String:
 	if RAIL_TEXT.has(status):
-		return String(RAIL_TEXT[status])
-	return String(RAIL_TEXT[STATUS_NEW])
+		return WpgI18n.t(String(RAIL_TEXT[status]))
+	return WpgI18n.t(String(RAIL_TEXT[STATUS_NEW]))
 
 
 ## Home / Play 的 Continue 指标区第二行：一句简单描述，跟 SOLO / MULTIPLAYER 同款，
 ## 不带 Loop / Score / Best 这些具体数字（§6）。
 func rail_caption() -> String:
 	if RAIL_CAPTION.has(status):
-		return String(RAIL_CAPTION[status])
-	return String(RAIL_CAPTION[STATUS_NEW])
+		return WpgI18n.t(String(RAIL_CAPTION[status]))
+	return WpgI18n.t(String(RAIL_CAPTION[STATUS_NEW]))
 
 
 ## 点开 ACTIVE 存档后的详情（§4）。
 func detail_rows() -> Array[Dictionary]:
 	return [
-		{"label": "SAVE NAME", "value": display_name},
-		{"label": "STATUS", "value": status_label_text()},
-		{"label": "ARENA", "value": arena_label},
-		{"label": "CHARACTER", "value": character_label},
-		{"label": "LOOP", "value": loop_cell()},
-		{"label": "LEVEL", "value": str(level)},
-		{"label": "XP", "value": "%d / %d" % [xp, xp_to_next]},
-		{"label": "GOLD", "value": str(gold)},
-		{"label": "SCORE", "value": format_score(score)},
-		{"label": "LAST SAVED", "value": last_saved_label()},
-		{"label": "BEST SCORE", "value": format_score(best_score)},
-		{"label": "LAST RESULT", "value": last_result_label()},
+		{"label": WpgI18n.t("SAVE_DETAIL_NAME"), "value": display_name},
+		{"label": WpgI18n.t("SAVE_DETAIL_STATUS"), "value": status_label_text()},
+		{"label": WpgI18n.t("ARENA_HEADER"), "value": arena_label},
+		{"label": WpgI18n.t("CHARACTER_HEADER"), "value": character_label},
+		{"label": WpgI18n.t("SAVE_DETAIL_LOOP"), "value": loop_cell()},
+		{"label": WpgI18n.t("SAVE_DETAIL_LEVEL"), "value": str(level)},
+		{"label": WpgI18n.t("SAVE_DETAIL_XP"), "value": "%d / %d" % [xp, xp_to_next]},
+		{"label": WpgI18n.t("SAVE_DETAIL_GOLD"), "value": str(gold)},
+		{"label": WpgI18n.t("SAVE_DETAIL_SCORE"), "value": format_score(score)},
+		{"label": WpgI18n.t("SAVE_DETAIL_LAST_SAVED"), "value": last_saved_label()},
+		{"label": WpgI18n.t("SAVE_DETAIL_BEST_SCORE"), "value": format_score(best_score)},
+		{"label": WpgI18n.t("SAVE_DETAIL_LAST_RESULT"), "value": last_result_label()},
 	]
 
 
@@ -304,15 +304,15 @@ func delete_progress_line() -> String:
 
 func delete_history_line() -> String:
 	if history_count <= 0:
-		return "No runs yet"
-	return "%d run%s  ·  Best %s" % [history_count, "" if history_count == 1 else "s", format_score(best_score)]
+		return WpgI18n.t("SAVE_NO_RUNS")
+	return WpgI18n.t("SAVE_RUNS_ONE" if history_count == 1 else "SAVE_RUNS_MANY") % [history_count, format_score(best_score)]
 
 
 func last_result_label() -> String:
 	if last_result.is_empty():
 		return "—"
 	if RESULT_TEXT.has(last_result):
-		return String(RESULT_TEXT[last_result])
+		return WpgI18n.t(String(RESULT_TEXT[last_result]))
 	return last_result.to_upper()
 
 
@@ -347,8 +347,8 @@ static func _fact(key: String, value: String, kind: String) -> Dictionary:
 func _cleared_loop_line() -> String:
 	if loop_goal > 0:
 		var cleared: int = cleared_loop()
-		return "%d / %d loops" % [cleared, cleared]
-	return "Cleared loop %d" % loop_index
+		return WpgI18n.t("SAVE_CLEARED_LOOPS") % [cleared, cleared]
+	return WpgI18n.t("SAVE_CLEARED_LOOP") % loop_index
 
 
 func last_saved_label() -> String:
@@ -359,18 +359,18 @@ func last_saved_label() -> String:
 
 static func _relative_time(at: int) -> String:
 	if at <= 0:
-		return "just now"
+		return WpgI18n.t("TIME_JUST_NOW")
 	var now: int = int(Time.get_unix_time_from_system())
 	var delta: int = now - at
 	if delta < 0:
 		delta = 0
 	if delta < 60:
-		return "just now"
+		return WpgI18n.t("TIME_JUST_NOW")
 	if delta < 3600:
-		return "%dm ago" % (delta / 60)
+		return WpgI18n.t("TIME_MINUTES_AGO") % (delta / 60)
 	if delta < 86400:
-		return "%dh ago" % (delta / 3600)
-	return "%dd ago" % (delta / 86400)
+		return WpgI18n.t("TIME_HOURS_AGO") % (delta / 3600)
+	return WpgI18n.t("TIME_DAYS_AGO") % (delta / 86400)
 
 
 static func _is_recent_first(left: SaveSlot, right: SaveSlot) -> bool:
@@ -386,12 +386,12 @@ static func _is_recent_first(left: SaveSlot, right: SaveSlot) -> bool:
 static func _label_for_character(character_id: String) -> String:
 	var def: CharacterDef = CHARACTER_CATALOG.get_by_id(StringName(character_id))
 	if def != null and not def.display_name.is_empty():
-		return def.display_name
+		return WpgI18n.t(def.display_name)
 	return character_id
 
 
 static func _label_for_arena(arena_id: String) -> String:
 	var def: ArenaDef = ARENA_CATALOG.get_by_id(StringName(arena_id))
 	if def != null and not def.display_name.is_empty():
-		return def.display_name
+		return WpgI18n.t(def.display_name)
 	return arena_id

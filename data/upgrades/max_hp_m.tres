@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_script")
 id = &"max_hp_m"
-title = "Vitality II"
-description = "Max HP +40"
+title = "UPGRADE_MAX_HP_M_TITLE"
+description = "UPGRADE_MAX_HP_M_DESC"
 value = 40.0

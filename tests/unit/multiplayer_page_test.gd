@@ -16,6 +16,8 @@ func _initialize() -> void:
 
 func _run_all() -> void:
 	PlayerProfile.load_from_disk()
+	GameSettings.load_from_disk()
+	GameSettings.apply()
 	_case_main_menu_wiring()
 	var packed: PackedScene = load("res://ui/lan_overlay.tscn") as PackedScene
 	_expect(packed != null, "lan_overlay.tscn 能加载")
@@ -82,7 +84,7 @@ func _case_multiplayer_home(overlay: LanOverlay) -> void:
 	_expect(overlay._row_lan_rooms.visible, "LAN rooms 行存在")
 	_expect(overlay._row_join_invite.visible, "Join invite 行存在")
 	_expect(overlay._row_lan_rooms.get_node("Text/Caption").text != "", "LAN rooms 行右侧有 caption")
-	_expect(overlay._row_create.get_node("Text/Caption").text == "HOST A GAME", "Create room 行 caption")
+	_expect(tr(overlay._row_create.get_node("Text/Caption").text) == tr("LAN_HOME_HOST_CAPTION"), "Create room 行 caption")
 	_expect(not overlay._recent_title.visible, "还没有最近房间时不显示 RECENT")
 	_expect(overlay._home_nav.get_child_count() == overlay._home_rows.size() + overlay._home_rows.size() - 1, "导航行之间各一条分隔线")
 	_expect(overlay._row_create.get_node_or_null("Text/Arrow") != null, "导航行右侧有箭头")
@@ -144,13 +146,13 @@ func _case_join_invite(overlay: LanOverlay, net: LobbyNet) -> void:
 	_expect(overlay._resolve_join_address("my-lan-host") == "my-lan-host", "解析不到 IPv4 时按主机名原样用")
 	overlay._join_edit.text = ""
 	overlay._on_connect_pressed()
-	_expect(overlay._join_status.text == "no address", "空地址直接拒绝")
+	_expect(overlay._join_status.text == tr("ERROR_NO_ADDRESS"), "空地址直接拒绝")
 	_expect(not net.is_active(), "空地址不会建 peer")
 	overlay._show_qr_button.pressed.emit()
 	## Phase 8：QR 数据源已是真实 v6 JoinInvite。没有房间时不允许假装有 invite。
-	_expect(overlay._invite_notice.text.find("no room") >= 0, "无房间时 Show QR 明确报 no room")
+	_expect(overlay._invite_notice.text == tr("LAN_NO_ROOM"), "无房间时 Show QR 明确报 no room")
 	overlay._copy_invite_button.pressed.emit()
-	_expect(overlay._invite_notice.text.find("no room") >= 0, "无房间时 Copy invite 明确报 no room")
+	_expect(overlay._invite_notice.text == tr("LAN_NO_ROOM"), "无房间时 Copy invite 明确报 no room")
 	_expect(overlay.get_invite_uri().is_empty(), "无房间时没有 invite URI")
 
 ## Phase 8：有房间后 Copy Invite / Show QR 必须走真 JoinInvite（含 ticket）。
@@ -166,9 +168,9 @@ func _case_invite_uri_is_real(overlay: LanOverlay, manager: LobbyManager) -> voi
 	_expect(parsed.is_valid(), "UI 产出的 URI 能被 JoinInvite 解析")
 	_expect(parsed.token == manager.get_room_ticket(), "URI 里的 token 就是本房 ticket")
 	## UI 不许自己拼 URI：Notice 里不该出现裸 "wpg://" 拼装痕迹。
-	_expect(overlay._invite_notice.text.find("invite ready") >= 0, "Show QR 给出真实 invite 数据流反馈")
+	_expect(overlay._invite_notice.text.begins_with(tr("LAN_INVITE_READY").get_slice("%s", 0)), "Show QR 给出真实 invite 数据流反馈")
 	overlay._copy_invite_button.pressed.emit()
-	_expect(overlay._invite_notice.text.find("copied") >= 0, "Copy invite 给出复制反馈")
+	_expect(overlay._invite_notice.text == tr("LAN_INVITE_COPIED"), "Copy invite 给出复制反馈")
 
 func _case_recent(overlay: LanOverlay) -> void:
 	# 建房本身也会记一条（Host 的最近房间），这里先清空，只测去重与上限。
@@ -205,28 +207,28 @@ func _case_starting_and_disconnect(overlay: LanOverlay, manager: LobbyManager) -
 	_expect(overlay._view == LanOverlay.View.LOBBY, "进入 Lobby 核心页")
 	_expect(overlay._lobby_root.visible, "Lobby 页可见")
 	_expect(overlay._guest_seat_rows[0].modulate.a < 1.0, "进 Lobby 走行级错峰淡入")
-	_expect(overlay._lobby_connection.text.find("CONNECTED") >= 0, "连接行显示已连人数")
+	_expect(overlay._lobby_connection.text.contains(tr("LAN_CONNECTED_COUNT").get_slice("%d", 0).strip_edges()), "连接行显示已连人数")
 	var seats: Array = manager.get_snapshot()["seats"]
 	_expect(bool(seats[0]["is_host"]), "座位 1 是 Host")
 	_expect(bool(seats[1]["ready"]), "座位 2 已 READY")
 	_expect(manager.start_match(), "Host 开局")
-	_expect(overlay._lobby_connection.text.find("STARTING") >= 0, "Starting 显示 STARTING / LAUNCHING 文案")
+	_expect(overlay._lobby_connection.text.contains(tr("LAN_STARTING_LINE").get_slice(" ", 0)), "Starting 显示 STARTING / LAUNCHING 文案")
 	_expect(overlay._lobby_ready.disabled, "Starting 冻结 Ready 钮")
 	_expect(overlay._lobby_boar.disabled and overlay._lobby_chicken.disabled, "Starting 冻结角色钮")
 	manager.drop_peer(7)
-	_expect(overlay._lobby_connection.text.find("LEFT") >= 0, "掉线播放 PLAYERxx LEFT")
+	_expect(overlay._lobby_connection.text.contains(tr("LAN_PLAYER_LEFT").get_slice("%s", 1).strip_edges()), "掉线播放 PLAYERxx LEFT")
 	_expect(overlay._lobby_notice_playing, "提示播放期间不接受整体刷新（先播完再画 EMPTY SEAT）")
 
 ## 连接失败 / 协议不符 / Host 关闭：只在当前页的状态行出文案，不弹第二个大面板。
 func _case_network_failure_feedback(overlay: LanOverlay, manager: LobbyManager) -> void:
 	overlay._enter_invite()
 	manager.network_failed.emit("Version mismatch")
-	_expect(overlay._join_status.text == "Version mismatch", "协议不符在邀请页写明原因")
+	_expect(overlay._join_status.text == tr("LAN_VERSION_MISMATCH"), "协议不符在邀请页写明原因")
 	_expect(not overlay._connect_button.disabled, "失败后可以重试连接")
 	overlay._enter_lobby()
 	manager.network_failed.emit("host closed")
 	_expect(overlay._view == LanOverlay.View.INVITE, "Host 关闭后退回邀请页（1.0 无 reconnect）")
-	_expect(overlay._join_status.text == "host closed", "Host 关闭写明原因")
+	_expect(overlay._join_status.text == tr("LAN_HOST_CLOSED"), "Host 关闭写明原因")
 
 ## 退 Lobby：淡出结束后才回 MULTIPLAYER 首页（淡出是真 tween，所以要等它跑完）。
 func _case_lobby_exit(overlay: LanOverlay, manager: LobbyManager) -> void:

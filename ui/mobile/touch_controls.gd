@@ -66,13 +66,13 @@ func _update_debug_status() -> void:
 	_debug_label.visible = show_status
 	if not show_status:
 		return
-	var source: String = "TOUCH" if _touch_input != null and _touch_input.is_touch_active() else "IDLE"
+	var source: String = tr("TOUCH_SOURCE_TOUCH") if _touch_input != null and _touch_input.is_touch_active() else tr("TOUCH_SOURCE_IDLE")
 	var pi: PlayerInput = _touch_input.get_player_input() if _touch_input != null else null
 	var move: Vector2 = pi.move_vector if pi != null else Vector2.ZERO
 	var aim: Vector2 = pi.aim_vector if pi != null else Vector2.ZERO
 	var fire: bool = pi.fire_held if pi != null else false
-	_debug_label.text = "Touch: ON  Source: %s\nMove: %.2f, %.2f  Aim: %.2f, %.2f  Fire: %s" % [
-		source, move.x, move.y, aim.x, aim.y, str(fire),
+	_debug_label.text = tr("TOUCH_DEBUG_STATUS") % [
+		source, move.x, move.y, aim.x, aim.y, tr("COMMON_ON") if fire else tr("COMMON_OFF"),
 	]
 
 ## Manual Fire 同步：OFF = 右摇杆 Aim + Fire（FIRE 按钮隐藏）；
@@ -217,12 +217,12 @@ func set_ability_status(index: int, state: int, remaining_cooldown: float) -> vo
 func _ability_status_text(state: int, remaining_cooldown: float) -> String:
 	match state:
 		AbilityState.READY:
-			return "READY"
+			return tr("HUD_ABILITY_READY")
 		AbilityState.ACTIVE:
-			return "ACT"
+			return tr("HUD_ABILITY_ACTIVE")
 		AbilityState.COOLDOWN:
 			return "%.1f" % maxf(remaining_cooldown, 0.0)
-	return "OFF"
+	return tr("HUD_ABILITY_OFF")
 
 ## 由 CombatSandbox 依据 WeaponHost.get_current_index() 同步选中态，与 HUD 一致。
 func set_selected_weapon(index: int) -> void:

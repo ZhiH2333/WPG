@@ -57,13 +57,13 @@ static func make_rank_row(rank: int, record: GameRecord, max_score: int) -> Cont
 
 static func format_loop_badge(loop_goal: int) -> String:
 	if loop_goal > 0:
-		return "%d loops" % loop_goal
-	return "Inf"
+		return WpgI18n.t("LOOP_COUNT") % loop_goal
+	return WpgI18n.t("LOOP_INFINITE")
 
 static func format_arena_name(arena_id: String) -> String:
 	var def: ArenaDef = ARENA_CATALOG.get_by_id(StringName(arena_id))
 	if def != null and not def.display_name.is_empty():
-		return def.display_name
+		return WpgI18n.t(def.display_name)
 	return arena_id
 
 static func resolve_body_texture(character_id: String) -> Texture2D:
@@ -183,5 +183,5 @@ static func make_mark() -> ColorRect:
 static func _read_display_name(character_id: String) -> String:
 	var def: CharacterDef = CATALOG.get_by_id(StringName(character_id))
 	if def != null and not def.display_name.is_empty():
-		return def.display_name
+		return WpgI18n.t(def.display_name)
 	return character_id

@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"extra_pellets"
-title = "Extra Pellets"
-description = "Shotgun pellets +2"
+title = "UPGRADE_EXTRA_PELLETS_TITLE"
+description = "UPGRADE_EXTRA_PELLETS_DESC"
 kind = 6
 value = 2.0
 stackable = true

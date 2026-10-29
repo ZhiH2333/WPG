@@ -62,7 +62,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "RECORDS"
+text = "RECORDS_TITLE"
 
 [node name="Spacer" type="Control" parent="Sheet/Column/Header"]
 layout_mode = 2
@@ -76,7 +76,7 @@ size_flags_horizontal = 0
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "+ New Record"
+text = "RECORDS_NEW"
 
 [node name="Confirm" type="Button" parent="Sheet/Column/Header"]
 visible = false
@@ -86,7 +86,7 @@ size_flags_horizontal = 0
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "Create"
+text = "COMMON_CREATE"
 
 [node name="Back" type="Button" parent="Sheet/Column/Header"]
 custom_minimum_size = Vector2(120, 44)
@@ -95,7 +95,7 @@ size_flags_horizontal = 0
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"EmptyButtonMuted"
-text = "Back"
+text = "COMMON_BACK"
 
 [node name="Mark" type="ColorRect" parent="Sheet/Column/Header/Back"]
 visible = false
@@ -114,7 +114,7 @@ color = Color(0.96, 0.93, 0.88, 1)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageSubtitle"
-text = "Pick a save, or brand a new one"
+text = "RECORDS_SUBTITLE_LIST"
 
 [node name="TopLine" type="ColorRect" parent="Sheet/Column"]
 custom_minimum_size = Vector2(0, 1)
@@ -187,7 +187,7 @@ theme_override_constants/separation = 14
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "CHARACTER"
+text = "CHARACTER_HEADER"
 
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
@@ -238,13 +238,13 @@ theme_override_constants/separation = 4
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "Boar"
+text = "CHARACTER_BOAR_NAME"
 
 [node name="Desc" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "Tanky."
+text = "CHARACTER_BOAR_DESC"
 
 [node name="Chicken" type="Button" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters"]
 custom_minimum_size = Vector2(0, 96)
@@ -289,19 +289,19 @@ theme_override_constants/separation = 4
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "Chicken"
+text = "CHARACTER_CHICKEN_NAME"
 
 [node name="Desc" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "Hard to hit."
+text = "CHARACTER_CHICKEN_DESC"
 
 [node name="ArenaLabel" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "ARENA"
+text = "ARENA_HEADER"
 
 [node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
@@ -318,7 +318,7 @@ action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Yard"
+text = "ARENA_YARD_NAME"
 
 [node name="Pit" type="Button" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Arenas"]
 custom_minimum_size = Vector2(0, 52)
@@ -329,7 +329,7 @@ action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Pit"
+text = "ARENA_PIT_NAME"
 
 [node name="Keep" type="Button" parent="Sheet/Column/Content/EditorRoot/Scroll/Column/Arenas"]
 custom_minimum_size = Vector2(0, 52)
@@ -340,13 +340,13 @@ action_mode = 0
 button_group = SubResource("group_arena")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Keep"
+text = "ARENA_KEEP_NAME"
 
 [node name="LoopTitle" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "LOOP GOAL"
+text = "LOOP_GOAL_HEADER"
 
 [node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
@@ -369,20 +369,20 @@ custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "20 loops"
+text = "LOOP_COUNT"
 horizontal_alignment = 2
 
 [node name="NameTitle" type="Label" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "NAME (OPTIONAL)"
+text = "RECORDS_NAME_OPTIONAL"
 
 [node name="NameEdit" type="LineEdit" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 mouse_filter = 0
-placeholder_text = "Name (optional)"
+placeholder_text = "RECORDS_NAME_PLACEHOLDER"
 caret_blink = true
 
 [node name="BottomPad" type="Control" parent="Sheet/Column/Content/EditorRoot/Scroll/Column"]
@@ -431,7 +431,7 @@ theme_override_constants/separation = 16
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "DELETE SAVE?"
+text = "RECORDS_DELETE_TITLE"
 horizontal_alignment = 1
 
 [node name="Body" type="Label" parent="DeleteCenter/DeletePanel/Column"]
@@ -452,7 +452,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "This cannot be undone."
+text = "RECORDS_DELETE_WARNING"
 horizontal_alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="DeleteCenter/DeletePanel/Column"]
@@ -466,14 +466,14 @@ custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "Cancel"
+text = "COMMON_CANCEL"
 
 [node name="Delete" type="Button" parent="DeleteCenter/DeletePanel/Column/Buttons"]
 custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillRed"
-text = "Delete"
+text = "COMMON_DELETE"
 
 
 [node name="CompletedDimmer" type="ColorRect" parent="."]
@@ -511,7 +511,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "COMPLETED"
+text = "SAVE_STATUS_CLEARED"
 horizontal_alignment = 1
 
 [node name="Name" type="Label" parent="CompletedCenter/CompletedPanel/Column"]
@@ -525,7 +525,7 @@ horizontal_alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "This save has already been cleared."
+text = "RECORDS_COMPLETED_BODY"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -539,7 +539,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "Start over?"
+text = "RECORDS_START_OVER"
 horizontal_alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="CompletedCenter/CompletedPanel/Column"]
@@ -553,14 +553,14 @@ custom_minimum_size = Vector2(150, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "Start New Run"
+text = "RECORDS_START_NEW_RUN"
 
 [node name="Cancel" type="Button" parent="CompletedCenter/CompletedPanel/Column/Buttons"]
 custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "Cancel"
+text = "COMMON_CANCEL"
 
 
 [node name="DetailDimmer" type="ColorRect" parent="."]
@@ -598,7 +598,7 @@ theme_override_constants/separation = 16
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "SAVE"
+text = "RECORDS_DETAIL_TITLE"
 horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="DetailCenter/DetailPanel/Column"]
@@ -649,21 +649,21 @@ custom_minimum_size = Vector2(170, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "Continue Run"
+text = "RECORDS_CONTINUE_RUN"
 
 [node name="Delete" type="Button" parent="DetailCenter/DetailPanel/Column/Buttons"]
 custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillRed"
-text = "Delete"
+text = "COMMON_DELETE"
 
 [node name="Cancel" type="Button" parent="DetailCenter/DetailPanel/Column/Buttons"]
 custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "Cancel"
+text = "COMMON_CANCEL"
 
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]

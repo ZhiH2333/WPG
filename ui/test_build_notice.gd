@@ -20,12 +20,13 @@ class_name TestBuildNotice
 ## 玩家确认过设置、可以进主菜单了。宿主负责换场。
 signal started
 
-const LOADING_TEXT := "正在加载…"
+## 翻译 key；显示时过 tr()。
+const LOADING_TEXT := "NOTICE_LOADING"
 ## 整页左右留白（逻辑像素）。
 const PAGE_MARGIN: float = 40.0
 ## 内容列最大宽度。1920 宽下不再拉成一行长文；窄视口由 UiFit 收窄。
 const MAX_COLUMN_W: float = 720.0
-const TOUCH_HINT_ON := "ON adds a FIRE button; the right pad then only aims."
+const TOUCH_HINT_ON := "SETTINGS_TOUCH_FIRE_HINT"
 
 var _started: bool = false
 
@@ -49,7 +50,9 @@ static func should_show() -> bool:
 	return GameSettings.is_web_platform() and not GameSettings.is_test_build_notice_muted()
 
 
+## 提示页比主菜单早出现，此时还没读过 settings.cfg：先按默认语言（系统语言）把翻译挂上。
 func _ready() -> void:
+	WpgI18n.apply_locale(GameSettings.get_locale())
 	_fill_options()
 	_auto_check_fullscreen()
 	_sync_from_settings()
@@ -75,7 +78,7 @@ func has_started() -> bool:
 func lock_for_loading() -> void:
 	if not _started:
 		return
-	_start_button.text = LOADING_TEXT
+	_start_button.text = tr(LOADING_TEXT)
 	_start_button.disabled = true
 	_set_settings_enabled(false)
 
@@ -84,12 +87,12 @@ func lock_for_loading() -> void:
 ## 免得选项文案出现第二份。
 func _fill_options() -> void:
 	_touch_option.clear()
-	_touch_option.add_item("AUTO")
-	_touch_option.add_item("ON")
-	_touch_option.add_item("OFF")
+	_touch_option.add_item(tr("COMMON_AUTO"))
+	_touch_option.add_item(tr("COMMON_ON"))
+	_touch_option.add_item(tr("COMMON_OFF"))
 	_manual_fire_option.clear()
-	_manual_fire_option.add_item("OFF")
-	_manual_fire_option.add_item("ON")
+	_manual_fire_option.add_item(tr("COMMON_OFF"))
+	_manual_fire_option.add_item(tr("COMMON_ON"))
 
 
 ## 网页版进这一页就把全屏勾上。只写设置、不在这里调 apply()：
@@ -134,7 +137,7 @@ func _sync_touch_visibility() -> void:
 	var enabled: bool = GameSettings.is_touch_controls_option_visible()
 	_manual_fire_row.visible = enabled
 	_touch_hint.visible = enabled
-	_touch_hint.text = TOUCH_HINT_ON if enabled else ""
+	_touch_hint.text = tr(TOUCH_HINT_ON) if enabled else ""
 
 
 func _set_settings_enabled(enabled: bool) -> void:
@@ -147,11 +150,11 @@ func _set_settings_enabled(enabled: bool) -> void:
 
 
 func _sync_render_label(value: float) -> void:
-	_render_label.text = "Render Resolution  %d%%" % int(value)
+	_render_label.text = tr("SETTINGS_RENDER_SCALE") % int(value)
 
 
 func _sync_ui_label(value: float) -> void:
-	_ui_label.text = "UI Scale  %d%%" % int(value)
+	_ui_label.text = tr("SETTINGS_UI_SCALE") % int(value)
 
 
 func _on_fullscreen_toggled(pressed: bool) -> void:

@@ -1,16 +1,25 @@
 extends CanvasLayer
 class_name Hud
 
-## 最小战斗 HUD：左下 HP+武器+XP+gold，顶中句读。2 人 Battle 右上 RivalRow、Phrase 为 BATTLE。占用≥3 的 Co-op / Battle 右上 Roster 短血。只读 getter，禁止自管一份 HP。
+## 最小战斗 HUD：左下四枪槽+技能+HP+XP+gold，顶中句读。2 人 Battle 右上 RivalRow、Phrase 为 BATTLE。占用≥3 的 Co-op / Battle 右上 Roster 短血。只读 getter，禁止自管一份 HP。
 ## 血条/XP 条数值用指数缓动追目标（osu 式），数字仍瞬时；左下锚点布局不改。
 const HP_LOW_THRESHOLD: int = 20
 const BAR_SMOOTHING: float = 10.0
 const PHRASE_BAR_SMOOTHING: float = 6.0
 const ROSTER_MAX: int = 4
+const WEAPON_SLOT_MAX: int = 4
 const FILL_STYLE_NORMAL: StringName = &""
 const FILL_STYLE_LOW: StringName = &"ProgressBarLow"
 ## 桌面 HUD 的键位提示。只是显示，真实绑定在 InputMap（ability_0 / ability_1）。
 const ABILITY_KEY_HINTS := ["Q", "E"]
+const WEAPON_ACTIONS: PackedStringArray = [
+	"weapon_pistol",
+	"weapon_shotgun",
+	"weapon_rifle",
+	"weapon_smg",
+]
+const SELECTED_MODULATE := Color(1.0, 1.0, 1.0, 1.0)
+const IDLE_MODULATE := Color(1.0, 1.0, 1.0, 0.45)
 
 var _player: Player
 var _rival: Player
@@ -24,6 +33,7 @@ var _is_battle: bool = false
 var _bottom_reserve: float = 0.0
 var _roster_pawns: Array[Player] = [] ## 非本地，已按 seat 升序，长度 0～4
 var _roster_seats: PackedInt32Array = PackedInt32Array()
+var _weapon_labels: Array[Label] = []
 
 @onready var _bottom_left: VBoxContainer = $Root/BottomLeft
 @onready var _hp_bar: ProgressBar = $Root/BottomLeft/HpRow/HpBar
@@ -31,7 +41,7 @@ var _roster_seats: PackedInt32Array = PackedInt32Array()
 @onready var _xp_bar: ProgressBar = $Root/BottomLeft/XpRow/XpBar
 @onready var _xp_label: Label = $Root/BottomLeft/XpRow/XpLabel
 @onready var _xp_row: HBoxContainer = $Root/BottomLeft/XpRow
-@onready var _weapon_label: Label = $Root/BottomLeft/WeaponLabel
+@onready var _weapon_row: HBoxContainer = $Root/BottomLeft/WeaponRow
 @onready var _ability_label: Label = $Root/BottomLeft/AbilityLabel
 @onready var _gold_label: Label = $Root/BottomLeft/GoldLabel
 @onready var _phrase_row: HBoxContainer = $Root/PhraseRow
@@ -41,6 +51,15 @@ var _roster_seats: PackedInt32Array = PackedInt32Array()
 @onready var _rival_bar: ProgressBar = $Root/TopRight/RivalRow/HpBar
 @onready var _rival_label: Label = $Root/TopRight/RivalRow/HpLabel
 @onready var _roster: VBoxContainer = $Root/TopRight/Roster
+
+func _ready() -> void:
+	_weapon_labels.clear()
+	if _weapon_row == null:
+		return
+	for child: Node in _weapon_row.get_children():
+		var label: Label = child as Label
+		if label != null:
+			_weapon_labels.append(label)
 
 func bind_player(player: Player) -> void:
 	_player = player
@@ -104,7 +123,7 @@ func set_bottom_reserve(reserve: float) -> void:
 	_bottom_reserve = clamped
 	if _bottom_left == null:
 		return
-	_bottom_left.offset_top = -176.0 - _bottom_reserve
+	_bottom_left.offset_top = -200.0 - _bottom_reserve
 	_bottom_left.offset_bottom = -32.0 - _bottom_reserve
 
 func get_bottom_reserve() -> float:
@@ -142,7 +161,7 @@ func _refresh_xp(delta: float) -> void:
 		need = _run_session.get_xp_to_next()
 	_xp_bar.max_value = float(need)
 	_xp_bar.value = _approach_bar(_xp_bar.value, float(xp), delta)
-	_xp_label.text = "Lv.%d  %d/%d" % [level, xp, need]
+	_xp_label.text = tr("HUD_XP") % [level, xp, need]
 
 func _approach_bar(current: float, target: float, delta: float) -> float:
 	if absf(target - current) < 0.5:
@@ -161,7 +180,7 @@ func _refresh_gold() -> void:
 	var gold: int = 0
 	if _run_session != null:
 		gold = _run_session.get_gold()
-	_gold_label.text = "gold  %d" % gold
+	_gold_label.text = tr("HUD_GOLD") % gold
 
 func _apply_hp_fill(hp: int) -> void:
 	var is_low: bool = hp <= HP_LOW_THRESHOLD
@@ -173,15 +192,32 @@ func _apply_hp_fill(hp: int) -> void:
 		return
 	_hp_bar.theme_type_variation = FILL_STYLE_NORMAL
 
+## 四槽由真实 WeaponHost 子节点驱动；缺槽则隐藏，禁止伪造第四把枪。
 func _refresh_weapon() -> void:
-	if _weapon_host == null:
-		_weapon_label.text = "-"
+	if _weapon_labels.is_empty():
 		return
-	var weapon: Weapon = _weapon_host.get_current_weapon()
-	if weapon == null:
-		_weapon_label.text = "-"
-		return
-	_weapon_label.text = weapon.get_display_name()
+	var weapons: Array[Weapon] = []
+	var current: int = -1
+	if _weapon_host != null:
+		weapons = _weapon_host.get_weapons()
+		current = _weapon_host.get_current_index()
+	var count: int = mini(weapons.size(), WEAPON_SLOT_MAX)
+	for i: int in _weapon_labels.size():
+		var label: Label = _weapon_labels[i]
+		if i >= count:
+			label.visible = false
+			continue
+		label.visible = true
+		var weapon: Weapon = weapons[i]
+		var key_hint: String = _weapon_key_hint(i)
+		var name_text: String = tr(weapon.get_display_name()) if weapon != null else "-"
+		label.text = "%s %s" % [key_hint, name_text]
+		label.modulate = SELECTED_MODULATE if i == current else IDLE_MODULATE
+
+func _weapon_key_hint(slot: int) -> String:
+	if slot < 0 or slot >= WEAPON_ACTIONS.size():
+		return str(slot + 1)
+	return GameSettings.key_label_for_action(WEAPON_ACTIONS[slot])
 
 ## 桌面 HUD 只读 AbilityController 的状态，不自管第二套技能状态。
 ## 键位名只是提示；真正的绑定在 InputMap（ability_0 / ability_1）。
@@ -200,22 +236,22 @@ func _refresh_abilities() -> void:
 		var def: AbilityDef = controller.get_def(slot)
 		if def == null:
 			continue
-		parts.append("%s %s  %s" % [ABILITY_KEY_HINTS[slot], def.display_name.to_upper(), _ability_state_text(controller, slot)])
+		parts.append("%s %s  %s" % [ABILITY_KEY_HINTS[slot], tr(def.display_name).to_upper(), _ability_state_text(controller, slot)])
 	_ability_label.text = "   ".join(parts)
 
 func _ability_state_text(controller: AbilityController, slot: int) -> String:
 	match controller.get_state(slot):
 		AbilityState.READY:
-			return "READY"
+			return tr("HUD_ABILITY_READY")
 		AbilityState.ACTIVE:
-			return "ACT"
+			return tr("HUD_ABILITY_ACTIVE")
 		AbilityState.COOLDOWN:
 			return "%.1f" % maxf(controller.get_remaining_cooldown(slot), 0.0)
-	return "OFF"
+	return tr("HUD_ABILITY_OFF")
 
 func _refresh_phrase() -> void:
 	if _is_battle:
-		_round_label.text = "BATTLE"
+		_round_label.text = tr("HUD_BATTLE")
 		_phrase_bar.visible = false
 		return
 	_phrase_bar.visible = true
@@ -225,7 +261,7 @@ func _refresh_phrase() -> void:
 	var loop_index: int = 0
 	if _run_session != null:
 		loop_index = _run_session.get_loop_index()
-	_round_label.text = "Round %d" % (loop_index + 1)
+	_round_label.text = tr("HUD_ROUND") % (loop_index + 1)
 	_phrase_bar.max_value = float(EncounterPhrases.PHRASE_TOTAL)
 	_phrase_bar.value = _approach_phrase_bar(_phrase_bar.value, float(phrase_index))
 
@@ -240,7 +276,7 @@ func _refresh_rival(delta: float) -> void:
 		max_hp = health.get_max_hp()
 	_rival_bar.max_value = float(max_hp)
 	_rival_bar.value = _approach_bar(_rival_bar.value, float(hp), delta)
-	_rival_label.text = "rival  %d/%d" % [hp, max_hp]
+	_rival_label.text = tr("HUD_RIVAL") % [hp, max_hp]
 
 func _refresh_roster(delta: float) -> void:
 	if _roster == null or not _roster.visible:
@@ -272,7 +308,7 @@ func _refresh_roster_row(index: int, delta: float) -> void:
 		var seat: int = 0
 		if index < _roster_seats.size():
 			seat = _roster_seats[index]
-		label.text = "s%d  %d/%d" % [seat, hp, max_hp]
+		label.text = tr("HUD_SEAT_HP") % [seat, hp, max_hp]
 	if pawn.is_defeated() or hp <= 0:
 		row.modulate.a = 0.45
 		return

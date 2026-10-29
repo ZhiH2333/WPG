@@ -69,14 +69,14 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ShowcaseName"
-text = "LOADING"
+text = "LOADING_TITLE"
 horizontal_alignment = 1
 
 [node name="VersionLabel" type="Label" parent="Root/Center/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "version  1.0.0"
+text = "COMMON_VERSION"
 horizontal_alignment = 1
 
 [node name="BarTrack" type="ColorRect" parent="Root/Center/Column"]
@@ -99,5 +99,5 @@ color = Color(1, 0.55, 0.76, 1)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "loading"
+text = "LOADING_STATUS"
 horizontal_alignment = 1

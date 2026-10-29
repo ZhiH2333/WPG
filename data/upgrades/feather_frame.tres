@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"feather_frame"
-title = "Feather Frame"
-description = "I-frames +0.12s"
+title = "UPGRADE_FEATHER_FRAME_TITLE"
+description = "UPGRADE_FEATHER_FRAME_DESC"
 kind = 5
 value = 0.12
 character_id = "chicken"

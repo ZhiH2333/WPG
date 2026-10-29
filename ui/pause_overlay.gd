@@ -41,6 +41,7 @@ func _ready() -> void:
 	layer = 25
 	visible = false
 	_open = false
+	add_to_group("wpg_locale")
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
@@ -217,11 +218,16 @@ func _on_settings_pressed() -> void:
 	_overlay.move_to_front()
 	_top_bar.move_to_front()
 
+## 设置抽屉里切语言后，动态文案（统计 / 阶段 / 时长）立刻按新语言重写。
+func refresh_locale() -> void:
+	_refresh_stats()
+	_refresh_run_status()
+
 func _refresh_stats() -> void:
 	if _session == null:
-		_stats_label.text = "loop  0    gold  0    kills  0"
+		_stats_label.text = tr("PAUSE_STATS") % [0, 0, 0]
 		return
-	var text: String = "loop  %d    gold  %d    kills  %d" % [
+	var text: String = tr("PAUSE_STATS") % [
 		_session.get_loop_index(),
 		_session.get_gold(),
 		_session.get_kill_count(),
@@ -244,17 +250,17 @@ func _saved_line() -> String:
 	var loop_index: int = 0
 	if checkpoint.shared_state != null:
 		loop_index = checkpoint.shared_state.loop_index
-	return "saved  loop %d  ·  %s" % [loop_index, RunCheckpoint.kind_name(checkpoint.checkpoint_kind)]
+	return tr("PAUSE_SAVED") % [loop_index, tr("CHECKPOINT_%s" % RunCheckpoint.kind_name(checkpoint.checkpoint_kind))]
 
 func _refresh_run_status() -> void:
 	var phase: String = "-"
 	if _encounter != null:
 		phase = _encounter.get_phrase_label()
-	_phase_label.text = "Phase  %s" % phase
+	_phase_label.text = tr("PAUSE_PHASE") % phase
 	var elapsed: float = 0.0
 	if _session != null:
 		elapsed = _session.get_elapsed_sec()
-	_playtime_label.text = "playtime  %s" % GameAudio.format_playtime(elapsed)
+	_playtime_label.text = tr("PAUSE_PLAYTIME") % GameAudio.format_playtime(elapsed)
 
 func _refresh_clock(force: bool) -> void:
 	var now: Dictionary = Time.get_time_dict_from_system()

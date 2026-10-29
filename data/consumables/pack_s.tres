@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"pack_s"
-display_name = "Pack S"
-description = "Restore 40 HP."
+display_name = "CONSUMABLE_PACK_S_NAME"
+description = "CONSUMABLE_PACK_S_DESC"
 shop_cost = 20
 kind = 0
 value = 40.0

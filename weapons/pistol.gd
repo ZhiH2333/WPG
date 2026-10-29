@@ -11,7 +11,7 @@ func _ready() -> void:
 	super._ready()
 
 func get_display_name() -> String:
-	return "Pistol"
+	return "WEAPON_PISTOL"
 
 func get_muzzle_local_offset() -> Vector2:
 	return Vector2(59, 13)

@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"long_shot"
-title = "Long Shot"
-description = "Projectile speed +80"
+title = "UPGRADE_LONG_SHOT_TITLE"
+description = "UPGRADE_LONG_SHOT_DESC"
 kind = 4
 value = 80.0
 stackable = true

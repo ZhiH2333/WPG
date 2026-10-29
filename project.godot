@@ -128,6 +128,11 @@ virtual_controller/ios/enable_button_b=true
 virtual_controller/ios/enable_button_x=true
 virtual_controller/ios/enable_button_y=true
 
+[internationalization]
+
+locale/fallback="en"
+locale/translations=PackedStringArray("res://locale/wpg.en.translation", "res://locale/wpg.zh_CN.translation")
+
 [layer_names]
 
 2d_physics/layer_1="player"

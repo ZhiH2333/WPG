@@ -1580,6 +1580,7 @@ func flush_guest_input() -> void:
 		"fire": player_input.fire_held,
 		"dash": player_input.take_pending_dash(),
 		"weapon_slot": player_input.take_pending_weapon_slot(),
+		"ability_bits": player_input.take_pending_ability_bits(),
 	})
 
 func flush_net_snapshot() -> void:
@@ -1639,11 +1640,11 @@ func flush_net_snapshot() -> void:
 		buf.put_utf8_string(owned[i])
 	_net.send_snapshot(buf.data_array)
 
-func _on_net_input(seat: int, move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int) -> void:
+func _on_net_input(seat: int, move: Vector2, aim: Vector2, fire: bool, dash: bool, weapon_slot: int, ability_bits: int = 0) -> void:
 	var pawn: Player = _pawn_for_seat(seat)
 	if pawn == null:
 		return
-	pawn.get_player_input().apply_remote_frame(move, aim, fire, dash, weapon_slot)
+	pawn.get_player_input().apply_remote_frame(move, aim, fire, dash, weapon_slot, ability_bits)
 
 func _on_net_snapshot(data: PackedByteArray) -> void:
 	if not _is_guest() or data.is_empty():

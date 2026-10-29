@@ -88,12 +88,14 @@ var _top_bar_nav_min: float = 0.0
 @onready var _lobby: LobbyManager = $LobbyManager
 
 func _ready() -> void:
+	add_to_group("wpg_locale")
 	GameSettings.load_from_disk()
 	GameSettings.apply()
 	GameProgress.load_from_disk()
 	GameRecords.load_from_disk()
 	PlayerProfile.load_from_disk()
 	refresh_profile_label()
+	refresh_locale()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
@@ -429,9 +431,19 @@ func _leave_to_sandbox() -> void:
 func _finish_leave_to_sandbox() -> void:
 	LOADING_SCREEN_SCRIPT.switch_current(get_tree())
 
+func refresh_locale() -> void:
+	_solo_button.text = tr("MENU_SOLO")
+	_multi_button.text = tr("MENU_MULTIPLAYER")
+	_top_settings_button.text = tr("MENU_SETTINGS")
+	_top_multi_button.text = tr("MENU_MULTIPLAYER")
+	if _quit_button.visible:
+		_quit_button.text = tr("MENU_QUIT")
+	_refresh_player_labels()
+	_refresh_home_facts()
+
 func _refresh_player_labels() -> void:
 	_player_name.text = PlayerProfile.get_display_name()
-	_player_status.text = "Ready to play"
+	_player_status.text = tr("MENU_STATUS_READY")
 
 func _refresh_home_facts() -> void:
 	var cont: SaveUiProjection = get_continue_projection()

@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"stim"
-display_name = "Stim"
-description = "1.5s invincible. Once per shop."
+display_name = "CONSUMABLE_STIM_NAME"
+description = "CONSUMABLE_STIM_DESC"
 shop_cost = 35
 kind = 2
 value = 1.5

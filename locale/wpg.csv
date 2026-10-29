@@ -1,0 +1,377 @@
+keys,en,zh_CN
+HUD_GOLD,gold  %d,金币  %d
+HUD_ROUND,Round %d,第 %d 回合
+HUD_BATTLE,BATTLE,对战
+HUD_RIVAL,rival  %d/%d,对手  %d/%d
+HUD_ABILITY_READY,READY,就绪
+HUD_ABILITY_ACTIVE,ACT,生效
+HUD_ABILITY_OFF,OFF,关闭
+SETTINGS_LANGUAGE,Language,语言
+SETTINGS_LANGUAGE_EN,English,English
+SETTINGS_LANGUAGE_ZH_CN,简体中文,简体中文
+MENU_CONTINUE,CONTINUE,继续
+MENU_SOLO,SOLO,单人
+MENU_MULTIPLAYER,MULTIPLAYER,多人
+MENU_SETTINGS,SETTINGS,设置
+MENU_QUIT,Quit,退出
+LAN_MULTIPLAYER,MULTIPLAYER,多人联机
+LAN_START,START,开始
+LAN_CREATE_ROOM,CREATE ROOM,创建房间
+LAN_JOIN_INVITE,JOIN INVITE,加入邀请
+LAN_LAN_ROOMS,LAN ROOMS,局域网房间
+LAN_QUICK_JOIN,QUICK JOIN,快速加入
+LAN_CONNECT,Connect,连接
+LAN_COPY_INVITE,Copy invite,复制邀请
+LAN_NO_ROOMS,no rooms,暂无房间
+LAN_CONNECTING,connecting,连接中
+LAN_REFUSED,refused,已拒绝
+LAN_BAD_TICKET,bad ticket,票据无效
+LAN_HOST_CLOSED,host closed,房主已关闭
+ERROR_BIND_FAILED,bind failed,端口占用
+ERROR_NO_ADDRESS,no address,无地址
+COMMON_BACK,Back,返回
+COMMON_OK,OK,确定
+COMMON_CANCEL,Cancel,取消
+COMMON_DELETE,Delete,删除
+COMMON_CREATE,Create,创建
+COMMON_RETRY,Retry,重试
+COMMON_MENU,Menu,菜单
+COMMON_ON,ON,开
+COMMON_OFF,OFF,关
+COMMON_AUTO,AUTO,自动
+COMMON_VERSION,version  %s,版本  %s
+MENU_HOME,HOME,首页
+MENU_PLAY,PLAY,开始
+MENU_PROFILE,PROFILE,档案
+MENU_MULTIPLAYER_CAPTION,Play with friends,和朋友一起玩
+MENU_STATUS_READY,Ready to play,准备就绪
+STATS_BEST_LOOP,BEST LOOP,最佳轮次
+STATS_LAST_RUN,LAST RUN,上次游玩
+STATS_LAST_LOOP,LAST LOOP,上次轮次
+STATS_RUNS,RUNS,游玩次数
+STATS_LAST_KILLS,Last kills  %d,上次击杀  %d
+STATS_LAST_GOLD,Last gold  %d,上次金币  %d
+PLAY_SUBTITLE,Choose a run,选择一局
+PLAY_RECORDS_CAPTION,Records,存档
+PLAY_ROOMS_CAPTION,Rooms,房间
+PROFILE_NAME_DEFAULT,Player,玩家
+PROFILE_SUBTITLE,local profile,本地档案
+PROFILE_NO_RECORDS,NO RECORDS YET,暂无存档
+RANKING_TITLE,RANKING,排行榜
+RANKING_SUBTITLE,Best score on every save,每个存档的最高分
+CHARACTER_HEADER,CHARACTER,角色
+CHARACTER_BOAR_NAME,Boar,野猪
+CHARACTER_BOAR_DESC,Tanky.,皮糙肉厚。
+CHARACTER_CHICKEN_NAME,Chicken,小鸡
+CHARACTER_CHICKEN_DESC,Hard to hit.,难以命中。
+ARENA_HEADER,ARENA,场地
+ARENA_YARD_NAME,Yard,庭院
+ARENA_PIT_NAME,Pit,深坑
+ARENA_KEEP_NAME,Keep,要塞
+LOOP_GOAL_HEADER,LOOP GOAL,目标轮数
+LOOP_COUNT,%d loops,%d 轮
+LOOP_INFINITE,Inf,无限
+MODE_COOP,Co-op,合作
+MODE_BATTLE,Battle,对战
+RECORDS_TITLE,RECORDS,存档
+RECORDS_NEW,+ New Record,+ 新建存档
+RECORDS_SUBTITLE_LIST,"Pick a save, or brand a new one",选择一个存档，或新建一个
+RECORDS_SUBTITLE_EDITOR,Brand a new save,新建一个存档
+RECORDS_NAME_OPTIONAL,NAME (OPTIONAL),名称（可选）
+RECORDS_NAME_PLACEHOLDER,Name (optional),名称（可选）
+RECORDS_DELETE_TITLE,DELETE SAVE?,删除存档？
+RECORDS_DELETE_WARNING,This cannot be undone.,此操作无法撤销。
+RECORDS_DELETE_BODY,Name: %s\nProgress: %s\nHistory: %s,名称：%s\n进度：%s\n历史：%s
+RECORDS_COMPLETED_BODY,This save has already been cleared.,该存档已通关。
+RECORDS_START_OVER,Start over?,重新开始？
+RECORDS_START_NEW_RUN,Start New Run,开始新一局
+RECORDS_CONTINUE_RUN,Continue Run,继续本局
+RECORDS_RETRY_RUN,Retry Run,重试本局
+RECORDS_DETAIL_TITLE,SAVE,存档
+SAVE_STATUS_NEW,NEW,新建
+SAVE_STATUS_IN_PROGRESS,IN PROGRESS,进行中
+SAVE_STATUS_CLEARED,COMPLETED,已完成
+SAVE_STATUS_FAILED,FAILED,失败
+SAVE_RAIL_NEW,NEW SAVE,新存档
+SAVE_RAIL_FAILED,RETRY,重试
+SAVE_CAPTION_NEW,New run,新的一局
+SAVE_CAPTION_IN_PROGRESS,Resume run,继续上次的一局
+SAVE_CAPTION_CLEARED,Start over,重新开始
+SAVE_CAPTION_FAILED,Try again,再试一次
+SAVE_FACT_LOOP,Loop,轮次
+SAVE_FACT_LEVEL,Level,等级
+SAVE_FACT_GOLD,Gold,金币
+SAVE_FACT_SCORE,Score,分数
+SAVE_FACT_BEST_SCORE,Best Score,最高分
+SAVE_FACT_LOOP_GOAL,Loop goal,目标轮数
+SAVE_FACT_LEVEL_XP,%d  ·  XP %d / %d,%d  ·  经验 %d / %d
+SAVE_FAILED_AT,Failed at loop %d,在第 %d 轮失败
+SAVE_NOT_STARTED,Not started,尚未开始
+SAVE_CLEARED_LOOPS,%d / %d loops,%d / %d 轮
+SAVE_CLEARED_LOOP,Cleared loop %d,已通过第 %d 轮
+SAVE_TIME_UPDATED,Updated %s,更新于 %s
+SAVE_TIME_COMPLETED,Completed %s,完成于 %s
+SAVE_TIME_FAILED,Failed %s,失败于 %s
+SAVE_TIME_CREATED,Created %s,创建于 %s
+TIME_JUST_NOW,just now,刚刚
+TIME_MINUTES_AGO,%dm ago,%d 分钟前
+TIME_HOURS_AGO,%dh ago,%d 小时前
+TIME_DAYS_AGO,%dd ago,%d 天前
+SAVE_DETAIL_NAME,SAVE NAME,存档名称
+SAVE_DETAIL_STATUS,STATUS,状态
+SAVE_DETAIL_LOOP,LOOP,轮次
+SAVE_DETAIL_LEVEL,LEVEL,等级
+SAVE_DETAIL_XP,XP,经验
+SAVE_DETAIL_GOLD,GOLD,金币
+SAVE_DETAIL_SCORE,SCORE,分数
+SAVE_DETAIL_LAST_SAVED,LAST SAVED,上次保存
+SAVE_DETAIL_BEST_SCORE,BEST SCORE,最高分
+SAVE_DETAIL_LAST_RESULT,LAST RESULT,上次结果
+SAVE_NO_RUNS,No runs yet,还没有对局
+SAVE_RUNS_ONE,%d run  ·  Best %s,%d 局  ·  最高 %s
+SAVE_RUNS_MANY,%d runs  ·  Best %s,%d 局  ·  最高 %s
+SAVE_DEFAULT_NAME,%s · %d loops,%s · %d 轮
+SAVE_DEFAULT_NAME_INF,%s · Inf,%s · 无限
+SETTINGS_TITLE,Settings,设置
+SETTINGS_SUBTITLE,Change game settings,调整游戏设置
+SETTINGS_SECTION_AUDIO,Audio,音频
+SETTINGS_SECTION_DISPLAY,Display,显示
+SETTINGS_SECTION_CONTROLS,Controls,操控
+SETTINGS_SECTION_DATA,Data,数据
+SETTINGS_VOLUME_MASTER,Master,主音量
+SETTINGS_VOLUME_MUSIC,Music,音乐
+SETTINGS_VOLUME_SFX,SFX,音效
+SETTINGS_FULLSCREEN,Fullscreen,全屏
+SETTINGS_RENDER_SCALE,Render Resolution  %d%%,渲染分辨率  %d%%
+SETTINGS_RENDER_HINT,Takes effect in combat / on Continue,进入战斗或继续游戏时生效
+SETTINGS_UI_SCALE,UI Scale  %d%%,界面缩放  %d%%
+SETTINGS_VSYNC,VSync,垂直同步
+SETTINGS_MSAA,MSAA,抗锯齿（MSAA）
+SETTINGS_MSAA_OFF,Off,关闭
+SETTINGS_DELETE_WARNING,Deletes progress and records. Settings are kept.,将删除进度和存档，设置会保留。
+SETTINGS_HOLD_DELETE,HOLD TO DELETE ALL DATA,长按以删除所有数据
+SETTINGS_DATA_DELETED,All data deleted.,已删除所有数据。
+SETTINGS_SEARCH_PLACEHOLDER,type to search,输入关键字搜索
+SETTINGS_TOUCH_CONTROLS,Touch Controls,触屏控制
+SETTINGS_MANUAL_FIRE,Manual Fire Button,手动开火按钮
+SETTINGS_TOUCH_FIRE_HINT,ON adds a FIRE button; the right pad then only aims.,开启后会出现开火按钮，右侧摇杆只负责瞄准。
+SETTINGS_RESTORE_DEFAULTS,RESTORE DEFAULTS,恢复默认
+SETTINGS_CONTROLS_RESTORED,Controls restored.,已恢复默认操控。
+SETTINGS_KEY_IN_USE,%s is used by %s.,%s 已被「%s」使用。
+SETTINGS_START_RESERVED,Start is reserved.,Start 键为系统保留。
+SETTINGS_GUIDE_RESERVED,Guide is reserved.,Guide 键为系统保留。
+SETTINGS_BIND_IN_USE,IN USE,已占用
+ACTION_MOVE_UP,Move Up,向上移动
+ACTION_MOVE_DOWN,Move Down,向下移动
+ACTION_MOVE_LEFT,Move Left,向左移动
+ACTION_MOVE_RIGHT,Move Right,向右移动
+ACTION_DASH,Dash,冲刺
+JOY_BACK,Back,返回键
+JOY_GUIDE,Guide,Guide 键
+JOY_START,Start,开始键
+JOY_LEFT_STICK,Left Stick,左摇杆
+JOY_RIGHT_STICK,Right Stick,右摇杆
+JOY_LEFT_SHOULDER,Left Shoulder,左肩键
+JOY_RIGHT_SHOULDER,Right Shoulder,右肩键
+JOY_DPAD_UP,D-pad Up,方向键上
+JOY_DPAD_DOWN,D-pad Down,方向键下
+JOY_DPAD_LEFT,D-pad Left,方向键左
+JOY_DPAD_RIGHT,D-pad Right,方向键右
+WEAPON_PISTOL,Pistol,手枪
+WEAPON_SHOTGUN,Shotgun,霰弹枪
+WEAPON_RIFLE,Rifle,步枪
+WEAPON_SMG,Smg,冲锋枪
+ABILITY_SURGE_NAME,Surge,突进
+ABILITY_SURGE_DESC,Briefly boosts move speed.,短时间提升移动速度。
+ABILITY_PULSE_NAME,Pulse,脉冲
+ABILITY_PULSE_DESC,Releases a short area pulse toward your aim.,朝瞄准方向放出一道短暂范围脉冲。
+HUD_XP,Lv.%d  %d/%d,等级 %d  %d/%d
+HUD_SEAT_HP,s%d  %d/%d,座%d  %d/%d
+HUD_ABILITY_PREVIEW,Q SURGE   E PULSE,Q 突进   E 脉冲
+SHOP_TITLE,SHOP,商店
+SHOP_PICK_GUN,Pick a gun,选择枪械
+SHOP_CONTINUE,Continue,继续
+SHOP_COMPANION_NONE,none,无
+SHOP_COMPANION_GUNNER,Gunner %d/%d,枪手 %d/%d
+SHOP_KIND_UPGRADE,Upgrade,升级
+SHOP_KIND_COMPANION,Companion,跟班
+SHOP_KIND_CONSUMABLE,Consumable,消耗品
+UPGRADE_PICK_ONE,PICK ONE,选择一项
+UPGRADE_BEAK_SHOT_TITLE,Beak Shot,啄击
+UPGRADE_BEAK_SHOT_DESC,Damage +4,伤害 +4
+UPGRADE_CADENCE_TITLE,Cadence,节奏
+UPGRADE_CADENCE_DESC,Fire rate +15%,射速 +15%
+UPGRADE_EXTRA_PELLETS_TITLE,Extra Pellets,额外弹丸
+UPGRADE_EXTRA_PELLETS_DESC,Shotgun pellets +2,霰弹枪弹丸 +2
+UPGRADE_FEATHER_FRAME_TITLE,Feather Frame,羽甲
+UPGRADE_FEATHER_FRAME_DESC,I-frames +0.12s,受击无敌 +0.12 秒
+UPGRADE_HEAVY_ROUND_TITLE,Heavy Round,重型弹药
+UPGRADE_HEAVY_ROUND_DESC,Damage +3,伤害 +3
+UPGRADE_LIGHT_STEP_TITLE,Light Step,轻盈步伐
+UPGRADE_LIGHT_STEP_DESC,Move speed +10%,移动速度 +10%
+UPGRADE_LONG_SHOT_TITLE,Long Shot,远射
+UPGRADE_LONG_SHOT_DESC,Projectile speed +80,弹速 +80
+UPGRADE_MAX_HP_M_TITLE,Vitality II,活力 II
+UPGRADE_MAX_HP_M_DESC,Max HP +40,最大生命 +40
+UPGRADE_MAX_HP_S_TITLE,Vitality I,活力 I
+UPGRADE_MAX_HP_S_DESC,Max HP +20,最大生命 +20
+UPGRADE_QUICK_PECK_TITLE,Quick Peck,快啄
+UPGRADE_QUICK_PECK_DESC,Fire rate +12%,射速 +12%
+UPGRADE_SECOND_SKIN_TITLE,Second Skin,第二层皮
+UPGRADE_SECOND_SKIN_DESC,I-frames +0.10s,受击无敌 +0.10 秒
+UPGRADE_STEADY_RIFLE_TITLE,Steady Rifle,稳定步枪
+UPGRADE_STEADY_RIFLE_DESC,Rifle max spread -2.0,步枪最大散布 -2.0
+UPGRADE_SWIFT_TITLE,Swift,迅捷
+UPGRADE_SWIFT_DESC,Move speed +12%,移动速度 +12%
+UPGRADE_THICK_HIDE_TITLE,Thick Hide,厚皮
+UPGRADE_THICK_HIDE_DESC,Knockback taken -20%,受到的击退 -20%
+CONSUMABLE_PACK_S_NAME,Pack S,小型血包
+CONSUMABLE_PACK_S_DESC,Restore 40 HP.,恢复 40 点生命。
+CONSUMABLE_PACK_L_NAME,Pack L,大型血包
+CONSUMABLE_PACK_L_DESC,Restore all HP.,恢复全部生命。
+CONSUMABLE_STIM_NAME,Stim,强化针
+CONSUMABLE_STIM_DESC,1.5s invincible. Once per shop.,无敌 1.5 秒。每次商店限用一次。
+COMPANION_GUNNER_NAME,Gunner,枪手
+COMPANION_GUNNER_DESC,Fights with a gun you pick.,使用你选择的枪战斗。
+PAUSE_TITLE,PAUSED,已暂停
+PAUSE_RETRY,RETRY,重试
+PAUSE_QUIT,QUIT,退出
+PAUSE_STATS,loop  %d    gold  %d    kills  %d,轮次  %d    金币  %d    击杀  %d
+PAUSE_PHASE,Phase  %s,阶段  %s
+PAUSE_PLAYTIME,playtime  %s,游玩时长  %s
+PAUSE_SAVED,saved  loop %d  ·  %s,已保存  第 %d 轮  ·  %s
+CHECKPOINT_RUN_START,RUN START,本局开始
+CHECKPOINT_LOOP_COMPLETE,LOOP COMPLETE,完成一轮
+CHECKPOINT_PLAYER_DECISION,PLAYER DECISION,玩家决策
+CHECKPOINT_SHOP_COMPLETE,SHOP COMPLETE,商店结束
+CHECKPOINT_PRE_EXIT,PRE EXIT,即将退出
+CHECKPOINT_TERMINAL,TERMINAL,本局结束
+RESULT_TITLE,RESULT,结算
+RESULT_CLEARED,CLEARED,通关
+RESULT_DEAD,DEAD,阵亡
+RESULT_QUIT,QUIT,已退出
+RESULT_DRAW,DRAW,平局
+RESULT_KO,KO,击倒
+RESULT_LAN,LAN,局域网
+RESULT_NEW_BEST,NEW BEST,新纪录
+RESULT_SCORE,score  %d,分数  %d
+RESULT_TIME,time  %.1fs,用时  %.1f 秒
+RESULT_CLEARED_BONUS,cleared  +5000,通关奖励  +5000
+RESULT_LOOP_MULT,loop  %d  ×1000,轮次  %d  ×1000
+RESULT_KILLS_MULT,kills  %d  ×5,击杀  %d  ×5
+RESULT_GOLD_MULT,gold  %d  ×2,金币  %d  ×2
+RESULT_SUMMARY,loop  %d    kills  %d    gold  %d    time  %.1fs,轮次  %d    击杀  %d    金币  %d    用时  %.1f 秒
+RESULT_THIS_RECORD,THIS RECORD,本存档
+RESULT_RANK,rank  %d / %d,排名  %d / %d
+RESULT_RANK_NONE,rank  -,排名  -
+RESULT_HISTORY_ROW,%d   L%d   %s   %.1fs,%d   第%d轮   %s   %.1f 秒
+LOADING_TITLE,LOADING,加载中
+LOADING_STATUS,loading,加载中
+LOADING_READY,ready,就绪
+LOADING_ITEM,loading  %s,加载中  %s
+NOTICE_HOST_CLOSED,Host closed the room. Returning to the menu.,房主已关闭房间，正在返回菜单。
+NOTICE_GUEST_LEFT,Guest left the room. Switched to solo.,访客已离开房间，已切换为单人。
+NOTICE_TEST_BUILD_TITLE,This is a test build,这是一个测试版构建
+NOTICE_TEST_BUILD_BODY,"You are playing a WPG test build. Bugs may occur, and it does not represent final quality.",您正在游玩的是 WPG 测试版，可能会出现 Bug，不代表最终品质
+NOTICE_REPORT_BUG,Report bugs or get help: zhih2333@gmail.com,报告 Bug 至：zhih2333@gmail.com 或获得帮助
+NOTICE_ADJUST_SETTINGS,Adjust your starting settings:,调整您的初始设置：
+NOTICE_DONT_SHOW_AGAIN,Don't show again,不再提示
+NOTICE_START_PLAYING,Start playing,开始游玩
+NOTICE_LOADING,Loading…,正在加载…
+CREDITS_TITLE,CREDITS,制作名单
+CREDITS_STUDIO,STUDIO,工作室
+CREDITS_IMPLEMENTATION,IMPLEMENTATION,程序实现
+CREDITS_CREATIVE,CREATIVE,创意
+CREDITS_ART,ART,美术
+CREDITS_SPECIAL_THANKS,SPECIAL THANKS,特别鸣谢
+CREDITS_ENGINE,ENGINE,引擎
+LAN_SUBTITLE,Play together,一起玩
+LAN_RECENT,RECENT,最近
+LAN_USE_RECORD,USE RECORD,使用存档
+LAN_USE_A_RECORD,Use a record,使用存档
+LAN_CUSTOM,+ Custom,+ 自定义
+LAN_PICK_LIVE,"Pick live, skip save",现场选择，不使用存档
+LAN_HOST,HOST,房主
+LAN_PORT,port  %d,端口  %d
+LAN_STATUS_WAITING,waiting,等待中
+LAN_PLAYERS,PLAYERS,玩家
+LAN_ROOM_SETTINGS,ROOM SETTINGS,房间设置
+LAN_PRIVACY_LAN,LAN visible,局域网可见
+LAN_PRIVACY_INVITE,Invite only,仅限邀请
+LAN_INVITE,Invite,邀请
+LAN_INVITE_HEADER,INVITE,邀请
+LAN_ROOM_ADDRESS,ROOM ADDRESS,房间地址
+LAN_GOAL,goal  %s,目标  %s
+LAN_MAP,map  %s,地图  %s
+LAN_MODE,mode  %s,模式  %s
+LAN_SEAT,seat  %d,座位  %d
+LAN_WAITING_FOR_HOST,waiting for host,等待房主
+LAN_SHOW_QR,Show QR,显示二维码
+LAN_SEARCH_PLACEHOLDER,search ip / map / mode,搜索 IP / 地图 / 模式
+LAN_NO_ROOM_CREATE,No room? Create one,没有房间？创建一个
+LAN_ROOM,ROOM,房间
+LAN_ROOM_OF,%s's Room,%s 的房间
+LAN_ROOM_FACTS_PREVIEW,CO-OP  ·  YARD  ·  GOAL 20,合作  ·  庭院  ·  目标 20
+LAN_CONNECTION_PREVIEW,LAN  ·  CONNECTED,局域网  ·  已连接
+LAN_BTN_READY,READY,准备
+LAN_BTN_NOT_READY,NOT READY,取消准备
+LAN_BTN_STARTING,STARTING,即将开始
+LAN_SEAT_HEADER_PLAYER,PLAYER,玩家
+LAN_SEAT_HEADER_STATE,STATE,状态
+LAN_PLAYER_N,PLAYER %02d,玩家 %02d
+LAN_PLAYER_LEFT,%s LEFT,%s 已离开
+LAN_EMPTY_SEAT,EMPTY SEAT,空座位
+LAN_STATE_CONNECTING,CONNECTING,连接中
+LAN_STATE_LOST,LOST,已掉线
+LAN_STATE_READY,READY,已准备
+LAN_STATE_WAITING,WAITING,等待中
+LAN_STARTING_LINE,STARTING  ·  ALL PLAYERS READY  ·  LAUNCHING...,即将开始  ·  所有玩家已准备  ·  正在启动...
+LAN_NETWORK_LAN,LAN,局域网
+LAN_NETWORK_OFFLINE,OFFLINE,离线
+LAN_CONNECTED_COUNT,CONNECTED  %d/%d,已连接  %d/%d
+LAN_STATUS_STARTING,starting · launching,即将开始 · 启动中
+LAN_STATUS_CONNECTED,%d/%d connected,已连接 %d/%d
+LAN_STATUS_OFFLINE_MOCK,offline mock,离线模拟
+LAN_STATUS_OFFLINE_SEATS,offline mock · %d seats,离线模拟 · %d 个座位
+LAN_HOME_HOST_CAPTION,HOST A GAME,创建一局游戏
+LAN_HOST_OVER_INTERNET,HOST OVER INTERNET,通过互联网创建
+LAN_HOST_WAN_CAPTION,P2P / WAN,P2P / 外网
+LAN_JOIN_INVITE_CAPTION,IP / INVITE,IP / 邀请
+LAN_CAPTION_SEARCHING,SEARCHING,搜索中
+LAN_CAPTION_FIRST_OPEN,FIRST OPEN ROOM,第一个空房间
+LAN_CAPTION_NO_OPEN,NO OPEN ROOM,没有空房间
+LAN_CAPTION_BIND_FAILED,DISCOVER BIND FAILED,发现端口绑定失败
+LAN_CAPTION_COUNT,%d ON THIS LAN,本网络 %d 个
+LAN_CAPTION_NONE,NONE FOUND YET,尚未发现房间
+LAN_NO_RENDEZVOUS,no rendezvous,无会合服务器
+LAN_NO_ROOM,no room,没有房间
+LAN_INVITE_COPIED,invite copied,邀请已复制
+LAN_INVITE_READY,invite ready: %s,邀请已就绪：%s
+LAN_INVITED_BY,invited by %s,%s 邀请了你
+LAN_SEARCHING,searching,搜索中
+LAN_DISCOVER_BIND_FAILED,discover bind failed,发现端口绑定失败
+LAN_INVITE_BAD,bad invite,邀请无效
+LAN_INVITE_EMPTY,empty invite,邀请为空
+LAN_INVITE_BAD_SCHEME,bad scheme,协议头无效
+LAN_VERSION_MISMATCH,Version mismatch,版本不匹配
+LAN_BAD_ADDRESS,bad address,地址无效
+LAN_BAD_PORT,bad port,端口无效
+LAN_BAD_IPV6,bad ipv6,IPv6 地址无效
+LAN_TICKET_REJECTED,ticket rejected,票据被拒绝
+LAN_BTN_STARTING_DOTS,STARTING...,即将开始...
+LAN_BTN_NEED_2,NEED 2 PLAYERS,需要 2 名玩家
+LAN_BTN_WAITING_PLAYERS,WAITING FOR PLAYERS,等待玩家
+LAN_BTN_CONNECTING,CONNECTING...,连接中...
+LAN_FULL,FULL,已满
+LAN_JOIN,JOIN,加入
+LAN_BATTLE_TAG,battle,对战
+GAMEPAD_DEBUG_NONE,No gamepad connected,没有连接手柄
+GAMEPAD_DEBUG_STATUS,"Gamepad %d (press G to hide)\nLeft stick: (%.2f, %.2f) len=%.2f\nRight stick: (%.2f, %.2f) len=%.2f\nRight trigger: %.2f  RB: %s\nD-pad: L=%s U=%s R=%s D=%s\nStick deadzone 0.25, trigger threshold 0.45","手柄 %d（按 G 隐藏）\n左摇杆: (%.2f, %.2f) len=%.2f\n右摇杆: (%.2f, %.2f) len=%.2f\n右扳机: %.2f  RB: %s\n十字键: L=%s U=%s R=%s D=%s\n摇杆死区 0.25，扳机阈值 0.45"
+TOUCH_DEBUG_STATUS,"Touch: ON  Source: %s\nMove: %.2f, %.2f  Aim: %.2f, %.2f  Fire: %s","触屏: 开  来源: %s\n移动: %.2f, %.2f  瞄准: %.2f, %.2f  开火: %s"
+TOUCH_SOURCE_TOUCH,TOUCH,触摸
+TOUCH_SOURCE_IDLE,IDLE,空闲
+LAN_ERR_TIMEOUT,connect timeout,连接超时
+LAN_ERR_CONNECTION_FAILED,connection failed,连接失败
+LAN_ERR_SOCKET,socket error,套接字错误
+LAN_ERR_UNKNOWN,connection failed (%s),连接失败（%s）
+WEAPON_GENERIC,Weapon,武器

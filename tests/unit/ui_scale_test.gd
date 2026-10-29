@@ -31,17 +31,30 @@ const PAGES := {
 }
 
 var _failures: PackedStringArray = PackedStringArray()
+var _locale_tag: String = ""
 
 func _initialize() -> void:
 	_run_all.call_deferred()
 
 func _run_all() -> void:
 	PlayerProfile.load_from_disk()
-	_case_width_math()
-	_case_pages_responsive()
-	_case_modal_panels_fit()
-	_case_remaining_pages()
-	await _case_settings_controls_fit()
+	GameSettings.load_from_disk()
+	var original_locale: String = GameSettings.get_locale()
+	## 每种支持语言各跑一遍：中文 / 英文的文案长度不同，布局都得放得下。
+	## 有的界面 _ready 会重读 settings.cfg，所以语言要像玩家真的选过一样先落盘。
+	for locale: String in WpgI18n.supported_locales():
+		_locale_tag = locale
+		GameSettings.set_locale(locale)
+		GameSettings.apply()
+		GameSettings.save_to_disk()
+		_case_width_math()
+		_case_pages_responsive()
+		_case_modal_panels_fit()
+		_case_remaining_pages()
+		await _case_settings_controls_fit()
+	GameSettings.set_locale(original_locale)
+	GameSettings.apply()
+	GameSettings.save_to_disk()
 	if _failures.is_empty():
 		print("UI_SCALE_OK")
 		quit(0)
@@ -197,7 +210,7 @@ func _case_modal_panels_fit() -> void:
 
 func _expect(condition: bool, label: String) -> void:
 	if not condition:
-		_failures.append(label)
+		_failures.append("[%s] %s" % [_locale_tag, label])
 ## 5) Settings 抽屉在 200% UI Scale（逻辑 540，真机 1080x2280）下必须整节都放得下。
 ##    之前一行绑定 = 标签 + 键盘钮 160 + 手柄钮 160（最小 ~433），Body 被撑得比面板还宽，
 ##    再被 Panel.clip_contents 裁掉 —— 用户看到的「凸出去」。现在：

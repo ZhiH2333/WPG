@@ -20,16 +20,18 @@ var _max_seats: int = GameLaunch.NET_MAX_SEATS
 var _net_play: int = 0
 var _loop_goal: int = 0
 var _arena_id: String = "yard"
-## 协议 6 新增：房间身份与 Host 名，供 LAN Rooms 显示 "NightFox's Room"。
-## 只是 discovery 展示元数据，**不是**认证 —— ticket 校验始终在 LobbyNet 里做。
+## 协议 6：房间身份、Host 名，以及 LAN_VISIBLE 房间的门票副本。
+## 门票只是让 Guest 能在 hello 里出示同一张票；本对象不校验、不接受、不拒绝任何人。
+## 校验仍在 LobbyNet.check_ticket()。INVITE ONLY 不起信标，票不会广播出去。
 var _room_id: String = ""
 var _host_display_name: String = ""
+var _ticket: String = ""
 var _rooms: Dictionary = {}
 var _bind_failed: bool = false
 
-func start_host(occupied: int, max_seats: int, net_play: int, loop_goal: int, arena_id: String, room_id: String = "", host_display_name: String = "") -> void:
+func start_host(occupied: int, max_seats: int, net_play: int, loop_goal: int, arena_id: String, room_id: String = "", host_display_name: String = "", ticket: String = "") -> void:
 	stop()
-	_apply_host_fields(occupied, max_seats, net_play, loop_goal, arena_id, room_id, host_display_name)
+	_apply_host_fields(occupied, max_seats, net_play, loop_goal, arena_id, room_id, host_display_name, ticket)
 	_udp = PacketPeerUDP.new()
 	var err: Error = _udp.bind(GameLaunch.NET_DISCOVER_PORT, "*")
 	if err != OK:
@@ -40,10 +42,10 @@ func start_host(occupied: int, max_seats: int, net_play: int, loop_goal: int, ar
 	_role = _Role.HOST
 	set_process(true)
 
-func update_host(occupied: int, max_seats: int, net_play: int, loop_goal: int, arena_id: String, room_id: String = "", host_display_name: String = "") -> void:
+func update_host(occupied: int, max_seats: int, net_play: int, loop_goal: int, arena_id: String, room_id: String = "", host_display_name: String = "", ticket: String = "") -> void:
 	if _role != _Role.HOST:
 		return
-	_apply_host_fields(occupied, max_seats, net_play, loop_goal, arena_id, room_id, host_display_name)
+	_apply_host_fields(occupied, max_seats, net_play, loop_goal, arena_id, room_id, host_display_name, ticket)
 
 func start_guest() -> void:
 	stop()
@@ -79,6 +81,14 @@ func get_rooms() -> Array[Dictionary]:
 		list.append(_public_room(_rooms[address] as Dictionary))
 	return list
 
+## 按发现到的地址取出门票，供 Guest 在 hello 里出示。列表展示不走这里，避免把票画到房间卡上。
+func ticket_for_address(address: String) -> String:
+	var key: String = _canonical_ipv4(address.strip_edges())
+	if key.is_empty() or not _rooms.has(key):
+		return ""
+	var room: Dictionary = _rooms[key] as Dictionary
+	return str(room.get("ticket", ""))
+
 func has_bind_failed() -> bool:
 	return _bind_failed
 
@@ -98,7 +108,7 @@ func _tick_guest(delta: float) -> void:
 	_send_accum = 0.0
 	_send_query()
 
-func _apply_host_fields(occupied: int, max_seats: int, net_play: int, loop_goal: int, arena_id: String, room_id: String = "", host_display_name: String = "") -> void:
+func _apply_host_fields(occupied: int, max_seats: int, net_play: int, loop_goal: int, arena_id: String, room_id: String = "", host_display_name: String = "", ticket: String = "") -> void:
 	_occupied = clampi(occupied, 1, 5)
 	_max_seats = max_seats
 	_net_play = net_play
@@ -106,6 +116,7 @@ func _apply_host_fields(occupied: int, max_seats: int, net_play: int, loop_goal:
 	_arena_id = GameLaunch._sanitize_arena_id(arena_id)
 	_room_id = _sanitize_display(room_id, 32)
 	_host_display_name = _sanitize_display(host_display_name, 24)
+	_ticket = _sanitize_ticket(ticket)
 
 ## Beacon 字段只用于显示，统一走保守字符集，避免广播包里塞控制字符 / 分隔符。
 static func _sanitize_display(value: String, limit: int) -> String:
@@ -121,6 +132,20 @@ static func _sanitize_display(value: String, limit: int) -> String:
 		if is_digit or is_lower or is_upper or c == 45 or c == 95:
 			out += char(c)
 	return out
+
+## 发现包里的门票必须是完整 hex。截断或夹带其它字符一律变成空票，让 Host 去拒绝，而不是放行半张票。
+static func _sanitize_ticket(value: String) -> String:
+	var text: String = value.strip_edges()
+	if text.length() < 8 or text.length() > 64:
+		return ""
+	for i: int in text.length():
+		var c: int = text.unicode_at(i)
+		var is_digit: bool = c >= 48 and c <= 57
+		var is_lower: bool = c >= 97 and c <= 102
+		var is_upper: bool = c >= 65 and c <= 70
+		if not (is_digit or is_lower or is_upper):
+			return ""
+	return text
 
 func _send_query() -> void:
 	if _udp == null or _role != _Role.GUEST:
@@ -150,6 +175,7 @@ func _encode_room() -> PackedByteArray:
 	## 协议 6 追加：room_id / host_display_name。解析侧按可见字节兜底，缺失即空串。
 	buf.put_utf8_string(_room_id)
 	buf.put_utf8_string(_host_display_name)
+	buf.put_utf8_string(_ticket)
 	return buf.data_array
 
 func _write_magic(buf: StreamPeerBuffer) -> void:
@@ -192,7 +218,7 @@ func _ingest_room(ip: String, packet: PackedByteArray) -> void:
 	parsed["last_msec"] = Time.get_ticks_msec()
 	var prev: Dictionary = _rooms.get(address, {}) as Dictionary
 	_rooms[address] = parsed
-	if _is_same_public_room(prev, parsed):
+	if _is_same_public_room(prev, parsed) and str(prev.get("ticket", "")) == str(parsed.get("ticket", "")):
 		return
 	rooms_changed.emit()
 
@@ -239,6 +265,9 @@ func _parse_room(packet: PackedByteArray) -> Dictionary:
 		room_id = _sanitize_display(buf.get_utf8_string(), 32)
 	if buf.get_available_bytes() > 0:
 		host_display_name = _sanitize_display(buf.get_utf8_string(), 24)
+	var ticket: String = ""
+	if buf.get_available_bytes() > 0:
+		ticket = _sanitize_ticket(buf.get_utf8_string())
 	return {
 		"occupied": occupied,
 		"max_seats": max_seats,
@@ -247,6 +276,7 @@ func _parse_room(packet: PackedByteArray) -> Dictionary:
 		"arena_id": arena_id,
 		"room_id": room_id,
 		"host_display_name": host_display_name,
+		"ticket": ticket,
 	}
 
 func _match_magic(buf: StreamPeerBuffer) -> bool:

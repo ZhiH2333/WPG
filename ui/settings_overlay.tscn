@@ -70,25 +70,25 @@ theme_override_constants/separation = 4
 unique_name_in_owner = true
 layout_mode = 2
 tab_icon = ExtResource("6_speaker")
-caption = "Audio"
+caption = "SETTINGS_SECTION_AUDIO"
 
 [node name="DisplayButton" parent="Drawer/Sidebar/Nav" instance=ExtResource("5_nav")]
 unique_name_in_owner = true
 layout_mode = 2
 tab_icon = ExtResource("7_monitor")
-caption = "Display"
+caption = "SETTINGS_SECTION_DISPLAY"
 
 [node name="ControlsButton" parent="Drawer/Sidebar/Nav" instance=ExtResource("5_nav")]
 unique_name_in_owner = true
 layout_mode = 2
 tab_icon = ExtResource("8_keyboard")
-caption = "Controls"
+caption = "SETTINGS_SECTION_CONTROLS"
 
 [node name="DataButton" parent="Drawer/Sidebar/Nav" instance=ExtResource("5_nav")]
 unique_name_in_owner = true
 layout_mode = 2
 tab_icon = ExtResource("9_database")
-caption = "Data"
+caption = "SETTINGS_SECTION_DATA"
 
 [node name="Panel" type="Control" parent="Drawer"]
 unique_name_in_owner = true
@@ -133,7 +133,7 @@ theme_override_constants/separation = 24
 [node name="AudioSection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
 unique_name_in_owner = true
 layout_mode = 2
-header_text = "Audio"
+header_text = "SETTINGS_SECTION_AUDIO"
 search_name = "Audio"
 
 [node name="VolumeBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/AudioSection/Body"]
@@ -145,7 +145,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Master"
+text = "SETTINGS_VOLUME_MASTER"
 
 [node name="VolumeSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/VolumeBlock"]
 unique_name_in_owner = true
@@ -167,7 +167,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Music"
+text = "SETTINGS_VOLUME_MUSIC"
 
 [node name="MusicSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/MusicBlock"]
 unique_name_in_owner = true
@@ -189,7 +189,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "SFX"
+text = "SETTINGS_VOLUME_SFX"
 
 [node name="SfxSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/AudioSection/Body/SfxBlock"]
 unique_name_in_owner = true
@@ -205,7 +205,7 @@ scrollable = false
 [node name="DisplaySection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
 unique_name_in_owner = true
 layout_mode = 2
-header_text = "Display"
+header_text = "SETTINGS_SECTION_DISPLAY"
 search_name = "Display"
 
 [node name="FullscreenRow" type="HBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
@@ -219,7 +219,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Fullscreen"
+text = "SETTINGS_FULLSCREEN"
 
 [node name="FullscreenCheck" type="CheckBox" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/FullscreenRow"]
 unique_name_in_owner = true
@@ -236,7 +236,7 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Render Resolution  100%"
+text = "SETTINGS_RENDER_SCALE"
 
 [node name="RenderScaleSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/RenderBlock"]
 unique_name_in_owner = true
@@ -253,7 +253,7 @@ scrollable = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "Takes effect in combat / on Continue"
+text = "SETTINGS_RENDER_HINT"
 
 [node name="UiBlock" type="VBoxContainer" parent="Drawer/Panel/Clip/Content/DisplaySection/Body"]
 layout_mode = 2
@@ -265,7 +265,7 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "UI Scale  100%"
+text = "SETTINGS_UI_SCALE"
 
 [node name="UiScaleSlider" type="HSlider" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/UiBlock"]
 unique_name_in_owner = true
@@ -289,7 +289,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "VSync"
+text = "SETTINGS_VSYNC"
 
 [node name="VsyncCheck" type="CheckBox" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/VsyncRow"]
 unique_name_in_owner = true
@@ -306,7 +306,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "MSAA"
+text = "SETTINGS_MSAA"
 
 [node name="MsaaOption" type="OptionButton" parent="Drawer/Panel/Clip/Content/DisplaySection/Body/MsaaBlock"]
 unique_name_in_owner = true
@@ -316,20 +316,20 @@ mouse_filter = 0
 [node name="ControlsSection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
 unique_name_in_owner = true
 layout_mode = 2
-header_text = "Controls"
+header_text = "SETTINGS_SECTION_CONTROLS"
 search_name = "Controls"
 
 [node name="DataSection" parent="Drawer/Panel/Clip/Content" instance=ExtResource("4_section")]
 unique_name_in_owner = true
 layout_mode = 2
-header_text = "Data"
+header_text = "SETTINGS_SECTION_DATA"
 search_name = "Data delete progress records credits about version"
 
 [node name="Warning" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "Deletes progress and records. Settings are kept."
+text = "SETTINGS_DELETE_WARNING"
 
 [node name="CreditsButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 unique_name_in_owner = true
@@ -338,7 +338,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "CREDITS"
+text = "CREDITS_TITLE"
 
 [node name="DeleteButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body" instance=ExtResource("3_hold")]
 unique_name_in_owner = true
@@ -347,7 +347,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "HOLD TO DELETE ALL DATA"
+text = "SETTINGS_HOLD_DELETE"
 
 [node name="StatusLabel" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 unique_name_in_owner = true
@@ -392,20 +392,20 @@ theme_override_constants/separation = 4
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SettingsHeader"
-text = "Settings"
+text = "SETTINGS_TITLE"
 
 [node name="Subtitle" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Change game settings"
+text = "SETTINGS_SUBTITLE"
 
 [node name="VersionLabel" type="Label" parent="Drawer/Panel/ExpandableHeader/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "version  1.0.0"
+text = "COMMON_VERSION"
 
 [node name="SearchWrap" type="MarginContainer" parent="Drawer/Panel"]
 unique_name_in_owner = true
@@ -426,7 +426,7 @@ theme_override_constants/margin_bottom = 6
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 0
-placeholder_text = "type to search"
+placeholder_text = "SETTINGS_SEARCH_PLACEHOLDER"
 caret_blink = true
 
 [node name="Preview" type="AudioStreamPlayer" parent="."]

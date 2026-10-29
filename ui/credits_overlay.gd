@@ -22,7 +22,7 @@ func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process_input(false)
-	_version_label.text = "version  %s" % GameSettings.get_version()
+	_version_label.text = tr("COMMON_VERSION") % GameSettings.get_version()
 	_hover_sfx.stream = GameAudio.load_wav("res://audio/ui_hover.wav")
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")

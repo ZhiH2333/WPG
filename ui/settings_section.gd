@@ -20,7 +20,7 @@ var _dim_tween: Tween
 @onready var dim: ColorRect = $Dim
 
 func _ready() -> void:
-	header.text = header_text.to_upper()
+	header.text = tr(header_text).to_upper()
 	if search_name.is_empty():
 		search_name = header_text
 	dim.mouse_entered.connect(_on_dim_hover.bind(true))
@@ -30,6 +30,10 @@ func _ready() -> void:
 	resized.connect(_fit)
 	_fit()
 	_apply_dim(true)
+
+## 语言切换后重写节标题（header_text 是翻译 key）。
+func refresh_locale() -> void:
+	header.text = tr(header_text).to_upper()
 
 func set_current(value: bool) -> void:
 	if is_current == value:

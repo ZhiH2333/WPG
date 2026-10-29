@@ -4,7 +4,7 @@
 
 当前事实：
 
-- 项目版本是 `1.0.0`
+- 项目版本是 `0.3.0`
 - 本机 Godot 是 `4.6.2`
 - GitHub 仓库默认分支现在是长期分支 `dev`，不是 `main`
 - `dev`、`dev/<name>`、`main` 的 push 都会触发 WPG CI
@@ -73,7 +73,7 @@ python3 tools/build_tools.py
 
 ## 准备正式发布 v0.4.0
 
-下面用 `0.4.0` 举例。现在仓库里的版本是 `1.0.0`，不要顺手改掉，除非你真的要发布。
+下面用 `0.4.0` 举例。现在仓库里的版本是 `0.3.0`，不要顺手改掉，除非你真的要发布。
 
 1. 用菜单 `9. Set Version`，输入 `0.4.0`。工具只改 `project.godot`。
 2. 把这个改动提交，并合并进 `main`。普通 push `main` **不会**创建 GitHub Release。
@@ -212,7 +212,8 @@ push dev
 1. **Build command / Publish directory 留空。** 仓库根的 `netlify.toml` 会覆盖它们；两边都填容易对不上。
 2. **Production branch = `dev`。** 这样只有 `dev` 的 commit 进正式站。
 3. **Branch deploys 保持 "Deploy only the production branch"**，除非你确实想给其它分支单独的预览地址。
-4. **Deploy Previews 建议关掉。** PR 到 `dev` 也会触发一次完整构建（要现下 Godot 和导出模板，几分钟）。`netlify.toml` 里已经有一行 `ignore = '[ "$CONTEXT" = "deploy-preview" ]'` 让它直接跳过；如果你确实想要 PR 预览地址，删掉那一行。这一行是「只在 preview 时跳过」，`$CONTEXT` 取不到时只会多构建，不会漏掉 `dev` 的正式部署。
+4. **Deploy Previews 建议关掉。** PR 到 `dev` 也会触发一次完整构建（要现下 Godot 和导出模板，几分钟）。`netlify.toml` 的 `ignore` 会在 `deploy-preview` 时直接跳过；如果你确实想要 PR 预览地址，删掉那段 preview 分支。
+5. **路径忽略。** `ignore` 还会在「相对上一成功部署，下列游戏/构建路径没有任何 diff」时跳过：`ui/`、`arena/`、`lobby/`、`locale/`、`tools/deploy/` 等（完整列表见 `netlify.toml`）。纯 `docs/`、`README.md`、`roadmap.md`、测试说明类提交不应再触发 Web 全量构建。首次部署或 `$CACHED_COMMIT_REF` 为空时仍会构建。
 
 还有一个前提：`netlify.toml` 必须**在 `dev` 分支上**。Netlify 读的是「这次要部署的那个分支」里的配置文件，`dev` 上没有它就只会用网页上的 Build settings（现在是空的），构建会找不到 publish 目录。
 

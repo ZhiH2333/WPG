@@ -56,7 +56,7 @@ theme_override_constants/separation = 20
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "PAUSED"
+text = "PAUSE_TITLE"
 horizontal_alignment = 1
 
 [node name="TopLine" type="ColorRect" parent="Root/Center/Panel/Column"]
@@ -107,7 +107,7 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "CONTINUE"
+text = "MENU_CONTINUE"
 vertical_alignment = 1
 
 [node name="Retry" type="Button" parent="Root/Center/Panel/Column"]
@@ -152,7 +152,7 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "RETRY"
+text = "PAUSE_RETRY"
 vertical_alignment = 1
 
 [node name="Quit" type="Button" parent="Root/Center/Panel/Column"]
@@ -197,7 +197,7 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "QUIT"
+text = "PAUSE_QUIT"
 vertical_alignment = 1
 
 [node name="BottomLine" type="ColorRect" parent="Root/Center/Panel/Column"]
@@ -210,7 +210,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "loop  0    gold  0    kills  0"
+text = "PAUSE_STATS"
 horizontal_alignment = 1
 
 [node name="TopBarLayer" type="CanvasLayer" parent="."]
@@ -238,8 +238,8 @@ layout_mode = 2
 focus_mode = 0
 mouse_filter = 0
 theme_type_variation = &"IconBarButton"
-tooltip_text = "Settings"
-text = "SETTINGS"
+tooltip_text = "SETTINGS_TITLE"
+text = "MENU_SETTINGS"
 icon = ExtResource("5_gear")
 
 [node name="Mark" type="ColorRect" parent="TopBarLayer/TopBar/Row/SettingsButton"]
@@ -273,7 +273,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Phase  -"
+text = "PAUSE_PHASE"
 vertical_alignment = 1
 
 [node name="PadR" type="Control" parent="TopBarLayer/TopBar/Row/PhaseBox"]
@@ -299,7 +299,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "playtime  00:00"
+text = "PAUSE_PLAYTIME"
 vertical_alignment = 1
 
 [node name="PadR" type="Control" parent="TopBarLayer/TopBar/Row/PlaytimeBox"]

@@ -224,20 +224,45 @@ func _on_lobby_joined() -> void:
 func _on_lobby_network_failed(reason: String) -> void:
 	if not _open:
 		return
+	var reason_text: String = _reason_text(reason)
 	if _view == View.HOST:
-		_host_status.text = reason
+		_host_status.text = reason_text
 		_play_error()
 		return
 	if _view == View.JOIN or _view == View.INVITE:
-		_join_status.text = reason
+		_join_status.text = reason_text
 		_connect_button.disabled = false
 		_play_error()
 		return
 	if _view == View.LOBBY:
 		# 先切页再写文案：_enter_invite() 会清空状态行。
 		_enter_invite()
-		_join_status.text = reason
+		_join_status.text = reason_text
 		_play_error()
+
+## LobbyManager.network_failed 发出的是稳定的原因码（测试和 e2e 都按码断言），
+## 这里统一翻成玩家可读文案；不认识的码带上原文，方便排查。
+func _reason_text(reason: String) -> String:
+	match reason:
+		"bind failed":
+			return tr("ERROR_BIND_FAILED")
+		"refused":
+			return tr("LAN_REFUSED")
+		"Version mismatch", "version_mismatch":
+			return tr("LAN_VERSION_MISMATCH")
+		"ticket rejected", "ticket_rejected":
+			return tr("LAN_TICKET_REJECTED")
+		"host closed":
+			return tr("LAN_HOST_CLOSED")
+		"no room":
+			return tr("LAN_NO_ROOM")
+		"connect_timeout":
+			return tr("LAN_ERR_TIMEOUT")
+		"connection_failed":
+			return tr("LAN_ERR_CONNECTION_FAILED")
+		"socket_error":
+			return tr("LAN_ERR_SOCKET")
+	return tr("LAN_ERR_UNKNOWN") % reason
 
 func _on_lobby_changed() -> void:
 	if not _open:
@@ -257,8 +282,8 @@ func _on_lobby_player_left(display_name: String, seat: int) -> void:
 		UiAnim.fade_modulate(self, row, 0.0, 0.18, true)
 	var who: String = display_name.strip_edges().to_upper()
 	if who.is_empty():
-		who = "PLAYER %02d" % seat
-	_lobby_connection.text = "%s LEFT" % who
+		who = tr("LAN_PLAYER_N") % seat
+	_lobby_connection.text = tr("LAN_PLAYER_LEFT") % who
 	UiAnim.flash_error(self, _lobby_connection)
 	_play_error()
 	_lobby_notice_playing = true
@@ -315,9 +340,9 @@ func _make_seat_header() -> HBoxContainer:
 	row.add_child(_make_seat_label("Name", &"Caption", 150.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
 	row.add_child(_make_seat_label("Character", &"Caption", 110.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
 	row.add_child(_make_seat_label("State", &"Caption", 96.0, Control.SIZE_SHRINK_BEGIN, HORIZONTAL_ALIGNMENT_LEFT))
-	(row.get_node("Name") as Label).text = "PLAYER"
-	(row.get_node("Character") as Label).text = "CHARACTER"
-	(row.get_node("State") as Label).text = "STATE"
+	(row.get_node("Name") as Label).text = tr("LAN_SEAT_HEADER_PLAYER")
+	(row.get_node("Character") as Label).text = tr("CHARACTER_HEADER")
+	(row.get_node("State") as Label).text = tr("LAN_SEAT_HEADER_STATE")
 	return row
 
 func _make_seat_label(node_name: String, variation: StringName, min_width: float, size_flags: int, align: int) -> Label:
@@ -353,7 +378,7 @@ func _apply_seat_row(rows: Array[HBoxContainer], index: int, seat_data: Dictiona
 	var character_label: Label = row.get_node("Character") as Label
 	var state_label: Label = row.get_node("State") as Label
 	if not bool(seat_data.get("occupied", false)):
-		name_label.text = "EMPTY SEAT"
+		name_label.text = tr("LAN_EMPTY_SEAT")
 		character_label.text = ""
 		state_label.text = ""
 		## 空位压暗，别让 4 行 EMPTY SEAT 抢走 PLAYERS 的注意力。
@@ -361,7 +386,7 @@ func _apply_seat_row(rows: Array[HBoxContainer], index: int, seat_data: Dictiona
 		return
 	row.modulate.a = 1.0
 	var display_name: String = str(seat_data.get("display_name", "")).to_upper()
-	name_label.text = display_name if not display_name.is_empty() else "CONNECTING"
+	name_label.text = display_name if not display_name.is_empty() else tr("LAN_STATE_CONNECTING")
 	character_label.text = _seat_character_text(str(seat_data.get("selected_character_id", "")))
 	state_label.text = _seat_state_text(seat_data)
 
@@ -374,13 +399,13 @@ func _refresh_guest_lobby(snapshot: Dictionary) -> void:
 	_lobby_room_facts.text = _room_facts(snapshot)
 	var networked: bool = bool(snapshot.get("networked", false))
 	var starting: bool = int(snapshot.get("room_state", Room.RoomState.FORMING)) == int(Room.RoomState.STARTING)
-	_lobby_connection.text = "STARTING  ·  ALL PLAYERS READY  ·  LAUNCHING..." if starting else "%s  ·  %s" % ["LAN" if networked else "OFFLINE", _connection_word(snapshot)]
+	_lobby_connection.text = tr("LAN_STARTING_LINE") if starting else "%s  ·  %s" % [tr("LAN_NETWORK_LAN") if networked else tr("LAN_NETWORK_OFFLINE"), _connection_word(snapshot)]
 	_sync_lobby_character_buttons()
 	var local_ready: bool = bool(snapshot.get("local_ready", false))
 	_lobby_ready.disabled = starting
 	_lobby_boar.disabled = starting
 	_lobby_chicken.disabled = starting
-	_lobby_ready.text = "STARTING" if starting else ("NOT READY" if local_ready else "READY")
+	_lobby_ready.text = tr("LAN_BTN_STARTING") if starting else (tr("LAN_BTN_NOT_READY") if local_ready else tr("LAN_BTN_READY"))
 	var local_host: bool = bool(snapshot.get("local_is_host", false))
 	_lobby_ready.visible = not local_host
 	_lobby_boar.visible = not local_host
@@ -389,8 +414,8 @@ func _refresh_guest_lobby(snapshot: Dictionary) -> void:
 func _room_title(snapshot: Dictionary) -> String:
 	var host_name: String = str(snapshot.get("host_display_name", ""))
 	if host_name.is_empty():
-		return "ROOM"
-	return "%s'S ROOM" % host_name
+		return tr("LAN_ROOM")
+	return tr("LAN_ROOM_OF") % host_name
 
 func _room_facts(snapshot: Dictionary) -> String:
 	var arena: String = RecordCard.format_arena_name(str(snapshot.get("arena_id", "yard")))
@@ -400,18 +425,18 @@ func _room_facts(snapshot: Dictionary) -> String:
 
 func _goal_text(snapshot: Dictionary) -> String:
 	if int(snapshot.get("net_play", 0)) == int(GameLaunch.NetPlay.BATTLE):
-		return "BATTLE"
+		return tr("MODE_BATTLE").to_upper()
 	return RecordCard.format_loop_badge(int(snapshot.get("loop_goal", 0)))
 
 func _mode_name(net_play: int) -> String:
-	return "BATTLE" if net_play == int(GameLaunch.NetPlay.BATTLE) else "CO-OP"
+	return tr("MODE_BATTLE").to_upper() if net_play == int(GameLaunch.NetPlay.BATTLE) else tr("MODE_COOP").to_upper()
 
 func _connection_word(snapshot: Dictionary) -> String:
 	var occupied: int = int(snapshot.get("occupied_count", 0))
 	var max_players: int = int(snapshot.get("max_players", GameLaunch.NET_MAX_SEATS))
 	if occupied <= 1:
-		return "WAITING"
-	return "CONNECTED  %d/%d" % [occupied, max_players]
+		return tr("LAN_STATE_WAITING")
+	return tr("LAN_CONNECTED_COUNT") % [occupied, max_players]
 
 func _sync_lobby_character_buttons() -> void:
 	var local: LobbyPlayer = _lobby.get_local_player() if _lobby != null else null
@@ -432,34 +457,34 @@ func _seat_character_text(character_id: String) -> String:
 	if character_id.is_empty():
 		return ""
 	var def: CharacterDef = CATALOG.get_by_id(StringName(character_id))
-	return (def.display_name if def != null else character_id).to_upper()
+	return (tr(def.display_name) if def != null else character_id).to_upper()
 
 func _seat_state_text(seat_data: Dictionary) -> String:
 	if bool(seat_data.get("pending", false)):
-		return "CONNECTING"
+		return tr("LAN_STATE_CONNECTING")
 	## Host 恒显示 HOST：它不参与 Start 判定，不该被画成 READY / WAITING。
 	if bool(seat_data.get("is_host", false)):
-		return "HOST"
+		return tr("LAN_HOST")
 	match int(seat_data.get("connection_state", LobbyPlayer.ConnectionState.CONNECTED)):
 		LobbyPlayer.ConnectionState.CONNECTING:
-			return "CONNECTING"
+			return tr("LAN_STATE_CONNECTING")
 		LobbyPlayer.ConnectionState.LOST:
-			return "LOST"
-	return "READY" if bool(seat_data.get("ready", false)) else "WAITING"
+			return tr("LAN_STATE_LOST")
+	return tr("LAN_STATE_READY") if bool(seat_data.get("ready", false)) else tr("LAN_STATE_WAITING")
 
 func _lobby_status_text(snapshot: Dictionary) -> String:
 	if not bool(snapshot.get("has_room", false)):
-		return "waiting"
+		return tr("LAN_STATUS_WAITING")
 	if int(snapshot.get("room_state", Room.RoomState.FORMING)) == int(Room.RoomState.STARTING):
-		return "starting · launching"
+		return tr("LAN_STATUS_STARTING")
 	if bool(snapshot.get("networked", false)):
 		var occupied: int = int(snapshot.get("occupied_count", 0))
 		if occupied <= 1:
-			return "waiting"
-		return "%d/%d connected" % [occupied, int(snapshot.get("max_players", GameLaunch.NET_MAX_SEATS))]
+			return tr("LAN_STATUS_WAITING")
+		return tr("LAN_STATUS_CONNECTED") % [occupied, int(snapshot.get("max_players", GameLaunch.NET_MAX_SEATS))]
 	if int(snapshot.get("player_count", 0)) <= 1:
-		return "offline mock"
-	return "offline mock · %d seats" % int(snapshot.get("player_count", 0))
+		return tr("LAN_STATUS_OFFLINE_MOCK")
+	return tr("LAN_STATUS_OFFLINE_SEATS") % int(snapshot.get("player_count", 0))
 
 func _process(delta: float) -> void:
 	if not _open:
@@ -650,11 +675,11 @@ func _enter_multiplayer() -> void:
 func _build_home_nav() -> void:
 	if _home_nav == null or _row_create != null:
 		return
-	_row_create = _make_home_row("CREATE ROOM", "HOST A GAME", _on_home_host_pressed)
-	_row_host_wan = _make_home_row("HOST OVER INTERNET", "P2P / WAN", _on_home_host_p2p_pressed)
-	_row_join_invite = _make_home_row("JOIN INVITE", "IP / INVITE", _on_home_invite_pressed)
-	_row_lan_rooms = _make_home_row("LAN ROOMS", "SEARCHING", _on_home_join_pressed)
-	_row_quick_join = _make_home_row("QUICK JOIN", "FIRST OPEN ROOM", _on_quick_join_pressed)
+	_row_create = _make_home_row("LAN_CREATE_ROOM", "LAN_HOME_HOST_CAPTION", _on_home_host_pressed)
+	_row_host_wan = _make_home_row("LAN_HOST_OVER_INTERNET", "LAN_HOST_WAN_CAPTION", _on_home_host_p2p_pressed)
+	_row_join_invite = _make_home_row("LAN_JOIN_INVITE", "LAN_JOIN_INVITE_CAPTION", _on_home_invite_pressed)
+	_row_lan_rooms = _make_home_row("LAN_LAN_ROOMS", "LAN_CAPTION_SEARCHING", _on_home_join_pressed)
+	_row_quick_join = _make_home_row("LAN_QUICK_JOIN", "LAN_CAPTION_FIRST_OPEN", _on_quick_join_pressed)
 	_home_rows = [_row_create, _row_host_wan, _row_join_invite, _row_lan_rooms, _row_quick_join]
 	for index: int in _home_rows.size():
 		if index > 0:
@@ -708,14 +733,14 @@ func _make_nav_divider() -> ColorRect:
 func _refresh_home_captions() -> void:
 	if _row_lan_rooms == null:
 		return
-	var caption: String = "LAN ROOMS"
+	var caption: String = tr("LAN_LAN_ROOMS")
 	if _beacon != null and _beacon.has_bind_failed():
-		caption = "DISCOVER BIND FAILED"
+		caption = tr("LAN_CAPTION_BIND_FAILED")
 	elif _beacon != null:
 		var count: int = _beacon.get_rooms().size()
-		caption = "%d ON THIS LAN" % count if count > 0 else "NONE FOUND YET"
+		caption = tr("LAN_CAPTION_COUNT") % count if count > 0 else tr("LAN_CAPTION_NONE")
 	_row_caption(_row_lan_rooms).text = caption
-	_row_caption(_row_quick_join).text = "FIRST OPEN ROOM" if _has_open_room() else "NO OPEN ROOM"
+	_row_caption(_row_quick_join).text = tr("LAN_CAPTION_FIRST_OPEN") if _has_open_room() else tr("LAN_CAPTION_NO_OPEN")
 
 func _row_caption(row: Button) -> Label:
 	return row.get_node("Text/Caption") as Label
@@ -818,7 +843,7 @@ func _begin_host() -> void:
 	_host_address.text = _format_addresses()
 	if not _lobby.host_room(_selected_arena_id, _net_play, _host_loop_goal(), _picked_record_id):
 		_refresh_host_start()
-		_host_status.text = "bind failed"
+		_host_status.text = tr("ERROR_BIND_FAILED")
 		_play_error()
 		return
 	_lobby.set_local_character(_selected_character_id)
@@ -837,13 +862,13 @@ func _begin_host() -> void:
 func _begin_p2p_hosting() -> void:
 	var invite: JoinInvite = _lobby.create_p2p_invite(_primary_address())
 	if invite == null:
-		_host_status.text = "no rendezvous"
+		_host_status.text = tr("LAN_NO_RENDEZVOUS")
 		_play_error()
 		return
 	## Host 绝不发起 Direct ENet：start_p2p_hosting() 只注册 rendezvous + 打洞，
 	## 保持 host_listen() 建好的 ENet server 等 Guest 主动连。
 	if not _lobby.start_p2p_hosting():
-		_host_status.text = "no rendezvous"
+		_host_status.text = tr("LAN_NO_RENDEZVOUS")
 		_play_error()
 		return
 	_last_invite_uri = invite.to_uri()
@@ -937,7 +962,7 @@ func _on_quick_join_pressed() -> void:
 			_connect_to_room(room)
 			return
 	_enter_join()
-	_join_status.text = "searching"
+	_join_status.text = tr("LAN_SEARCHING")
 	_play_error()
 
 ## 从 LAN 房间行 / Quick join 进房：地址与房间事实都来自发现包，顺便记进 RECENT。
@@ -970,11 +995,11 @@ func _on_copy_invite_pressed() -> void:
 	_play_click()
 	var invite: JoinInvite = _make_invite()
 	if invite == null:
-		_invite_notice.text = "no room"
+		_invite_notice.text = tr("LAN_NO_ROOM")
 		_play_error()
 		return
 	DisplayServer.clipboard_set(invite.to_uri())
-	_invite_notice.text = "invite copied"
+	_invite_notice.text = tr("LAN_INVITE_COPIED")
 
 ## Show QR：数据源已是真实 v6 JoinInvite URI。QR 渲染器本身留到 Phase 9，
 ## 这里只把「要编码的字符串」换成真 invite，并显示 URI 供人肉核对。
@@ -982,11 +1007,11 @@ func _on_show_qr_pressed() -> void:
 	_play_click()
 	var invite: JoinInvite = _make_invite()
 	if invite == null:
-		_invite_notice.text = "no room"
+		_invite_notice.text = tr("LAN_NO_ROOM")
 		_play_error()
 		return
 	_last_invite_uri = invite.to_uri()
-	_invite_notice.text = "invite ready: %s" % invite.display_label()
+	_invite_notice.text = tr("LAN_INVITE_READY") % invite.display_label()
 
 ## 本机 invite URI（QR / 复制共用同一份数据源）。无 invite 时为空。
 func get_invite_uri() -> String:
@@ -1025,17 +1050,17 @@ func _on_connect_pressed() -> void:
 	var address: String = _resolve_join_address(raw)
 	_join_edit.text = address
 	if address.is_empty():
-		_join_status.text = "no address"
+		_join_status.text = tr("ERROR_NO_ADDRESS")
 		_play_error()
 		return
 	if _view == View.JOIN:
 		_start_guest_beacon()
-	_join_status.text = "connecting"
+	_join_status.text = tr("LAN_CONNECTING")
 	_hide_join_session_labels()
 	_connect_button.disabled = true
 	# 连接执行归 LobbyNet（经 LobbyManager 命令），UI 不建 peer。
-	if _lobby == null or not _lobby.join_room_address(address):
-		_join_status.text = "refused"
+	if _lobby == null or not _lobby.join_room_address(address, _ticket_for_join_address(address)):
+		_join_status.text = tr("LAN_REFUSED")
 		_connect_button.disabled = false
 		_play_error()
 
@@ -1047,11 +1072,11 @@ func _join_uri_invite(raw: String) -> void:
 	_hide_join_session_labels()
 	_connect_button.disabled = true
 	if _lobby == null:
-		_join_status.text = "refused"
+		_join_status.text = tr("LAN_REFUSED")
 		_connect_button.disabled = false
 		_play_error()
 		return
-	_join_status.text = "connecting"
+	_join_status.text = tr("LAN_CONNECTING")
 	var invite: JoinInvite = _lobby.join_invite(raw)
 	if invite == null or invite.error != JoinInvite.InvalidReason.OK:
 		_join_status.text = _invite_error_text(invite)
@@ -1061,32 +1086,32 @@ func _join_uri_invite(raw: String) -> void:
 	_join_edit.text = invite.lan_host
 	_last_invite_uri = invite.to_uri()
 	if not invite.host_name.is_empty():
-		_join_status.text = "invited by %s" % invite.host_name
+		_join_status.text = tr("LAN_INVITED_BY") % invite.host_name
 
 ## JoinInvite 的 error 码 -> UI 文案。UI 不解析 URI、不猜原因。
 func _invite_error_text(invite: JoinInvite) -> String:
 	if invite == null:
-		return "bad invite"
+		return tr("LAN_INVITE_BAD")
 	match invite.error:
 		JoinInvite.InvalidReason.EMPTY:
-			return "empty invite"
+			return tr("LAN_INVITE_EMPTY")
 		JoinInvite.InvalidReason.BAD_SCHEME:
-			return "bad scheme"
+			return tr("LAN_INVITE_BAD_SCHEME")
 		JoinInvite.InvalidReason.BAD_ACTION:
-			return "bad invite"
+			return tr("LAN_INVITE_BAD")
 		JoinInvite.InvalidReason.BAD_VERSION:
-			return "Version mismatch"
+			return tr("LAN_VERSION_MISMATCH")
 		JoinInvite.InvalidReason.MISSING_TOKEN, JoinInvite.InvalidReason.BAD_TOKEN:
-			return "bad ticket"
+			return tr("LAN_BAD_TICKET")
 		JoinInvite.InvalidReason.BAD_LAN_HOST, JoinInvite.InvalidReason.BAD_WAN_HOST:
-			return "bad address"
+			return tr("LAN_BAD_ADDRESS")
 		JoinInvite.InvalidReason.BAD_LAN_PORT, JoinInvite.InvalidReason.BAD_WAN_PORT:
-			return "bad port"
+			return tr("LAN_BAD_PORT")
 		JoinInvite.InvalidReason.MISSING_RENDEZVOUS:
-			return "no rendezvous"
+			return tr("LAN_NO_RENDEZVOUS")
 		JoinInvite.InvalidReason.BAD_IPV6:
-			return "bad ipv6"
-	return "bad invite"
+			return tr("LAN_BAD_IPV6")
+	return tr("LAN_INVITE_BAD")
 
 ## CREATE ROOM 页内的借档入口：放进 ROOM SETTINGS 那一竖列（与其它房间设置同一列宽），
 ## 排在 START 之前，不再挡在建房前面。
@@ -1099,7 +1124,7 @@ func _build_borrow_record_button() -> void:
 	button.custom_minimum_size = Vector2(0, 44)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.theme_type_variation = &"PillNeutral"
-	button.text = "Use a record"
+	button.text = "LAN_USE_A_RECORD"
 	button.pressed.connect(_on_borrow_record_pressed)
 	right.add_child(button)
 	right.move_child(button, _start_button.get_index())
@@ -1242,14 +1267,14 @@ func _select_net_play(play: GameLaunch.NetPlay) -> void:
 func _refresh_mode_ui() -> void:
 	if _net_play == GameLaunch.NetPlay.BATTLE:
 		_loop_slider.editable = false
-		_loop_label.text = "battle"
+		_loop_label.text = tr("LAN_BATTLE_TAG")
 		return
 	_loop_slider.editable = _picked_record_id.is_empty()
 	_refresh_loop_label()
 
 func _refresh_loop_label() -> void:
 	if _net_play == GameLaunch.NetPlay.BATTLE:
-		_loop_label.text = "battle"
+		_loop_label.text = tr("LAN_BATTLE_TAG")
 		return
 	_loop_label.text = RecordCard.format_loop_badge(maxi(roundi(_loop_slider.value), 0))
 
@@ -1262,22 +1287,22 @@ func _refresh_host_start() -> void:
 ## Start 按钮文案由 LobbyManager 的条件驱动，UI 不自己猜。
 func _start_button_text() -> String:
 	if _lobby == null:
-		return "START"
+		return tr("LAN_START")
 	match _lobby.start_block_reason():
 		"":
-			return "START"
+			return tr("LAN_START")
 		"started":
-			return "STARTING..."
+			return tr("LAN_BTN_STARTING_DOTS")
 		"need 2":
-			return "NEED 2 PLAYERS"
+			return tr("LAN_BTN_NEED_2")
 		"not ready":
-			return "WAITING FOR PLAYERS"
+			return tr("LAN_BTN_WAITING_PLAYERS")
 		"connecting", "no peer":
-			return "CONNECTING..."
+			return tr("LAN_BTN_CONNECTING")
 		"pending":
-			return "CONNECTING..."
+			return tr("LAN_BTN_CONNECTING")
 		_:
-			return "START"
+			return tr("LAN_START")
 
 func _is_host_locked() -> bool:
 	return _view == View.HOST and not _picked_record_id.is_empty()
@@ -1414,9 +1439,9 @@ func _fill_character(button: Button, character_id: String) -> void:
 		if def != null and def.body_texture != null:
 			portrait.texture = def.body_texture
 	if title != null:
-		title.text = def.display_name if def != null else character_id
+		title.text = tr(def.display_name) if def != null else character_id
 	if desc != null:
-		desc.text = def.description if def != null else ""
+		desc.text = tr(def.description) if def != null else ""
 
 ## 关网络：执行归 LobbyManager / LobbyNet，UI 只发命令 + 停自己的 Beacon。
 func _clear_peer() -> void:
@@ -1493,13 +1518,13 @@ func _on_invite_pressed() -> void:
 	var uri: String = get_invite_uri()
 	if uri.is_empty():
 		if _view == View.INVITE:
-			_invite_notice.text = "no room"
+			_invite_notice.text = tr("LAN_NO_ROOM")
 		_play_error()
 		return
 	_last_invite_uri = uri
 	DisplayServer.clipboard_set(uri)
 	if _view == View.INVITE:
-		_invite_notice.text = "invite copied"
+		_invite_notice.text = tr("LAN_INVITE_COPIED")
 
 ## Starting 冻结：已点 Start 之后不允许再改角色 / Ready / 房间设置。
 func _is_lobby_frozen() -> bool:
@@ -1598,7 +1623,8 @@ func _start_host_beacon() -> void:
 		_host_loop_goal(),
 		GameLaunch._sanitize_arena_id(_selected_arena_id),
 		_beacon_room_id(),
-		_beacon_host_name()
+		_beacon_host_name(),
+		_beacon_ticket()
 	)
 
 ## INVITE ONLY = 不发信标（房间还在，只是同网段发现不到）。
@@ -1617,10 +1643,12 @@ func _sync_host_beacon() -> void:
 		_host_loop_goal(),
 		GameLaunch._sanitize_arena_id(_selected_arena_id),
 		_beacon_room_id(),
-		_beacon_host_name()
+		_beacon_host_name(),
+		_beacon_ticket()
 	)
 
-## 协议 6：beacon 里带的房间身份 / Host 名（只用于 LAN Rooms 显示，不是认证）。
+## 协议 6：beacon 带房间身份 / Host 名，LAN_VISIBLE 时再带同一张房票给 Guest 出示。
+## 展示用的公开字段仍然不是认证；认证只发生在 Host 的 hello 校验。
 func _beacon_room_id() -> String:
 	if _lobby == null or not _lobby.has_room():
 		return ""
@@ -1630,6 +1658,17 @@ func _beacon_host_name() -> String:
 	if _lobby == null or not _lobby.has_room():
 		return ""
 	return _lobby.get_room().host_display_name
+
+## 与 LobbyNet 里那张房票是同一张。UI 不生成、不改写，只交给信标转交。
+func _beacon_ticket() -> String:
+	if _lobby == null:
+		return ""
+	return _lobby.get_room_ticket()
+
+func _ticket_for_join_address(address: String) -> String:
+	if _beacon == null:
+		return ""
+	return _beacon.ticket_for_address(address)
 
 ## Guest 探针在 MULTIPLAYER 首页 / LAN ROOMS / JOIN INVITE 都跑（Quick join 要靠它）。
 func _start_guest_beacon() -> void:
@@ -1660,10 +1699,10 @@ func _on_join_search_changed(_text: String) -> void:
 func _rebuild_room_cards() -> void:
 	_clear_room_cards()
 	if _beacon != null and _beacon.has_bind_failed():
-		_join_empty.text = "discover bind failed"
+		_join_empty.text = tr("LAN_DISCOVER_BIND_FAILED")
 		_join_empty.visible = true
 		return
-	_join_empty.text = "no rooms"
+	_join_empty.text = tr("LAN_NO_ROOMS")
 	if _beacon == null:
 		_join_empty.visible = true
 		return
@@ -1737,9 +1776,9 @@ func _make_room_title_label(room: Dictionary) -> Label:
 	label.theme_type_variation = &"OfferTitle"
 	var host_name: String = str(room.get("host_display_name", ""))
 	if host_name.is_empty():
-		label.text = "ROOM"
+		label.text = tr("LAN_ROOM")
 	else:
-		label.text = "%s's Room" % host_name
+		label.text = tr("LAN_ROOM_OF") % host_name
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1763,7 +1802,7 @@ func _make_room_action_label(room: Dictionary) -> Label:
 	label.custom_minimum_size = Vector2(72, 0)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.text = "FULL" if _is_room_full(room) else "JOIN"
+	label.text = tr("LAN_FULL") if _is_room_full(room) else tr("LAN_JOIN")
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 
@@ -1790,8 +1829,8 @@ func _make_room_badge_label(room: Dictionary) -> Label:
 func _format_room_meta(room: Dictionary) -> String:
 	var arena_name: String = RecordCard.format_arena_name(str(room["arena_id"]))
 	var is_battle: bool = int(room["net_play"]) == int(GameLaunch.NetPlay.BATTLE)
-	var mode_name: String = "Battle" if is_battle else "Co-op"
-	var loop_text: String = "battle" if is_battle else RecordCard.format_loop_badge(int(room["loop_goal"]))
+	var mode_name: String = tr("MODE_BATTLE") if is_battle else tr("MODE_COOP")
+	var loop_text: String = tr("LAN_BATTLE_TAG") if is_battle else RecordCard.format_loop_badge(int(room["loop_goal"]))
 	return "%s  ·  %s  ·  %s" % [arena_name, mode_name, loop_text]
 
 func _is_room_full(room: Dictionary) -> bool:

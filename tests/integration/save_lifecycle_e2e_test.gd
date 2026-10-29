@@ -121,9 +121,9 @@ func _case_reopen_menu_shows_in_progress() -> void:
 		return
 	_expect(cont.slot_id == _probe_id, "Continue 指向同一档，实为 %s" % cont.slot_id)
 	_expect(cont.status == SaveUiProjection.STATUS_IN_PROGRESS, "状态=IN_PROGRESS，实为 %s" % cont.status)
-	_expect(menu._continue_title.text == "CONTINUE", "Home 标题=CONTINUE，实为 %s" % menu._continue_title.text)
+	_expect(menu._continue_title.text == tr("MENU_CONTINUE"), "Home 标题=CONTINUE，实为 %s" % menu._continue_title.text)
 	## §6：第二行只给简单描述（跟 SOLO「New run」同款），具体 Loop / Score 不铺在这里。
-	_expect(menu._continue_caption.text == "Resume run", "Home 指标=Resume run，实为 %s" % menu._continue_caption.text)
+	_expect(menu._continue_caption.text == tr("SAVE_CAPTION_IN_PROGRESS"), "Home 指标=Resume run，实为 %s" % menu._continue_caption.text)
 	_expect(not _has_digit(menu._continue_caption.text), "Home 指标不带具体数字，实为 %s" % menu._continue_caption.text)
 
 	## §9：Home 的 Continue 对进行中档 = 直接续跑，不静默开新局。
@@ -141,14 +141,14 @@ func _case_reopen_menu_shows_in_progress() -> void:
 	var button: Button = _row_for(rs, _probe_id)
 	_expect(button != null, "列表里有这一档")
 	if button != null:
-		_expect(_badge_text(button) == "IN PROGRESS", "列表状态=IN PROGRESS，实为 %s" % _badge_text(button))
+		_expect(_badge_text(button) == tr("SAVE_STATUS_IN_PROGRESS"), "列表状态=IN PROGRESS，实为 %s" % _badge_text(button))
 
 	_resumed = ""
 	_selected = ""
 	rs._on_record_pressed(_probe_id)
 	_expect(rs._is_detail_open(), "点进行中档开详情浮层（不静默开新局）")
 	if rs._is_detail_open():
-		_expect(rs._detail_yes.text == "Continue Run", "主按钮=Continue Run，实为 %s" % rs._detail_yes.text)
+		_expect(rs._detail_yes.text == tr("RECORDS_CONTINUE_RUN"), "主按钮=Continue Run，实为 %s" % rs._detail_yes.text)
 		rs._on_detail_yes_pressed()
 	_neutralize_leave(menu)
 	_expect(_resumed == _probe_id, "发的是 resume_record(%s)，实为 %s" % [_probe_id, _resumed])
@@ -205,8 +205,8 @@ func _case_completed_and_start_new_run() -> void:
 		return
 	var cont: SaveUiProjection = menu.get_continue_projection()
 	_expect(cont != null and cont.status == SaveUiProjection.STATUS_CLEARED, "通关后 Continue 状态=CLEARED，实为 %s" % (cont.status if cont else "<null>"))
-	_expect(menu._continue_title.text == "COMPLETED", "Home 标题=COMPLETED，实为 %s" % menu._continue_title.text)
-	_expect(menu._continue_caption.text == "Start over", "Home 指标=Start over，实为 %s" % menu._continue_caption.text)
+	_expect(menu._continue_title.text == tr("SAVE_STATUS_CLEARED"), "Home 标题=COMPLETED，实为 %s" % menu._continue_title.text)
+	_expect(menu._continue_caption.text == tr("SAVE_CAPTION_CLEARED"), "Home 指标=Start over，实为 %s" % menu._continue_caption.text)
 	_expect(not _has_digit(menu._continue_caption.text), "Home 指标不带具体数字，实为 %s" % menu._continue_caption.text)
 
 	var rs: RecordSelector = menu._record_selector
@@ -228,16 +228,16 @@ func _case_completed_and_start_new_run() -> void:
 	var button: Button = _row_for(rs, _probe_id)
 	_expect(button != null, "列表里还有这一档（历史没被清掉）")
 	if button != null:
-		_expect(_badge_text(button) == "COMPLETED", "列表状态=COMPLETED，实为 %s" % _badge_text(button))
+		_expect(_badge_text(button) == tr("SAVE_STATUS_CLEARED"), "列表状态=COMPLETED，实为 %s" % _badge_text(button))
 
 	_resumed = ""
 	_selected = ""
 	rs._on_record_pressed(_probe_id)
 	_expect(rs._is_completed_open(), "点通关档弹已通关确认条，不直接开新局")
 	var body: Label = rs.get_node("CompletedCenter/CompletedPanel/Column/Body") as Label
-	_expect(body != null and body.text == "This save has already been cleared.", "确认条正文逐字对上")
+	_expect(body != null and body.atr(body.text) == tr("RECORDS_COMPLETED_BODY"), "确认条正文逐字对上")
 	var sub: Label = rs.get_node("CompletedCenter/CompletedPanel/Column/Sub") as Label
-	_expect(sub != null and sub.text == "Start over?", "确认条追问 Start over?，实为 %s" % (sub.text if sub else "<null>"))
+	_expect(sub != null and sub.atr(sub.text) == tr("RECORDS_START_OVER"), "确认条追问 Start over?，实为 %s" % (sub.atr(sub.text) if sub else "<null>"))
 	rs._on_completed_yes_pressed()
 	_neutralize_leave(menu)
 	_expect(_selected == _probe_id, "START NEW RUN 发 selected_record(%s)，实为 %s" % [_probe_id, _selected])

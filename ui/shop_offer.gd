@@ -10,11 +10,12 @@ signal picked_consumable(consumable_id: StringName)
 signal skipped
 signal cancelled
 
-const BROWSE_TITLE: String = "SHOP"
-const PICK_TITLE: String = "Pick a gun"
-const CONTINUE_TEXT: String = "Continue"
-const BACK_TEXT: String = "Back"
-const GUN_TITLES: PackedStringArray = ["Pistol", "Shotgun", "Rifle", "Smg"]
+## 以下都是翻译 key，显示时过 tr()。
+const BROWSE_TITLE: String = "SHOP_TITLE"
+const PICK_TITLE: String = "SHOP_PICK_GUN"
+const CONTINUE_TEXT: String = "SHOP_CONTINUE"
+const BACK_TEXT: String = "COMMON_BACK"
+const GUN_TITLES: PackedStringArray = ["WEAPON_PISTOL", "WEAPON_SHOTGUN", "WEAPON_RIFLE", "WEAPON_SMG"]
 const STIM_ID: StringName = &"stim"
 const ITEM_CARD_SIZE := Vector2(220, 132)
 const HP_LOW_THRESHOLD: int = 20
@@ -98,7 +99,7 @@ func _ready() -> void:
 	for i: int in _gun_buttons.size():
 		var gun: Button = _gun_buttons[i]
 		gun.pressed.connect(_on_gun_pressed.bind(i))
-		gun.text = GUN_TITLES[i]
+		gun.text = tr(GUN_TITLES[i])
 		gun.disabled = false
 		gun.pivot_offset = gun.custom_minimum_size * 0.5
 		_wire_row(gun, _on_gun_hover_entered.bind(gun))
@@ -381,10 +382,10 @@ func _skip() -> void:
 	skipped.emit()
 
 func _refresh_view() -> void:
-	_gold_label.text = "gold  %d" % roundi(_displayed_gold)
+	_gold_label.text = tr("HUD_GOLD") % roundi(_displayed_gold)
 	var picking: bool = _open and _view == View.PICK_GUN
-	_title_label.text = PICK_TITLE if picking else BROWSE_TITLE
-	_continue_button.text = BACK_TEXT if picking else CONTINUE_TEXT
+	_title_label.text = tr(PICK_TITLE if picking else BROWSE_TITLE)
+	_continue_button.text = tr(BACK_TEXT if picking else CONTINUE_TEXT)
 	_refresh_status_text()
 
 func _refresh_status_text() -> void:
@@ -402,7 +403,7 @@ func _refresh_status_text() -> void:
 		xp = _session.get_xp()
 		need = _session.get_xp_to_next()
 	_xp_bar.max_value = float(need)
-	_xp_label.text = "Lv.%d  %d/%d" % [level, xp, need]
+	_xp_label.text = tr("HUD_XP") % [level, xp, need]
 	_companion_label.text = _format_companion()
 
 func _snap_vitals() -> void:
@@ -436,7 +437,7 @@ func _tick_vitals(delta: float) -> void:
 		need = _session.get_xp_to_next()
 	_xp_bar.max_value = float(need)
 	_xp_bar.value = _approach_bar(_xp_bar.value, float(xp), delta)
-	_xp_label.text = "Lv.%d  %d/%d" % [level, xp, need]
+	_xp_label.text = tr("HUD_XP") % [level, xp, need]
 
 func _approach_bar(current: float, target: float, delta: float) -> float:
 	if absf(target - current) < 0.5:
@@ -464,7 +465,7 @@ func _read_weapon_name() -> String:
 	var weapon: Weapon = host.get_current_weapon()
 	if weapon == null:
 		return "-"
-	return weapon.get_display_name()
+	return tr(weapon.get_display_name())
 
 func _format_companion() -> String:
 	var alive: int = 0
@@ -472,7 +473,7 @@ func _format_companion() -> String:
 		if companion == null or not is_instance_valid(companion) or companion.is_defeated():
 			continue
 		alive += 1
-	return "Gunner %d/%d" % [alive, RunSession.COMPANION_CAP]
+	return tr("SHOP_COMPANION_GUNNER") % [alive, RunSession.COMPANION_CAP]
 
 func _sync_shelf(is_present: bool) -> void:
 	var gold: int = _read_gold()
@@ -808,7 +809,7 @@ func _roll_gold() -> void:
 
 func _assign_displayed_gold(value: float) -> void:
 	_displayed_gold = value
-	_gold_label.text = "gold  %d" % roundi(_displayed_gold)
+	_gold_label.text = tr("HUD_GOLD") % roundi(_displayed_gold)
 
 ## hover/focus 统一走 UiAnim（主题 flat card 四态 + 1.02 缩放），本文件只额外接四态音效。
 func _wire_row(control: BaseButton, entered: Callable) -> void:

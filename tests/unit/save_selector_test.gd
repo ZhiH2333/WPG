@@ -28,8 +28,8 @@ const SAVE_NAMES: Array[String] = [
 	"records.json.corrupt",
 ]
 const DETAIL_KEYS: Array[String] = [
-	"SAVE NAME", "STATUS", "ARENA", "CHARACTER", "LOOP", "LEVEL",
-	"XP", "GOLD", "SCORE", "LAST SAVED", "BEST SCORE", "LAST RESULT",
+	"SAVE_DETAIL_NAME", "SAVE_DETAIL_STATUS", "ARENA_HEADER", "CHARACTER_HEADER", "SAVE_DETAIL_LOOP", "SAVE_DETAIL_LEVEL",
+	"SAVE_DETAIL_XP", "SAVE_DETAIL_GOLD", "SAVE_DETAIL_SCORE", "SAVE_DETAIL_LAST_SAVED", "SAVE_DETAIL_BEST_SCORE", "SAVE_DETAIL_LAST_RESULT",
 ]
 
 var _failures: PackedStringArray = PackedStringArray()
@@ -108,9 +108,9 @@ func _case_active_click_resume_flow(rs: RecordSelector) -> void:
 	var keys: Array[String] = _detail_keys(rs)
 	_expect(keys.size() == DETAIL_KEYS.size(), "详情列出 12 个字段，实为 %d 个：%s" % [keys.size(), str(keys)])
 	for i: int in DETAIL_KEYS.size():
-		_expect(i < keys.size() and keys[i] == DETAIL_KEYS[i],
-			"详情第 %d 个字段=%s，实为 %s" % [i + 1, DETAIL_KEYS[i], keys[i] if i < keys.size() else "<缺>"])
-	_expect(rs._detail_yes.text == "Continue Run", "主按钮=Continue Run，实为 %s" % rs._detail_yes.text)
+		_expect(i < keys.size() and keys[i] == tr(DETAIL_KEYS[i]),
+			"详情第 %d 个字段=%s，实为 %s" % [i + 1, tr(DETAIL_KEYS[i]), keys[i] if i < keys.size() else "<缺>"])
+	_expect(rs._detail_yes.text == tr("RECORDS_CONTINUE_RUN"), "主按钮=%s，实为 %s" % [tr("RECORDS_CONTINUE_RUN"), rs._detail_yes.text])
 
 	rs._on_detail_yes_pressed()
 	_expect(_resumed == id, "详情主按钮发 resume_record(%s)，实为 %s" % [id, _resumed])
@@ -132,9 +132,9 @@ func _case_cleared_click_restart_flow(rs: RecordSelector) -> void:
 	var title: Label = rs.get_node("CompletedCenter/CompletedPanel/Column/Title") as Label
 	var body: Label = rs.get_node("CompletedCenter/CompletedPanel/Column/Body") as Label
 	var sub: Label = rs.get_node("CompletedCenter/CompletedPanel/Column/Sub") as Label
-	_expect(title != null and title.text == "COMPLETED", "确认条标题=COMPLETED，实为 %s" % (title.text if title else "<null>"))
-	_expect(body != null and body.text == "This save has already been cleared.", "确认条正文逐字对上，实为 %s" % (body.text if body else "<null>"))
-	_expect(sub != null and sub.text == "Start over?", "确认条问句=Start over?，实为 %s" % (sub.text if sub else "<null>"))
+	_expect(title != null and title.atr(title.text) == tr("SAVE_STATUS_CLEARED"), "确认条标题=%s，实为 %s" % [tr("SAVE_STATUS_CLEARED"), title.atr(title.text) if title else "<null>"])
+	_expect(body != null and body.atr(body.text) == tr("RECORDS_COMPLETED_BODY"), "确认条正文逐字对上，实为 %s" % (body.atr(body.text) if body else "<null>"))
+	_expect(sub != null and sub.atr(sub.text) == tr("RECORDS_START_OVER"), "确认条问句=%s，实为 %s" % [tr("RECORDS_START_OVER"), sub.atr(sub.text) if sub else "<null>"])
 	## Cancel 必须是第一个焦点（安全默认）。
 	var focus: Array = rs._first_focus_target()
 	_expect(focus.size() == 2 and focus[0] == rs._completed_no, "确认条默认焦点是 Cancel")
@@ -156,11 +156,14 @@ func _case_delete_double_confirm(rs: RecordSelector) -> void:
 
 	rs._on_delete_pressed(victim)
 	_expect(rs._is_deleting(), "点 × 先出删除二次确认")
-	_expect(rs._delete_body.text.contains("Name: "), "确认条写 Name，实为 %s" % rs._delete_body.text)
-	_expect(rs._delete_body.text.contains("Progress: "), "确认条写 Progress")
-	_expect(rs._delete_body.text.contains("History: "), "确认条写 History")
+	## 模板三行：Name / Progress / History（各语言的标签不同，按翻译表里的模板逐行取前缀）。
+	var body_lines: PackedStringArray = tr("RECORDS_DELETE_BODY").split("\n")
+	_expect(body_lines.size() == 3, "删除确认模板三行")
+	_expect(rs._delete_body.text.contains(body_lines[0].get_slice("%s", 0)), "确认条写 Name，实为 %s" % rs._delete_body.text)
+	_expect(rs._delete_body.text.contains(body_lines[1].get_slice("%s", 0)), "确认条写 Progress")
+	_expect(rs._delete_body.text.contains(body_lines[2].get_slice("%s", 0)), "确认条写 History")
 	var warning: Label = rs.get_node("DeleteCenter/DeletePanel/Column/Warning") as Label
-	_expect(warning != null and warning.text == "This cannot be undone.", "确认条写 This cannot be undone.")
+	_expect(warning != null and warning.atr(warning.text) == tr("RECORDS_DELETE_WARNING"), "确认条写 %s" % tr("RECORDS_DELETE_WARNING"))
 	var focus: Array = rs._first_focus_target()
 	_expect(focus.size() == 2 and focus[0] == rs._delete_cancel and focus[1] == rs._delete_confirm,
 		"删除默认焦点是 CANCEL，不是 DELETE")

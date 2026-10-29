@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_def")
 id = &"pulse"
-display_name = "Pulse"
-description = "朝瞄准方向放出一道短暂范围脉冲。"
+display_name = "ABILITY_PULSE_NAME"
+description = "ABILITY_PULSE_DESC"
 cooldown = 4.0
 duration = 0.0
 cost_type = 0

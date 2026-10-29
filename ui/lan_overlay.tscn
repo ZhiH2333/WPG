@@ -68,7 +68,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "MULTIPLAYER"
+text = "LAN_MULTIPLAYER"
 
 [node name="Spacer" type="Control" parent="Sheet/Column/Header"]
 layout_mode = 2
@@ -83,20 +83,20 @@ size_flags_horizontal = 0
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "START"
+text = "LAN_START"
 
 [node name="Back" type="Button" parent="Sheet/Column/Header"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"EmptyButtonMuted"
-text = "Back"
+text = "COMMON_BACK"
 
 [node name="Subtitle" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageSubtitle"
-text = "Play together"
+text = "LAN_SUBTITLE"
 
 [node name="TopLine" type="ColorRect" parent="Sheet/Column"]
 custom_minimum_size = Vector2(0, 1)
@@ -147,7 +147,7 @@ theme_override_constants/separation = 0
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "RECENT"
+text = "LAN_RECENT"
 
 [node name="Recent" type="VBoxContainer" parent="Sheet/Column/Content/HomeRoot/Scroll/Column"]
 layout_mode = 2
@@ -169,7 +169,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "USE RECORD"
+text = "LAN_USE_RECORD"
 horizontal_alignment = 1
 
 [node name="Scroll" type="ScrollContainer" parent="Sheet/Column/Content/PickRoot"]
@@ -214,14 +214,14 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "+ Custom"
+text = "LAN_CUSTOM"
 autowrap_mode = 2
 
 [node name="Desc" type="Label" parent="Sheet/Column/Content/PickRoot/Scroll/Cards/Custom/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "Pick live, skip save"
+text = "LAN_PICK_LIVE"
 autowrap_mode = 2
 
 [node name="HostRoot" type="Control" parent="Sheet/Column/Content"]
@@ -263,7 +263,7 @@ alignment = 0
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "HOST"
+text = "LAN_HOST"
 
 [node name="RecordHint" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 visible = false
@@ -275,7 +275,7 @@ theme_type_variation = &"OfferDesc"
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "port  17777"
+text = "LAN_PORT"
 
 [node name="AddressList" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 custom_minimum_size = Vector2(240, 0)
@@ -290,13 +290,13 @@ autowrap_mode = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "waiting"
+text = "LAN_STATUS_WAITING"
 
 [node name="PlayersTitle" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "PLAYERS"
+text = "LAN_PLAYERS"
 
 [node name="Seats" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
@@ -307,7 +307,7 @@ theme_override_constants/separation = 4
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "CHARACTER"
+text = "CHARACTER_HEADER"
 
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left"]
 layout_mode = 2
@@ -357,13 +357,13 @@ theme_override_constants/separation = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "Boar"
+text = "CHARACTER_BOAR_NAME"
 
 [node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "Tanky."
+text = "CHARACTER_BOAR_DESC"
 clip_text = true
 
 [node name="Chicken" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters"]
@@ -407,13 +407,13 @@ theme_override_constants/separation = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "Chicken"
+text = "CHARACTER_CHICKEN_NAME"
 
 [node name="Desc" type="Label" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Left/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "Hard to hit."
+text = "CHARACTER_CHICKEN_DESC"
 clip_text = true
 
 [node name="Right" type="VBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body"]
@@ -429,7 +429,7 @@ alignment = 0
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "ROOM SETTINGS"
+text = "LAN_ROOM_SETTINGS"
 
 [node name="LoopRow" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 layout_mode = 2
@@ -452,7 +452,7 @@ custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "20 loops"
+text = "LOOP_COUNT"
 horizontal_alignment = 2
 
 [node name="Arenas" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
@@ -471,7 +471,7 @@ action_mode = 0
 button_group = SubResource("group_host_arena")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Yard"
+text = "ARENA_YARD_NAME"
 
 [node name="Pit" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Arenas"]
 custom_minimum_size = Vector2(128, 44)
@@ -482,7 +482,7 @@ action_mode = 0
 button_group = SubResource("group_host_arena")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Pit"
+text = "ARENA_PIT_NAME"
 
 [node name="Keep" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Arenas"]
 custom_minimum_size = Vector2(128, 44)
@@ -493,7 +493,7 @@ action_mode = 0
 button_group = SubResource("group_host_arena")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Keep"
+text = "ARENA_KEEP_NAME"
 
 [node name="Modes" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 layout_mode = 2
@@ -511,7 +511,7 @@ action_mode = 0
 button_group = SubResource("group_host_mode")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Co-op"
+text = "MODE_COOP"
 
 [node name="Battle" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Modes"]
 custom_minimum_size = Vector2(170, 44)
@@ -522,7 +522,7 @@ action_mode = 0
 button_group = SubResource("group_host_mode")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Battle"
+text = "MODE_BATTLE"
 
 [node name="Privacy" type="HBoxContainer" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 layout_mode = 2
@@ -540,7 +540,7 @@ action_mode = 0
 button_group = SubResource("group_host_privacy")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "LAN visible"
+text = "LAN_PRIVACY_LAN"
 
 [node name="InviteOnly" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right/Privacy"]
 custom_minimum_size = Vector2(170, 44)
@@ -551,7 +551,7 @@ action_mode = 0
 button_group = SubResource("group_host_privacy")
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Invite only"
+text = "LAN_PRIVACY_INVITE"
 
 [node name="Invite" type="Button" parent="Sheet/Column/Content/HostRoot/Scroll/Body/Right"]
 custom_minimum_size = Vector2(200, 44)
@@ -559,7 +559,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "Invite"
+text = "LAN_INVITE"
 
 [node name="JoinRoot" type="Control" parent="Sheet/Column/Content"]
 layout_mode = 1
@@ -593,14 +593,14 @@ alignment = 0
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "JOIN INVITE"
+text = "LAN_JOIN_INVITE"
 horizontal_alignment = 1
 
 [node name="AddressTitle" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "ROOM ADDRESS"
+text = "LAN_ROOM_ADDRESS"
 horizontal_alignment = 1
 
 [node name="Address" type="LineEdit" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -618,7 +618,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "Connect"
+text = "LAN_CONNECT"
 
 [node name="Status" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
@@ -630,7 +630,7 @@ horizontal_alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "CHARACTER"
+text = "CHARACTER_HEADER"
 horizontal_alignment = 1
 
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -681,13 +681,13 @@ theme_override_constants/separation = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "Boar"
+text = "CHARACTER_BOAR_NAME"
 
 [node name="Desc" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Boar/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "Tanky."
+text = "CHARACTER_BOAR_DESC"
 clip_text = true
 
 [node name="Chicken" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters"]
@@ -731,13 +731,13 @@ theme_override_constants/separation = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "Chicken"
+text = "CHARACTER_CHICKEN_NAME"
 
 [node name="Desc" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form/Characters/Chicken/Card/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "Hard to hit."
+text = "CHARACTER_CHICKEN_DESC"
 clip_text = true
 
 [node name="GoalLabel" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -745,7 +745,7 @@ visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "goal  20"
+text = "LAN_GOAL"
 horizontal_alignment = 1
 
 [node name="MapLabel" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -753,7 +753,7 @@ visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "map  Yard"
+text = "LAN_MAP"
 horizontal_alignment = 1
 
 [node name="ModeLabel" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -761,7 +761,7 @@ visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "mode  Co-op"
+text = "LAN_MODE"
 horizontal_alignment = 1
 
 [node name="SeatLabel" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -769,7 +769,7 @@ visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "seat  1"
+text = "LAN_SEAT"
 horizontal_alignment = 1
 
 [node name="WaitingLabel" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -777,14 +777,14 @@ visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "waiting for host"
+text = "LAN_WAITING_FOR_HOST"
 horizontal_alignment = 1
 
 [node name="InviteTitle" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "INVITE"
+text = "LAN_INVITE_HEADER"
 horizontal_alignment = 1
 
 [node name="InviteShell" type="HBoxContainer" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
@@ -799,7 +799,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "Copy invite"
+text = "LAN_COPY_INVITE"
 
 [node name="ShowQr" type="Button" parent="Sheet/Column/Content/JoinRoot/Row/Form/InviteShell"]
 custom_minimum_size = Vector2(0, 44)
@@ -807,7 +807,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "Show QR"
+text = "LAN_SHOW_QR"
 
 [node name="InviteNotice" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Form"]
 layout_mode = 2
@@ -826,20 +826,20 @@ theme_override_constants/separation = 10
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "LAN ROOMS"
+text = "LAN_LAN_ROOMS"
 
 [node name="Search" type="LineEdit" parent="Sheet/Column/Content/JoinRoot/Row/Browse"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 mouse_filter = 0
-placeholder_text = "search ip / map / mode"
+placeholder_text = "LAN_SEARCH_PLACEHOLDER"
 caret_blink = true
 
 [node name="EmptyHint" type="Label" parent="Sheet/Column/Content/JoinRoot/Row/Browse"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "no rooms"
+text = "LAN_NO_ROOMS"
 
 [node name="Scroll" type="ScrollContainer" parent="Sheet/Column/Content/JoinRoot/Row/Browse"]
 layout_mode = 2
@@ -860,7 +860,7 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "No room? Create one"
+text = "LAN_NO_ROOM_CREATE"
 
 [node name="LobbyRoot" type="Control" parent="Sheet/Column/Content"]
 visible = false
@@ -892,27 +892,27 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"OfferTitle"
-text = "ROOM"
+text = "LAN_ROOM"
 
 [node name="ModeTag" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body/RoomHeader"]
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "CO-OP"
+text = "MODE_COOP"
 horizontal_alignment = 2
 
 [node name="RoomFacts" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "CO-OP  ·  YARD  ·  GOAL 20"
+text = "LAN_ROOM_FACTS_PREVIEW"
 
 [node name="PlayersTitle" type="Label" parent="Sheet/Column/Content/LobbyRoot/Body"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "PLAYERS"
+text = "LAN_PLAYERS"
 
 [node name="Seats" type="VBoxContainer" parent="Sheet/Column/Content/LobbyRoot/Body"]
 layout_mode = 2
@@ -928,7 +928,7 @@ mouse_filter = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"OfferDesc"
-text = "LAN  ·  CONNECTED"
+text = "LAN_CONNECTION_PREVIEW"
 
 [node name="Actions" type="HBoxContainer" parent="Sheet/Column/Content/LobbyRoot/Body"]
 layout_mode = 2
@@ -940,7 +940,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "CHARACTER"
+text = "CHARACTER_HEADER"
 
 [node name="Boar" type="Button" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
 custom_minimum_size = Vector2(160, 44)
@@ -950,7 +950,7 @@ button_pressed = true
 action_mode = 0
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Boar"
+text = "CHARACTER_BOAR_NAME"
 
 [node name="Chicken" type="Button" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
 custom_minimum_size = Vector2(160, 44)
@@ -959,7 +959,7 @@ toggle_mode = true
 action_mode = 0
 mouse_filter = 0
 theme_type_variation = &"OfferButtonSmall"
-text = "Chicken"
+text = "CHARACTER_CHICKEN_NAME"
 
 [node name="ActionSpacer" type="Control" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
 layout_mode = 2
@@ -971,14 +971,14 @@ custom_minimum_size = Vector2(160, 44)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "Invite"
+text = "LAN_INVITE"
 
 [node name="Ready" type="Button" parent="Sheet/Column/Content/LobbyRoot/Body/Actions"]
 custom_minimum_size = Vector2(180, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "Ready"
+text = "LAN_BTN_READY"
 
 [node name="BottomLine" type="ColorRect" parent="Sheet/Column"]
 custom_minimum_size = Vector2(0, 1)

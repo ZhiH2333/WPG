@@ -58,7 +58,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "RANKING"
+text = "RANKING_TITLE"
 
 [node name="Spacer" type="Control" parent="Sheet/Column/Header"]
 layout_mode = 2
@@ -72,7 +72,7 @@ size_flags_horizontal = 0
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"EmptyButtonMuted"
-text = "Back"
+text = "COMMON_BACK"
 
 [node name="Mark" type="ColorRect" parent="Sheet/Column/Header/Back"]
 visible = false
@@ -91,7 +91,7 @@ color = Color(0.96, 0.93, 0.88, 1)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageSubtitle"
-text = "Best score on every save"
+text = "RANKING_SUBTITLE"
 
 [node name="TopLine" type="ColorRect" parent="Sheet/Column"]
 custom_minimum_size = Vector2(0, 1)

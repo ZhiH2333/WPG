@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_script")
 id = &"pit"
-display_name = "Pit"
+display_name = "ARENA_PIT_NAME"
 layout_scene = ExtResource("2_layout")
 tile_color = Color(0.2, 0.18, 0.16, 1)
 grout_color = Color(0.12, 0.11, 0.1, 1)

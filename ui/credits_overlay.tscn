@@ -52,13 +52,13 @@ theme_override_constants/separation = 20
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "CREDITS"
+text = "CREDITS_TITLE"
 
 [node name="VersionLabel" type="Label" parent="Center/Panel/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "version  1.0.0"
+text = "COMMON_VERSION"
 
 [node name="TopLine" type="ColorRect" parent="Center/Panel/Column"]
 custom_minimum_size = Vector2(0, 1)
@@ -83,7 +83,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "STUDIO"
+text = "CREDITS_STUDIO"
 
 [node name="StudioNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
@@ -102,7 +102,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "IMPLEMENTATION"
+text = "CREDITS_IMPLEMENTATION"
 
 [node name="ImplNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
@@ -128,7 +128,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "CREATIVE"
+text = "CREDITS_CREATIVE"
 
 [node name="CreativeNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
@@ -147,7 +147,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "ART"
+text = "CREDITS_ART"
 
 [node name="ArtNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
@@ -166,7 +166,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "SPECIAL THANKS"
+text = "CREDITS_SPECIAL_THANKS"
 
 [node name="ThanksNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
@@ -185,7 +185,7 @@ color = Color(0.96, 0.93, 0.88, 0.35)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "ENGINE"
+text = "CREDITS_ENGINE"
 
 [node name="EngineNames" type="Label" parent="Center/Panel/Column/Scroll/Body"]
 layout_mode = 2
@@ -200,7 +200,7 @@ layout_mode = 2
 size_flags_horizontal = 0
 mouse_filter = 0
 theme_type_variation = &"EmptyButtonMuted"
-text = "Back"
+text = "COMMON_BACK"
 
 [node name="Mark" type="ColorRect" parent="Center/Panel/Column/Back"]
 visible = false

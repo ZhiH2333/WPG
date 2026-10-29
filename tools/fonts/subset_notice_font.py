@@ -8,8 +8,9 @@
 为什么是子集：完整 Noto Sans SC 有 17 MB，Web 包现在才 74 MB，为了一个提示页塞
 17 MB 不划算。这里只保留提示页真正用到的那几十个字，产物不到 100 KB。
 
-字形集合直接从 `ui/test_build_notice.tscn` / `ui/test_build_notice.gd` 的字符串里
-扫出来，所以：**改文案之后要重跑本脚本**，否则新字在网页上是空白。
+字形集合直接从 `ui/test_build_notice.tscn` / `ui/test_build_notice.gd` / `ui/credits_overlay.tscn`
+的字符串和整份 `locale/wpg.csv` 里扫出来，所以：**改文案（含翻译表）之后要重跑本脚本**，
+否则新字在网页上是空白。tests/unit/wpg_i18n_test.gd 会逐字检查字体是否覆盖翻译表。
 
     python3 -m pip install fonttools
     python3 tools/fonts/subset_notice_font.py
@@ -47,10 +48,19 @@ CACHE_DIR = ROOT / "build/fonts"
 TEXT_SOURCES = (
     "ui/test_build_notice.tscn",
     "ui/test_build_notice.gd",
+    # 制作名单里有中文 / 日文假名 / 西里尔字母的昵称，网页版同样需要字形。
+    "ui/credits_overlay.tscn",
+)
+# 整份文件的每个字符都算（翻译表：所有语言列，包括没加引号的 CSV 单元格）。
+FULL_TEXT_SOURCES = (
+    "locale/wpg.csv",
 )
 # 子集永远带上整段可打印 ASCII：提示页里混着 WPG / Bug / 邮箱地址，
 # 而且以后在同一个 Label 上加个英文词不该再重跑一次。
 ASCII_PRINTABLE = "".join(chr(code) for code in range(0x20, 0x7F))
+# 脚本里直接拼进界面的符号（内置字体没有 →，网页版又没有系统字体回退）：
+# 导航箭头、乘号、间隔点、破折号、省略号。新增符号请加在这里。
+UI_SYMBOLS = "→←↑↓×·—…"
 # 两种字重 -> 产物文件名 + 子族名。标题用 bold，正文用 regular。
 WEIGHTS = (
     (400, "wght_notice_regular", "Regular", "wpg_notice_cjk_regular.ttf"),
@@ -94,11 +104,16 @@ def collect_text() -> str:
         if not path.is_file():
             raise SystemExit("[FAIL] 缺少文案来源：%s" % rel)
         parts.extend(QUOTED.findall(path.read_text(encoding="utf-8")))
+    for rel in FULL_TEXT_SOURCES:
+        path = ROOT / rel
+        if not path.is_file():
+            raise SystemExit("[FAIL] 缺少文案来源：%s" % rel)
+        parts.append(path.read_text(encoding="utf-8"))
     return "\n".join(parts)
 
 
 def characters_for_subset() -> str:
-    chars: Set[str] = set(ASCII_PRINTABLE)
+    chars: Set[str] = set(ASCII_PRINTABLE) | set(UI_SYMBOLS)
     for char in collect_text():
         if char in "\n\r\t":
             continue

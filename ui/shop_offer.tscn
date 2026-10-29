@@ -61,7 +61,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "SHOP"
+text = "SHOP_TITLE"
 vertical_alignment = 1
 
 [node name="GoldLabel" type="Label" parent="Root/Center/Panel/Column/Header"]
@@ -69,7 +69,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"StatValue"
-text = "gold  0"
+text = "HUD_GOLD"
 vertical_alignment = 1
 
 [node name="TopLine" type="ColorRect" parent="Root/Center/Panel/Column"]
@@ -146,19 +146,19 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"StatValue"
-text = "Lv.1  0/30"
+text = "HUD_XP"
 
 [node name="WeaponLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Pistol"
+text = "WEAPON_PISTOL"
 
 [node name="CompanionLabel" type="Label" parent="Root/Center/Panel/Column/Content/Body/Status"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "none"
+text = "SHOP_COMPANION_NONE"
 
 [node name="Scroll" type="ScrollContainer" parent="Root/Center/Panel/Column/Content/Body"]
 layout_mode = 2
@@ -190,7 +190,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
-text = "Pistol"
+text = "WEAPON_PISTOL"
 
 [node name="Gun1" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
 custom_minimum_size = Vector2(180, 104)
@@ -198,7 +198,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
-text = "Shotgun"
+text = "WEAPON_SHOTGUN"
 
 [node name="Gun2" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
 custom_minimum_size = Vector2(180, 104)
@@ -206,7 +206,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
-text = "Rifle"
+text = "WEAPON_RIFLE"
 
 [node name="Gun3" type="Button" parent="Root/Center/Panel/Column/Content/Body/GunRow"]
 custom_minimum_size = Vector2(180, 104)
@@ -214,7 +214,7 @@ layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 0
 theme_type_variation = &"OfferButton"
-text = "Smg"
+text = "WEAPON_SMG"
 
 [node name="BottomLine" type="ColorRect" parent="Root/Center/Panel/Column"]
 custom_minimum_size = Vector2(0, 1)
@@ -228,7 +228,7 @@ layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "Continue"
+text = "SHOP_CONTINUE"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 bus = &"SFX"

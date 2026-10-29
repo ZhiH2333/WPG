@@ -5,9 +5,10 @@ class_name RoomNotice
 ## 弹窗层在暂停菜单之上、顶栏之下；dimmer 从顶栏下沿开始，顶栏始终最高。
 signal dismissed
 
-const TEXT_HOST_CLOSED: String = "Host closed the room. Returning to the menu."
-const TEXT_GUEST_LEFT: String = "Guest left the room. Switched to solo."
-const TEXT_OK: String = "OK"
+## 翻译 key；present_* 显示时过 tr()。
+const TEXT_HOST_CLOSED: String = "NOTICE_HOST_CLOSED"
+const TEXT_GUEST_LEFT: String = "NOTICE_GUEST_LEFT"
+const TEXT_OK: String = "COMMON_OK"
 const TOAST_LIFE_SEC: float = 2.8
 const TOAST_FADE_SEC: float = 0.22
 const BAR_HEIGHT: float = 60.0
@@ -33,7 +34,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 40
 	visible = true
-	_ok_button.text = TEXT_OK
+	_ok_button.text = tr(TEXT_OK)
 	_dimmer.visible = false
 	_modal_root.visible = false
 	_toast_panel.visible = false
@@ -47,7 +48,7 @@ func is_modal_open() -> bool:
 
 func present_toast(text: String) -> void:
 	_hide_modal()
-	_toast_label.text = text
+	_toast_label.text = tr(text)
 	_pin_root(false)
 	_toast_panel.visible = true
 	_pin_toast(UiFit.visible_size(_root))
@@ -65,8 +66,8 @@ func present_modal(text: String) -> void:
 		return
 	_hide_toast()
 	_modal_open = true
-	_modal_label.text = text
-	_ok_button.text = TEXT_OK
+	_modal_label.text = tr(text)
+	_ok_button.text = tr(TEXT_OK)
 	_dimmer.modulate.a = 0.0
 	_modal_panel.modulate.a = 0.0
 	_modal_panel.scale = Vector2.ONE

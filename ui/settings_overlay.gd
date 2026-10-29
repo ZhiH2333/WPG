@@ -69,6 +69,7 @@ var _bind_grids: Array[GridContainer] = []
 ## Godot 的 Label 最小宽度永远是整段文字的宽度（autowrap 也不会让它变小），
 ## 窄面板下这些文案会把 SettingsSection.Body 撑宽、被 Panel.clip_contents 裁掉。
 var _wrapped_sources: Dictionary = {}
+var _wrapped_keys: Dictionary = {}
 ## Touch Controls / Manual Fire 的 OptionButton（宽度随面板宽在「占满一行 / 固定 160」间切）。
 var _choice_options: Array[OptionButton] = []
 ## Manual Fire 行只在 Touch Controls = AUTO / ON 时出现：OFF 时虚拟按键整层不存在，
@@ -77,6 +78,8 @@ var _manual_fire_row: VBoxContainer = null
 var _touch_hint: Label = null
 var _touch_mode_option: OptionButton = null
 var _manual_fire_option: OptionButton = null
+var _language_option: OptionButton = null
+var _language_label: Label = null
 var _sfx_gate: Dictionary = {}
 ## Touch drag scroll：区分 tap / drag，只有越过 slop 才接管为滚动。
 const TOUCH_SLOP: float = 12.0
@@ -131,14 +134,17 @@ func _ready() -> void:
 	_click_sfx.stream = GameAudio.load_wav("res://audio/ui_click.wav")
 	_back_sfx.stream = GameAudio.load_wav("res://audio/ui_back.wav")
 	_error_sfx.stream = GameAudio.load_wav("res://audio/click.wav")
-	_version_label.text = "version  %s" % GameSettings.get_version()
+	_version_label.text = tr("COMMON_VERSION") % GameSettings.get_version()
 	_msaa_option.clear()
-	_msaa_option.add_item("Off")
+	_msaa_option.add_item(tr("SETTINGS_MSAA_OFF"))
 	_msaa_option.add_item("2x")
 	_msaa_option.add_item("4x")
 	_msaa_option.add_item("8x")
 	_sections = [_audio_section, _display_section, _controls_section, _data_section]
 	_navs = [_audio_nav, _display_nav, _controls_nav, _data_nav]
+	## 语言行在 _ready 早期用 tr() 填文案；单测/直接实例化时可能还没走 MainMenu.apply。
+	WpgI18n.apply_locale(GameSettings.get_locale())
+	_ensure_language_row()
 	_tag_searchable()
 	_build_bind_rows()
 	_register_responsive_text()
@@ -420,7 +426,9 @@ func _apply_choice_options() -> void:
 func _wrap_label(label: Label) -> void:
 	if label == null or _wrapped_sources.has(label):
 		return
-	_wrapped_sources[label] = label.text
+	## 场景里存的是翻译 key；折行用翻译后的文本，key 另存，切语言时重取。
+	_wrapped_keys[label] = label.text
+	_wrapped_sources[label] = tr(label.text)
 
 ## 运行时改文案的折行 Label（UI Scale / Render Resolution 的读数）：更新原文后立即重排。
 func _set_wrapped_text(label: Label, text: String) -> void:
@@ -453,17 +461,30 @@ func _wrapped_text(label: Label, text: String, width: float) -> String:
 	var out: String = ""
 	var line: String = ""
 	for word: String in text.split(" ", false):
-		if line.is_empty():
-			line = word
-			continue
-		var candidate: String = line + " " + word
-		var candidate_w: float = _line_w(font, candidate, font_size)
-		if candidate_w <= limit or (WRAP_TRAILING_TOKENS.has(word) and candidate_w <= width):
-			line = candidate
-			continue
-		out += line + "\n"
-		line = word
+		## 单个「词」就比一行还宽（中日文没有空格，整句就是一个词）：按字拆开再贪心填行。
+		var pieces: PackedStringArray = PackedStringArray([word])
+		if _line_w(font, word, font_size) > limit:
+			pieces = _split_chars(word)
+		for index: int in pieces.size():
+			var piece: String = pieces[index]
+			if line.is_empty():
+				line = piece
+				continue
+			var glue: String = " " if index == 0 else ""
+			var candidate: String = line + glue + piece
+			var candidate_w: float = _line_w(font, candidate, font_size)
+			if candidate_w <= limit or (index == 0 and WRAP_TRAILING_TOKENS.has(word) and candidate_w <= width):
+				line = candidate
+				continue
+			out += line + "\n"
+			line = piece
 	return out + line
+
+func _split_chars(word: String) -> PackedStringArray:
+	var chars: PackedStringArray = PackedStringArray()
+	for i: int in word.length():
+		chars.append(word.substr(i, 1))
+	return chars
 
 func _line_w(font: Font, text: String, font_size: int) -> float:
 	return font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
@@ -672,7 +693,7 @@ func _on_search_changed(text: String) -> void:
 func _apply_search(text: String) -> void:
 	var query: String = text.strip_edges().to_lower()
 	for section: SettingsSection in _sections:
-		var header_hit: bool = query.is_empty() or query in section.search_name.to_lower() or query in section.header_text.to_lower()
+		var header_hit: bool = query.is_empty() or query in section.search_name.to_lower() or query in section.header_text.to_lower() or query in tr(section.header_text).to_lower()
 		var any_item: bool = header_hit
 		for child: Node in section.body.get_children():
 			if child.name == "Separator" or child.name == "Header":
@@ -701,10 +722,10 @@ func _matches(node: Node, query: String) -> bool:
 	var blob: String = str(node.get_meta("settings_search", "")).to_lower()
 	var label: Label = node as Label
 	if label != null:
-		blob += " " + label.text.to_lower()
+		blob += " " + tr(label.text).to_lower()
 	var button: Button = node as Button
 	if button != null:
-		blob += " " + button.text.to_lower()
+		blob += " " + tr(button.text).to_lower()
 	for child: Node in node.get_children():
 		if _matches(child, query):
 			return true
@@ -715,6 +736,8 @@ func _tag_searchable() -> void:
 	_music_slider.get_parent().set_meta("settings_search", "volume audio music bgm")
 	_sfx_slider.get_parent().set_meta("settings_search", "volume audio sfx sound")
 	_fullscreen_check.get_parent().set_meta("settings_search", "fullscreen display")
+	if _language_option != null:
+		_language_option.get_parent().set_meta("settings_search", "language locale display 语言")
 	_render_scale_slider.get_parent().set_meta("settings_search", "render resolution scale")
 	_ui_scale_slider.get_parent().set_meta("settings_search", "ui scale")
 	_vsync_check.get_parent().set_meta("settings_search", "vsync display")
@@ -730,6 +753,7 @@ func _sync_from_settings() -> void:
 	_music_slider.set_value_no_signal(GameSettings.get_music_volume())
 	_sfx_slider.set_value_no_signal(GameSettings.get_sfx_volume())
 	_fullscreen_check.set_pressed_no_signal(GameSettings.is_fullscreen())
+	_sync_language_option()
 	var render_percent: float = GameSettings.get_render_scale() * 100.0
 	_render_scale_slider.set_value_no_signal(render_percent)
 	_sync_render_scale_label(render_percent)
@@ -776,6 +800,102 @@ func _on_fullscreen_toggled(pressed: bool) -> void:
 	GameSettings.set_fullscreen(pressed)
 	GameSettings.apply()
 	GameSettings.save_to_disk()
+
+func _ensure_language_row() -> void:
+	if _language_option != null or _display_section == null or _display_section.body == null:
+		return
+	var row: HBoxContainer = HBoxContainer.new()
+	row.name = "LanguageRow"
+	row.add_theme_constant_override("separation", 12)
+	_language_label = Label.new()
+	_language_label.name = "LanguageLabel"
+	_language_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_language_label.clip_text = true
+	_language_label.text = "SETTINGS_LANGUAGE"
+	_language_label.set_meta("i18n_key", "SETTINGS_LANGUAGE")
+	_language_option = OptionButton.new()
+	_language_option.name = "LanguageOption"
+	_language_option.fit_to_longest_item = false
+	_language_option.clip_text = true
+	_language_option.custom_minimum_size = Vector2(CHOICE_OPTION_W, 0)
+	## 选项 = 翻译表里真实存在的语言列，顺序与 WpgI18n.supported_locales() 一致。
+	for index: int in WpgI18n.supported_locales().size():
+		_language_option.add_item(_language_item_text(WpgI18n.supported_locales()[index]), index)
+	_language_option.item_selected.connect(_on_language_selected)
+	row.add_child(_language_label)
+	row.add_child(_language_option)
+	_wrap_label(_language_label)
+	var body: Node = _display_section.body
+	var fullscreen_row: Node = body.get_node_or_null("FullscreenRow")
+	if fullscreen_row != null:
+		body.add_child(row)
+		body.move_child(row, fullscreen_row.get_index() + 1)
+	else:
+		body.add_child(row)
+	_choice_options.append(_language_option)
+
+## 语言项显示成该语言自己的名字（SETTINGS_LANGUAGE_<LOCALE>），不随当前语言变化。
+func _language_item_text(locale: String) -> String:
+	return tr("SETTINGS_LANGUAGE_%s" % locale.to_upper())
+
+func _sync_language_option() -> void:
+	if _language_option == null:
+		return
+	if _language_label != null:
+		_language_label.text = tr("SETTINGS_LANGUAGE")
+	var locales: PackedStringArray = WpgI18n.supported_locales()
+	for index: int in locales.size():
+		_language_option.set_item_text(index, _language_item_text(locales[index]))
+	var locale: String = GameSettings.get_locale()
+	_language_option.select(maxi(locales.find(locale), 0))
+
+func _on_language_selected(index: int) -> void:
+	_play_click()
+	var locales: PackedStringArray = WpgI18n.supported_locales()
+	if index < 0 or index >= locales.size():
+		return
+	GameSettings.set_locale(locales[index])
+	GameSettings.apply()
+	GameSettings.save_to_disk()
+	_sync_language_option()
+	refresh_locale()
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		tree.call_group("wpg_locale", "refresh_locale")
+
+## 语言切换后重写所有「脚本生成 / 带格式 / 折行」的文案；场景里的静态 key 由引擎自动重译。
+func refresh_locale() -> void:
+	_version_label.text = tr("COMMON_VERSION") % GameSettings.get_version()
+	_msaa_option.set_item_text(0, tr("SETTINGS_MSAA_OFF"))
+	for option: OptionButton in [_touch_mode_option, _manual_fire_option]:
+		if option == null:
+			continue
+		if option == _touch_mode_option:
+			option.set_item_text(0, tr("COMMON_AUTO"))
+			option.set_item_text(1, tr("COMMON_ON"))
+			option.set_item_text(2, tr("COMMON_OFF"))
+		else:
+			option.set_item_text(0, tr("COMMON_OFF"))
+			option.set_item_text(1, tr("COMMON_ON"))
+	for entry: Variant in find_children("*", "Label", true, false):
+		var label: Label = entry as Label
+		if label.has_meta("i18n_key"):
+			label.text = tr(str(label.get_meta("i18n_key")))
+		elif label.has_meta("i18n_action"):
+			label.text = GameSettings.action_display_name(str(label.get_meta("i18n_action")))
+	var restore: Button = find_child("RestoreButton", true, false) as Button
+	if restore != null:
+		restore.text = tr(str(restore.get_meta("i18n_key")))
+	for entry: Variant in _wrapped_keys.keys():
+		var wrapped: Label = entry as Label
+		if wrapped != null and is_instance_valid(wrapped):
+			_wrapped_sources[wrapped] = tr(str(_wrapped_keys[wrapped]))
+	for section: SettingsSection in _sections:
+		section.refresh_locale()
+	for nav: SettingsNavButton in _navs:
+		nav.refresh_locale()
+	_sync_from_settings()
+	_apply_wrapped_texts()
 
 func _on_render_scale_changed(value: float) -> void:
 	GameSettings.set_render_scale(value / 100.0)
@@ -836,7 +956,7 @@ func _sync_touch_choice_visibility() -> void:
 		_touch_hint.visible = enabled
 		_set_wrapped_text(
 			_touch_hint,
-			"ON adds a FIRE button; the right pad then only aims." if enabled else "")
+			tr("SETTINGS_TOUCH_FIRE_HINT") if enabled else "")
 
 func _on_delete_all_confirmed() -> void:
 	_play_click()
@@ -848,31 +968,31 @@ func _on_delete_all_confirmed() -> void:
 	GameSaveStore.wipe_files()
 	GameProgress.load_from_disk()
 	GameRecords.load_from_disk()
-	_status_label.text = "All data deleted."
+	_status_label.text = tr("SETTINGS_DATA_DELETED")
 
 func _build_bind_rows() -> void:
 	var body: VBoxContainer = _controls_section.body
 	
 	# Touch Controls Mode
 	var touch_option: OptionButton = OptionButton.new()
-	touch_option.add_item("AUTO")
-	touch_option.add_item("ON")
-	touch_option.add_item("OFF")
+	touch_option.add_item(tr("COMMON_AUTO"))
+	touch_option.add_item(tr("COMMON_ON"))
+	touch_option.add_item(tr("COMMON_OFF"))
 	touch_option.select(int(GameSettings.get_touch_controls_mode()))
 	touch_option.item_selected.connect(_on_touch_controls_selected)
 	_touch_mode_option = touch_option
-	body.add_child(_build_choice_row("Touch Controls", "touch controls mobile on screen", touch_option))
+	body.add_child(_build_choice_row("SETTINGS_TOUCH_CONTROLS", "touch controls mobile on screen", touch_option))
 
 	# Manual Fire Button（默认 OFF：右摇杆 = Aim + Fire）。
 	# 只有 Touch Controls = AUTO / ON 才显示这一行：OFF 时整层虚拟按键都不存在。
 	var fire_option: OptionButton = OptionButton.new()
-	fire_option.add_item("OFF")
-	fire_option.add_item("ON")
+	fire_option.add_item(tr("COMMON_OFF"))
+	fire_option.add_item(tr("COMMON_ON"))
 	fire_option.select(1 if GameSettings.is_touch_manual_fire() else 0)
 	fire_option.item_selected.connect(_on_touch_manual_fire_selected)
 	_manual_fire_option = fire_option
 	_manual_fire_row = _build_choice_row(
-		"Manual Fire Button", "touch manual fire button aim stick", fire_option)
+		"SETTINGS_MANUAL_FIRE", "touch manual fire button aim stick", fire_option)
 	body.add_child(_manual_fire_row)
 
 	var hint: Label = Label.new()
@@ -901,6 +1021,7 @@ func _build_bind_rows() -> void:
 		var name_label: Label = Label.new()
 		name_label.theme_type_variation = &"SettingsHeader"
 		name_label.text = GameSettings.action_display_name(action)
+		name_label.set_meta("i18n_action", action)
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var chips: GridContainer = GridContainer.new()
@@ -929,7 +1050,8 @@ func _build_bind_rows() -> void:
 	restore.custom_minimum_size = Vector2(0, 48)
 	restore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	restore.mouse_filter = Control.MOUSE_FILTER_STOP
-	restore.text = "RESTORE DEFAULTS"
+	restore.text = tr("SETTINGS_RESTORE_DEFAULTS")
+	restore.set_meta("i18n_key", "SETTINGS_RESTORE_DEFAULTS")
 	restore.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	restore.set_meta("settings_search", "restore defaults reset keys gamepad")
 	restore.pressed.connect(_on_restore_pressed)
@@ -948,7 +1070,8 @@ func _build_choice_row(text: String, search_meta: String, option: OptionButton) 
 	row.add_theme_constant_override("separation", 6)
 	var label: Label = Label.new()
 	label.theme_type_variation = &"SettingsHeader"
-	label.text = text
+	label.text = tr(text)
+	label.set_meta("i18n_key", text)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	option.theme_type_variation = ""
@@ -1102,7 +1225,7 @@ func _on_restore_pressed() -> void:
 	GameSettings.apply()
 	GameSettings.save_to_disk()
 	_refresh_key_labels()
-	_set_bind_status("Controls restored.")
+	_set_bind_status(tr("SETTINGS_CONTROLS_RESTORED"))
 
 func _clear_bind_status() -> void:
 	_set_bind_status("")
@@ -1115,21 +1238,21 @@ func _set_bind_status(text: String) -> void:
 func _key_conflict_text(keycode: int, occupier: String) -> String:
 	if occupier.is_empty():
 		return ""
-	return "%s is used by %s." % [OS.get_keycode_string(keycode as Key), GameSettings.action_display_name(occupier)]
+	return tr("SETTINGS_KEY_IN_USE") % [OS.get_keycode_string(keycode as Key), GameSettings.action_display_name(occupier)]
 
 func _joy_conflict_text(joy_button: int, conflict: String) -> String:
 	if conflict == "reserved":
 		if joy_button == JOY_BUTTON_START:
-			return "Start is reserved."
+			return tr("SETTINGS_START_RESERVED")
 		if joy_button == JOY_BUTTON_GUIDE:
-			return "Guide is reserved."
+			return tr("SETTINGS_GUIDE_RESERVED")
 		return ""
 	if conflict.is_empty() or conflict == "invalid":
 		return ""
-	return "%s is used by %s." % [GameSettings.joy_label_for_action(conflict), GameSettings.action_display_name(conflict)]
+	return tr("SETTINGS_KEY_IN_USE") % [GameSettings.joy_label_for_action(conflict), GameSettings.action_display_name(conflict)]
 
 func _fail_bind(button: Button, action: String, status: String) -> void:
-	button.text = "IN USE"
+	button.text = tr("SETTINGS_BIND_IN_USE")
 	_set_bind_status(status)
 	_play_error()
 	var tree: SceneTree = get_tree()
@@ -1138,10 +1261,10 @@ func _fail_bind(button: Button, action: String, status: String) -> void:
 	tree.create_timer(IN_USE_FLASH_SEC).timeout.connect(_restore_bind_label.bind(button, action))
 
 func _sync_render_scale_label(slider_value: float) -> void:
-	_set_wrapped_text(_render_scale_label, "Render Resolution  %d%%" % int(slider_value))
+	_set_wrapped_text(_render_scale_label, tr("SETTINGS_RENDER_SCALE") % int(slider_value))
 
 func _sync_ui_scale_label(slider_value: float) -> void:
-	_set_wrapped_text(_ui_scale_label, "UI Scale  %d%%" % int(slider_value))
+	_set_wrapped_text(_ui_scale_label, tr("SETTINGS_UI_SCALE") % int(slider_value))
 
 func _play_preview() -> void:
 	if _preview.stream == null:

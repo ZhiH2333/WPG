@@ -25,8 +25,9 @@ const DELETE_ZONE: float = DELETE_SIZE.x + DELETE_MARGIN * 2.0
 const CONTENT_MARGIN: float = 48.0
 ## 存档行不跟着铺满 4K：版心最宽 1200，窄视口按视口宽收缩。
 const CONTENT_MAX_WIDTH: float = 1200.0
-const SUBTITLE_LIST := "Pick a save, or brand a new one"
-const SUBTITLE_EDITOR := "Brand a new save"
+## 翻译 key，显示时过 tr()。
+const SUBTITLE_LIST := "RECORDS_SUBTITLE_LIST"
+const SUBTITLE_EDITOR := "RECORDS_SUBTITLE_EDITOR"
 const DEFAULT_LOOP_GOAL: int = 20
 const CHAR_BOAR := "boar"
 const CHAR_CHICKEN := "chicken"
@@ -357,11 +358,11 @@ func _clear_detail_rows() -> void:
 func _primary_label(proj: SaveUiProjection) -> String:
 	match proj.status:
 		SaveUiProjection.STATUS_IN_PROGRESS:
-			return "Continue Run"
+			return tr("RECORDS_CONTINUE_RUN")
 		SaveUiProjection.STATUS_FAILED:
-			return "Retry Run"
+			return tr("RECORDS_RETRY_RUN")
 		_:
-			return "Start New Run"
+			return tr("RECORDS_START_NEW_RUN")
 
 func _on_detail_yes_pressed() -> void:
 	_play_click()
@@ -432,7 +433,7 @@ func _fill_delete_body(record_id: String) -> void:
 	if proj == null:
 		_delete_body.text = ""
 		return
-	_delete_body.text = "Name: %s\nProgress: %s\nHistory: %s" % [
+	_delete_body.text = tr("RECORDS_DELETE_BODY") % [
 		proj.display_name, proj.delete_progress_line(), proj.delete_history_line()
 	]
 
@@ -511,7 +512,7 @@ func _enter_editor() -> void:
 	## 右上角同一个槽位：建档态换成 Create，列表态是 + New Record。
 	_new_button.visible = false
 	_confirm_button.visible = true
-	_subtitle.text = SUBTITLE_EDITOR
+	_subtitle.text = tr(SUBTITLE_EDITOR)
 	_hide_delete_modal()
 	_hide_completed_modal()
 	_hide_detail_modal()
@@ -527,7 +528,7 @@ func _show_list_nodes() -> void:
 	_editor_root.visible = false
 	_new_button.visible = true
 	_confirm_button.visible = false
-	_subtitle.text = SUBTITLE_LIST
+	_subtitle.text = tr(SUBTITLE_LIST)
 	_hide_delete_modal()
 	_hide_completed_modal()
 	_hide_detail_modal()
@@ -772,9 +773,9 @@ func _fill_editor_character(button: Button, character_id: String) -> void:
 	if portrait != null:
 		portrait.texture = RecordCard.resolve_body_texture(character_id)
 	if title != null:
-		title.text = def.display_name if def != null else character_id
+		title.text = tr(def.display_name) if def != null else character_id
 	if desc != null:
-		desc.text = def.description if def != null else ""
+		desc.text = tr(def.description) if def != null else ""
 
 func _on_host_resized() -> void:
 	if not _open:

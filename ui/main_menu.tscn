@@ -110,13 +110,13 @@ mouse_filter = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ShowcaseName"
-text = "Player"
+text = "PROFILE_NAME_DEFAULT"
 
 [node name="Status" type="Label" parent="Home/Body"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Ready to play"
+text = "MENU_STATUS_READY"
 
 [node name="TopLine" type="ColorRect" parent="Home/Body"]
 custom_minimum_size = Vector2(756, 1)
@@ -165,13 +165,13 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "CONTINUE"
+text = "MENU_CONTINUE"
 
 [node name="Caption" type="Label" parent="Home/Body/Rail/Continue/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Resume run"
+text = "SAVE_CAPTION_IN_PROGRESS"
 
 [node name="Solo" type="Button" parent="Home/Body/Rail"]
 custom_minimum_size = Vector2(220, 84)
@@ -207,13 +207,13 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "SOLO"
+text = "MENU_SOLO"
 
 [node name="Caption" type="Label" parent="Home/Body/Rail/Solo/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "New run"
+text = "SAVE_CAPTION_NEW"
 
 [node name="Multi" type="Button" parent="Home/Body/Rail"]
 custom_minimum_size = Vector2(220, 84)
@@ -249,13 +249,13 @@ alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RailTitle"
-text = "MULTIPLAYER"
+text = "MENU_MULTIPLAYER"
 
 [node name="Caption" type="Label" parent="Home/Body/Rail/Multi/Text"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "Play with friends"
+text = "MENU_MULTIPLAYER_CAPTION"
 
 [node name="BottomLine" type="ColorRect" parent="Home/Body"]
 custom_minimum_size = Vector2(756, 1)
@@ -302,7 +302,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "BEST LOOP"
+text = "STATS_BEST_LOOP"
 vertical_alignment = 1
 
 [node name="Value" type="Label" parent="Home/Body/Secondary/Best/Text"]
@@ -344,7 +344,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "LAST RUN"
+text = "STATS_LAST_RUN"
 vertical_alignment = 1
 
 [node name="Value" type="Label" parent="Home/Body/Secondary/Last/Text"]
@@ -369,7 +369,7 @@ offset_bottom = -36.0
 grow_horizontal = 0
 grow_vertical = 0
 theme_type_variation = &"EmptyButtonMuted"
-text = "Quit"
+text = "MENU_QUIT"
 
 [node name="BlurLayer" type="ColorRect" parent="."]
 material = SubResource("mat_blur")
@@ -452,7 +452,7 @@ custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
 theme_type_variation = &"IconBarButton"
 icon = ExtResource("22_home_icon")
-text = "HOME"
+text = "MENU_HOME"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/HomeButton"]
 visible = false
@@ -472,7 +472,7 @@ custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
 theme_type_variation = &"IconBarButton"
 icon = ExtResource("23_play_icon")
-text = "PLAY"
+text = "MENU_PLAY"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/PlayButton"]
 visible = false
@@ -492,7 +492,7 @@ custom_minimum_size = Vector2(208, 60)
 layout_mode = 2
 theme_type_variation = &"IconBarButton"
 icon = ExtResource("24_multi_icon")
-text = "MULTIPLAYER"
+text = "MENU_MULTIPLAYER"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/MultiButton"]
 visible = false
@@ -512,7 +512,7 @@ custom_minimum_size = Vector2(132, 60)
 layout_mode = 2
 theme_type_variation = &"IconBarButton"
 icon = ExtResource("26_profile_icon")
-text = "PROFILE"
+text = "MENU_PROFILE"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/ProfileButton"]
 visible = false
@@ -532,7 +532,7 @@ custom_minimum_size = Vector2(172, 60)
 layout_mode = 2
 theme_type_variation = &"IconBarButton"
 icon = ExtResource("25_gear_icon")
-text = "SETTINGS"
+text = "MENU_SETTINGS"
 
 [node name="Mark" type="ColorRect" parent="TopBar/Row/SettingsButton"]
 visible = false

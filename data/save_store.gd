@@ -342,10 +342,11 @@ static func _make_slot_id() -> String:
 static func _resolve_name(name: String, character_id: String, loop_goal: int) -> String:
 	if not name.strip_edges().is_empty():
 		return name.strip_edges()
-	var species: String = "Chicken" if character_id == SaveSlot.CHARACTER_CHICKEN else "Boar"
+	## 默认存档名在创建时按当前语言生成，之后属于用户数据，不再随语言变化。
+	var species: String = WpgI18n.t("CHARACTER_CHICKEN_NAME" if character_id == SaveSlot.CHARACTER_CHICKEN else "CHARACTER_BOAR_NAME")
 	if loop_goal > 0:
-		return "%s · %d loops" % [species, loop_goal]
-	return "%s · Inf" % species
+		return WpgI18n.t("SAVE_DEFAULT_NAME") % [species, loop_goal]
+	return WpgI18n.t("SAVE_DEFAULT_NAME_INF") % species
 
 static func _find_index(id: String) -> int:
 	if id.is_empty():

@@ -34,7 +34,7 @@ func bind_hit_players(hit_players: bool) -> void:
 	_hit_players = hit_players
 
 func get_display_name() -> String:
-	return "Weapon"
+	return "WEAPON_GENERIC"
 
 ## Guns 本地坐标（Guns 自身转向瞄准方向）。基类默认手枪枪口，各枪覆盖。
 func get_muzzle_local_offset() -> Vector2:

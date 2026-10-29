@@ -183,8 +183,8 @@ func _refresh_cards() -> void:
 			_titles[i].text = ""
 			_descs[i].text = ""
 			continue
-		_titles[i].text = _defs[i].title
-		_descs[i].text = _defs[i].description
+		_titles[i].text = tr(_defs[i].title)
+		_descs[i].text = tr(_defs[i].description)
 
 func _reset_card_motion() -> void:
 	for card: Button in _cards:

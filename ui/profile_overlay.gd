@@ -168,8 +168,8 @@ func _notify_menu() -> void:
 func _refresh_stats() -> void:
 	_best_loop_value.text = "%d" % GameProgress.get_best_loop()
 	_last_loop_value.text = "%d" % GameProgress.get_last_loop()
-	_last_kills_label.text = "Last kills  %d" % GameProgress.get_last_kills()
-	_last_gold_label.text = "Last gold  %d" % GameProgress.get_last_gold()
+	_last_kills_label.text = tr("STATS_LAST_KILLS") % GameProgress.get_last_kills()
+	_last_gold_label.text = tr("STATS_LAST_GOLD") % GameProgress.get_last_gold()
 	_runs_value.text = "%d" % GameProgress.get_runs_played()
 	## 硬规定：profile 不显示本局 / 最近一局获得的升级、物品、状态清单。
 
@@ -195,7 +195,7 @@ func _clear_record_rows() -> void:
 func _make_empty_hint() -> Label:
 	var hint: Label = Label.new()
 	hint.theme_type_variation = &"RunSummaryHint"
-	hint.text = "NO RECORDS YET"
+	hint.text = tr("PROFILE_NO_RECORDS")
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return hint
 

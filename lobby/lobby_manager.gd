@@ -159,18 +159,23 @@ func host_room(arena_id: String, net_play: GameLaunch.NetPlay, loop_goal: int, b
 		return false
 	if not _net.host_listen():
 		return false
+	## 协议 6：LAN 建房当下就要有门票。只在复制 invite 时才生成的话，
+	## LobbyNet._ticket 仍是空的，Guest 一出示 hello 就会被判 NO_ROOM 并立刻踢掉。
+	_ensure_room_ticket()
 	_networked = true
 	room_changed.emit()
 	return true
 
-## Guest 连 Host（手打 IPv4 的 LAN 路径）。
+## Guest 连 Host（手打 IPv4 / LAN Rooms 的路径）。
 ## 走同一个 ConnectAttemptRunner：单候选、无回退，但同样享有 attempt_id 隔离与
 ## 明确的结果分类 —— 否则手打 IP 失败时旧 runner 会误收别的连接的回调。
-func join_room_address(address: String) -> bool:
+## ticket 由调用方传入（LAN 发现包或邀请）。空 ticket 仍会去连，并由 Host 校验拒绝，
+## 这里不代判成功。
+func join_room_address(address: String, ticket: String = "") -> bool:
 	if _net == null:
 		return false
 	_terminal_failure = ""
-	_guest_ticket = ""
+	_guest_ticket = ticket.strip_edges()
 	var plan: ConnectionPath = ConnectionPath.from_address(address)
 	if plan.is_empty():
 		return false
@@ -180,7 +185,7 @@ func join_room_address(address: String) -> bool:
 	_runner.candidate_started.connect(_on_candidate_started)
 	_runner.attempt_finished.connect(_on_attempt_finished)
 	_runner.exhausted.connect(_on_join_exhausted)
-	return _runner.begin(plan, "", _connect_transport, _close_transport)
+	return _runner.begin(plan, _guest_ticket, _connect_transport, _close_transport)
 
 # ---- 邀请票据（Phase 8）----
 #
@@ -200,8 +205,7 @@ func join_room_address(address: String) -> bool:
 func create_invite(lan_host: String, lan_port: int = GameLaunch.NET_PORT) -> JoinInvite:
 	if _room == null:
 		return null
-	if _room_ticket.is_empty():
-		_room_ticket = JoinInvite.generate_token()
+	_ensure_room_ticket()
 	var host_name: String = _room.host_display_name
 	var invite: JoinInvite = JoinInvite.create(
 		lan_host,
@@ -212,8 +216,6 @@ func create_invite(lan_host: String, lan_port: int = GameLaunch.NET_PORT) -> Joi
 	)
 	if not invite.is_valid():
 		return null
-	if _net != null:
-		_net.set_ticket(_room_ticket)
 	return invite
 
 ## Host：显式轮换本房 ticket（旧 invite 立即失效）。
@@ -227,6 +229,14 @@ func rotate_room_ticket() -> String:
 ## Host 侧：本房当前 ticket（无房则空）。仅供 Host 自己复述给 Guest，绝不外发身份。
 func get_room_ticket() -> String:
 	return _room_ticket
+
+## 保证当前房间有且只有一张门票，并写进 LobbyNet。
+## create_invite / rotate 之外，host_room 也必须走这里：LAN 发现要在握手前把同一张票交给 Guest。
+func _ensure_room_ticket() -> void:
+	if _room_ticket.is_empty():
+		_room_ticket = JoinInvite.generate_token()
+	if _net != null:
+		_net.set_ticket(_room_ticket)
 
 ## Guest 侧：本次连接携带的 guest ticket（无则空）。与 room ticket 是两个独立概念。
 func get_guest_ticket() -> String:
@@ -306,8 +316,7 @@ func get_rendezvous_port() -> int:
 func create_p2p_invite(lan_host: String, rendezvous_host: String = "", rendezvous_port: int = 0) -> JoinInvite:
 	if _room == null:
 		return null
-	if _room_ticket.is_empty():
-		_room_ticket = JoinInvite.generate_token()
+	_ensure_room_ticket()
 	var rv_host: String = rendezvous_host.strip_edges() if not rendezvous_host.strip_edges().is_empty() else _rendezvous_host
 	var rv_port: int = rendezvous_port if rendezvous_port >= 1 and rendezvous_port <= 65535 else _rendezvous_port
 	var invite: JoinInvite = JoinInvite.create(
@@ -325,8 +334,6 @@ func create_p2p_invite(lan_host: String, rendezvous_host: String = "", rendezvou
 	)
 	if not invite.is_valid():
 		return null
-	if _net != null:
-		_net.set_ticket(_room_ticket)
 	## 保存**这一张真实生成的**邀请：Host 的 rendezvous 注册（start_p2p_hosting）
 	## 必须复用它，绝不允许调用方另行拼装 room_id / ticket / 端口。
 	_host_invite = invite
@@ -624,6 +631,11 @@ func leave_room() -> void:
 	_room = null
 	_role = Role.NONE
 	_networked = false
+	## 门票属于这一间房。离房后必须作废，否则下一间房会沿用旧票。
+	_room_ticket = ""
+	_host_invite = null
+	if _net != null:
+		_net.set_ticket("")
 	room_closed.emit()
 	room_changed.emit()
 

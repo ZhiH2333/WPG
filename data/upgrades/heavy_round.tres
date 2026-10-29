@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"heavy_round"
-title = "Heavy Round"
-description = "Damage +3"
+title = "UPGRADE_HEAVY_ROUND_TITLE"
+description = "UPGRADE_HEAVY_ROUND_DESC"
 kind = 2
 value = 3.0
 stackable = true

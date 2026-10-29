@@ -52,7 +52,7 @@ theme_override_constants/separation = 24
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "RESULT"
+text = "RESULT_TITLE"
 
 [node name="RecordName" type="Label" parent="Root/Sheet/Column"]
 layout_mode = 2
@@ -82,14 +82,14 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ModeTitle"
-text = "score  0"
+text = "RESULT_SCORE"
 
 [node name="NewBest" type="Label" parent="Root/Sheet/Column/Body/Left"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ClearedTitle"
-text = "NEW BEST"
+text = "RESULT_NEW_BEST"
 
 [node name="Breakdown" type="VBoxContainer" parent="Root/Sheet/Column/Body/Left"]
 layout_mode = 2
@@ -105,7 +105,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "loop  ×1000"
+text = "RESULT_LOOP_MULT"
 
 [node name="Value" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/LoopRow"]
 custom_minimum_size = Vector2(96, 0)
@@ -124,7 +124,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "kills  ×5"
+text = "RESULT_KILLS_MULT"
 
 [node name="Value" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/KillsRow"]
 custom_minimum_size = Vector2(96, 0)
@@ -143,7 +143,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "gold  ×2"
+text = "RESULT_GOLD_MULT"
 
 [node name="Value" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/GoldRow"]
 custom_minimum_size = Vector2(96, 0)
@@ -162,7 +162,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "time  0.0s"
+text = "RESULT_TIME"
 
 [node name="Value" type="Label" parent="Root/Sheet/Column/Body/Left/Breakdown/TimeRow"]
 custom_minimum_size = Vector2(96, 0)
@@ -177,13 +177,13 @@ visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "cleared  +5000"
+text = "RESULT_CLEARED_BONUS"
 
 [node name="Summary" type="Label" parent="Root/Sheet/Column/Body/Left"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "loop  0    kills  0    gold  0    time  0.0s"
+text = "RESULT_SUMMARY"
 autowrap_mode = 2
 
 [node name="HpChart" type="Control" parent="Root/Sheet/Column/Body/Left"]
@@ -204,7 +204,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "THIS RECORD"
+text = "RESULT_THIS_RECORD"
 
 [node name="Scroll" type="ScrollContainer" parent="Root/Sheet/Column/Body/Right"]
 layout_mode = 2
@@ -228,7 +228,7 @@ text = "-"
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryBody"
-text = "rank  -"
+text = "RESULT_RANK_NONE"
 
 [node name="BottomLine" type="ColorRect" parent="Root/Sheet/Column"]
 custom_minimum_size = Vector2(0, 1)
@@ -247,14 +247,14 @@ custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillPink"
-text = "Retry"
+text = "COMMON_RETRY"
 
 [node name="Menu" type="Button" parent="Root/Sheet/Column/Buttons"]
 custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"PillNeutral"
-text = "Menu"
+text = "COMMON_MENU"
 
 [node name="HoverSfx" type="AudioStreamPlayer" parent="."]
 bus = &"SFX"

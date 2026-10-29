@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"gunner"
-display_name = "Gunner"
-description = "Fights with a gun you pick."
+display_name = "COMPANION_GUNNER_NAME"
+description = "COMPANION_GUNNER_DESC"
 kind = 1
 shop_cost = 70
 base_max_hp = 140

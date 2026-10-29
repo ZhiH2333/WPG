@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"beak_shot"
-title = "Beak Shot"
-description = "Damage +4"
+title = "UPGRADE_BEAK_SHOT_TITLE"
+description = "UPGRADE_BEAK_SHOT_DESC"
 kind = 2
 value = 4.0
 stackable = true

@@ -55,13 +55,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"PageTitle"
-text = "PROFILE"
+text = "MENU_PROFILE"
 
 [node name="Ranking" type="Button" parent="Sheet/Column/Header"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 theme_type_variation = &"EmptyButtonMuted"
-text = "RANKING"
+text = "RANKING_TITLE"
 
 [node name="Mark" type="ColorRect" parent="Sheet/Column/Header/Ranking"]
 visible = false
@@ -112,7 +112,7 @@ layout_mode = 2
 size_flags_horizontal = 0
 theme_type_variation = &"ProfileNameEdit"
 max_length = 16
-placeholder_text = "Player"
+placeholder_text = "PROFILE_NAME_DEFAULT"
 caret_blink = true
 [node name="Mark" type="ColorRect" parent="Sheet/Column/Name"]
 visible = false
@@ -140,20 +140,20 @@ mouse_filter = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ShowcaseName"
-text = "Player"
+text = "PROFILE_NAME_DEFAULT"
 vertical_alignment = 1
 
 [node name="Accent" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ProfileHeader"
-text = "local profile"
+text = "PROFILE_SUBTITLE"
 
 [node name="CharacterSection" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "CHARACTER"
+text = "CHARACTER_HEADER"
 
 [node name="Characters" type="HBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
@@ -164,7 +164,7 @@ theme_override_constants/separation = 24
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
-text = "Boar"
+text = "CHARACTER_BOAR_NAME"
 
 [node name="Mark" type="ColorRect" parent="Sheet/Column/Characters/Boar"]
 visible = false
@@ -195,7 +195,7 @@ color = Color(1, 0.4, 0.67, 1)
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 theme_type_variation = &"EmptyButton"
-text = "Chicken"
+text = "CHARACTER_CHICKEN_NAME"
 
 [node name="Mark" type="ColorRect" parent="Sheet/Column/Characters/Chicken"]
 visible = false
@@ -231,7 +231,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "BEST LOOP"
+text = "STATS_BEST_LOOP"
 vertical_alignment = 1
 
 [node name="BestLoopValue" type="Label" parent="Sheet/Column/Stats"]
@@ -250,7 +250,7 @@ mouse_filter = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "LAST LOOP"
+text = "STATS_LAST_LOOP"
 vertical_alignment = 1
 
 [node name="LastLoopValue" type="Label" parent="Sheet/Column/Stats"]
@@ -269,7 +269,7 @@ mouse_filter = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Caption"
-text = "RUNS"
+text = "STATS_RUNS"
 vertical_alignment = 1
 
 [node name="RunsValue" type="Label" parent="Sheet/Column/Stats"]
@@ -287,19 +287,19 @@ mouse_filter = 2
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "Last kills  0"
+text = "STATS_LAST_KILLS"
 
 [node name="LastGold" type="Label" parent="Sheet/Column/Facts"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
-text = "Last gold  0"
+text = "STATS_LAST_GOLD"
 
 [node name="RecordsSection" type="Label" parent="Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"SectionLabel"
-text = "RECORDS"
+text = "RECORDS_TITLE"
 
 [node name="Rows" type="VBoxContainer" parent="Sheet/Column"]
 layout_mode = 2
@@ -313,7 +313,7 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 0
 theme_type_variation = &"EmptyButtonMuted"
-text = "Back"
+text = "COMMON_BACK"
 
 [node name="Mark" type="ColorRect" parent="Sheet/Column/Back"]
 visible = false

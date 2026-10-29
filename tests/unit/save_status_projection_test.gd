@@ -37,6 +37,8 @@ func _run_all() -> void:
 	await process_frame
 	PlayerProfile.load_from_disk()
 	GameSettings.load_from_disk()
+	## 本测试逐字核对英文文案；系统语言是中文的开发机也要稳定。中文见 wpg_i18n_test。
+	WpgI18n.apply_locale("en")
 	_snapshot_saves()
 	_make_fixtures()
 

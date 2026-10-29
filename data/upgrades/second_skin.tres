@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 id = &"second_skin"
-title = "Second Skin"
-description = "I-frames +0.10s"
+title = "UPGRADE_SECOND_SKIN_TITLE"
+description = "UPGRADE_SECOND_SKIN_DESC"
 kind = 5
 value = 0.1

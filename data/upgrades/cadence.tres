@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_script")
 id = &"cadence"
-title = "Cadence"
-description = "Fire rate +15%"
+title = "UPGRADE_CADENCE_TITLE"
+description = "UPGRADE_CADENCE_DESC"
 kind = 3
 value = 0.15
 stackable = true

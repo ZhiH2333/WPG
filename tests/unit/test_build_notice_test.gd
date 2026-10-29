@@ -94,7 +94,7 @@ func _case_scene_and_auto_fullscreen() -> void:
 	}
 	for name: String in members:
 		_expect(members[name] != null, "TestBuildNotice.%s 不为 null（%UniqueName 解得到）" % name)
-	_expect(notice._start_button.text == "开始游玩", "按钮文案是「开始游玩」")
+	_expect(notice._start_button.atr(notice._start_button.text) == tr("NOTICE_START_PLAYING"), "按钮文案是 NOTICE_START_PLAYING（zh：开始游玩）")
 	_expect(notice._mute_check.button_pressed == false, "「不再提示」默认不勾")
 	_expect(GameSettings.is_fullscreen(), "网页版自动把 Fullscreen 打开")
 	_expect(notice._fullscreen_check.button_pressed, "复选框也跟着勾上")

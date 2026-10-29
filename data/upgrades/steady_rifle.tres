@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 id = &"steady_rifle"
-title = "Steady Rifle"
-description = "Rifle max spread -2.0"
+title = "UPGRADE_STEADY_RIFLE_TITLE"
+description = "UPGRADE_STEADY_RIFLE_DESC"
 kind = 7
 value = -2.0
