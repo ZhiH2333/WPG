@@ -20,6 +20,7 @@
 [ext_resource type="Texture2D" uid="uid://byffsvxbi8khl" path="res://ui/icons/profile.png" id="26_profile_icon"]
 [ext_resource type="Script" path="res://lobby/lobby_manager.gd" id="27_lobby"]
 [ext_resource type="Script" path="res://lobby/lobby_net.gd" id="28_lobby_net"]
+[ext_resource type="PackedScene" path="res://ui/tutorial_host.tscn" id="29_tutorial"]
 
 [sub_resource type="ShaderMaterial" id="mat_blur"]
 shader = ExtResource("5_blur")
@@ -424,6 +425,11 @@ offset_top = 60.0
 
 [node name="PlayPage" parent="." instance=ExtResource("20_play")]
 layout_mode = 1
+
+[node name="TutorialHost" parent="." instance=ExtResource("29_tutorial")]
+z_index = 110
+layout_mode = 1
+mouse_filter = 2
 
 [node name="TopBar" type="PanelContainer" parent="."]
 z_index = 100

@@ -214,9 +214,15 @@ func _on_settings_pressed() -> void:
 	if _overlay.is_open():
 		_overlay.close()
 		return
+	_overlay.set_open_context(true)
 	_overlay.open()
 	_overlay.move_to_front()
 	_top_bar.move_to_front()
+
+func request_tutorial_replay_exit() -> void:
+	if not _open:
+		return
+	_on_quit_pressed()
 
 ## 设置抽屉里切语言后，动态文案（统计 / 阶段 / 时长）立刻按新语言重写。
 func refresh_locale() -> void:

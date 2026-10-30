@@ -2,8 +2,8 @@ extends Node
 class_name PlayerDash
 
 ## 短冲刺：穿怪不穿墙。不写进 Player / Motor。不用 Engine.time_scale。
-const DASH_DISTANCE: float = 260.0 ## 像素
-const DASH_DURATION_SEC: float = 0.16
+const DASH_DISTANCE: float = 210.0 ## 像素
+const DASH_DURATION_SEC: float = 0.12
 const DASH_COOLDOWN_SEC: float = 1.05 ## 从起冲那一帧起算，含冲刺本身
 const CAMERA_KICK: float = 4.0
 const AFTERIMAGE_INTERVAL_SEC: float = 0.035

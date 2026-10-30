@@ -172,6 +172,8 @@ func _pick_index(index: int) -> void:
 	picked.emit(_defs[index].id)
 
 func _cancel_offer() -> void:
+	if TutorialDirector.blocks_upgrade_cancel():
+		return
 	_play_back()
 	cancelled.emit()
 

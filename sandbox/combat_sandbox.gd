@@ -72,6 +72,7 @@ var _started_as_lan: bool = false
 var _arena_id: String = "yard"
 var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
 var _battle_winner_seat: int = 0
+var _tutorial_world_frozen: bool = false
 
 @onready var _viewport_container: SubViewportContainer = $ViewportContainer
 @onready var _game_viewport: SubViewport = $ViewportContainer/GameViewport
@@ -106,6 +107,7 @@ var _battle_winner_seat: int = 0
 func _ready() -> void:
 	GameSettings.load_from_disk()
 	GameSettings.apply()
+	TutorialDirector.set_online_blocked(_is_lan())
 	_start_combat_music()
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	_apply_wall_layers()
@@ -116,6 +118,36 @@ func _ready() -> void:
 
 	var gamepad_debug: Node = preload("res://debug/test_gamepad.gd").new()
 	add_child(gamepad_debug)
+
+func get_local_player_for_tutorial() -> Player:
+	return _local_player
+
+func request_tutorial_world_freeze(frozen: bool) -> void:
+	## T10–T14：冻敌人/同伴，不 open Pause，不二次冻 Offer（Offer 走 _set_combat_frozen）。
+	if _is_lan():
+		return
+	_tutorial_world_frozen = frozen
+	for enemy: EnemyBase in _enemies:
+		if enemy != null:
+			enemy.set_sim_paused(frozen)
+	_pause_companions(frozen)
+
+func _ensure_tutorial_shop_affordable() -> void:
+	## EnsureAffordable 默认 ADD_GOLD：present 前保证至少一件买得起。
+	var cards: Array[ShopCard] = _run_session.list_shop_catalog()
+	var min_cost: int = 2147483647
+	for card: ShopCard in cards:
+		var cost: int = card.get_cost(_run_session)
+		if cost > 0:
+			min_cost = mini(min_cost, cost)
+	if min_cost == 2147483647:
+		return
+	var gold: int = _run_session.get_gold()
+	if gold < min_cost:
+		_run_session.add_gold(min_cost - gold)
+
+func _notify_tutorial_shop_purchase() -> void:
+	TutorialDirector.notify_shop_purchased()
 
 func _exit_tree() -> void:
 	var tree: SceneTree = get_tree()
@@ -445,6 +477,8 @@ func _loop_phrases() -> void:
 		_finish_loop_after_shop()
 		return
 	_shop_stim_bought = false
+	if TutorialDirector.notify_shop_open() and TutorialDirector.needs_shop_affordable():
+		_ensure_tutorial_shop_affordable()
 	_set_combat_frozen(true)
 	_shop_offer.present(cards, _run_session.get_gold(), false)
 	_set_offer_input_lock(true)
@@ -527,6 +561,7 @@ func _open_offer_if_needed() -> void:
 	if defs.is_empty():
 		_encounter.acknowledge_offer()
 		return
+	TutorialDirector.notify_upgrade_open()
 	_set_combat_frozen(true)
 	_upgrade_offer.present(defs)
 	_set_offer_input_lock(true)
@@ -540,6 +575,7 @@ func _open_level_offer_if_needed() -> void:
 	if defs.is_empty():
 		_run_session.consume_pending_level()
 		return
+	TutorialDirector.notify_upgrade_open()
 	_set_combat_frozen(true)
 	_upgrade_offer.present(defs)
 	_set_offer_input_lock(true)
@@ -558,6 +594,7 @@ func _on_upgrade_picked(upgrade_id: StringName) -> void:
 		return
 	_upgrade_applier.apply_owned()
 	_debug_overlay.set_last_grant_id(String(upgrade_id))
+	TutorialDirector.notify_upgrade_picked()
 	var was_phrase: bool = _offer_is_phrase
 	_close_offer()
 	_commit_checkpoint(RunCheckpoint.Kind.PLAYER_DECISION)
@@ -612,6 +649,7 @@ func _host_buy_upgrade(upgrade_id: StringName) -> void:
 	_upgrade_applier.apply_owned()
 	_debug_overlay.set_last_grant_id(String(upgrade_id))
 	_refresh_open_shop()
+	_notify_tutorial_shop_purchase()
 
 func _host_buy_companion(companion_id: StringName, weapon_index: int, owner: Player) -> void:
 	if not _shop_offer.is_open():
@@ -633,6 +671,7 @@ func _host_buy_companion(companion_id: StringName, weapon_index: int, owner: Pla
 		return
 	_spawn_companion(companion_id, weapon_index, owner)
 	_refresh_open_shop()
+	_notify_tutorial_shop_purchase()
 
 func _host_buy_consumable(consumable_id: StringName, buyer: Player) -> void:
 	if not _shop_offer.is_open():
@@ -655,6 +694,7 @@ func _host_buy_consumable(consumable_id: StringName, buyer: Player) -> void:
 		return
 	_apply_consumable(def, buyer)
 	_refresh_open_shop()
+	_notify_tutorial_shop_purchase()
 
 func _apply_consumable(def: ConsumableDef, buyer: Player = null) -> void:
 	var pawn: Player = buyer if buyer != null else _host_buyer()
@@ -721,6 +761,8 @@ func _set_combat_frozen(frozen: bool) -> void:
 		tree.paused = true
 		return
 	if _pause_overlay.is_open():
+		return
+	if _tutorial_world_frozen:
 		return
 	tree.paused = false
 

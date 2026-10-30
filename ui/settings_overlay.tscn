@@ -323,13 +323,22 @@ search_name = "Controls"
 unique_name_in_owner = true
 layout_mode = 2
 header_text = "SETTINGS_SECTION_DATA"
-search_name = "Data delete progress records credits about version"
+search_name = "Data delete progress records credits about version tutorial replay"
 
 [node name="Warning" type="Label" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 text = "SETTINGS_DELETE_WARNING"
+
+[node name="TutorialReplayButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "TUTORIAL_REPLAY"
 
 [node name="CreditsButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 unique_name_in_owner = true
