@@ -86,6 +86,7 @@ var _top_bar_nav_min: float = 0.0
 @onready var _lan_overlay: LanOverlay = $LanOverlay
 @onready var _play_page: PlayPage = $PlayPage
 @onready var _lobby: LobbyManager = $LobbyManager
+@onready var _tutorial_host: TutorialHost = $TutorialHost
 
 func _ready() -> void:
 	add_to_group("wpg_locale")
@@ -209,6 +210,9 @@ func restore_after_settings() -> void:
 	if _play_page.is_open():
 		return
 
+func get_solo_button() -> Button:
+	return _solo_button
+
 func on_record_selector_closed() -> void:
 	if _suppress_return:
 		return
@@ -251,6 +255,8 @@ func _on_play_back_pressed() -> void:
 	_focus_control(_top_play_button)
 
 func _on_home_solo_pressed() -> void:
+	if _tutorial_host != null:
+		_tutorial_host.notify_solo_pressed()
 	_open_records(RecordOrigin.HOME)
 
 func _on_play_solo_pressed() -> void:
@@ -261,6 +267,9 @@ func _open_records(origin: RecordOrigin) -> void:
 	_switch_page(PAGE_RECORDS)
 
 func _enter_multi_flow() -> void:
+	TutorialDirector.on_multiplayer_entered()
+	if _tutorial_host != null:
+		_tutorial_host.refresh_from_director()
 	if _page == PAGE_MULTIPLAYER:
 		_refresh_nav_marks()
 		return
@@ -282,6 +291,7 @@ func _on_settings_pressed() -> void:
 			_overlay.close()
 		return
 	_settings_return = get_viewport().gui_get_focus_owner() as Control
+	_overlay.set_open_context(false)
 	_overlay.open()
 	_overlay.move_to_front()
 	_top_bar.move_to_front()
@@ -406,6 +416,8 @@ func _show_completed_save(record_id: String) -> void:
 func _enter_record(id: String, intent: GameLaunch.RunIntent = GameLaunch.RunIntent.START_NEW_RUN) -> void:
 	if _leaving:
 		return
+	if _tutorial_host != null:
+		_tutorial_host.notify_record_committed()
 	var record: GameRecord = GameRecords.get_record(id)
 	GameLaunch.set_active_save_slot_id(id)
 	GameLaunch.set_run_intent(intent)

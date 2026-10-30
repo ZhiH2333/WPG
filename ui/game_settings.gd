@@ -3,6 +3,7 @@ class_name GameSettings
 
 ## 音量、显示与按键。全是 static，不是 Autoload，不进场景树。唯一读写 user://settings.cfg。
 const PATH := "user://settings.cfg"
+const TUTORIAL_VERSION: int = 1
 const DEFAULT_VOLUME: float = 1.0
 const MUTE_THRESHOLD: float = 0.001
 ## UI Scale（root.content_scale_factor）的范围，1.0 = 100%。
@@ -86,6 +87,10 @@ static var _test_build_notice_muted: bool = false
 static var _web_override: int = WebOverride.AUTO
 static var _key_overrides: Dictionary = {}
 static var _joy_overrides: Dictionary = {}
+static var _tutorial_seen: bool = false
+static var _tutorial_skipped: bool = false
+static var _tutorial_replay_requested: bool = false
+static var _tutorial_version: int = 0
 
 static func load_from_disk() -> void:
 	_volume = DEFAULT_VOLUME
@@ -102,6 +107,10 @@ static func load_from_disk() -> void:
 	_test_build_notice_muted = false
 	_key_overrides.clear()
 	_joy_overrides.clear()
+	_tutorial_seen = false
+	_tutorial_skipped = false
+	_tutorial_replay_requested = false
+	_tutorial_version = 0
 	if not FileAccess.file_exists(PATH):
 		return
 	var cfg: ConfigFile = ConfigFile.new()
@@ -119,6 +128,10 @@ static func load_from_disk() -> void:
 	_touch_controls_mode = clampi(int(cfg.get_value("input", "touch_controls", int(TouchControlsMode.AUTO))), 0, 2)
 	_touch_manual_fire = bool(cfg.get_value("input", "touch_manual_fire", false))
 	_test_build_notice_muted = bool(cfg.get_value("notice", "test_build_muted", false))
+	_tutorial_seen = bool(cfg.get_value("tutorial", "seen", false))
+	_tutorial_skipped = bool(cfg.get_value("tutorial", "skipped", false))
+	_tutorial_replay_requested = bool(cfg.get_value("tutorial", "replay_requested", false))
+	_tutorial_version = int(cfg.get_value("tutorial", "version", 0))
 	for action: String in REBINDABLE_ACTIONS:
 		var default_key: int = int(DEFAULT_KEYS[action])
 		var stored: int = int(cfg.get_value("controls", action, default_key))
@@ -144,6 +157,10 @@ static func save_to_disk() -> void:
 	cfg.set_value("input", "touch_controls", int(_touch_controls_mode))
 	cfg.set_value("input", "touch_manual_fire", _touch_manual_fire)
 	cfg.set_value("notice", "test_build_muted", _test_build_notice_muted)
+	cfg.set_value("tutorial", "seen", _tutorial_seen)
+	cfg.set_value("tutorial", "skipped", _tutorial_skipped)
+	cfg.set_value("tutorial", "replay_requested", _tutorial_replay_requested)
+	cfg.set_value("tutorial", "version", _tutorial_version)
 	for action: String in REBINDABLE_ACTIONS:
 		cfg.set_value("controls", action, get_key_for_action(action))
 	for action: String in REBINDABLE_JOY_ACTIONS:
@@ -296,6 +313,31 @@ static func is_test_build_notice_muted() -> bool:
 
 static func set_test_build_notice_muted(muted: bool) -> void:
 	_test_build_notice_muted = muted
+
+static func is_tutorial_seen() -> bool:
+	return _tutorial_seen
+
+static func is_tutorial_skipped() -> bool:
+	return _tutorial_skipped
+
+static func is_tutorial_replay_requested() -> bool:
+	return _tutorial_replay_requested
+
+static func set_tutorial_replay_requested(requested: bool) -> void:
+	_tutorial_replay_requested = requested
+
+static func clear_tutorial_replay_requested() -> void:
+	_tutorial_replay_requested = false
+
+static func mark_tutorial_seen() -> void:
+	_tutorial_seen = true
+	_tutorial_version = TUTORIAL_VERSION
+	_tutorial_replay_requested = false
+	save_to_disk()
+
+static func mark_tutorial_skipped() -> void:
+	_tutorial_skipped = true
+	mark_tutorial_seen()
 
 static func is_touch_controls_enabled() -> bool:
 	match _touch_controls_mode:

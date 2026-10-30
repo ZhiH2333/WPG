@@ -375,3 +375,33 @@ LAN_ERR_CONNECTION_FAILED,connection failed,连接失败
 LAN_ERR_SOCKET,socket error,套接字错误
 LAN_ERR_UNKNOWN,connection failed (%s),连接失败（%s）
 WEAPON_GENERIC,Weapon,武器
+TUTORIAL_SKIP,Skip tutorial,跳过教程
+TUTORIAL_CONTINUE,Continue,继续
+TUTORIAL_REPLAY,Replay tutorial,重开新手引导
+TUTORIAL_REPLAY_QUEUED,Tutorial will restart after you close Settings.,关闭设置后将重新开始新手引导。
+TUTORIAL_WELCOME_TITLE,Welcome,欢迎
+TUTORIAL_WELCOME_BODY,This short guide walks you through your first Solo run. You can skip anytime.,这份简短引导会带你完成首次单人流程。随时可跳过。
+TUTORIAL_SETTINGS_HINT_TITLE,Settings,设置
+TUTORIAL_SETTINGS_HINT_BODY,Open Settings anytime from the top bar. You can replay this tutorial there.,随时可从顶栏打开设置，并在其中重开本引导。
+TUTORIAL_SOLO_TITLE,Start Solo,开始单人
+TUTORIAL_SOLO_BODY,Select SOLO on Home to pick or create a save.,在首页点 SOLO，选择或新建存档。
+TUTORIAL_RECORDS_TITLE,Saves,存档
+TUTORIAL_RECORDS_BODY,Pick an existing save or create a new one.,选择已有存档或新建一个。
+TUTORIAL_LOADING_TITLE,Entering run,进入对局
+TUTORIAL_LOADING_BODY,Loading combat — follow the tips at the bottom.,正在加载战斗，请留意底部提示。
+TUTORIAL_UPGRADE_TITLE,Pick an upgrade,选择升级
+TUTORIAL_UPGRADE_BODY,Choose one upgrade to continue. Skip is disabled for this step.,请选择一项升级继续。此步骤不可跳过。
+TUTORIAL_SHOP_TITLE,Shop,商店
+TUTORIAL_SHOP_BODY,Buy at least one item before leaving the shop.,离开商店前请至少购买一件物品。
+TUTORIAL_LOOP_TITLE,Loop goal,轮次目标
+TUTORIAL_LOOP_BODY,Reach your loop goal on the save to clear the run. Good luck!,完成存档设定的轮次目标即可通关。祝好运！
+TUTORIAL_MOVE_DESKTOP,Move with WASD or the left stick.,用 WASD 或左摇杆移动。
+TUTORIAL_MOVE_TOUCH,Drag the move stick to walk.,拖动移动摇杆行走。
+TUTORIAL_FIRE_DESKTOP,Aim with the mouse or right stick and hold fire.,用鼠标或右摇杆瞄准并按住开火。
+TUTORIAL_FIRE_TOUCH,Use the aim stick; tap FIRE if Manual Fire is on.,使用瞄准摇杆；若开启手动开火请点 FIRE。
+TUTORIAL_DASH_DESKTOP,Press Space or A to dash.,按 Space 或 A 冲刺。
+TUTORIAL_DASH_TOUCH,Tap the dash button.,点冲刺按钮。
+TUTORIAL_WEAPON_DESKTOP,Press 1–4 or D-pad to switch weapons.,按 1–4 或方向键切枪。
+TUTORIAL_WEAPON_TOUCH,Use weapon buttons on the touch bar.,使用触控栏上的武器按钮。
+TUTORIAL_ABILITY_DESKTOP,Press Q or E to use an ability.,按 Q 或 E 使用技能。
+TUTORIAL_ABILITY_TOUCH,Tap an ability button.,点技能按钮。

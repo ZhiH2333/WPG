@@ -1,0 +1,99 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://ui/tutorial_host.gd" id="1_host"]
+[ext_resource type="Script" path="res://ui/tutorial_spotlight.gd" id="2_spot"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="3_theme"]
+
+[node name="TutorialHost" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+script = ExtResource("1_host")
+
+[node name="Spotlight" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_spot")
+
+[node name="Callout" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 48.0
+offset_top = 120.0
+offset_right = 408.0
+offset_bottom = 320.0
+mouse_filter = 0
+theme_type_variation = &"FloatingPanel"
+
+[node name="Column" type="VBoxContainer" parent="Callout"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Callout/Column"]
+layout_mode = 2
+theme_type_variation = &"OfferTitle"
+text = "Title"
+
+[node name="Body" type="Label" parent="Callout/Column"]
+layout_mode = 2
+theme_type_variation = &"RunSummaryBody"
+autowrap_mode = 3
+text = "Body"
+
+[node name="Chip" type="Label" parent="Callout/Column"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+text = "Chip"
+
+[node name="Continue" type="Button" parent="Callout/Column"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"PillPink"
+text = "Continue"
+
+[node name="CoachBar" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = -96.0
+offset_right = 320.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"FloatingPanel"
+
+[node name="Label" type="Label" parent="CoachBar"]
+layout_mode = 2
+theme_type_variation = &"OfferTitle"
+horizontal_alignment = 1
+text = "Coach"
+
+[node name="Skip" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -160.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = 68.0
+grow_horizontal = 0
+mouse_filter = 0
+theme_type_variation = &"EmptyButtonMuted"
+text = "Skip"

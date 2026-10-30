@@ -331,6 +331,15 @@ mouse_filter = 2
 theme_type_variation = &"RunSummaryHint"
 text = "SETTINGS_DELETE_WARNING"
 
+[node name="TutorialReplayButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+theme_type_variation = &"PillNeutral"
+text = "TUTORIAL_REPLAY"
+
 [node name="CreditsButton" type="Button" parent="Drawer/Panel/Clip/Content/DataSection/Body"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)

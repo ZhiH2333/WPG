@@ -27,6 +27,7 @@
 [ext_resource type="Script" path="res://arena/net_session.gd" id="25_net"]
 [ext_resource type="PackedScene" path="res://ui/room_notice.tscn" id="26_notice"]
 [ext_resource type="PackedScene" path="res://ui/mobile/touch_controls.tscn" id="27_touch"]
+[ext_resource type="PackedScene" path="res://ui/tutorial_host.tscn" id="28_tutorial"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(1680, 40)
@@ -305,3 +306,8 @@ script = ExtResource("25_net")
 [node name="RoomNotice" parent="." instance=ExtResource("26_notice")]
 
 [node name="TouchControls" parent="." instance=ExtResource("27_touch")]
+
+[node name="TutorialLayer" type="CanvasLayer" parent="."]
+layer = 28
+
+[node name="TutorialHost" parent="TutorialLayer" instance=ExtResource("28_tutorial")]

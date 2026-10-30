@@ -377,6 +377,8 @@ func _enter_browse() -> void:
 	_play_browse_view()
 
 func _skip() -> void:
+	if TutorialDirector.blocks_shop_skip():
+		return
 	if not _open or _view != View.BROWSE:
 		return
 	skipped.emit()

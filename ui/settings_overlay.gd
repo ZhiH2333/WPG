@@ -86,6 +86,7 @@ const TOUCH_SLOP: float = 12.0
 var _touch_index: int = -1
 var _touch_origin: Vector2 = Vector2.ZERO
 var _touch_dragging: bool = false
+var _from_combat: bool = false
 
 @onready var _dimmer: ColorRect = %Dimmer
 @onready var _drawer: Control = %Drawer
@@ -119,6 +120,7 @@ var _touch_dragging: bool = false
 @onready var _preview: AudioStreamPlayer = %Preview
 @onready var _version_label: Label = %VersionLabel
 @onready var _credits_button: Button = %CreditsButton
+@onready var _tutorial_replay_button: Button = %TutorialReplayButton
 @onready var _hover_sfx: AudioStreamPlayer = $HoverSfx
 @onready var _click_sfx: AudioStreamPlayer = $ClickSfx
 @onready var _back_sfx: AudioStreamPlayer = $BackSfx
@@ -169,6 +171,8 @@ func _ready() -> void:
 	_msaa_option.item_selected.connect(_on_msaa_selected)
 	_delete_button.confirmed.connect(_on_delete_all_confirmed)
 	_credits_button.pressed.connect(_on_credits_pressed)
+	if _tutorial_replay_button != null:
+		_tutorial_replay_button.pressed.connect(_on_tutorial_replay_pressed)
 	_volume_slider.scrollable = false
 	_music_slider.scrollable = false
 	_sfx_slider.scrollable = false
@@ -185,6 +189,9 @@ func is_open() -> bool:
 
 func is_credits_open() -> bool:
 	return _credits != null and _credits.is_open()
+
+func set_open_context(from_combat: bool) -> void:
+	_from_combat = from_combat
 
 func open() -> void:
 	_search.set_block_signals(true)
@@ -254,6 +261,28 @@ func _finish_close() -> void:
 	modulate.a = 1.0
 	_drawer.modulate.a = 1.0
 	set_process(false)
+	TutorialDirector.on_settings_closed(_from_combat)
+	if _from_combat and TutorialDirector.consume_combat_return_to_menu():
+		var pause: PauseOverlay = get_parent() as PauseOverlay
+		if pause != null:
+			pause.request_tutorial_replay_exit()
+	elif not _from_combat:
+		var menu: MainMenu = get_parent() as MainMenu
+		if menu != null and _tutorial_host_refresh(menu):
+			pass
+	_from_combat = false
+
+func _tutorial_host_refresh(menu: MainMenu) -> bool:
+	var host: TutorialHost = menu.get_node_or_null("TutorialHost") as TutorialHost
+	if host == null:
+		return false
+	host.refresh_from_director()
+	return true
+
+func _on_tutorial_replay_pressed() -> void:
+	_play_click()
+	TutorialDirector.request_replay()
+	_status_label.text = tr("TUTORIAL_REPLAY_QUEUED")
 
 func _process(delta: float) -> void:
 	if not _open:
