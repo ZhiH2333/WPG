@@ -115,7 +115,11 @@ func _tick_seek(delta: float) -> void:
 func _tick_windup(delta: float) -> void:
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
+	refresh_attack_telegraph_aim()
 	_windup_left_sec = maxf(0.0, _windup_left_sec - delta)
+	if is_attack_telegraphing() and _windup_left_sec > 0.0:
+		_telegraph.remaining = _windup_left_sec
+		_refresh_telegraph_drawer()
 	if _windup_left_sec > 0.0:
 		return
 	_enter_charge()
@@ -143,11 +147,17 @@ func _enter_windup() -> void:
 	_windup_left_sec = windup_sec
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
+	begin_attack_telegraph_charge(windup_sec, charge_distance)
 	_refresh_charge_visual()
 
 func _enter_charge() -> void:
+	refresh_attack_telegraph_aim()
+	if is_attack_telegraphing():
+		_charge_dir = get_attack_telegraph_direction()
+	else:
+		_charge_dir = _lock_charge_dir()
+	clear_attack_telegraph()
 	_charge_state = ChargeState.CHARGE
-	_charge_dir = _lock_charge_dir()
 	_charge_traveled = 0.0
 	_knockback_velocity = Vector2.ZERO
 	velocity = _charge_dir * charge_speed
@@ -172,6 +182,7 @@ func _interrupt_charge() -> void:
 	_windup_left_sec = 0.0
 	_recover_left_sec = 0.0
 	_charge_traveled = 0.0
+	clear_attack_telegraph()
 	_refresh_charge_visual()
 
 func _lock_charge_dir() -> Vector2:
@@ -268,6 +279,10 @@ func _reset_charge_logic() -> void:
 	_recover_left_sec = 0.0
 	_charge_cooldown_left_sec = 0.0
 	_charge_traveled = 0.0
+	clear_attack_telegraph()
+
+func _telegraph_body_radius() -> float:
+	return 16.0
 
 func _on_defeated() -> void:
 	_reset_charge_logic()

@@ -44,6 +44,8 @@ var _base_max_hp: int = 0
 var _base_move_speed: float = 0.0
 var _flip_h: bool = false
 var _hp_bar: WorldHpBar
+var _telegraph: EnemyTelegraph = EnemyTelegraph.new()
+var _telegraph_drawer: EnemyTelegraphDrawer
 
 @onready var _visual: Sprite2D = $Visual
 
@@ -57,6 +59,7 @@ func _ready() -> void:
 	_setup_visual()
 	_bind_hit_reaction()
 	_bind_hp_bar()
+	_bind_telegraph_drawer()
 	_layout_hp_bar()
 	_refresh_hp_bar()
 	_base_max_hp = max_hp
@@ -172,6 +175,7 @@ func hold_in_reserve() -> void:
 		_hit_reaction.reset()
 	if _hp_bar != null:
 		_hp_bar.set_shown(false)
+	clear_attack_telegraph()
 	set_physics_process(false)
 	set_process(false)
 	_on_hold_in_reserve()
@@ -258,6 +262,10 @@ func _process(delta: float) -> void:
 		return
 	_tick_flash(delta)
 	_update_enter_scale()
+	if _sim_authority and is_attack_telegraphing():
+		refresh_attack_telegraph_aim()
+	elif is_attack_telegraphing():
+		_refresh_telegraph_drawer()
 
 func _tick_ai(_delta: float) -> void:
 	pass
@@ -334,6 +342,65 @@ func apply_net_state(pos: Vector2, hp: int, defeated: bool, in_reserve: bool) ->
 		_visual.modulate = Color.WHITE
 		_hit_reaction.reset()
 
+func is_attack_telegraphing() -> bool:
+	return _telegraph != null and _telegraph.is_active()
+
+func get_attack_telegraph() -> EnemyTelegraph:
+	return _telegraph
+
+func get_attack_telegraph_direction() -> Vector2:
+	if _telegraph == null or not _telegraph.is_active():
+		return Vector2.RIGHT
+	return _telegraph.direction
+
+func begin_attack_telegraph_aim(duration_sec: float, path_length: float, local_origin: Vector2 = Vector2.ZERO) -> void:
+	_telegraph.begin_aim_line(duration_sec, path_length, true, local_origin)
+	refresh_attack_telegraph_aim()
+	_refresh_telegraph_drawer()
+
+func begin_attack_telegraph_charge(duration_sec: float, path_length: float) -> void:
+	_telegraph.begin_charge_path(duration_sec, path_length, true, Vector2.ZERO)
+	refresh_attack_telegraph_aim()
+	_refresh_telegraph_drawer()
+
+func begin_attack_telegraph_fan(
+	duration_sec: float,
+	path_length: float,
+	count: int,
+	spread_deg: float,
+	local_origin: Vector2 = Vector2.ZERO
+) -> void:
+	_telegraph.begin_fan_volley(duration_sec, path_length, count, spread_deg, true, local_origin)
+	refresh_attack_telegraph_aim()
+	_refresh_telegraph_drawer()
+
+func refresh_attack_telegraph_aim() -> void:
+	if _telegraph == null or not _telegraph.is_active() or not _telegraph.track_live:
+		return
+	var to_player: Vector2 = _to_player()
+	if to_player.is_finite() and not to_player.is_zero_approx():
+		_telegraph.set_direction(to_player)
+		if _telegraph.kind == EnemyTelegraph.Kind.AIM_LINE:
+			_telegraph.set_length(to_player.length())
+	_refresh_telegraph_drawer()
+
+func clear_attack_telegraph() -> void:
+	if _telegraph != null:
+		_telegraph.clear()
+	_refresh_telegraph_drawer()
+
+func write_telegraph_net(buf: StreamPeerBuffer) -> void:
+	if _telegraph == null:
+		buf.put_u8(EnemyTelegraph.Kind.NONE)
+		return
+	_telegraph.write_net(buf)
+
+func apply_telegraph_net(buf: StreamPeerBuffer) -> void:
+	if _telegraph == null:
+		_telegraph = EnemyTelegraph.new()
+	_telegraph.read_net(buf)
+	_refresh_telegraph_drawer()
+
 func _face_player() -> void:
 	var to_player: Vector2 = _to_player()
 	_update_facing(to_player.x)
@@ -365,6 +432,7 @@ func _defeat() -> void:
 	_visual.modulate = DEAD_COLOR
 	_hit_reaction.begin_death(true)
 	_refresh_hp_bar()
+	clear_attack_telegraph()
 	_spawn_death_shards()
 	_on_defeated()
 	defeated.emit()
@@ -401,6 +469,22 @@ func _bind_hp_bar() -> void:
 	_hp_bar = WorldHpBar.new()
 	_hp_bar.name = "HpBar"
 	add_child(_hp_bar)
+
+func _bind_telegraph_drawer() -> void:
+	_telegraph_drawer = EnemyTelegraphDrawer.new()
+	_telegraph_drawer.name = "TelegraphDrawer"
+	add_child(_telegraph_drawer)
+	_telegraph_drawer.bind_telegraph(_telegraph)
+	_telegraph_drawer.set_body_radius(_telegraph_body_radius())
+	_telegraph_drawer.refresh()
+
+func _telegraph_body_radius() -> float:
+	return 16.0
+
+func _refresh_telegraph_drawer() -> void:
+	if _telegraph_drawer == null:
+		return
+	_telegraph_drawer.refresh()
 
 func _layout_hp_bar() -> void:
 	if _hp_bar == null:

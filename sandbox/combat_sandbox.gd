@@ -40,7 +40,7 @@ const UPGRADE_SKIP_ID := "__skip__"
 const OFFER_PHRASE: int = 0
 const OFFER_LEVEL: int = 1
 const OFFER_SHOP: int = 2
-const SNAPSHOT_VERSION: int = 3
+const SNAPSHOT_VERSION: int = 4
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -1621,6 +1621,7 @@ func flush_net_snapshot() -> void:
 		buf.put_float(enemy.global_position.x)
 		buf.put_float(enemy.global_position.y)
 		buf.put_u16(clampi(enemy.get_hp(), 0, 65535))
+		enemy.write_telegraph_net(buf)
 	_write_companion_snapshot(buf)
 	buf.put_u16(clampi(_run_session.get_loop_index(), 0, 65535))
 	buf.put_u16(clampi(_run_session.get_gold(), 0, 65535))
@@ -1681,8 +1682,12 @@ func _on_net_snapshot(data: PackedByteArray) -> void:
 		var pos := Vector2(buf.get_float(), buf.get_float())
 		var hp: int = buf.get_u16()
 		if index < 0 or index >= _enemies.size():
+			# 仍需消费 telegraph 字段，避免后续解析错位。
+			var skip_tg: EnemyTelegraph = EnemyTelegraph.new()
+			skip_tg.read_net(buf)
 			continue
 		_enemies[index].apply_net_state(pos, hp, (flags & 2) != 0, (flags & 1) != 0)
+		_enemies[index].apply_telegraph_net(buf)
 	_read_companion_snapshot(buf)
 	var loop_index: int = buf.get_u16()
 	var gold: int = buf.get_u16()

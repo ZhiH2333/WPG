@@ -142,7 +142,11 @@ func _tick_seek(delta: float) -> void:
 func _tick_windup_charge(delta: float) -> void:
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
+	refresh_attack_telegraph_aim()
 	_windup_charge_left_sec = maxf(0.0, _windup_charge_left_sec - delta)
+	if is_attack_telegraphing() and _windup_charge_left_sec > 0.0:
+		_telegraph.remaining = _windup_charge_left_sec
+		_refresh_telegraph_drawer()
 	if _windup_charge_left_sec > 0.0:
 		return
 	_enter_charge()
@@ -168,7 +172,11 @@ func _tick_recover(delta: float) -> void:
 func _tick_windup_volley(delta: float) -> void:
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
+	refresh_attack_telegraph_aim()
 	_volley_windup_left_sec = maxf(0.0, _volley_windup_left_sec - delta)
+	if is_attack_telegraphing() and _volley_windup_left_sec > 0.0:
+		_telegraph.remaining = _volley_windup_left_sec
+		_refresh_telegraph_drawer()
 	if _volley_windup_left_sec > 0.0:
 		return
 	_fire_volley()
@@ -178,11 +186,17 @@ func _enter_windup_charge() -> void:
 	_windup_charge_left_sec = charge_windup_sec
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
+	begin_attack_telegraph_charge(charge_windup_sec, charge_distance)
 	_refresh_boss_visual()
 
 func _enter_charge() -> void:
+	refresh_attack_telegraph_aim()
+	if is_attack_telegraphing():
+		_charge_dir = get_attack_telegraph_direction()
+	else:
+		_charge_dir = _lock_charge_dir()
+	clear_attack_telegraph()
 	_boss_state = BossState.CHARGE
-	_charge_dir = _lock_charge_dir()
 	_charge_traveled = 0.0
 	_knockback_velocity = Vector2.ZERO
 	velocity = _charge_dir * charge_speed
@@ -201,11 +215,17 @@ func _enter_windup_volley() -> void:
 	_volley_windup_left_sec = volley_windup_sec
 	velocity = Vector2.ZERO
 	_knockback_velocity = Vector2.ZERO
+	var local_origin: Vector2 = Vector2.ZERO
+	if _muzzle != null:
+		local_origin = to_local(_muzzle.global_position)
+	var path_len: float = projectile_speed * projectile_lifetime
+	begin_attack_telegraph_fan(volley_windup_sec, path_len, volley_count, volley_spread_deg, local_origin)
 	_refresh_boss_visual()
 
 func _enter_seek() -> void:
 	_boss_state = BossState.SEEK
 	_charge_traveled = 0.0
+	clear_attack_telegraph()
 	_refresh_boss_visual()
 
 func _interrupt_boss() -> void:
@@ -214,6 +234,7 @@ func _interrupt_boss() -> void:
 	_recover_left_sec = 0.0
 	_volley_windup_left_sec = 0.0
 	_charge_traveled = 0.0
+	clear_attack_telegraph()
 	_refresh_boss_visual()
 
 func _lock_charge_dir() -> Vector2:
@@ -223,11 +244,13 @@ func _lock_charge_dir() -> Vector2:
 	return Vector2.RIGHT
 
 func _fire_volley() -> void:
-	var aim: Vector2 = _to_player()
+	refresh_attack_telegraph_aim()
+	var aim: Vector2 = get_attack_telegraph_direction() if is_attack_telegraphing() else _to_player()
 	if not aim.is_finite() or aim.is_zero_approx():
 		aim = Vector2.RIGHT
 	else:
 		aim = aim.normalized()
+	clear_attack_telegraph()
 	var half: int = volley_count / 2
 	if _pool != null and _muzzle != null:
 		for i: int in volley_count:
@@ -340,6 +363,10 @@ func _reset_boss_logic() -> void:
 	_recover_left_sec = 0.0
 	_volley_windup_left_sec = 0.0
 	_charge_traveled = 0.0
+	clear_attack_telegraph()
+
+func _telegraph_body_radius() -> float:
+	return 32.0
 
 func _restore_visual_scale() -> void:
 	if _visual == null or _defeated:
