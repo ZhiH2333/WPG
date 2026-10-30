@@ -2,11 +2,14 @@
 
 [ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/beak_shot.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"beak_shot"
 title = "UPGRADE_BEAK_SHOT_TITLE"
 description = "UPGRADE_BEAK_SHOT_DESC"
+icon = ExtResource("2_icon")
 kind = 2
 value = 4.0
 stackable = true

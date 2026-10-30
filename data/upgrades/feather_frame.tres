@@ -2,11 +2,14 @@
 
 [ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/feather_frame.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"feather_frame"
 title = "UPGRADE_FEATHER_FRAME_TITLE"
 description = "UPGRADE_FEATHER_FRAME_DESC"
+icon = ExtResource("2_icon")
 kind = 5
 value = 0.12
 character_id = "chicken"

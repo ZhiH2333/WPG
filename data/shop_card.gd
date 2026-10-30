@@ -4,6 +4,8 @@ class_name ShopCard
 ## P8 商店一张卡。升级走 UpgradeDef，跟班走 CompanionDef，消耗品走 ConsumableDef。
 enum Kind { UPGRADE, COMPANION, CONSUMABLE }
 
+const FALLBACK_ICON: Texture2D = preload("res://icons/shop/fallback.svg")
+
 var kind: Kind = Kind.UPGRADE
 var upgrade: UpgradeDef
 var companion: CompanionDef
@@ -74,3 +76,20 @@ func get_cost(session: RunSession) -> int:
 	if session == null:
 		return RunSession.SHOP_COST_FALLBACK
 	return session.get_shop_cost(upgrade.id)
+
+func get_id() -> StringName:
+	if kind == Kind.CONSUMABLE:
+		return consumable.id if consumable != null else &""
+	if kind == Kind.COMPANION:
+		return companion.id if companion != null else &""
+	return upgrade.id if upgrade != null else &""
+
+func get_icon() -> Texture2D:
+	var item_icon: Texture2D = null
+	if kind == Kind.CONSUMABLE and consumable != null:
+		item_icon = consumable.icon
+	elif kind == Kind.COMPANION and companion != null:
+		item_icon = companion.icon
+	elif upgrade != null:
+		item_icon = upgrade.icon
+	return item_icon if item_icon != null else FALLBACK_ICON

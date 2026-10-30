@@ -3,11 +3,14 @@
 [ext_resource type="Script" path="res://data/companion_def.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://3m7mr7t3xnub" path="res://images/ranged.png" id="2_tex"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/gunner.png" id="3_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"gunner"
 display_name = "COMPANION_GUNNER_NAME"
 description = "COMPANION_GUNNER_DESC"
+icon = ExtResource("3_icon")
 kind = 1
 shop_cost = 70
 base_max_hp = 140

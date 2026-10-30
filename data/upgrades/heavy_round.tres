@@ -2,11 +2,14 @@
 
 [ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/heavy_round.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"heavy_round"
 title = "UPGRADE_HEAVY_ROUND_TITLE"
 description = "UPGRADE_HEAVY_ROUND_DESC"
+icon = ExtResource("2_icon")
 kind = 2
 value = 3.0
 stackable = true

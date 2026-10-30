@@ -11,11 +11,10 @@ class_name AbilityController
 ##   键盘 / 鼠标 / Touch（归 PlayerInput）、UI、Lobby、NetSession、Combat 数值。
 ##   它只回答一件事：「这个玩家现在能不能放这个技能，放完处于什么状态。」
 ##
-## 多人兼容缝（本阶段不接网络）：
-##   request_activate() 是输入/本地调用的入口；activate_authoritative() 是真正执行。
-##   将来接 NetSession 时，request_activate() 改成发请求，由权威端调 activate_authoritative()。
-##   冷却 / 持续时间全部按 tick(delta) 累积，不读本地 wall clock —— 将来把 delta 换成
-##   权威端的 delta 即可，不需要改 Effect 或 UI。
+## 多人合同：
+##   Host 的本地/远程输入都只在权威 Controller 执行；Guest 只接收 apply_net_state()。
+##   瞬时技能在 Guest 首次进入 COOLDOWN 时补播表现，不结算 gameplay。
+##   冷却 / 持续时间按 tick(delta) 累积，并由现有战斗快照校准。
 
 const SLOT_COUNT: int = 2
 
@@ -35,12 +34,17 @@ var _input: PlayerInput = null
 var _actor: Node2D = null
 var _cost_provider: Object = null
 var _suppressed: bool = false
+var _combat_targets: Array[EnemyBase] = []
+var _sfx_pool: SfxPool = null
+var _authoritative: bool = true
 
 func _ready() -> void:
 	equip(0, ability_0)
 	equip(1, ability_1)
 
 func _physics_process(delta: float) -> void:
+	if not _authoritative:
+		return
 	if _input != null and not _suppressed:
 		## 技能键是 edge：PlayerInput 只在按下当帧置位，按住不会重复触发。
 		if _input.ability_0_just_pressed:
@@ -57,6 +61,18 @@ func bind_input(player_input: PlayerInput) -> void:
 
 func bind_actor(actor: Node2D) -> void:
 	_actor = actor
+
+func bind_combat_targets(targets: Array[EnemyBase]) -> void:
+	_combat_targets = targets.duplicate()
+
+func bind_sfx_pool(sfx_pool: SfxPool) -> void:
+	_sfx_pool = sfx_pool
+
+func set_authoritative(authoritative: bool) -> void:
+	_authoritative = authoritative
+
+func is_authoritative() -> bool:
+	return _authoritative
 
 ## 最小 Cost 接口。provider 需实现：
 ##   can_pay_ability_cost(cost_type: int, value: int) -> bool
@@ -108,11 +124,29 @@ func get_remaining_duration(index: int) -> float:
 		return 0.0
 	return _remaining_duration[index]
 
+func apply_net_state(index: int, state: int, cooldown: float, duration: float) -> void:
+	if not _is_valid_slot(index) or _authoritative:
+		return
+	var safe_state: int = clampi(state, AbilityState.READY, AbilityState.DISABLED)
+	var previous_state: int = _states[index]
+	_remaining_cooldown[index] = maxf(0.0, cooldown)
+	_remaining_duration[index] = maxf(0.0, duration)
+	_set_state(index, safe_state)
+	var def: AbilityDef = _defs[index]
+	if previous_state != AbilityState.COOLDOWN and safe_state == AbilityState.COOLDOWN \
+			and def != null and def.is_instant() and def.effect != null:
+		var context: AbilityContext = _build_context(index, def)
+		context.authoritative = false
+		def.effect.apply(context)
+		ability_activated.emit(index, def)
+
 func is_active(index: int) -> bool:
 	return get_state(index) == AbilityState.ACTIVE
 
 func can_activate(index: int) -> bool:
 	if not _is_valid_slot(index):
+		return false
+	if not _authoritative:
 		return false
 	if _suppressed:
 		return false
@@ -127,7 +161,7 @@ func can_activate(index: int) -> bool:
 
 ## ---- 激活 ----
 
-## 输入 / 本地调用的入口。将来这里改成「向权威端发请求」。
+## 输入入口。Guest 输入由现有 PlayerInput pending bits 发给 Host，不会调用非权威 Controller。
 func request_activate(index: int) -> bool:
 	return activate_authoritative(index)
 
@@ -236,6 +270,9 @@ func _build_context(index: int, def: AbilityDef) -> AbilityContext:
 	context.origin = _actor.global_position if _actor != null else Vector2.ZERO
 	context.direction = _resolve_direction()
 	context.target = null
+	context.targets = _combat_targets.duplicate()
+	context.sfx_pool = _sfx_pool
+	context.authoritative = _authoritative
 	context.delta = 0.0
 	## 复制一份：Effect 永远不许改到共用的 AbilityDef 资源。
 	context.parameters = def.parameters.duplicate(true)

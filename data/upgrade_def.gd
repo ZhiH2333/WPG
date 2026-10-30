@@ -17,6 +17,7 @@ enum Kind {
 @export var id: StringName
 @export var title: String = ""
 @export var description: String = ""
+@export var icon: Texture2D
 @export var kind: Kind = Kind.MAX_HP_FLAT
 @export var value: float = 0.0
 @export var stackable: bool = false

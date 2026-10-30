@@ -40,7 +40,7 @@ const UPGRADE_SKIP_ID := "__skip__"
 const OFFER_PHRASE: int = 0
 const OFFER_LEVEL: int = 1
 const OFFER_SHOP: int = 2
-const SNAPSHOT_VERSION: int = 4
+const SNAPSHOT_VERSION: int = 5
 
 ## 只有鼠标在窗口内且窗口有焦点时才藏系统光标，避免出窗后桌面丢指针。
 var _mouse_inside_window: bool = true
@@ -290,6 +290,7 @@ func _bind_runtime() -> void:
 	_debug_overlay.bind_death_shard_pool(_death_shards)
 	_enemies = _collect_enemies()
 	_bind_enemies(_enemies)
+	_bind_player_abilities()
 	_encounter.bind_enemies(_enemies)
 	_encounter.bind_run_session(_run_session)
 	_hold_all_in_reserve()
@@ -402,6 +403,16 @@ func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 		var boss: BossEnemy = enemy as BossEnemy
 		if boss != null:
 			boss.bind_projectile_pool(_enemy_projectiles)
+
+func _bind_player_abilities() -> void:
+	for pawn: Player in _pawns:
+		if pawn == null:
+			continue
+		var controller: AbilityController = pawn.get_ability_controller()
+		if controller == null:
+			continue
+		controller.bind_combat_targets(_enemies)
+		controller.bind_sfx_pool(_sfx_pool)
 
 func _on_enemy_defeated(_enemy: EnemyBase) -> void:
 	if _is_guest():
@@ -814,6 +825,9 @@ func _sync_touch_ability_ui() -> void:
 		return
 	for slot: int in controller.get_slot_count():
 		_touch_controls.set_ability_status(slot, controller.get_state(slot), controller.get_remaining_cooldown(slot))
+	var dash: PlayerDash = _local_player.get_player_dash()
+	if dash != null:
+		_touch_controls.set_dash_status(dash.is_dashing(), dash.get_cooldown_left())
 
 ## 移动端 HUD 让位：Touch 开启时左下血条上移，避免被左摇杆遮挡。桌面传入 0。
 func _sync_touch_hud_reserve() -> void:
@@ -1608,6 +1622,17 @@ func flush_net_snapshot() -> void:
 		buf.put_u8(1 if pawn.is_defeated() else 0)
 		buf.put_u8(pawn.get_weapon_host().get_current_index())
 		buf.put_u8(1 if pawn.get_facing_flip() else 0)
+		var dash: PlayerDash = pawn.get_player_dash()
+		buf.put_u8(1 if dash.is_dashing() else 0)
+		buf.put_float(dash.get_cooldown_left())
+		var dash_direction: Vector2 = dash.get_direction()
+		buf.put_float(dash_direction.x)
+		buf.put_float(dash_direction.y)
+		var controller: AbilityController = pawn.get_ability_controller()
+		for slot: int in AbilityController.SLOT_COUNT:
+			buf.put_u8(controller.get_state(slot))
+			buf.put_float(controller.get_remaining_cooldown(slot))
+			buf.put_float(controller.get_remaining_duration(slot))
 	buf.put_u8(_enemies.size())
 	for i: int in _enemies.size():
 		var enemy: EnemyBase = _enemies[i]
@@ -1668,12 +1693,26 @@ func _on_net_snapshot(data: PackedByteArray) -> void:
 		var defeated: bool = buf.get_u8() != 0
 		var weapon_index: int = buf.get_u8()
 		var facing_flip: bool = buf.get_u8() != 0
+		var dash_active: bool = buf.get_u8() != 0
+		var dash_cooldown: float = buf.get_float()
+		var dash_direction := Vector2(buf.get_float(), buf.get_float())
+		var ability_states: PackedInt32Array = PackedInt32Array()
+		var ability_cooldowns: PackedFloat32Array = PackedFloat32Array()
+		var ability_durations: PackedFloat32Array = PackedFloat32Array()
+		for _slot: int in AbilityController.SLOT_COUNT:
+			ability_states.append(buf.get_u8())
+			ability_cooldowns.append(buf.get_float())
+			ability_durations.append(buf.get_float())
 		seen[seat] = true
 		var pawn: Player = _ensure_guest_pawn(seat)
 		if pawn == null:
 			continue
 		var local_aim: bool = pawn != _local_player
 		pawn.apply_net_pose(pos, vel, aim, hp, max_hp, defeated, weapon_index, facing_flip, local_aim)
+		pawn.get_player_dash().apply_net_state(dash_active, dash_cooldown, dash_direction)
+		var controller: AbilityController = pawn.get_ability_controller()
+		for slot: int in AbilityController.SLOT_COUNT:
+			controller.apply_net_state(slot, ability_states[slot], ability_cooldowns[slot], ability_durations[slot])
 	_free_unseen_guest_pawns(seen)
 	var enemy_count: int = buf.get_u8()
 	for _i: int in enemy_count:
@@ -2173,6 +2212,9 @@ func _remove_remote_pawns() -> void:
 func _apply_pawn_drive(pawn: Player, remote_driven: bool, simulate_combat: bool) -> void:
 	pawn.get_player_input().set_remote_driven(remote_driven)
 	pawn.set_simulate_combat(simulate_combat)
+	var controller: AbilityController = pawn.get_ability_controller()
+	if controller != null:
+		controller.set_authoritative(simulate_combat)
 
 func _is_roster_seat_occupied(seat: int) -> bool:
 	if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:
@@ -2293,6 +2335,7 @@ func _rebind_after_pawn_change() -> void:
 	if seated != null:
 		_local_player = seated
 	_bind_enemies(_enemies)
+	_bind_player_abilities()
 	_run_session.bind_players(_synced_pawns)
 	_upgrade_applier.bind_players(_synced_pawns)
 	_upgrade_applier.ensure_baselines()

@@ -18,6 +18,12 @@ var origin: Vector2 = Vector2.ZERO
 var direction: Vector2 = Vector2.RIGHT
 ## 显式目标（TARGET 类技能用）。没有就是 null。
 var target: Node = null
+## 本次技能可作用的战斗目标。由 CombatSandbox 在权威端显式绑定。
+var targets: Array[EnemyBase] = []
+## 本局音效池。Effect 不自行扫描场景树。
+var sfx_pool: SfxPool = null
+## 只有权威端允许结算伤害 / 控制。
+var authoritative: bool = true
 ## 本次执行的帧步长。
 var delta: float = 0.0
 ## AbilityDef.parameters 的**副本**：配置，Effect 只读。

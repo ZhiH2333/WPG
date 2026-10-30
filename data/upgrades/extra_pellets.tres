@@ -2,11 +2,14 @@
 
 [ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/extra_pellets.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"extra_pellets"
 title = "UPGRADE_EXTRA_PELLETS_TITLE"
 description = "UPGRADE_EXTRA_PELLETS_DESC"
+icon = ExtResource("2_icon")
 kind = 6
 value = 2.0
 stackable = true

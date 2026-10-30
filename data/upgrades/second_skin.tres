@@ -2,10 +2,13 @@
 
 [ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/second_skin.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"second_skin"
 title = "UPGRADE_SECOND_SKIN_TITLE"
 description = "UPGRADE_SECOND_SKIN_DESC"
+icon = ExtResource("2_icon")
 kind = 5
 value = 0.1

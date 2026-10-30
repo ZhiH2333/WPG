@@ -11,6 +11,7 @@ enum Kind {
 @export var id: StringName
 @export var display_name: String = ""
 @export var description: String = ""
+@export var icon: Texture2D
 @export var shop_cost: int = 0
 @export var kind: Kind = Kind.HEAL_FLAT
 @export var value: float = 0.0 ## HEAL_FLAT=回复点数；HEAL_FULL 填 0；I_FRAME=秒

@@ -184,7 +184,7 @@ WEAPON_SMG,Smg,冲锋枪
 ABILITY_SURGE_NAME,Surge,突进
 ABILITY_SURGE_DESC,Briefly boosts move speed.,短时间提升移动速度。
 ABILITY_PULSE_NAME,Pulse,脉冲
-ABILITY_PULSE_DESC,Releases a short area pulse toward your aim.,朝瞄准方向放出一道短暂范围脉冲。
+ABILITY_PULSE_DESC,Blasts nearby enemies with a damaging knockback wave.,释放能量冲击波，伤害并击退附近敌人。
 HUD_XP,Lv.%d  %d/%d,等级 %d  %d/%d
 HUD_SEAT_HP,s%d  %d/%d,座%d  %d/%d
 HUD_ABILITY_PREVIEW,Q SURGE   E PULSE,Q 突进   E 脉冲

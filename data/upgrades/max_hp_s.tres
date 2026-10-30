@@ -2,10 +2,13 @@
 
 [ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/max_hp_s.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"max_hp_s"
 title = "UPGRADE_MAX_HP_S_TITLE"
 description = "UPGRADE_MAX_HP_S_DESC"
+icon = ExtResource("2_icon")
 value = 20.0
 stackable = true

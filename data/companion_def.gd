@@ -10,6 +10,7 @@ enum Kind {
 @export var id: StringName
 @export var display_name: String = ""
 @export var description: String = ""
+@export var icon: Texture2D
 @export var kind: Kind = Kind.MELEE
 @export var shop_cost: int = 0
 @export var base_max_hp: int = 32

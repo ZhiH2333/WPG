@@ -2,10 +2,13 @@
 
 [ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/thick_hide.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"thick_hide"
 title = "UPGRADE_THICK_HIDE_TITLE"
 description = "UPGRADE_THICK_HIDE_DESC"
+icon = ExtResource("2_icon")
 kind = 8
 value = -0.2

@@ -2,11 +2,14 @@
 
 [ext_resource type="Script" path="res://data/consumable_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/stim.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"stim"
 display_name = "CONSUMABLE_STIM_NAME"
 description = "CONSUMABLE_STIM_DESC"
+icon = ExtResource("2_icon")
 shop_cost = 35
 kind = 2
 value = 1.5

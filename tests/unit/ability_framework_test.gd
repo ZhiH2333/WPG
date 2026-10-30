@@ -362,7 +362,7 @@ func _case_ability_data_resources() -> void:
 	_expect(slot1.is_instant(), "ability_1 是 instant")
 	_expect(slot1.cooldown > 0.0, "ability_1 有冷却")
 	_expect(slot1.effect is AimPulseEffect, "ability_1 挂 AimPulseEffect")
-	_expect(slot1.target_type == AbilityDef.TargetType.DIRECTION, "ability_1 是 DIRECTION")
+	_expect(slot1.target_type == AbilityDef.TargetType.AREA, "ability_1 是 AREA")
 	_expect(not slot0.has_cost() and not slot1.has_cost(), "两个测试技能都不带 cost")
 
 ## ability_0：SELF + duration，真的改到 PlayerMotor.move_speed，并在 duration 后还原。
@@ -385,7 +385,7 @@ func _case_boost_speed_effect_real_data() -> void:
 	controller.queue_free()
 	caster.queue_free()
 
-## ability_1：DIRECTION + instant，在瞄准方向生成一个 AbilityPulse。
+## ability_1：AREA + instant，以施法者为中心生成一个 AbilityPulse。
 func _case_aim_pulse_effect_real_data() -> void:
 	var caster: StubCaster = StubCaster.new()
 	caster.motor = PlayerMotor.new()
@@ -411,7 +411,7 @@ func _case_aim_pulse_effect_real_data() -> void:
 	_expect(caster.get_parent().get_child_count() == before + 1, "aim 方向生成了一个脉冲节点")
 	_expect(pulse != null, "脉冲是 AbilityPulse")
 	if pulse != null:
-		_expect(pulse.global_position.x > caster.global_position.x, "脉冲落在瞄准方向而不是脚下")
+		_expect(pulse.global_position.is_equal_approx(caster.global_position), "脉冲以施法者为中心")
 	controller.queue_free()
 	player_input.queue_free()
 	caster.queue_free()

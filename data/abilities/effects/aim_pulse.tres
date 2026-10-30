@@ -4,6 +4,6 @@
 
 [resource]
 script = ExtResource("1_effect")
-distance = 130.0
-radius = 46.0
-lifetime = 0.35
+radius = 180.0
+damage = 12
+lifetime = 0.42

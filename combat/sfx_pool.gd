@@ -89,6 +89,9 @@ func play_click(world_position: Vector2) -> void:
 func play_dash(world_position: Vector2) -> void:
 	play(_stream_click, 0.62, -8.0, world_position)
 
+func play_pulse(world_position: Vector2) -> void:
+	play(_stream_shotgun, 0.72, -9.0, world_position)
+
 func play_charge(world_position: Vector2) -> void:
 	play(_stream_click, 0.48, -6.0, world_position)
 

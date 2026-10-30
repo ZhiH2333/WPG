@@ -214,6 +214,16 @@ func set_ability_status(index: int, state: int, remaining_cooldown: float) -> vo
 		return
 	button.set_label_text("A%d\n%s" % [index, _ability_status_text(state, remaining_cooldown)])
 
+func set_dash_status(dashing: bool, remaining_cooldown: float) -> void:
+	if _dash_button == null:
+		return
+	if dashing:
+		_dash_button.set_label_text(tr("HUD_ABILITY_ACTIVE"))
+	elif remaining_cooldown > 0.0:
+		_dash_button.set_label_text("%.1f" % remaining_cooldown)
+	else:
+		_dash_button.set_label_text("")
+
 func _ability_status_text(state: int, remaining_cooldown: float) -> String:
 	match state:
 		AbilityState.READY:

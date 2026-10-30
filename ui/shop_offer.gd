@@ -547,11 +547,14 @@ func _fill_item_card(button: Button, card: ShopCard, gold: int, snap_visual: boo
 	button.disabled = false
 	button.set_meta(META_IDENTITY, _card_identity(card))
 	button.set_meta(META_RETIRING, false)
-	var kind_label: Label = button.get_node("VBox/Kind") as Label
-	var title_label: Label = button.get_node("VBox/Title") as Label
-	var desc_label: Label = button.get_node("VBox/Desc") as Label
-	var cost_label: Label = button.get_node("VBox/Cost") as Label
+	var icon: TextureRect = button.get_node("Content/Icon") as TextureRect
+	var kind_label: Label = button.get_node("Content/Details/Kind") as Label
+	var title_label: Label = button.get_node("Content/Details/Title") as Label
+	var desc_label: Label = button.get_node("Content/Details/Desc") as Label
+	var cost_label: Label = button.get_node("Content/Details/Cost") as Label
 	var cost: int = card.get_cost(_session)
+	icon.texture = card.get_icon()
+	icon.tooltip_text = card.get_title()
 	kind_label.text = card.get_kind_label()
 	title_label.text = card.get_title()
 	desc_label.text = card.get_description()

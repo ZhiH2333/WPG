@@ -232,12 +232,26 @@ func _refresh_abilities() -> void:
 		_ability_label.text = ""
 		return
 	var parts: PackedStringArray = PackedStringArray()
+	var dash: PlayerDash = _player.get_player_dash()
+	if dash != null:
+		parts.append("%s %s  %s" % [
+			GameSettings.key_label_for_action("dash"),
+			tr("ACTION_DASH").to_upper(),
+			_dash_state_text(dash),
+		])
 	for slot: int in controller.get_slot_count():
 		var def: AbilityDef = controller.get_def(slot)
 		if def == null:
 			continue
 		parts.append("%s %s  %s" % [ABILITY_KEY_HINTS[slot], tr(def.display_name).to_upper(), _ability_state_text(controller, slot)])
 	_ability_label.text = "   ".join(parts)
+
+func _dash_state_text(dash: PlayerDash) -> String:
+	if dash.is_dashing():
+		return tr("HUD_ABILITY_ACTIVE")
+	if dash.get_cooldown_left() > 0.0:
+		return "%.1f" % dash.get_cooldown_left()
+	return tr("HUD_ABILITY_READY")
 
 func _ability_state_text(controller: AbilityController, slot: int) -> String:
 	match controller.get_state(slot):

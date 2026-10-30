@@ -2,11 +2,14 @@
 
 [ext_resource type="Script" uid="uid://d3dgel86jv8ui" path="res://data/upgrade_def.gd" id="1_script"]
 
+[ext_resource type="Texture2D" path="res://icons/shop/swift.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1_script")
 id = &"swift"
 title = "UPGRADE_SWIFT_TITLE"
 description = "UPGRADE_SWIFT_DESC"
+icon = ExtResource("2_icon")
 kind = 1
 value = 0.12
 stackable = true
