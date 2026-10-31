@@ -34,6 +34,7 @@ func configure_server(session: DsSession) -> void:
 	role = Role.SERVER
 	_session = session
 	name = OnlineProtocol.CHANNEL_NODE_NAME
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
 func configure_client(
@@ -48,6 +49,8 @@ func configure_client(
 	_claimed_player_id = claimed_player_id.strip_edges()
 	_claimed_match_id = claimed_match_id.strip_edges()
 	name = OnlineProtocol.CHANNEL_NODE_NAME
+	## Client 通道保持可处理 RPC，即使沙盒树被 pause。
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	if is_inside_tree():
 		_wire_client_peer_signals()
 
@@ -104,11 +107,28 @@ func send_hello() -> void:
 
 
 func send_input(mx: float, my: float) -> void:
-	if role != Role.CLIENT or _local_seat < 1:
+	if role != Role.CLIENT:
+		_diag_send_skip("role_not_client")
 		return
-	if multiplayer.multiplayer_peer == null:
+	if _local_seat < 1:
+		_diag_send_skip("seat_unset")
 		return
+	if multiplayer == null or multiplayer.multiplayer_peer == null:
+		_diag_send_skip("peer_null")
+		return
+	if _online_input_diag_enabled() and (absf(mx) > 0.01 or absf(my) > 0.01):
+		print("WPG_ONLINE_INPUT_DIAG send seat=%d mx=%.2f my=%.2f" % [_local_seat, mx, my])
 	rpc_input.rpc_id(1, mx, my)
+
+
+func _online_input_diag_enabled() -> bool:
+	return OS.is_debug_build() and OS.get_environment("WPG_ONLINE_INPUT_DIAG") == "1"
+
+
+func _diag_send_skip(reason: String) -> void:
+	if not _online_input_diag_enabled():
+		return
+	print("WPG_ONLINE_INPUT_DIAG send_skip reason=%s seat=%d role=%d" % [reason, _local_seat, int(role)])
 
 
 @rpc("any_peer", "reliable")

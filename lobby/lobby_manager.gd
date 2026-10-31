@@ -1234,6 +1234,14 @@ func _handoff_peer_to_battle() -> void:
 	if _net != null:
 		_net.release_peer_for_handoff()
 
+
+## Online Dedicated：进 combat_sandbox 前让出 SceneTree peer 所有权。
+## 与 LAN `_handoff_peer_to_battle` 同一合同；战斗侧由 /root/OnlineChannel 持有 peer。
+## 不调用本方法时，MainMenu 换场释放 LobbyNet.close() 会 peer.close()+清空 multiplayer_peer，
+## DS 立刻 LEAVE，玩家进世界后按键无法移动。
+func handoff_online_peer() -> void:
+	_handoff_peer_to_battle()
+
 func get_snapshot() -> Dictionary:
 	if _room == null:
 		return {

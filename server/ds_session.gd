@@ -315,7 +315,17 @@ func apply_input(peer_id: int, mx: float, my: float) -> void:
 	if absf(mx) > 1.5 or absf(my) > 1.5:
 		return
 	var state: DsPlayerState = _players_by_peer[peer_id]
-	state.apply_input(mx, my, Time.get_ticks_msec())
+	var applied: bool = state.apply_input(mx, my, Time.get_ticks_msec())
+	if applied and _online_input_diag_enabled() and (absf(mx) > 0.01 or absf(my) > 0.01):
+		## 限频：只在成功应用非零输入时打一行，不含 ticket / 身份隐私字段。
+		print(
+			"WPG_ONLINE_INPUT_DIAG ds_input seat=%d peer=%d mx=%.2f my=%.2f pos=(%.1f,%.1f)"
+			% [state.seat, peer_id, mx, my, state.position.x, state.position.y]
+		)
+
+
+func _online_input_diag_enabled() -> bool:
+	return OS.is_debug_build() and OS.get_environment("WPG_ONLINE_INPUT_DIAG") == "1"
 
 
 func submit_settlement_minimal(result: String = "completed") -> Dictionary:

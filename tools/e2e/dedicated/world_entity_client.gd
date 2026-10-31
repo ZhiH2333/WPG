@@ -113,9 +113,15 @@ func _enter_sandbox() -> void:
 func _observe_world() -> void:
 	if _sandbox == null or not is_instance_valid(_sandbox):
 		return
-	## 通过 OnlineChannel 继续发输入（沙盒也会发；双发可接受）。
-	if _client != null and is_instance_valid(_client):
+	## Phase 2D.1：默认禁止测试侧 send_input，避免掩盖沙盒 InputMap→flush 故障。
+	## 仅当 INJECT_INPUT=1 时才直接注入（旧协议冒烟）；真实路径见 world_input_client.gd。
+	if _env("INJECT_INPUT", "0") == "1" and _client != null and is_instance_valid(_client):
 		_client.send_input(_move_x, 0.0)
+	else:
+		## 用 InputMap 驱动沙盒 flush（与真人按键同一条路径）。
+		var action := "move_right" if _move_x >= 0.0 else "move_left"
+		if not Input.is_action_pressed(action):
+			Input.action_press(action)
 	var pawns: Array = _sandbox.get("_pawns")
 	if typeof(pawns) != TYPE_ARRAY:
 		return

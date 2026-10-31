@@ -21,6 +21,8 @@ func _run_all() -> void:
 	PlayerProfile.load_from_disk()
 	_case_net_release_preserves_peer()
 	_case_manager_start_match_keeps_peer()
+	_case_online_dedicated_peer_survives_lobby_teardown()
+	_case_online_without_handoff_kills_peer()
 	_case_overlay_wan_host_starts_p2p()
 	_case_overlay_create_room_stays_lan()
 	_case_offline_solo_has_no_peer()
@@ -76,6 +78,45 @@ func _case_manager_start_match_keeps_peer() -> void:
 	manager.close_network()
 	_expect(not _has_live_peer(), "close_network（明确关房）后 peer 被清空")
 	_teardown(net, manager)
+
+## CASE B2：Online Dedicated peer 经 handoff_online_peer 后，LobbyNet.close() 不得掐断 DS 连接。
+## 这是 Phase 2D.1「进世界后按键完全不动」的根因回归：换场释放 MainMenu/LobbyNet 时
+## 若未 handoff，close() 会关掉 OnlineChannel 挂上的 SceneTree.multiplayer_peer。
+func _case_online_dedicated_peer_survives_lobby_teardown() -> void:
+	var net: LobbyNet = LobbyNet.new()
+	root.add_child(net)
+	var manager: LobbyManager = LobbyManager.new()
+	root.add_child(manager)
+	manager.bind_net(net)
+	## 模拟 OnlinePanel 已把 DedicatedClient 的 ENet peer 挂到 SceneTree（不必真连 DS）。
+	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
+	_expect(peer.create_client("127.0.0.1", 24567) == OK, "造一个 client peer 挂到 SceneTree")
+	net.multiplayer.multiplayer_peer = peer
+	_expect(_has_live_peer() or peer.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED, "Online peer 已挂上")
+
+	manager.handoff_online_peer()
+	net.close()
+	_expect(
+		net.multiplayer.multiplayer_peer != null,
+		"Online handoff 后 LobbyNet.close() 不得清空 multiplayer_peer"
+	)
+	## 清理：强制断，避免污染后续用例。
+	manager.close_network()
+	_teardown(net, manager)
+
+
+## CASE B3：反例——没有 Online handoff 时 close() 会清空 peer（证明必须 handoff）。
+func _case_online_without_handoff_kills_peer() -> void:
+	var net: LobbyNet = LobbyNet.new()
+	root.add_child(net)
+	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
+	_expect(peer.create_client("127.0.0.1", 24567) == OK, "反例造 client peer")
+	net.multiplayer.multiplayer_peer = peer
+	## 故意不 handoff：模拟旧 Online 进房路径。
+	net.close()
+	_expect(net.multiplayer.multiplayer_peer == null, "无 handoff 时 close() 必须清空 peer（反例）")
+	_teardown(net)
+
 
 ## CASE C：HOST OVER INTERNET 真 UI 入口 = host_room + create_p2p_invite + start_p2p_hosting。
 func _case_overlay_wan_host_starts_p2p() -> void:

@@ -306,6 +306,10 @@ func _on_admitted(seat: int, match_id: String) -> void:
 	GameLaunch.set_online_match_id(match_id)
 	GameLaunch.set_net_play(GameLaunch.NetPlay.COOP)
 	GameLaunch.set_arena_id("yard")
+	## 释放 Email/Password LineEdit 焦点，避免进战后键盘仍被文本框吞掉。
+	var vp: Viewport = get_viewport()
+	if vp != null:
+		vp.gui_release_focus()
 	## 脱钩：防止面板销毁时误关通道。
 	_client = null
 	enter_world.emit(seat, match_id)

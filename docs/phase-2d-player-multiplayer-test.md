@@ -182,4 +182,5 @@
 - 客户端复制：`OnlineReplica` + `CombatSandbox` Online 分支
 - 自动化协议同步：`python3 tools/e2e/dedicated/run_world_sync.py`
 - 自动化游戏世界实体：`python3 tools/e2e/dedicated/run_world_entities.py`
+- **真实 InputMap→flush 移动**（Phase 2D.1）：`python3 tools/e2e/dedicated/run_world_input.py`；小白验收见 `docs/phase-2d1-player-movement-test.md`
 - 真实 WildBoat：`python3 tools/e2e/dedicated/run_wildboat_online.py` + 本页手工世界验证

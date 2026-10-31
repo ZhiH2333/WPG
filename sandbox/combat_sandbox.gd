@@ -2300,6 +2300,8 @@ func _bind_online_channel() -> bool:
 		push_warning("CombatSandbox: OnlineChannel missing on /root — cannot enter Online world")
 		return false
 	_online_channel = channel
+	## 避免场景树误 pause 时丢 RPC；诊断开关由通道自身读取环境变量。
+	_online_channel.process_mode = Node.PROCESS_MODE_ALWAYS
 	if not _online_channel.snapshot_received.is_connected(_on_online_snapshot):
 		_online_channel.snapshot_received.connect(_on_online_snapshot)
 	if not _online_channel.peer_left_seat.is_connected(_on_online_peer_left):
@@ -2310,6 +2312,10 @@ func _bind_online_channel() -> bool:
 		_local_seat = _online_channel.get_local_seat()
 	if _online_match_id.is_empty():
 		_online_match_id = _online_channel.get_match_id()
+	## 释放 OnlinePanel LineEdit 等残留焦点，避免键盘进文本框而不进 InputMap。
+	var vp: Viewport = get_viewport()
+	if vp != null:
+		vp.gui_release_focus()
 	return true
 
 
@@ -2373,8 +2379,27 @@ func _flush_online_input(delta: float) -> void:
 	if _online_input_acc < OnlineProtocol.SNAPSHOT_INTERVAL:
 		return
 	_online_input_acc = 0.0
-	var move: Vector2 = _local_player.get_player_input().move_vector
+	var player_input: PlayerInput = _local_player.get_player_input()
+	## 显式刷新，避免 SubViewport 内 PlayerInput 与沙盒 _process 顺序竞态。
+	player_input.update_input()
+	var move: Vector2 = player_input.move_vector
+	if _online_input_diag_enabled():
+		print(
+			"WPG_ONLINE_INPUT_DIAG flush seat=%d move=(%.2f,%.2f) remote=%s peer=%s ch_seat=%d"
+			% [
+				_local_seat,
+				move.x,
+				move.y,
+				str(player_input.is_remote_driven()),
+				str(_online_channel.multiplayer != null and _online_channel.multiplayer.multiplayer_peer != null),
+				_online_channel.get_local_seat(),
+			]
+		)
 	_online_channel.send_input(move.x, move.y)
+
+
+func _online_input_diag_enabled() -> bool:
+	return OS.is_debug_build() and OS.get_environment("WPG_ONLINE_INPUT_DIAG") == "1"
 
 
 func _on_online_snapshot(tick: int, players: Array, match_id: String) -> void:

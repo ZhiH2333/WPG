@@ -434,6 +434,11 @@ func _enter_online() -> void:
 	if _leaving:
 		return
 	## GameLaunch Online 信封已由 OnlinePanel 在 admitted 时写入。
+	## Online Dedicated 的 ENet peer 挂在 SceneTree.multiplayer 上。
+	## 换场销毁 LobbyNet 前必须 handoff，否则 close() 会掐断 DS 连接，
+	## 进 combat_sandbox 后 send_input 全部空转（玩家按键完全不动）。
+	if _lobby != null:
+		_lobby.handoff_online_peer()
 	_leave_to_sandbox()
 
 func _leave_to_sandbox() -> void:
