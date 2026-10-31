@@ -85,6 +85,7 @@ var _top_bar_nav_min: float = 0.0
 @onready var _leaderboard_overlay: RecordLeaderboardOverlay = $RecordLeaderboardOverlay
 @onready var _lan_overlay: LanOverlay = $LanOverlay
 @onready var _play_page: PlayPage = $PlayPage
+@onready var _multi_notice: MultiplayerTestNotice = $MultiplayerTestNotice
 @onready var _lobby: LobbyManager = $LobbyManager
 
 func _ready() -> void:
@@ -122,6 +123,7 @@ func _ready() -> void:
 	_play_page.multi_pressed.connect(_enter_multi_flow)
 	_play_page.back_pressed.connect(_on_play_back_pressed)
 	_lan_overlay.start_lan.connect(_enter_lan)
+	_multi_notice.confirmed.connect(_on_multi_notice_confirmed)
 	# LobbyNet 必须挂上：没有它 host_room() 只能返回失败，建房页会一直显示 bind failed。
 	_lobby.bind_net($LobbyNet)
 	## WAN / P2P 的 rendezvous 服务端是部署配置，不是代码常量：
@@ -229,10 +231,10 @@ func on_lan_closed() -> void:
 	_focus_control(_top_multi_button)
 
 func _blocks_home_accept() -> bool:
-	return _overlay.is_open() or _play_page.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open()
+	return _overlay.is_open() or _play_page.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open() or _multi_notice.is_open()
 
 func _should_blur_menu() -> bool:
-	return _play_page.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open() or _overlay.is_credits_open()
+	return _play_page.is_open() or _record_selector.is_open() or _profile_overlay.is_open() or _leaderboard_overlay.is_open() or _lan_overlay.is_open() or _overlay.is_credits_open() or _multi_notice.is_open()
 
 ## 顶栏 tab 一律导航：不管当前在 Records / Multiplayer / Profile，点 PLAY 都翻到 Play 页。
 func _on_play_nav_pressed() -> void:
@@ -262,6 +264,12 @@ func _enter_multi_flow() -> void:
 	if _page == PAGE_MULTIPLAYER:
 		_refresh_nav_marks()
 		return
+	## 多人尚未正式可用：先弹测试提示，点「继续测试」才进现有多人界面。
+	if _multi_notice.is_open():
+		return
+	_multi_notice.open()
+
+func _on_multi_notice_confirmed() -> void:
 	_switch_page(PAGE_MULTIPLAYER)
 
 func _on_profile_pressed() -> void:
@@ -328,6 +336,9 @@ func _return_home(from: StringName) -> void:
 ##   2) 当前停在非 Home 的子页 —— 对齐 `_on_play_back_pressed()` 的观感，退回 Home。
 ## 都没得收才返回 false，交由调用方决定要不要退出应用。
 func _back_once() -> bool:
+	if _multi_notice.is_open():
+		_multi_notice.cancel()
+		return true
 	if _overlay.is_open():
 		## `SettingsOverlay.close()` 会连带关掉盖在上面的 Credits（见其实现），
 		## 所以这里不用单独判 credits。
@@ -669,7 +680,7 @@ func _refresh_nav_marks() -> void:
 func _is_overlay_owned(node: Node) -> bool:
 	var current: Node = node
 	while current != null and current != self:
-		if current is SettingsOverlay or current is RecordSelector or current is LanOverlay or current is ProfileOverlay or current is RecordLeaderboardOverlay or current is PlayPage or current is CreditsOverlay:
+		if current is SettingsOverlay or current is RecordSelector or current is LanOverlay or current is ProfileOverlay or current is RecordLeaderboardOverlay or current is PlayPage or current is CreditsOverlay or current is MultiplayerTestNotice:
 			return true
 		current = current.get_parent()
 	return false

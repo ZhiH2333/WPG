@@ -20,6 +20,7 @@
 [ext_resource type="Texture2D" uid="uid://byffsvxbi8khl" path="res://ui/icons/profile.png" id="26_profile_icon"]
 [ext_resource type="Script" path="res://lobby/lobby_manager.gd" id="27_lobby"]
 [ext_resource type="Script" path="res://lobby/lobby_net.gd" id="28_lobby_net"]
+[ext_resource type="PackedScene" path="res://ui/multiplayer_test_notice.tscn" id="29_multi_notice"]
 
 [sub_resource type="ShaderMaterial" id="mat_blur"]
 shader = ExtResource("5_blur")
@@ -423,6 +424,9 @@ layout_mode = 1
 offset_top = 60.0
 
 [node name="PlayPage" parent="." instance=ExtResource("20_play")]
+layout_mode = 1
+
+[node name="MultiplayerTestNotice" parent="." instance=ExtResource("29_multi_notice")]
 layout_mode = 1
 
 [node name="TopBar" type="PanelContainer" parent="."]

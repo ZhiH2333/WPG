@@ -47,6 +47,8 @@ CACHE_DIR = ROOT / "build/fonts"
 TEXT_SOURCES = (
     "ui/test_build_notice.tscn",
     "ui/test_build_notice.gd",
+    "ui/multiplayer_test_notice.tscn",
+    "ui/multiplayer_test_notice.gd",
 )
 # 子集永远带上整段可打印 ASCII：提示页里混着 WPG / Bug / 邮箱地址，
 # 而且以后在同一个 Label 上加个英文词不该再重跑一次。

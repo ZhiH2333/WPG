@@ -1,0 +1,73 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://ui/multiplayer_test_notice.gd" id="1_notice"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="2_theme"]
+[ext_resource type="FontFile" path="res://ui/fonts/wpg_notice_cjk_regular.ttf" id="3_cjk"]
+[ext_resource type="FontFile" path="res://ui/fonts/wpg_notice_cjk_bold.ttf" id="4_cjk_bold"]
+
+[node name="MultiplayerTestNotice" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_notice")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.45)
+
+[node name="Center" type="CenterContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(560, 220)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 0
+theme_type_variation = &"FloatingPanel"
+
+[node name="Column" type="VBoxContainer" parent="Center/Panel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Message" type="Label" parent="Center/Panel/Column"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_fonts/font = ExtResource("3_cjk")
+theme_type_variation = &"OfferTitle"
+text = "Online multiplayer is currently unavailable! For testing only."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Continue" type="Button" parent="Center/Panel/Column"]
+custom_minimum_size = Vector2(220, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_fonts/font = ExtResource("4_cjk_bold")
+theme_type_variation = &"PillPink"
+text = "Continue testing"

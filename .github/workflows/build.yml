@@ -67,7 +67,9 @@ jobs:
           fi
           if [ "$RUN_EVENT" = "push" ] \
              && [ "$RUN_CONCLUSION" = "success" ] \
-             && { [ "$RUN_BRANCH" = "dev" ] || [ "${RUN_BRANCH#dev/}" != "$RUN_BRANCH" ]; }; then
+             && { [ "$RUN_BRANCH" = "dev" ] \
+                  || [ "${RUN_BRANCH#dev/}" != "$RUN_BRANCH" ] \
+                  || [ "${RUN_BRANCH#rc/}" != "$RUN_BRANCH" ]; }; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
             echo "reason=WPG CI success on $RUN_BRANCH" >> "$GITHUB_OUTPUT"
             echo "[INFO] WPG CI 在 $RUN_BRANCH 上成功，开始 Dev Build"
