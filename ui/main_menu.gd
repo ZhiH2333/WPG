@@ -125,6 +125,7 @@ func _ready() -> void:
 	_play_page.multi_pressed.connect(_enter_multi_flow)
 	_play_page.back_pressed.connect(_on_play_back_pressed)
 	_lan_overlay.start_lan.connect(_enter_lan)
+	_lan_overlay.start_online.connect(_enter_online)
 	# LobbyNet 必须挂上：没有它 host_room() 只能返回失败，建房页会一直显示 bind failed。
 	_lobby.bind_net($LobbyNet)
 	## WAN / P2P 的 rendezvous 服务端是部署配置，不是代码常量：
@@ -427,6 +428,12 @@ func _enter_record(id: String, intent: GameLaunch.RunIntent = GameLaunch.RunInte
 func _enter_lan() -> void:
 	if _leaving:
 		return
+	_leave_to_sandbox()
+
+func _enter_online() -> void:
+	if _leaving:
+		return
+	## GameLaunch Online 信封已由 OnlinePanel 在 admitted 时写入。
 	_leave_to_sandbox()
 
 func _leave_to_sandbox() -> void:

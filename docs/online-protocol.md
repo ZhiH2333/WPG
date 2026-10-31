@@ -2,8 +2,10 @@
 
 **Transport:** ENet/UDP（默认 `24567`）。与 LAN `17777` / LobbyNet 隔离。  
 **Protocol version:** `OnlineProtocol.PROTOCOL_VERSION = 1`  
+**Snapshot version:** `OnlineProtocol.SNAPSHOT_VERSION = 2`（Phase 2D）  
 **座位：** Online 最多 4；peer `1` = DS 进程，不是人类 Host。  
-**契约：** `docs/phase-2b-api-contract.md`
+**契约：** `docs/phase-2b-api-contract.md`  
+**玩家测试：** `docs/phase-2d-player-multiplayer-test.md`
 
 ## 消息
 
@@ -12,12 +14,21 @@
 | C→S | `rpc_hello(protocol, display_name, game_ticket, claimed_player_id, claimed_match_id)` | 可靠；ticket 短命 scoped；claimed_* 仅绑定 validate |
 | S→C | `rpc_welcome(seat, match_id, protocol)` | 准入成功 |
 | S→C | `rpc_reject(reason)` | 见 `RejectReason` |
-| C→S | `rpc_input(mx, my)` | 不可靠；意图 |
-| S→C | `rpc_snapshot(bytes)` | 不可靠；权威状态 |
+| C→S | `rpc_input(mx, my)` | 不可靠；意图（非权威位置） |
+| S→C | `rpc_snapshot(bytes)` | 不可靠；权威状态（v2） |
 | S→C | `rpc_peer_left(seat)` | 可靠 |
 
-客户端之间不直连。客户端不提交权威伤害/得分/结算。  
-客户端不向 DS 发送 Access Token / Refresh Token。
+### Snapshot v2 载荷
+
+`version(u8)=2` + `tick(u32)` + `match_id(utf8)` + `count(u8)` + 每名玩家：  
+`seat(u8)` + `pos_x/y(float)` + `facing_x/y(float)`  
+
+客户端丢弃：错误 version、过期/重复 tick、错误 match_id、畸形座位。  
+远端实体以 snapshot 出现/消失为准；`rpc_peer_left` 立即清理。
+
+客户端之间不直连。客户端不提交权威伤害/得分/结算/他人位置。  
+客户端不向 DS 发送 Access Token / Refresh Token。  
+WildBoat HTTP **不是**实时移动通道。
 
 ## RejectReason
 

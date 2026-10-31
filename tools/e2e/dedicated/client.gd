@@ -94,7 +94,7 @@ func _on_rejected(reason: int) -> void:
 	_reject_reason = reason
 
 
-func _on_snapshot(tick: int, players: Array) -> void:
+func _on_snapshot(tick: int, players: Array, _match_id: String = "") -> void:
 	_last_tick = tick
 	_last_players = players
 

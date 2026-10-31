@@ -13,7 +13,7 @@ class_name OnlineChannel
 
 signal admitted(seat: int, match_id: String)
 signal rejected(reason: int)
-signal snapshot_received(tick: int, players: Array)
+signal snapshot_received(tick: int, players: Array, match_id: String)
 signal peer_left_seat(seat: int)
 signal server_closed
 
@@ -172,12 +172,16 @@ func rpc_input(mx: float, my: float) -> void:
 func rpc_snapshot(data: PackedByteArray) -> void:
 	if role != Role.CLIENT:
 		return
-	if data.size() > 512:
+	if data.size() > 768:
 		return
 	var decoded: Dictionary = OnlineProtocol.decode_snapshot(data)
 	if not bool(decoded.get("ok", false)):
 		return
-	snapshot_received.emit(int(decoded["tick"]), decoded["players"] as Array)
+	snapshot_received.emit(
+		int(decoded["tick"]),
+		decoded["players"] as Array,
+		str(decoded.get("match_id", ""))
+	)
 
 
 @rpc("authority", "reliable")

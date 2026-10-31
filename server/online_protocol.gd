@@ -9,7 +9,8 @@ const PROTOCOL_VERSION: int = 1
 const DEFAULT_PORT: int = 24567
 ## Online 初始匹配上限 4；LAN 仍使用 GameLaunch.NET_MAX_SEATS=5。
 const MAX_PLAYERS: int = 4
-const SNAPSHOT_VERSION: int = 1
+## Phase 2D：tick + match_id + seat/pos/facing。旧 v1 解码器拒绝。
+const SNAPSHOT_VERSION: int = 2
 const SNAPSHOT_HZ: float = 20.0
 const SNAPSHOT_INTERVAL: float = 1.0 / SNAPSHOT_HZ
 const INPUT_HZ: float = 20.0
@@ -18,6 +19,8 @@ const MAX_DISPLAY_NAME_LEN: int = 24
 const MAX_DEV_TOKEN_LEN: int = 64
 ## game_ticket 长度上界（WildBoat opaque / stub / 短 JWT）。
 const MAX_GAME_TICKET_LEN: int = 512
+## match_id 写入 snapshot 的长度上界（防畸形包）。
+const MAX_MATCH_ID_LEN: int = 64
 ## 权威移动速度（单位/秒）。Phase 2A 最小仿真。
 const MOVE_SPEED: float = 220.0
 const CHANNEL_NODE_NAME := "OnlineChannel"
@@ -83,10 +86,14 @@ static func reject_reason_text(reason: int) -> String:
 			return "Rejected (code %d)" % reason
 
 
-static func encode_snapshot(tick: int, players: Array) -> PackedByteArray:
+static func encode_snapshot(tick: int, players: Array, match_id: String = "") -> PackedByteArray:
 	var buf := StreamPeerBuffer.new()
 	buf.put_u8(SNAPSHOT_VERSION)
 	buf.put_u32(tick)
+	var mid: String = match_id.strip_edges()
+	if mid.length() > MAX_MATCH_ID_LEN:
+		mid = mid.substr(0, MAX_MATCH_ID_LEN)
+	buf.put_utf8_string(mid)
 	buf.put_u8(players.size())
 	for entry in players:
 		var state: DsPlayerState = entry as DsPlayerState
@@ -95,6 +102,8 @@ static func encode_snapshot(tick: int, players: Array) -> PackedByteArray:
 		buf.put_u8(state.seat)
 		buf.put_float(state.position.x)
 		buf.put_float(state.position.y)
+		buf.put_float(state.facing.x)
+		buf.put_float(state.facing.y)
 	return buf.data_array
 
 
@@ -103,6 +112,7 @@ static func decode_snapshot(data: PackedByteArray) -> Dictionary:
 		"ok": false,
 		"version": 0,
 		"tick": 0,
+		"match_id": "",
 		"players": [],
 	}
 	if data.is_empty():
@@ -112,24 +122,46 @@ static func decode_snapshot(data: PackedByteArray) -> Dictionary:
 	if buf.get_available_bytes() < 6:
 		return out
 	var version: int = buf.get_u8()
-	var tick: int = int(buf.get_u32())
-	var count: int = buf.get_u8()
 	if version != SNAPSHOT_VERSION:
 		return out
+	var tick: int = int(buf.get_u32())
+	if buf.get_available_bytes() < 4:
+		return out
+	var match_id: String = buf.get_utf8_string()
+	if match_id.length() > MAX_MATCH_ID_LEN:
+		return out
+	if buf.get_available_bytes() < 1:
+		return out
+	var count: int = buf.get_u8()
 	if count < 0 or count > MAX_PLAYERS:
 		return out
 	var players: Array = []
 	for _i in count:
-		if buf.get_available_bytes() < 9:
+		## seat(1) + pos(8) + facing(8)
+		if buf.get_available_bytes() < 17:
 			return out
 		var seat: int = buf.get_u8()
 		var x: float = buf.get_float()
 		var y: float = buf.get_float()
+		var fx: float = buf.get_float()
+		var fy: float = buf.get_float()
 		if seat < 1 or seat > MAX_PLAYERS:
 			return out
-		players.append({"seat": seat, "position": Vector2(x, y)})
+		if not is_finite(x) or not is_finite(y) or not is_finite(fx) or not is_finite(fy):
+			return out
+		var facing := Vector2(fx, fy)
+		if facing.length_squared() > 1.0001:
+			facing = facing.normalized()
+		elif facing.length_squared() < 0.0001:
+			facing = Vector2.RIGHT
+		players.append({
+			"seat": seat,
+			"position": Vector2(x, y),
+			"facing": facing,
+		})
 	out["ok"] = true
 	out["version"] = version
 	out["tick"] = tick
+	out["match_id"] = match_id
 	out["players"] = players
 	return out

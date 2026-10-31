@@ -22,9 +22,15 @@ Online Dedicated Server 是与 LAN / Host-Guest / WAN-P2P **并行**的路径。
 | DS register + heartbeat | **已实现** |
 | Ticket Admission（WildBoat validate） | **已实现**（fail closed） |
 | Settlement S2S | **已实现**（最小幂等结算） |
+| Phase 2D 游戏世界玩家实体 + 双向移动 | **已实现**（`GameLaunch.NetRole.ONLINE` → `combat_sandbox`） |
+| Snapshot v2（match_id / pos / facing） | **已实现** |
+| Leave / 断线清理远端实体 | **已实现**（不支持静默重连） |
 | 双客户端真实 Online E2E | `tools/e2e/dedicated/run_wildboat_online.py` |
+| 双客户端世界同步 E2E | `tools/e2e/dedicated/run_world_sync.py` |
+| 双客户端游戏世界实体 E2E | `tools/e2e/dedicated/run_world_entities.py`（加载 `combat_sandbox`） |
 | 双客户端 stub Online | `tools/e2e/dedicated/run_stub_online.py` |
 | Solo / LAN 回归 | 现有 e2e |
+| 玩家小白指南 | `docs/phase-2d-player-multiplayer-test.md` |
 
 ## Traffic boundary
 

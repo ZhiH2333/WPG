@@ -5,6 +5,8 @@ class_name OnlinePanel
 ## 与 LanOverlay 并行；不替代 Solo / LAN。禁止 stub 冒充真实 Online 成功。
 
 signal closed
+## 准入成功且 OnlineChannel 已挂在 /root：交给 MainMenu 进入战斗世界。
+signal enter_world(seat: int, match_id: String)
 
 const STATUS_IDLE := "Ready — login with a real WildBoat account"
 const PHASE_IDLE := "idle"
@@ -295,9 +297,18 @@ func _on_admitted(seat: int, match_id: String) -> void:
 	_phase = PHASE_IN_MATCH
 	_admitted_seat = seat
 	_admitted_match = match_id
-	_set_status("Connected — seat %d · match %s" % [seat, match_id])
+	_set_status("Connected — entering game world · seat %d · match %s" % [seat, match_id])
 	_refresh_match_status()
 	_refresh_action_buttons()
+	## 通道留在 /root；面板随主菜单销毁，不 close_client。
+	GameLaunch.set_net_role(GameLaunch.NetRole.ONLINE)
+	GameLaunch.set_local_seat(seat)
+	GameLaunch.set_online_match_id(match_id)
+	GameLaunch.set_net_play(GameLaunch.NetPlay.COOP)
+	GameLaunch.set_arena_id("yard")
+	## 脱钩：防止面板销毁时误关通道。
+	_client = null
+	enter_world.emit(seat, match_id)
 
 
 func _on_rejected(reason: int) -> void:
@@ -317,7 +328,7 @@ func _on_server_closed() -> void:
 	_refresh_action_buttons()
 
 
-func _on_snapshot(tick: int, players: Array) -> void:
+func _on_snapshot(tick: int, players: Array, _match_id: String = "") -> void:
 	_last_tick = tick
 	_last_player_count = players.size()
 	_refresh_match_status()
@@ -343,10 +354,11 @@ func _disconnect_client(status_if_any: String) -> void:
 		_client.queue_free()
 	_client = null
 	## 兜底：面板关闭后仍可能残留 root 通道。
+	## 已 enter_world 后 _client 为空；Leave/Close 仍需清 root 通道。
 	var leftover: Node = get_tree().root.get_node_or_null(OnlineProtocol.CHANNEL_NODE_NAME)
 	if leftover != null and is_instance_valid(leftover):
-		if leftover is DedicatedClient:
-			(leftover as DedicatedClient).close_client()
+		if leftover is DedicatedClient or leftover is OnlineChannel:
+			(leftover as OnlineChannel).close_client()
 		leftover.queue_free()
 	_admitted_seat = 0
 	_admitted_match = ""

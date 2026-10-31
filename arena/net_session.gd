@@ -65,7 +65,8 @@ func has_remote_seats() -> bool:
 	return false
 
 func is_online() -> bool:
-	return _role != GameLaunch.NetRole.OFFLINE
+	## LAN Host/Guest only。Online Dedicated 走 OnlineChannel，不会配置本会话为 ONLINE。
+	return _role == GameLaunch.NetRole.HOST or _role == GameLaunch.NetRole.GUEST
 
 func is_host() -> bool:
 	return _role == GameLaunch.NetRole.HOST

@@ -4,6 +4,7 @@ class_name LanOverlay
 ## 主菜单局域网叠层。MULTIPLAYER 首页：Quick join / Create room / LAN rooms / Join invite / Recent。
 ## 大厅 Host 听 17778，Guest 探针；座位 1～5，第三人进房不踢，满 5 才踢。禁止 Autoload，禁止 AcceptDialog。
 signal start_lan
+signal start_online
 
 enum View { HOME, PICK, HOST, JOIN, INVITE, LOBBY }
 
@@ -981,8 +982,13 @@ func _on_home_online_pressed() -> void:
 		_online_panel = packed.instantiate() as OnlinePanel
 		add_child(_online_panel)
 		_online_panel.closed.connect(func() -> void: pass)
+		_online_panel.enter_world.connect(_on_online_enter_world)
 	_online_panel.visible = true
 	_online_panel.move_to_front()
+
+
+func _on_online_enter_world(_seat: int, _match_id: String) -> void:
+	start_online.emit()
 
 
 ## 从 LAN 房间行 / Quick join 进房：地址与房间事实都来自发现包，顺便记进 RECENT。

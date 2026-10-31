@@ -392,7 +392,7 @@ func _process(delta: float) -> void:
 		return
 	_acc = 0.0
 	_tick += 1
-	var data: PackedByteArray = OnlineProtocol.encode_snapshot(_tick, get_players())
+	var data: PackedByteArray = OnlineProtocol.encode_snapshot(_tick, get_players(), get_match_id())
 	_channel.broadcast_snapshot(data)
 
 

@@ -80,10 +80,11 @@
 3. 状态文字变化预期：
    - `Requesting assignment…`
    - `Connecting to Dedicated Server…`
-   - **`Connected — seat … · match …`**
-4. 下方 **Match status** 会显示：
-   - `In match · seat … · players N/4 · tick …`
-5. 第二个窗口用**另一个账号**同样 Join Match 后，两边的 **players** 应变为 **2/4**。
+   - **`Connected — entering game world · seat …`**（随后进入战斗世界）
+4. Phase 2D 起：Join 成功后会进入游戏世界，而不只停在面板。  
+   双人同世界 / 互相看见移动 / Leave 清理的玩家步骤见：  
+   **`docs/phase-2d-player-multiplayer-test.md`**
+5. 第二个窗口用**另一个账号**同样 Join Match 后，两边都应进入同一场，世界里出现两个角色。
 
 ### 退出对局
 

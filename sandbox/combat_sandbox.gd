@@ -69,6 +69,11 @@ var _last_owned_label: String = ""
 var _companions: Array[CompanionBase] = []
 var _shop_stim_bought: bool = false
 var _started_as_lan: bool = false
+var _started_as_online: bool = false
+var _online_match_id: String = ""
+var _online_channel: OnlineChannel = null
+var _online_replica: OnlineReplica = null
+var _online_input_acc: float = 0.0
 var _arena_id: String = "yard"
 var _net_play: GameLaunch.NetPlay = GameLaunch.NetPlay.COOP
 var _battle_winner_seat: int = 0
@@ -107,11 +112,11 @@ var _tutorial_world_frozen: bool = false
 func _ready() -> void:
 	GameSettings.load_from_disk()
 	GameSettings.apply()
-	TutorialDirector.set_online_blocked(_is_lan())
 	_start_combat_music()
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	_apply_wall_layers()
 	_bind_runtime()
+	TutorialDirector.set_online_blocked(_is_lan() or _is_online())
 	_bind_window_cursor()
 	_apply_render_scale()
 	_sync_system_cursor()
@@ -163,6 +168,11 @@ func _process(delta: float) -> void:
 	_sync_touch_ability_ui()
 	_sync_touch_hud_reserve()
 	_record_hp_timeline()
+	if _is_online():
+		if not _pause_overlay.is_open():
+			_flush_online_input(delta)
+		_sync_system_cursor()
+		return
 	if _pause_overlay.is_open() and not _is_lan():
 		return
 	if _is_guest():
@@ -272,29 +282,42 @@ func _bind_runtime() -> void:
 	_lan_loop_goal = int(roster.get("loop_goal", 0))
 	_net_play = GameLaunch.take_net_play()
 	_started_as_lan = _is_lan()
-	if _is_lan():
+	_started_as_online = _is_online()
+	if _is_online():
+		_online_match_id = GameLaunch.take_online_match_id()
+		## Online 使用 /root/OnlineChannel（DsNet peer）；禁止把 NetSession 配成 ONLINE。
+		_net.configure(GameLaunch.NetRole.OFFLINE, self)
+		if not _bind_online_channel():
+			_return_to_menu()
+			return
+	elif _is_lan():
 		GameLaunch.take_join_address()
 		if multiplayer.multiplayer_peer == null:
 			_return_to_menu()
 			return
-	_net.configure(_net_role, self)
-	_net.bind_roster(_local_seat, _lan_peer_ids)
-	_net.peer_lost.connect(_on_peer_lost)
-	_net.input_received.connect(_on_net_input)
-	_net.snapshot_received.connect(_on_net_snapshot)
-	_net.fire_fx_received.connect(_on_net_fire_fx)
-	_net.offer_open_received.connect(_on_net_offer_open)
-	_net.offer_close_received.connect(_on_net_offer_close)
-	_net.winner_received.connect(_on_net_winner)
-	_net.reset_received.connect(_reset_sandbox)
-	_net.return_menu_received.connect(_on_net_return_menu)
-	_room_notice.dismissed.connect(_on_room_notice_dismissed)
-	_net.try_pick_received.connect(_on_net_try_pick)
-	_net.try_unpause_received.connect(_on_net_try_unpause)
-	_net.try_pause_received.connect(_on_net_try_pause)
-	_net.shop_stock_received.connect(_on_net_shop_stock)
-	_net.try_shop_received.connect(_on_net_try_shop)
-	_prepare_pawns()
+		_net.configure(_net_role, self)
+		_net.bind_roster(_local_seat, _lan_peer_ids)
+		_net.peer_lost.connect(_on_peer_lost)
+		_net.input_received.connect(_on_net_input)
+		_net.snapshot_received.connect(_on_net_snapshot)
+		_net.fire_fx_received.connect(_on_net_fire_fx)
+		_net.offer_open_received.connect(_on_net_offer_open)
+		_net.offer_close_received.connect(_on_net_offer_close)
+		_net.winner_received.connect(_on_net_winner)
+		_net.reset_received.connect(_reset_sandbox)
+		_net.return_menu_received.connect(_on_net_return_menu)
+		_room_notice.dismissed.connect(_on_room_notice_dismissed)
+		_net.try_pick_received.connect(_on_net_try_pick)
+		_net.try_unpause_received.connect(_on_net_try_unpause)
+		_net.try_pause_received.connect(_on_net_try_pause)
+		_net.shop_stock_received.connect(_on_net_shop_stock)
+		_net.try_shop_received.connect(_on_net_try_shop)
+	else:
+		_net.configure(GameLaunch.NetRole.OFFLINE, self)
+	if _is_online():
+		_prepare_online_pawns()
+	else:
+		_prepare_pawns()
 	var player_input: PlayerInput = _local_player.get_player_input()
 	_projectiles.setup(_projectiles, PROJECTILE_SCENE, POOL_CAPACITY)
 	_enemy_projectiles.setup(_enemy_projectiles, PROJECTILE_SCENE, ENEMY_POOL_CAPACITY)
@@ -369,6 +392,9 @@ func _bind_runtime() -> void:
 	var resumed: bool = _begin_run_flow(run_intent)
 	if _is_battle():
 		_pause_battle_world()
+	elif _is_online():
+		## Phase 2D：只验证玩家实体与移动同步，不跑 Solo 遭遇。
+		_hold_all_in_reserve()
 	elif not _is_guest():
 		_apply_loop_pressure()
 		_encounter.restart()
@@ -422,9 +448,9 @@ func _collect_enemies() -> Array[EnemyBase]:
 func _bind_enemies(enemies: Array[EnemyBase]) -> void:
 	for enemy: EnemyBase in enemies:
 		enemy.bind_players(_synced_pawns)
-		enemy.set_sim_authority(not _is_guest())
+		enemy.set_sim_authority(not _is_guest() and not _is_online())
 		enemy.bind_sfx_pool(_sfx_pool)
-		if _is_host() or not _is_lan():
+		if _is_host() or (not _is_lan() and not _is_online()):
 			enemy.bind_player_camera(_player_camera)
 		enemy.bind_shard_pool(_death_shards)
 		if not enemy.defeated.is_connected(_on_enemy_defeated):
@@ -1042,7 +1068,7 @@ func _apply_character_id(pawn: Player, character_id: String) -> void:
 func _bind_playable_slot() -> GameLaunch.RunIntent:
 	_resume_checkpoint = null
 	_resumed_from_checkpoint = false
-	if _is_lan():
+	if _is_lan() or _is_online():
 		GameLaunch.take_active_save_slot_id()
 		GameLaunch.take_run_intent()
 		GameLaunch.take_mode()
@@ -1124,7 +1150,7 @@ func _restore_resumed_vitals() -> void:
 
 ## 提交一次安全检查点。LAN / Guest 永不落盘；非终局 kind 只在 run 还在打时提交。
 func _commit_checkpoint(kind: int) -> void:
-	if _is_lan() or _started_as_lan or _is_guest():
+	if _is_lan() or _started_as_lan or _is_guest() or _is_online() or _started_as_online:
 		return
 	if _slot_id.is_empty():
 		return
@@ -1199,7 +1225,7 @@ func _on_winner_menu() -> void:
 ##   两者都会清掉 active_run 并把 status 定成 CLEARED / FAILED；同时把 RunResult 交给
 ##   GameProgress 与 slot.history（history 只追加，绝不覆盖）。
 func _record_progress_if_needed() -> void:
-	if _is_lan() or _started_as_lan:
+	if _is_lan() or _started_as_lan or _is_online() or _started_as_online:
 		return
 	if _progress_written:
 		return
@@ -1227,6 +1253,8 @@ func _return_to_menu() -> void:
 	_record_progress_if_needed()
 	if _is_lan():
 		_net.close_peer()
+	if _is_online() or _started_as_online:
+		_teardown_online_channel()
 	var tree: SceneTree = get_tree()
 	if tree != null:
 		tree.paused = false
@@ -1509,7 +1537,11 @@ func _prepare_pawns() -> void:
 	_rebuild_synced_pawns()
 
 func _is_lan() -> bool:
-	return _net_role != GameLaunch.NetRole.OFFLINE
+	## ONLINE 不是 LAN：不要把 Dedicated 路径当成 Host/Guest。
+	return _net_role == GameLaunch.NetRole.HOST or _net_role == GameLaunch.NetRole.GUEST
+
+func _is_online() -> bool:
+	return _net_role == GameLaunch.NetRole.ONLINE
 
 func _is_battle() -> bool:
 	return _is_lan() and _net_play == GameLaunch.NetPlay.BATTLE
@@ -2257,6 +2289,214 @@ func _apply_pawn_drive(pawn: Player, remote_driven: bool, simulate_combat: bool)
 	var controller: AbilityController = pawn.get_ability_controller()
 	if controller != null:
 		controller.set_authoritative(simulate_combat)
+
+
+## --- Online Dedicated (Phase 2D) ---
+
+func _bind_online_channel() -> bool:
+	var node: Node = get_tree().root.get_node_or_null(OnlineProtocol.CHANNEL_NODE_NAME)
+	var channel: OnlineChannel = node as OnlineChannel
+	if channel == null:
+		push_warning("CombatSandbox: OnlineChannel missing on /root — cannot enter Online world")
+		return false
+	_online_channel = channel
+	if not _online_channel.snapshot_received.is_connected(_on_online_snapshot):
+		_online_channel.snapshot_received.connect(_on_online_snapshot)
+	if not _online_channel.peer_left_seat.is_connected(_on_online_peer_left):
+		_online_channel.peer_left_seat.connect(_on_online_peer_left)
+	if not _online_channel.server_closed.is_connected(_on_online_server_closed):
+		_online_channel.server_closed.connect(_on_online_server_closed)
+	if _online_channel.get_local_seat() > 0:
+		_local_seat = _online_channel.get_local_seat()
+	if _online_match_id.is_empty():
+		_online_match_id = _online_channel.get_match_id()
+	return true
+
+
+func _teardown_online_channel() -> void:
+	if _online_channel != null and is_instance_valid(_online_channel):
+		if _online_channel.snapshot_received.is_connected(_on_online_snapshot):
+			_online_channel.snapshot_received.disconnect(_on_online_snapshot)
+		if _online_channel.peer_left_seat.is_connected(_on_online_peer_left):
+			_online_channel.peer_left_seat.disconnect(_on_online_peer_left)
+		if _online_channel.server_closed.is_connected(_on_online_server_closed):
+			_online_channel.server_closed.disconnect(_on_online_server_closed)
+		_online_channel.close_client()
+		_online_channel.queue_free()
+	_online_channel = null
+	var leftover: Node = get_tree().root.get_node_or_null(OnlineProtocol.CHANNEL_NODE_NAME)
+	if leftover != null and is_instance_valid(leftover):
+		if leftover is OnlineChannel:
+			(leftover as OnlineChannel).close_client()
+		leftover.queue_free()
+	if _online_replica != null:
+		_online_replica.reset()
+	_online_replica = null
+
+
+func _prepare_online_pawns() -> void:
+	_pawns.clear()
+	_synced_pawns.clear()
+	for _i: int in OnlineProtocol.MAX_PLAYERS:
+		_pawns.append(null)
+	var spawn: Vector2 = _spawn_for_seat(_local_seat)
+	if _local_seat == 1:
+		_player.global_position = spawn
+		_player.set_spawn_position(spawn)
+		_player.visible = true
+		_pawns[0] = _player
+		_local_player = _player
+	else:
+		## 场景 Player 留给 seat 1 远端；本地用实例。
+		_player.visible = false
+		_player.global_position = _spawn_for_seat(1)
+		_apply_pawn_drive(_player, true, false)
+		var local_pawn: Player = PLAYER_SCENE.instantiate() as Player
+		local_pawn.name = "Player%d" % _local_seat
+		_players_root.add_child(local_pawn)
+		local_pawn.global_position = spawn
+		local_pawn.set_spawn_position(spawn)
+		_pawns[_local_seat - 1] = local_pawn
+		_local_player = local_pawn
+	## 本地采集输入，权威位移来自 snapshot（simulate_combat=false）。
+	_apply_pawn_drive(_local_player, false, false)
+	_rebuild_synced_pawns()
+	_online_replica = OnlineReplica.new()
+	_online_replica.configure(_online_match_id, _local_seat)
+	_online_replica.visible_seats[_local_seat] = true
+
+
+func _flush_online_input(delta: float) -> void:
+	if _online_channel == null or _local_player == null:
+		return
+	_online_input_acc += delta
+	if _online_input_acc < OnlineProtocol.SNAPSHOT_INTERVAL:
+		return
+	_online_input_acc = 0.0
+	var move: Vector2 = _local_player.get_player_input().move_vector
+	_online_channel.send_input(move.x, move.y)
+
+
+func _on_online_snapshot(tick: int, players: Array, match_id: String) -> void:
+	if not _is_online() or _leaving or _online_replica == null:
+		return
+	var accepted: Dictionary = _online_replica.accept_snapshot(tick, players, match_id)
+	if not bool(accepted.get("ok", false)):
+		return
+	for entry in accepted.get("players", []):
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var d: Dictionary = entry
+		var seat: int = int(d.get("seat", 0))
+		var pawn: Player = _ensure_online_pawn(seat)
+		if pawn == null:
+			continue
+		var pos: Vector2 = d.get("position", Vector2.ZERO)
+		var facing: Vector2 = d.get("facing", Vector2.RIGHT)
+		_apply_online_pose(pawn, pos, facing, seat != _local_seat)
+	for seat_v in accepted.get("removed", []):
+		var left_seat: int = int(seat_v)
+		if left_seat == _local_seat:
+			continue
+		_remove_online_seat_pawn(left_seat)
+	_bind_party_hud()
+
+
+func _on_online_peer_left(seat: int) -> void:
+	if not _is_online() or _leaving:
+		return
+	if _online_replica != null:
+		_online_replica.note_peer_left(seat)
+	if seat == _local_seat:
+		return
+	_remove_online_seat_pawn(seat)
+	_bind_party_hud()
+	_room_notice.present_toast(RoomNotice.TEXT_GUEST_LEFT)
+
+
+func _on_online_server_closed() -> void:
+	if _leaving:
+		return
+	_room_notice.present_toast(RoomNotice.TEXT_HOST_CLOSED)
+	_return_to_menu()
+
+
+func _apply_online_pose(pawn: Player, pos: Vector2, facing: Vector2, is_remote: bool) -> void:
+	var health: PlayerHealth = pawn.get_player_health()
+	var aim: Vector2 = facing if is_remote else Vector2.ZERO
+	pawn.apply_net_pose(
+		pos,
+		Vector2.ZERO,
+		aim,
+		health.get_hp(),
+		health.get_max_hp(),
+		false,
+		pawn.get_weapon_host().get_current_index(),
+		facing.x < 0.0,
+		is_remote
+	)
+
+
+func _ensure_online_pawn(seat: int) -> Player:
+	if seat < 1 or seat > OnlineProtocol.MAX_PLAYERS:
+		return null
+	_ensure_pawn_slot(seat)
+	if _pawns[seat - 1] != null:
+		var existing: Player = _pawns[seat - 1]
+		if existing == _player:
+			_player.visible = true
+		return existing
+	if seat == 1:
+		_player.visible = true
+		_player.global_position = _spawn_for_seat(1)
+		_player.set_spawn_position(_spawn_for_seat(1))
+		_pawns[0] = _player
+		_apply_pawn_drive(_player, seat != _local_seat, false)
+		if seat == _local_seat:
+			_local_player = _player
+		_rebuild_synced_pawns()
+		_rebind_after_pawn_change()
+		return _player
+	var pawn: Player = PLAYER_SCENE.instantiate() as Player
+	pawn.name = "Player%d" % seat
+	_players_root.add_child(pawn)
+	var spawn: Vector2 = _spawn_for_seat(seat)
+	pawn.global_position = spawn
+	pawn.set_spawn_position(spawn)
+	pawn.bind_projectile_pool(_projectiles)
+	pawn.bind_sfx_pool(_sfx_pool)
+	_apply_character_id(pawn, "boar")
+	if seat == _local_seat:
+		_local_player = pawn
+		_apply_pawn_drive(pawn, false, false)
+	else:
+		_apply_pawn_drive(pawn, true, false)
+	_pawns[seat - 1] = pawn
+	_rebuild_synced_pawns()
+	_rebind_after_pawn_change()
+	return pawn
+
+
+func _remove_online_seat_pawn(seat: int) -> void:
+	if seat < 1 or seat > OnlineProtocol.MAX_PLAYERS:
+		return
+	if seat == _local_seat:
+		return
+	var pawn: Player = _pawn_for_seat(seat)
+	if pawn == null:
+		return
+	_drop_synced_pawn(pawn)
+	_pawns[seat - 1] = null
+	if pawn == _player:
+		## 场景根 Player 不能 queue_free；隐藏并停用。
+		_player.visible = false
+		_apply_pawn_drive(_player, true, false)
+	elif is_instance_valid(pawn):
+		pawn.queue_free()
+	while _pawns.size() > 1 and _pawns[_pawns.size() - 1] == null:
+		_pawns.pop_back()
+	_rebuild_synced_pawns()
+	_rebind_after_pawn_change()
 
 func _is_roster_seat_occupied(seat: int) -> bool:
 	if seat < 1 or seat > GameLaunch.NET_MAX_SEATS:

@@ -3,7 +3,8 @@ class_name GameLaunch
 
 ## 一次性把模式、档位 id、局域网身份、对局模式、竞技场 id、座位表和换场目标带进下一场。不是 Autoload，不是 Node，禁止 get_tree()。默认 Infinite / OFFLINE / COOP / yard，take 后打回缺省。只传 id，不塞 SaveSlot / RunSession / ArenaDef 对象。NetPlay 不进 records.json。座位 1～5，下标 0=seat 1。
 enum Mode { SOLO, INFINITE }
-enum NetRole { OFFLINE, HOST, GUEST }
+## ONLINE = Dedicated Server 客户端（非 Host/Guest）。不得被 `_is_lan()` 当成 LAN。
+enum NetRole { OFFLINE, HOST, GUEST, ONLINE }
 enum NetPlay { COOP, BATTLE }
 ## 这一趟是「用该档新开一局」还是「续上该档的 active_run」。
 ## GameLaunch 只传 save slot id + 这个意图 + 必要配置 id，绝不塞整个 SaveSlot / RunSession。
@@ -32,6 +33,7 @@ static var _local_seat: int = 1
 static var _lan_loop_goal: int = 0
 static var _arena_id: String = "yard"
 static var _next_scene: String = ""
+static var _online_match_id: String = ""
 
 static func set_mode(mode: Mode) -> void:
 	_mode = mode
@@ -120,6 +122,15 @@ static func set_local_seat(seat: int) -> void:
 static func take_local_seat() -> int:
 	var current: int = clampi(_local_seat, 1, NET_MAX_SEATS)
 	_local_seat = 1
+	return current
+
+## Online Dedicated：准入后写入，沙盒 take 后清空。与 LAN roster 分离。
+static func set_online_match_id(match_id: String) -> void:
+	_online_match_id = match_id.strip_edges()
+
+static func take_online_match_id() -> String:
+	var current: String = _online_match_id
+	_online_match_id = ""
 	return current
 
 static func set_arena_id(id: String) -> void:
