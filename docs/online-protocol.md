@@ -33,6 +33,7 @@
 | 7 | TICKET_REPLAYED | 重放 |
 | 8 | TICKET_MISMATCH | match/instance 不符 / revoked |
 | 9 | BACKEND_UNAVAILABLE | WildBoat 校验不可达（fail closed） |
+| 10 | CONNECTION_FAILED | 客户端侧：ENet 未连上 DS（尚未收到 welcome/reject） |
 
 ## Admission 模式（DS）
 

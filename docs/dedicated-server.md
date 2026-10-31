@@ -1,4 +1,4 @@
-# WPG Dedicated Server — Local Startup (Phase 2B)
+# WPG Dedicated Server — Local Startup (Phase 2B / 2C)
 
 Online Dedicated Server 是与 LAN / Host-Guest / WAN-P2P **并行**的路径。
 
@@ -95,10 +95,24 @@ WPG_DS_READY
 
 ## 真实 Online 联调
 
+### 玩家 UI（Phase 2C，推荐）
+
+小白步骤见 **`docs/phase-2c-player-online-test.md`**。
+
+```text
+双击 tools/online/一键启动本地Online测试.command
+双击 tools/online/打开两个游戏窗口.command
+游戏内：MULTIPLAYER → Online (test) → Login → Join Match
+```
+
+脚本等价命令：`tools/online/start_local_online_test.sh` / `open_two_clients.sh` / `stop_local_online_test.sh`。
+
+### 开发者联调
+
 1. 启动 WildBoat（`make up && make smoke`）。
 2. 启动 DS：`WPG_ADMISSION_MODE=wildboat` + `DEDICATED_SERVER_CREDENTIAL`。
-3. 客户端：Multiplayer → **Online** → Login → Assign mode=`wildboat (real)` → Connect DS。
-4. 第二客户端不同账号重复 → 同 match admitted + snapshot。
+3. 客户端：Multiplayer → **Online (test)** → Login → mode=`wildboat (real Online)` → **Join Match**。
+4. 第二客户端不同账号重复 → 同 match admitted + snapshot；UI 显示 `players 2/4`。
 5. 自动化：`python3 tools/e2e/dedicated/run_wildboat_online.py`
 
 **禁止**：把 `local_stub` 当作真实 Online 的静默降级。

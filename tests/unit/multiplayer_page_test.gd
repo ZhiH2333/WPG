@@ -83,6 +83,7 @@ func _case_multiplayer_home(overlay: LanOverlay) -> void:
 	_expect(overlay._row_quick_join.visible, "Quick join 行存在")
 	_expect(overlay._row_lan_rooms.visible, "LAN rooms 行存在")
 	_expect(overlay._row_join_invite.visible, "Join invite 行存在")
+	_expect(overlay._row_online != null and overlay._row_online.visible, "Online (test) 行存在")
 	_expect(overlay._row_lan_rooms.get_node("Text/Caption").text != "", "LAN rooms 行右侧有 caption")
 	_expect(tr(overlay._row_create.get_node("Text/Caption").text) == tr("LAN_HOME_HOST_CAPTION"), "Create room 行 caption")
 	_expect(not overlay._recent_title.visible, "还没有最近房间时不显示 RECENT")

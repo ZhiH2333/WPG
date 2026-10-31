@@ -682,7 +682,7 @@ func _build_home_nav() -> void:
 	_row_join_invite = _make_home_row("LAN_JOIN_INVITE", "LAN_JOIN_INVITE_CAPTION", _on_home_invite_pressed)
 	_row_lan_rooms = _make_home_row("LAN_LAN_ROOMS", "LAN_CAPTION_SEARCHING", _on_home_join_pressed)
 	_row_quick_join = _make_home_row("LAN_QUICK_JOIN", "LAN_CAPTION_FIRST_OPEN", _on_quick_join_pressed)
-	_row_online = _make_home_row("Online (beta)", "WPass → Assignment → DS", _on_home_online_pressed)
+	_row_online = _make_home_row("Online (test)", "Login → Join Match → Dedicated Server", _on_home_online_pressed)
 	_home_rows = [_row_create, _row_host_wan, _row_join_invite, _row_lan_rooms, _row_quick_join, _row_online]
 	for index: int in _home_rows.size():
 		if index > 0:

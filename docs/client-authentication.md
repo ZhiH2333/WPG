@@ -28,7 +28,8 @@
 | `online/auth/auth_session.gd` | 注册/登录/刷新/登出/恢复；**单飞 refresh** |
 | `online/auth/auth_credentials_store.gd` | `user://wpass_session.json` |
 | `online/auth/player_identity.gd` | `/me` 快照 |
-| `online/ui/online_panel.tscn` | 最小登录 UI |
+| `online/ui/online_panel.tscn` | Phase 2C Online 测试 UI（Login / Join Match / Leave） |
+| `docs/phase-2c-player-online-test.md` | 面向小白的真实 Online 操作说明 |
 
 ## 安全与日志
 

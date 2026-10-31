@@ -8,9 +8,25 @@ class_name AuthCredentialsStore
 ## - Desktop / 导出物上该文件可被同用户进程读取；**不得宣称已完成安全凭证存储**。
 ## - 不持久化 access_token（短命，内存持有）；只持久化 refresh_token + session 元数据。
 ## - 永不写入 password。
+## - 本地双客户端测试可设环境变量 `WPG_CLIENT_SLOT=a|b` 隔离会话文件。
 
 const STORE_PATH := "user://wpass_session.json"
 const STORE_VERSION: int = 1
+
+
+func store_path() -> String:
+	var slot: String = OS.get_environment("WPG_CLIENT_SLOT").strip_edges().to_lower()
+	if slot.is_empty():
+		return STORE_PATH
+	var safe: String = ""
+	for i in slot.length():
+		var ch: String = slot.substr(i, 1)
+		var code: int = ch.unicode_at(0)
+		if (code >= 97 and code <= 122) or (code >= 48 and code <= 57) or ch == "_" or ch == "-":
+			safe += ch
+	if safe.is_empty() or safe.length() > 16:
+		return STORE_PATH
+	return "user://wpass_session_%s.json" % safe
 
 
 func save_session(
@@ -37,7 +53,8 @@ func save_session(
 		"storage": "user_file_unencrypted",
 		"security_note": "NOT OS secure storage; local-dev / interim only",
 	}
-	var file: FileAccess = FileAccess.open(STORE_PATH, FileAccess.WRITE)
+	var path: String = store_path()
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return false
 	file.store_string(JSON.stringify(payload))
@@ -45,9 +62,10 @@ func save_session(
 
 
 func load_session() -> Dictionary:
-	if not FileAccess.file_exists(STORE_PATH):
+	var path: String = store_path()
+	if not FileAccess.file_exists(path):
 		return {}
-	var file: FileAccess = FileAccess.open(STORE_PATH, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return {}
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
@@ -62,8 +80,9 @@ func load_session() -> Dictionary:
 
 
 func clear() -> void:
-	var absolute: String = ProjectSettings.globalize_path(STORE_PATH)
-	if FileAccess.file_exists(STORE_PATH) or FileAccess.file_exists(absolute):
+	var path: String = store_path()
+	var absolute: String = ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(path) or FileAccess.file_exists(absolute):
 		DirAccess.remove_absolute(absolute)
 
 

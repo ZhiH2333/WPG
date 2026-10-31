@@ -230,7 +230,7 @@ func _on_connected_to_server() -> void:
 
 
 func _on_connection_failed() -> void:
-	rejected.emit(OnlineProtocol.RejectReason.MALFORMED)
+	rejected.emit(OnlineProtocol.RejectReason.CONNECTION_FAILED)
 
 
 func _on_server_disconnected() -> void:

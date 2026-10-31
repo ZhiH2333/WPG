@@ -34,6 +34,8 @@ enum RejectReason {
 	TICKET_REPLAYED = 7,
 	TICKET_MISMATCH = 8,
 	BACKEND_UNAVAILABLE = 9,
+	## 客户端侧：ENet 未能连上 DS（尚未收到 welcome/reject）。
+	CONNECTION_FAILED = 10,
 }
 
 enum AdmissionMode {
@@ -50,6 +52,35 @@ static func clamp_display_name(name: String) -> String:
 	if cleaned.length() > MAX_DISPLAY_NAME_LEN:
 		return cleaned.substr(0, MAX_DISPLAY_NAME_LEN)
 	return cleaned
+
+
+## 面向玩家的拒绝原因文案。不得把后端不可用说成匹配成功。
+static func reject_reason_text(reason: int) -> String:
+	match reason:
+		RejectReason.NONE:
+			return "OK"
+		RejectReason.BAD_PROTOCOL:
+			return "Protocol mismatch — update client/server"
+		RejectReason.BAD_TOKEN:
+			return "Invalid ticket — request assignment again"
+		RejectReason.FULL:
+			return "Match full (max 4 players)"
+		RejectReason.DUPLICATE:
+			return "Already in this match"
+		RejectReason.MALFORMED:
+			return "Malformed join request"
+		RejectReason.TICKET_EXPIRED:
+			return "Ticket expired — request assignment again"
+		RejectReason.TICKET_REPLAYED:
+			return "Ticket already used — request a new assignment"
+		RejectReason.TICKET_MISMATCH:
+			return "Ticket does not match this server"
+		RejectReason.BACKEND_UNAVAILABLE:
+			return "WildBoat unreachable — match NOT joined (backend down)"
+		RejectReason.CONNECTION_FAILED:
+			return "Cannot reach Dedicated Server — is it running?"
+		_:
+			return "Rejected (code %d)" % reason
 
 
 static func encode_snapshot(tick: int, players: Array) -> PackedByteArray:
