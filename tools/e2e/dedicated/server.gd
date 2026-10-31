@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Dedicated Server E2E 进程：listen + 等待准入 + 保持权威仿真。
+## Dedicated Server E2E 进程：listen +（可选）WildBoat 注册/心跳 + 等待准入。
 
 var _result_file := ""
 var _ready_file := ""
@@ -18,13 +18,21 @@ var _result_written := false
 var _setup_done := false
 var _peak_occupied := 0
 var _ev: Dictionary = {}
+var _finished := false
+
+
+func _initialize() -> void:
+	_boot.call_deferred()
+
+
+func _boot() -> void:
+	await _setup()
+	_setup_done = true
 
 
 func _process(_delta: float) -> bool:
-	if not _setup_done:
-		_setup_done = true
-		_setup()
-		return false
+	if not _setup_done or _finished:
+		return _finished
 	if _close_at > 0 and Time.get_ticks_msec() >= _close_at:
 		_shutdown(0 if str(_ev.get("STATUS", "")).ends_with("_OK") else 1)
 		return true
@@ -79,6 +87,14 @@ func _setup() -> void:
 	cfg.game_instance_id = _env("GAME_INSTANCE_ID", "dev_instance")
 	var mode_raw: String = _env("ADMISSION_MODE", "dev").to_lower()
 	cfg.admission_mode = ServerConfig._parse_admission_mode(mode_raw)
+	cfg.wildboat_base_url = _env("WILDBOAT_BASE_URL", cfg.wildboat_base_url)
+	var ds_cred: String = _env("DEDICATED_SERVER_CREDENTIAL", _env("WILDBOAT_SERVER_TOKEN", ""))
+	if not ds_cred.is_empty():
+		cfg.wildboat_server_token = ds_cred
+	cfg.advertise_host = _env("ADVERTISE_HOST", cfg.advertise_host)
+	cfg.server_build = _env("SERVER_BUILD", cfg.server_build)
+	if _env("SKIP_WILDBOAT_REGISTER", "0") == "1":
+		cfg.register_with_wildboat = false
 	_session = DsSession.new()
 	root.add_child(_session)
 	_session.setup(cfg)
@@ -88,8 +104,16 @@ func _setup() -> void:
 		_write_result()
 		_shutdown(1)
 		return
+	if not await _session.bootstrap_backend():
+		_ev["REASON"] = "wildboat_bootstrap_failed"
+		_ev["STATUS"] = "SERVER_FAIL"
+		_write_result()
+		_shutdown(1)
+		return
 	_ev["PORT"] = cfg.port
 	_ev["MAX_PLAYERS"] = cfg.max_players
+	_ev["INSTANCE_ID"] = cfg.game_instance_id
+	_ev["SERVER_ID"] = cfg.server_id
 	if _stay_up:
 		## 满员拒绝用例：服务端一直活着，结果在 release 时落盘。
 		_ev["STATUS"] = "SERVER_HOLDING"
@@ -123,6 +147,9 @@ func _mark_ok(moved: int) -> void:
 
 
 func _shutdown(code: int) -> void:
+	if _finished:
+		return
+	_finished = true
 	if _stay_up and _session != null:
 		_ev["OCCUPIED"] = _session.occupied_count()
 		_ev["PEAK_OCCUPIED"] = _peak_occupied

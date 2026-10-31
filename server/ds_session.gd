@@ -10,6 +10,7 @@ signal player_rejected(peer_id: int, reason: int)
 signal player_left(seat: int, peer_id: int)
 signal listening(port: int)
 signal settlement_submitted(ok: bool, settlement_id: String)
+signal backend_ready(game_instance_id: String)
 
 var config: ServerConfig = null
 var ticket_validator: TicketValidator = null
@@ -27,6 +28,9 @@ var _admit_inflight: Dictionary = {} ## peer_id -> true
 var _match_started_at: String = ""
 var _last_settlement_id: String = ""
 var _settlement_done: bool = false
+var _heartbeat_timer: Timer = null
+var _instance_status: String = "starting"
+var _backend_bootstrapped: bool = false
 
 
 func setup(cfg: ServerConfig) -> void:
@@ -72,12 +76,72 @@ func start() -> bool:
 	var ok: bool = _net.host_listen(config.port, config.max_players)
 	if not ok:
 		return false
-	_write_ready_file()
 	_started = true
 	_stopped = false
+	## wildboat + register：ready 文件延后到 bootstrap_backend（注册+ready 心跳）成功后再写，
+	## 避免 E2E/编排在实例尚不可分配时就开始 assign。
+	var defer_ready: bool = (
+		config.admission_mode == OnlineProtocol.AdmissionMode.WILDBOAT
+		and config.register_with_wildboat
+	)
+	if not defer_ready:
+		_write_ready_file()
 	listening.emit(config.port)
 	print("WPG_DS_LISTEN port=%d max_players=%d protocol=%d admission=%d" % [
 		config.port, config.max_players, OnlineProtocol.PROTOCOL_VERSION, config.admission_mode
+	])
+	return true
+
+
+## WildBoat 模式：注册实例 + 首次 ready 心跳。失败时返回 false（不得静默降级 stub）。
+func bootstrap_backend() -> bool:
+	if config == null or config.admission_mode != OnlineProtocol.AdmissionMode.WILDBOAT:
+		_backend_bootstrapped = true
+		return true
+	if not config.register_with_wildboat:
+		_backend_bootstrapped = true
+		return true
+	if server_client == null:
+		_install_validator()
+	if server_client == null or config.wildboat_server_token.is_empty():
+		push_error("WPG_DS_FAIL: missing DEDICATED_SERVER_CREDENTIAL for wildboat mode")
+		return false
+	var reg_body: Dictionary = {
+		"host": config.advertise_host,
+		"port": config.port,
+		"transport": "enet_udp",
+		"protocol_version": OnlineProtocol.PROTOCOL_VERSION,
+		"server_build": config.server_build,
+		"capacity": config.max_players,
+		"status": "starting",
+	}
+	var reg: Dictionary = await server_client.register_instance(reg_body)
+	if not bool(reg.get("ok", false)):
+		var err: WildboatError = reg.get("error") as WildboatError
+		var code: String = err.code if err != null else "REGISTER_FAILED"
+		push_error("WPG_DS_FAIL: WildBoat register failed code=%s" % code)
+		return false
+	var body: Variant = reg.get("body")
+	if typeof(body) != TYPE_DICTIONARY:
+		push_error("WPG_DS_FAIL: register response invalid")
+		return false
+	var data: Dictionary = body
+	config.game_instance_id = str(data.get("game_instance_id", ""))
+	config.server_id = str(data.get("server_id", ""))
+	if config.game_instance_id.is_empty():
+		push_error("WPG_DS_FAIL: register missing game_instance_id")
+		return false
+	_instance_status = "ready"
+	var hb: Dictionary = await _send_heartbeat()
+	if not bool(hb.get("ok", false)):
+		push_error("WPG_DS_FAIL: initial ready heartbeat failed")
+		return false
+	_start_heartbeat_loop()
+	_write_ready_file()
+	_backend_bootstrapped = true
+	backend_ready.emit(config.game_instance_id)
+	print("WPG_DS_REGISTERED instance=%s server=%s" % [
+		config.game_instance_id.substr(0, 8), config.server_id.substr(0, 8)
 	])
 	return true
 
@@ -87,6 +151,16 @@ func stop() -> void:
 		return
 	_stopped = true
 	_started = false
+	_stop_heartbeat_loop()
+	if server_client != null and _backend_bootstrapped and config != null \
+		and config.admission_mode == OnlineProtocol.AdmissionMode.WILDBOAT \
+		and not config.game_instance_id.is_empty():
+		## 尽力通知 offline；不等待成功（避免退出卡死）。
+		_instance_status = "offline"
+		server_client.heartbeat(config.game_instance_id, {
+			"status": "offline",
+			"occupied_slots": 0,
+		})
 	## 结算走显式 submit_settlement_minimal()；stop 路径不 await 网络，避免退出卡死。
 	_clear_ready_file()
 	_players_by_peer.clear()
@@ -132,7 +206,14 @@ func get_players() -> Array:
 
 
 ## 同步准入（dev/stub 或已完成校验的结果注入）。WildBoat 模式请用 try_admit_async。
-func try_admit(peer_id: int, protocol: int, display_name: String, game_ticket: String) -> Dictionary:
+func try_admit(
+	peer_id: int,
+	protocol: int,
+	display_name: String,
+	game_ticket: String,
+	claimed_player_id: String = "",
+	claimed_match_id: String = ""
+) -> Dictionary:
 	if peer_id <= 1:
 		return {"reason": OnlineProtocol.RejectReason.MALFORMED, "seat": 0}
 	if protocol != OnlineProtocol.PROTOCOL_VERSION:
@@ -150,7 +231,14 @@ func try_admit(peer_id: int, protocol: int, display_name: String, game_ticket: S
 	return _finish_admit(peer_id, display_name, validated)
 
 
-func try_admit_async(peer_id: int, protocol: int, display_name: String, game_ticket: String) -> Dictionary:
+func try_admit_async(
+	peer_id: int,
+	protocol: int,
+	display_name: String,
+	game_ticket: String,
+	claimed_player_id: String = "",
+	claimed_match_id: String = ""
+) -> Dictionary:
 	if peer_id <= 1:
 		return {"reason": OnlineProtocol.RejectReason.MALFORMED, "seat": 0}
 	if protocol != OnlineProtocol.PROTOCOL_VERSION:
@@ -164,8 +252,11 @@ func try_admit_async(peer_id: int, protocol: int, display_name: String, game_tic
 	var ticket: String = game_ticket.substr(0, OnlineProtocol.MAX_GAME_TICKET_LEN)
 	var validated: Dictionary
 	if ticket_validator is WildboatTicketValidator:
+		var match_for_validate: String = claimed_match_id.strip_edges()
+		if match_for_validate.is_empty():
+			match_for_validate = get_match_id()
 		validated = await (ticket_validator as WildboatTicketValidator).validate_async(
-			ticket, get_match_id(), get_game_instance_id()
+			ticket, match_for_validate, get_game_instance_id(), claimed_player_id
 		)
 	else:
 		validated = ticket_validator.validate(ticket, get_match_id(), get_game_instance_id())
@@ -202,6 +293,10 @@ func _finish_admit(peer_id: int, client_display_name: String, validated: Diction
 	_players_by_seat[seat] = state
 	if not player_id.is_empty():
 		_players_by_player_id[player_id] = peer_id
+	## 记下权威 match_id，供 welcome / settlement / heartbeat 使用。
+	var validated_match: String = str(validated.get("match_id", ""))
+	if not validated_match.is_empty() and config != null:
+		config.match_id = validated_match
 	player_admitted.emit(seat, peer_id, state.display_name, player_id)
 	print("WPG_DS_ADMIT seat=%d peer=%d occupied=%d" % [seat, peer_id, occupied_count()])
 	return {"reason": OnlineProtocol.RejectReason.NONE, "seat": seat, "player_id": player_id}
@@ -225,7 +320,7 @@ func apply_input(peer_id: int, mx: float, my: float) -> void:
 
 func submit_settlement_minimal(result: String = "completed") -> Dictionary:
 	if _settlement_done and not _last_settlement_id.is_empty():
-		return {"ok": true, "duplicate": true, "settlement_id": _last_settlement_id}
+		return {"ok": true, "duplicate": true, "settlement_id": _last_settlement_id, "already_processed": true}
 	var payload: SettlementPayload = SettlementPayload.make_minimal(
 		get_match_id(),
 		get_game_instance_id(),
@@ -235,6 +330,10 @@ func submit_settlement_minimal(result: String = "completed") -> Dictionary:
 	)
 	payload.started_at = _match_started_at
 	payload.ended_at = Time.get_datetime_string_from_system(true) + "Z"
+	if payload.players.is_empty() and config != null \
+		and config.admission_mode == OnlineProtocol.AdmissionMode.WILDBOAT:
+		settlement_submitted.emit(false, payload.settlement_id)
+		return {"ok": false, "settlement_id": payload.settlement_id, "error": "no_players"}
 	_last_settlement_id = payload.settlement_id
 	if server_client == null:
 		if config != null and config.admission_mode == OnlineProtocol.AdmissionMode.WILDBOAT:
@@ -245,19 +344,41 @@ func submit_settlement_minimal(result: String = "completed") -> Dictionary:
 		print("WPG_DS_SETTLEMENT_LOCAL id=%s players=%d" % [payload.settlement_id, payload.players.size()])
 		settlement_submitted.emit(true, payload.settlement_id)
 		return {"ok": true, "local": true, "settlement_id": payload.settlement_id, "payload": payload.to_dict()}
-	var res: Dictionary = await server_client.submit_settlement(
-		payload.match_id, payload.to_dict(), payload.settlement_id
-	)
+	## 重试保持同一 settlement_id；仅 HTTP 2xx 且 body.ok 视为成功。
+	var res: Dictionary = await _submit_settlement_with_retries(payload)
 	var ok: bool = bool(res.get("ok", false))
 	if ok:
 		_settlement_done = true
-		print("WPG_DS_SETTLEMENT_OK id=%s" % payload.settlement_id)
+		var already: bool = bool(res.get("already_processed", false))
+		print("WPG_DS_SETTLEMENT_OK id=%s already=%s" % [payload.settlement_id, str(already)])
 	else:
-		## 失败不得伪装成功。
+		## 失败不得伪装成功；保留 settlement_id 供调用方重试。
 		print("WPG_DS_SETTLEMENT_FAIL id=%s" % payload.settlement_id)
 	settlement_submitted.emit(ok, payload.settlement_id)
 	res["settlement_id"] = payload.settlement_id
 	return res
+
+
+func _submit_settlement_with_retries(payload: SettlementPayload, attempts: int = 3) -> Dictionary:
+	var last: Dictionary = {}
+	for i in attempts:
+		last = await server_client.submit_settlement(payload.match_id, payload.to_dict())
+		if bool(last.get("ok", false)):
+			var body: Variant = last.get("body")
+			if typeof(body) == TYPE_DICTIONARY:
+				var data: Dictionary = body
+				## 网络成功 ≠ 结算成功：要求 ok=true。
+				if not bool(data.get("ok", false)):
+					last["ok"] = false
+					continue
+				last["already_processed"] = bool(data.get("already_processed", false))
+			return last
+		var err: WildboatError = last.get("error") as WildboatError
+		if err != null and not err.is_transport():
+			## 业务错误（如 MATCH_NOT_SETTLEABLE）不重试。
+			break
+		await get_tree().create_timer(0.4 * float(i + 1)).timeout
+	return last
 
 
 func _process(delta: float) -> void:
@@ -294,6 +415,60 @@ func _on_peer_disconnected(peer_id: int) -> void:
 	_channel.notify_peer_left(state.seat)
 	player_left.emit(state.seat, peer_id)
 	print("WPG_DS_LEAVE seat=%d peer=%d occupied=%d" % [state.seat, peer_id, occupied_count()])
+
+
+func _start_heartbeat_loop() -> void:
+	_stop_heartbeat_loop()
+	_heartbeat_timer = Timer.new()
+	_heartbeat_timer.name = "WildboatHeartbeat"
+	_heartbeat_timer.wait_time = config.heartbeat_interval_sec if config != null else 10.0
+	_heartbeat_timer.one_shot = false
+	_heartbeat_timer.autostart = true
+	add_child(_heartbeat_timer)
+	_heartbeat_timer.timeout.connect(_on_heartbeat_tick)
+
+
+func _stop_heartbeat_loop() -> void:
+	if _heartbeat_timer == null:
+		return
+	_heartbeat_timer.stop()
+	_heartbeat_timer.queue_free()
+	_heartbeat_timer = null
+
+
+func _on_heartbeat_tick() -> void:
+	if _stopped or server_client == null:
+		return
+	await _send_heartbeat()
+
+
+func _send_heartbeat() -> Dictionary:
+	if server_client == null or config == null or config.game_instance_id.is_empty():
+		var err := WildboatError.from_transport("heartbeat_not_ready")
+		return {"ok": false, "error": err}
+	var body: Dictionary = {
+		"status": _instance_status,
+		"occupied_slots": occupied_count(),
+	}
+	## WildBoat 要求 active_match_id 为 UUID；dev/stub 占位符不得发送。
+	var mid: String = get_match_id()
+	if _looks_like_uuid(mid):
+		body["active_match_id"] = mid
+	return await server_client.heartbeat(config.game_instance_id, body)
+
+
+static func _looks_like_uuid(value: String) -> bool:
+	## 粗检：8-4-4-4-12 hex（不强制版本位）。
+	if value.length() != 36:
+		return false
+	for i in value.length():
+		var ch: String = value[i]
+		if i in [8, 13, 18, 23]:
+			if ch != "-":
+				return false
+		elif not ch.is_valid_hex_number():
+			return false
+	return true
 
 
 func _write_ready_file() -> void:

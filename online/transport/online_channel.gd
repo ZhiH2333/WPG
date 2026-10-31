@@ -6,9 +6,10 @@ class_name OnlineChannel
 ## 以便 Godot 按路径路由 RPC。本通道与 LobbyNet / NetSession 的 RPC 表完全隔离。
 ##
 ## Phase 2B 消息：
-## - Client -> Server: hello(protocol, display_name, game_ticket), input(intent)
+## - Client -> Server: hello(protocol, display_name, game_ticket, claimed_player_id, claimed_match_id), input
 ## - Server -> Client: welcome / reject, snapshot(authoritative)
 ## game_ticket 在 dev 模式下可为 WPG_DEV_TOKEN；生产为 WildBoat 短命票。
+## claimed_* 仅用于 WildBoat validate 绑定请求；权威身份以 DS 校验响应为准。
 
 signal admitted(seat: int, match_id: String)
 signal rejected(reason: int)
@@ -24,6 +25,8 @@ var _local_seat: int = 0
 var _match_id: String = ""
 var _display_name: String = "player"
 var _game_ticket: String = ""
+var _claimed_player_id: String = ""
+var _claimed_match_id: String = ""
 var _wired_client: bool = false
 
 
@@ -33,10 +36,17 @@ func configure_server(session: DsSession) -> void:
 	name = OnlineProtocol.CHANNEL_NODE_NAME
 
 
-func configure_client(display_name: String = "player", game_ticket: String = "") -> void:
+func configure_client(
+	display_name: String = "player",
+	game_ticket: String = "",
+	claimed_player_id: String = "",
+	claimed_match_id: String = ""
+) -> void:
 	role = Role.CLIENT
 	_display_name = OnlineProtocol.clamp_display_name(display_name)
 	_game_ticket = game_ticket.substr(0, OnlineProtocol.MAX_GAME_TICKET_LEN)
+	_claimed_player_id = claimed_player_id.strip_edges()
+	_claimed_match_id = claimed_match_id.strip_edges()
 	name = OnlineProtocol.CHANNEL_NODE_NAME
 	if is_inside_tree():
 		_wire_client_peer_signals()
@@ -83,7 +93,14 @@ func send_hello() -> void:
 		return
 	if multiplayer.multiplayer_peer == null:
 		return
-	rpc_hello.rpc_id(1, OnlineProtocol.PROTOCOL_VERSION, _display_name, _game_ticket)
+	rpc_hello.rpc_id(
+		1,
+		OnlineProtocol.PROTOCOL_VERSION,
+		_display_name,
+		_game_ticket,
+		_claimed_player_id,
+		_claimed_match_id
+	)
 
 
 func send_input(mx: float, my: float) -> void:
@@ -95,11 +112,19 @@ func send_input(mx: float, my: float) -> void:
 
 
 @rpc("any_peer", "reliable")
-func rpc_hello(protocol: int, display_name: String, game_ticket: String) -> void:
+func rpc_hello(
+	protocol: int,
+	display_name: String,
+	game_ticket: String,
+	claimed_player_id: String = "",
+	claimed_match_id: String = ""
+) -> void:
 	if role != Role.SERVER or _session == null:
 		return
 	var peer_id: int = multiplayer.get_remote_sender_id()
-	var result: Dictionary = await _session.try_admit_async(peer_id, protocol, display_name, game_ticket)
+	var result: Dictionary = await _session.try_admit_async(
+		peer_id, protocol, display_name, game_ticket, claimed_player_id, claimed_match_id
+	)
 	var reason: int = int(result.get("reason", OnlineProtocol.RejectReason.MALFORMED))
 	if reason != OnlineProtocol.RejectReason.NONE:
 		rpc_reject.rpc_id(peer_id, reason)

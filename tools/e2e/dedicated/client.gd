@@ -9,6 +9,8 @@ var _host := "127.0.0.1"
 var _port := OnlineProtocol.DEFAULT_PORT
 var _display_name := "client"
 var _dev_token := ""
+var _claimed_player_id := ""
+var _claimed_match_id := ""
 var _hold_after_admit := false
 var _deadline_ms := 15000
 var _deadline_at := 0
@@ -58,6 +60,8 @@ func _setup() -> void:
 	_display_name = _env("DISPLAY_NAME", "client")
 	## GAME_TICKET 优先；DEV_TOKEN 保留 Phase 2A 兼容（admission_mode=dev）。
 	_dev_token = _env("GAME_TICKET", _env("DEV_TOKEN", ""))
+	_claimed_player_id = _env("CLAIMED_PLAYER_ID", "")
+	_claimed_match_id = _env("CLAIMED_MATCH_ID", "")
 	_hold_after_admit = _env("HOLD_AFTER_ADMIT", "0") == "1"
 	_deadline_ms = int(_env("DEADLINE_SEC", "15")) * 1000
 	_deadline_at = Time.get_ticks_msec() + _deadline_ms
@@ -65,7 +69,7 @@ func _setup() -> void:
 		_ev["REASON"] = "missing_env"
 		_finish("CLIENT_FAIL")
 		return
-	_client = DedicatedClient.create(_display_name, _dev_token)
+	_client = DedicatedClient.create(_display_name, _dev_token, _claimed_player_id, _claimed_match_id)
 	root.add_child(_client)
 	_client.admitted.connect(_on_admitted)
 	_client.rejected.connect(_on_rejected)

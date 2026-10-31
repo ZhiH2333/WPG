@@ -113,7 +113,8 @@ Public IDs are UUID strings. Registration does not issue tokens; login requires 
 - `POST /v1/rooms/{room_id}/leave`
 - `POST /v1/rooms/{room_id}/ready`
 - `PATCH /v1/rooms/{room_id}/settings`
-- `POST /v1/matchmaking/quick`
+- `POST /v1/games/assign`
+- ~~`POST /v1/matchmaking/quick`~~（草案废弃；以 `docs/phase-2b-api-contract.md` 为准）
 - `GET /v1/matchmaking/requests/{request_id}`
 - `POST /v1/matches/{match_id}/rejoin`
 

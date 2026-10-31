@@ -1,30 +1,34 @@
-# Phase 2B — 待 Agent A（WildBoat）确认的契约问题
+# Phase 2B — 契约状态（Agent B Integration）
 
-WPG 侧 **不会**另起一套生产 API。下列问题阻塞完整 Online E2E（真实 ticket）。
+WildBoat Agent A 已冻结契约：`docs/phase-2b-api-contract.md`（自 WildBoat 同步副本）。
 
-## 已确认（可联调）
+## 已确认并已对接
 
-- WPass Auth / Refresh / `/me`（WildBoat Phase 2 Identity 已落地）
-- Assignment JSON **草案** shape（`match_id`, `game_instance_id`, `endpoint{host,port,transport}`, `game_ticket`, `ticket_expires_at`, …）
-- Validate 请求草案：`{ ticket, game_instance_id, server_build }`
-- Settlement 请求草案 + `Idempotency-Key` / `settlement_id` 幂等
+| 项 | 决议 |
+|---|---|
+| Ticket 策略 | Option A：opaque + 在线 `POST /v1/server/tickets/validate` |
+| Assignment | `POST /v1/games/assign`（**不是** `/v1/matchmaking/quick`） |
+| Validate 请求 | `{ game_ticket, player_id, match_id, game_instance_id }` |
+| Validate 错误 | `TICKET_INVALID` / `TICKET_EXPIRED` / `TICKET_REPLAYED` / `TICKET_REVOKED` |
+| S2S 认证 | `Authorization: Bearer <DEDICATED_SERVER_CREDENTIAL>` |
+| 重放 | validate 时原子 consume；重放 → `TICKET_REPLAYED` |
+| DS 绑定 | 必须 `instances/register` + heartbeat；stale heartbeat 不可分配 |
+| Settlement | `POST /v1/server/matches/{match_id}/settlement`；同 `settlement_id` → `already_processed: true` |
 
-## 未确认 / 未实现（阻塞）
+## 超时 / 半消费语义（契约安全处理）
 
-1. **Ticket 策略**：opaque + 在线校验（Option A）还是签名自包含（Option B）？WPG 当前按 Option A 适配。
-2. **最小 Assignment 端点**：无房间时是否先提供 `POST /v1/matchmaking/quick`，或临时 `POST /v1/matches/assign`？
-3. **Validate 响应 JSON**：是否保证含 `player_id`, `match_id`, `game_instance_id`, `display_name`, `valid`？错误码是否含 `TICKET_EXPIRED` / `TICKET_REPLAYED`？
-4. **S2S 认证**：`Authorization: Bearer <server_token>` 还是自定义头？环境变量名？轮换策略？
-5. **重放策略**：validate 时 consume，还是 admit 成功后 consume？重连是否允许同票一次？
-6. **DS 绑定**：`game_instance_id` 是否必须预先 `POST /v1/server/instances/register`？heartbeat 是否强制？
-7. **Settlement**：失败重试返回体；重复 `settlement_id` 是 200 还是 `SETTLEMENT_ALREADY_PROCESSED`？
+若 DS 已发出 validate 请求但在收到响应前超时：
 
-## WPG 当前适配层（非生产替代）
+1. **fail closed**（拒绝入场，`BACKEND_UNAVAILABLE`）。
+2. **不得自动重试同一 ticket**（票可能已在 WildBoat 侧消费；重试会得到 `TICKET_REPLAYED`）。
+3. 玩家必须重新 `POST /v1/games/assign` 获取新票。
+
+## WPG 模式边界
 
 | 模式 | 用途 |
 |---|---|
-| Auth → 真实 WildBoat | 已测 |
-| Assignment `local_stub` | 本地签发 `wpgstub1…` |
-| DS `admission_mode=stub` | 验 stub + 防重放 |
-| DS `admission_mode=wildboat` | 调用草案 validate URL；后端未实现时安全失败 |
-| Settlement 本地 | 仅结构/日志，不宣称云端入账 |
+| Auth → 真实 WildBoat | 生产路径 |
+| Assignment `wildboat` | 真实 `/v1/games/assign`；失败时**不**静默降级 stub |
+| Assignment `local_stub` | 仅显式本地联调 |
+| DS `admission_mode=wildboat` | S2S validate；不可达时 fail closed |
+| DS `admission_mode=stub` / `dev` | 本地 / Phase 2A 兼容 |

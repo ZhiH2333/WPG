@@ -3,6 +3,7 @@ class_name ServerConfig
 
 ## Dedicated Server 运行时配置。优先读环境变量，其次读 CLI user args。
 ## 不持有密钥日志；dev_token 只用于本地开发准入，生产由 WildBoat Game Ticket 替换。
+## S2S 凭证：DEDICATED_SERVER_CREDENTIAL（与 WildBoat 对齐）；兼容旧名 WPG_WILDBOAT_SERVER_TOKEN。
 
 var port: int = OnlineProtocol.DEFAULT_PORT
 var max_players: int = OnlineProtocol.MAX_PLAYERS
@@ -13,11 +14,16 @@ var bind_address: String = "*"
 var dev_token: String = ""
 var match_id: String = "dev_match"
 var game_instance_id: String = "dev_instance"
+var server_id: String = ""
 var admission_mode: int = OnlineProtocol.AdmissionMode.DEV
 var wildboat_base_url: String = "http://127.0.0.1:8080"
 var wildboat_server_token: String = ""
-var server_build: String = "wpg-server-dev"
+var server_build: String = "wpg-ds-local"
 var settle_on_stop: bool = false
+## 注册到 WildBoat 时对外宣告的 host（客户端将连此地址）。
+var advertise_host: String = "127.0.0.1"
+var heartbeat_interval_sec: float = 10.0
+var register_with_wildboat: bool = true
 
 
 static func from_environment() -> ServerConfig:
@@ -45,13 +51,22 @@ static func from_environment() -> ServerConfig:
 	var wb: String = OS.get_environment("WPG_WILDBOAT_BASE_URL").strip_edges()
 	if not wb.is_empty():
 		cfg.wildboat_base_url = wb
-	var st: String = OS.get_environment("WPG_WILDBOAT_SERVER_TOKEN")
+	## 优先 WildBoat 契约名；兼容旧 WPG_* 别名。
+	var st: String = OS.get_environment("DEDICATED_SERVER_CREDENTIAL")
+	if st.is_empty():
+		st = OS.get_environment("WPG_WILDBOAT_SERVER_TOKEN")
 	if not st.is_empty():
 		cfg.wildboat_server_token = st
 	var build: String = OS.get_environment("WPG_SERVER_BUILD").strip_edges()
 	if not build.is_empty():
 		cfg.server_build = build
+	var adv: String = OS.get_environment("WPG_ADVERTISE_HOST").strip_edges()
+	if not adv.is_empty():
+		cfg.advertise_host = adv
+	cfg.heartbeat_interval_sec = maxf(2.0, _env_float("WPG_HEARTBEAT_INTERVAL_SEC", cfg.heartbeat_interval_sec))
 	cfg.settle_on_stop = OS.get_environment("WPG_SETTLE_ON_STOP").strip_edges() == "1"
+	if OS.get_environment("WPG_SKIP_WILDBOAT_REGISTER").strip_edges() == "1":
+		cfg.register_with_wildboat = false
 	cfg._apply_cli_overrides()
 	return cfg
 

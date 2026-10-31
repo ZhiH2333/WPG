@@ -160,19 +160,39 @@ func _case_settlement_local_minimal() -> void:
 
 
 func _case_assignment_dto() -> void:
-	var payload: Dictionary = {
+	## 冻结契约：扁平 host/port（优先）。
+	var flat: Dictionary = {
+		"match_id": "22222222-2222-2222-2222-222222222222",
+		"game_instance_id": "11111111-1111-1111-1111-111111111111",
+		"server_id": "33333333-3333-3333-3333-333333333333",
+		"host": "127.0.0.1",
+		"port": 24567,
+		"transport": "enet_udp",
+		"game_ticket": "ticket",
+		"ticket_expires_at": "2099-01-01T00:00:00Z",
+		"protocol_version": 1,
+		"server_build": "wpg-ds-local",
+		"mode": "coop_survival",
+	}
+	var a: MatchAssignment = MatchAssignment.from_payload(flat)
+	_expect(a.is_valid(), "flat assignment valid")
+	_expect(a.host == "127.0.0.1", "flat host")
+	_expect(a.port == 24567, "flat port")
+	_expect(a.server_id == "33333333-3333-3333-3333-333333333333", "server_id")
+	_expect(a.mode == "coop_survival", "mode")
+	## 旧草案 endpoint 嵌套仍可解析。
+	var nested: Dictionary = {
 		"match_id": "mat_1",
 		"game_instance_id": "gsi_1",
-		"endpoint": {"host": "127.0.0.1", "port": 24567, "transport": "enet_udp"},
+		"endpoint": {"host": "10.0.0.2", "port": 24568, "transport": "enet_udp"},
 		"game_ticket": "ticket",
 		"ticket_expires_at": "2099-01-01T00:00:00Z",
 		"protocol_version": 1,
 		"server_build": "x",
 	}
-	var a: MatchAssignment = MatchAssignment.from_payload(payload)
-	_expect(a.is_valid(), "assignment valid")
-	_expect(a.host == "127.0.0.1", "host")
-	_expect(a.port == 24567, "port")
+	var b: MatchAssignment = MatchAssignment.from_payload(nested)
+	_expect(b.is_valid(), "nested assignment valid")
+	_expect(b.host == "10.0.0.2", "nested host")
 	var safe: Dictionary = a.to_safe_dict()
 	_expect(not safe.has("game_ticket"), "safe dict hides ticket")
 

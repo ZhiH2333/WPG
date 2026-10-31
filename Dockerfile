@@ -12,10 +12,18 @@
 #       Uses pre-exported build/dedicated_server/wpg_server.x86_64
 #       (run ./tools/server/export_dedicated.sh first).
 #
-# Run:
+# Run (dev):
 #   docker run --rm -p 24567:24567/udp \
-#     -e WPG_GAME_PORT=24567 -e WPG_MAX_PLAYERS=4 -e WPG_DEV_TOKEN=dev \
+#     -e WPG_GAME_PORT=24567 -e WPG_MAX_PLAYERS=4 -e WPG_ADMISSION_MODE=dev -e WPG_DEV_TOKEN=dev \
 #     wpg-dedicated-server
+#
+# Run (wildboat — inject S2S credential via env ONLY; never bake into image):
+#   docker run --rm -p 24567:24567/udp \
+#     -e WPG_ADMISSION_MODE=wildboat \
+#     -e WPG_WILDBOAT_BASE_URL=http://host.docker.internal:8080 \
+#     -e DEDICATED_SERVER_CREDENTIAL="$DEDICATED_SERVER_CREDENTIAL" \
+#     -e WPG_ADVERTISE_HOST=127.0.0.1 \
+#     wpg-dedicated-server:phase2b
 
 # syntax=docker/dockerfile:1
 

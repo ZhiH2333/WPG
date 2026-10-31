@@ -1,6 +1,6 @@
 extends SceneTree
 
-## AssignmentClient：未登录拒绝；local_stub 登录后成功；重复请求 BUSY。
+## AssignmentClient：未登录拒绝；local_stub 登录后成功；真实 /v1/games/assign（需 DS ready）；BUSY。
 ## Auth 依赖本机 WildBoat；不可用则 SKIP。
 
 var _failures: PackedStringArray = PackedStringArray()
@@ -22,6 +22,7 @@ func _run() -> void:
 	await process_frame
 	await _case_requires_login()
 	await _case_stub_after_login()
+	await _case_wildboat_assign_or_unavailable()
 	_finish()
 
 
@@ -76,6 +77,33 @@ func _case_stub_after_login() -> void:
 	var berr: WildboatError = busy.get("error") as WildboatError
 	_expect(berr != null and berr.code == "BUSY", "BUSY code")
 	client._inflight = false
+
+
+func _case_wildboat_assign_or_unavailable() -> void:
+	## 调用真实 POST /v1/games/assign。无 ready DS → GAME_SERVER_UNAVAILABLE（仍证明端点正确）。
+	## 有 ready DS → 返回合法 assignment（source=wildboat）。
+	if not _auth.is_authenticated():
+		await _login_fresh()
+	var client := AssignmentClient.new()
+	client.auth = _auth
+	client.mode = "wildboat"
+	var res: Dictionary = await client.request_assignment("coop_survival")
+	if bool(res.get("ok", false)):
+		var a: MatchAssignment = res.get("assignment") as MatchAssignment
+		_expect(a != null and a.is_valid(), "wildboat assignment valid")
+		_expect(a.source == "wildboat", "source wildboat")
+		_expect(not a.host.is_empty(), "host present")
+		_expect(a.port > 0, "port present")
+		_expect(not a.game_ticket.is_empty(), "ticket present")
+		return
+	var err: WildboatError = res.get("error") as WildboatError
+	_expect(err != null, "assign error object")
+	if err != null:
+		## 端点存在且鉴权通过；无 DS 时的契约错误。
+		_expect(
+			err.code in ["GAME_SERVER_UNAVAILABLE", "GAME_CAPACITY_FULL", "RATE_LIMITED"],
+			"expected assign business error got %s" % err.code
+		)
 
 
 func _expect(cond: bool, label: String) -> void:

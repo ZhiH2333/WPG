@@ -3,10 +3,10 @@ class_name AssignmentClient
 
 ## Online Assignment 请求。
 ##
-## 生产路径：`POST /v1/matchmaking/quick`（WildBoat 契约草案；**Agent A 尚未实现**）。
-## 本地联调：`mode=local_stub` 返回指向本机 DS 的 stub assignment（非生产 API）。
+## 生产路径：`POST /v1/games/assign`（WildBoat Phase 2B 冻结契约）。
+## 本地联调：`mode=local_stub` 显式签发 stub ticket（**不得**作为真实 Online 静默降级）。
 
-const PATH_QUICK := "/v1/matchmaking/quick"
+const PATH_ASSIGN := "/v1/games/assign"
 
 var auth: AuthSession = null
 var mode: String = "wildboat" ## wildboat | local_stub
@@ -18,7 +18,7 @@ var stub_instance_id: String = "dev_instance"
 var _inflight: bool = false
 
 
-func request_assignment(game_mode: String = "coop_survival", region: String = "auto") -> Dictionary:
+func request_assignment(game_mode: String = "coop_survival") -> Dictionary:
 	if _inflight:
 		var busy := WildboatError.from_transport("assignment_in_progress")
 		busy.code = "BUSY"
@@ -28,21 +28,20 @@ func request_assignment(game_mode: String = "coop_survival", region: String = "a
 	if mode == "local_stub":
 		result = _local_stub(game_mode)
 	else:
-		result = await _wildboat_quick(game_mode, region)
+		result = await _wildboat_assign(game_mode)
 	_inflight = false
 	return result
 
 
-func _wildboat_quick(game_mode: String, region: String) -> Dictionary:
+func _wildboat_assign(game_mode: String) -> Dictionary:
 	if auth == null or not auth.is_authenticated():
 		var err := WildboatError.from_transport("not_authenticated")
 		err.code = "AUTH_REQUIRED"
 		return {"ok": false, "status": 401, "body": null, "error": err, "assignment": null}
 	var body: Dictionary = {
 		"mode": game_mode,
-		"region": region,
 	}
-	var res: Dictionary = await auth.authed_request("POST", PATH_QUICK, body)
+	var res: Dictionary = await auth.authed_request("POST", PATH_ASSIGN, body)
 	if not bool(res.get("ok", false)):
 		res["assignment"] = null
 		return res
@@ -67,7 +66,7 @@ func _wildboat_quick(game_mode: String, region: String) -> Dictionary:
 
 func _local_stub(_game_mode: String) -> Dictionary:
 	## 仅本地联调：签发 stub ticket，供 DS admission_mode=stub 验证。
-	## 格式与生产 game_ticket 无关；不得用于生产。
+	## 格式与生产 game_ticket 无关；不得用于生产，也不得在 wildboat 失败时静默调用。
 	if auth == null or not auth.is_authenticated():
 		var err := WildboatError.from_transport("not_authenticated")
 		err.code = "AUTH_REQUIRED"
@@ -93,6 +92,7 @@ func _local_stub(_game_mode: String) -> Dictionary:
 	assignment.ticket_expires_at = AuthSession._unix_to_rfc3339(exp_unix)
 	assignment.protocol_version = OnlineProtocol.PROTOCOL_VERSION
 	assignment.server_build = "local-stub"
+	assignment.mode = _game_mode
 	assignment.source = "local_stub"
 	return {
 		"ok": true,

@@ -3,7 +3,7 @@ class_name OnlinePanel
 
 ## Online 最小入口：登录 WildBoat → 请求 Assignment → 连接 Dedicated Server。
 ## 不替代 LAN；本面板与 LanOverlay 并行。
-## Assignment 默认 local_stub（WildBoat matchmaking 未落地）；可切 wildboat。
+## Assignment 默认 wildboat（POST /v1/games/assign）。local_stub 仅显式联调，失败时不静默降级。
 
 signal closed
 
@@ -42,9 +42,10 @@ func _ready() -> void:
 	auth.configure(_base_url.text.strip_edges())
 	assignment_client = AssignmentClient.new()
 	assignment_client.auth = auth
+	assignment_client.mode = "wildboat"
 	_assign_mode.clear()
-	_assign_mode.add_item("local_stub", 0)
-	_assign_mode.add_item("wildboat", 1)
+	_assign_mode.add_item("wildboat (real)", 0)
+	_assign_mode.add_item("local_stub (dev only)", 1)
 	_assign_mode.select(0)
 	_wire_buttons()
 	_set_status(STATUS_IDLE)
@@ -140,7 +141,8 @@ func _on_assign() -> void:
 		return
 	_busy = true
 	_set_status(STATUS_BUSY)
-	assignment_client.mode = "wildboat" if _assign_mode.selected == 1 else "local_stub"
+	## 显式选择；wildboat 失败时绝不静默切 local_stub。
+	assignment_client.mode = "local_stub" if _assign_mode.selected == 1 else "wildboat"
 	assignment_client.stub_host = _host.text.strip_edges()
 	assignment_client.stub_port = int(_port.text.strip_edges())
 	var res: Dictionary = await assignment_client.request_assignment("coop_survival")
@@ -151,6 +153,9 @@ func _on_assign() -> void:
 	var assignment: MatchAssignment = res.get("assignment") as MatchAssignment
 	if assignment == null:
 		_set_status("Assignment missing")
+		return
+	if assignment_client.mode == "wildboat" and assignment.source != "wildboat":
+		_set_status("Refusing non-wildboat ticket in wildboat mode")
 		return
 	_host.text = assignment.host
 	_port.text = str(assignment.port)
@@ -167,18 +172,25 @@ func _on_connect() -> void:
 	var host: String = _host.text.strip_edges()
 	var port: int = int(_port.text.strip_edges())
 	var display_name: String = _display.text.strip_edges()
+	var player_id: String = ""
+	var match_id: String = ""
 	if auth.is_authenticated() and auth.get_identity() != null:
 		display_name = auth.get_identity().display_name
+		player_id = auth.get_identity().player_id
 	if assignment != null:
 		ticket = assignment.game_ticket
 		host = assignment.host
 		port = assignment.port
+		match_id = assignment.match_id
+		if assignment.source == "wildboat" and ticket.is_empty():
+			_set_status("Missing wildboat game_ticket")
+			return
 	else:
 		## 无 assignment 时允许手工填 host/port + 空 ticket（仅 DS admission=dev 开放模式）。
 		ticket = ""
 	_busy = true
 	_set_status("Connecting…")
-	_client = DedicatedClient.create(display_name, ticket)
+	_client = DedicatedClient.create(display_name, ticket, player_id, match_id)
 	add_child(_client)
 	_client.admitted.connect(_on_admitted)
 	_client.rejected.connect(_on_rejected)
