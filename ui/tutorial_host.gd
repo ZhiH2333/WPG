@@ -333,10 +333,10 @@ func _layout_callout(spotlight: Control, top_compact: bool = false) -> void:
 	var x: float = (view.x - panel_w) * 0.5
 	var y: float = 112.0
 	if top_compact:
-		## 顶栏下贴右，给建档/选角表单让出中部。
+		## 顶栏下贴左，避开建档页右侧「新建」按钮。
 		panel_w = minf(300.0, view.x - 48.0)
 		_callout.custom_minimum_size.x = panel_w
-		x = maxf(24.0, view.x - panel_w - 24.0)
+		x = 24.0
 		y = 72.0
 	elif spotlight != null and is_instance_valid(spotlight):
 		var hole: Rect2 = _spotlight.hole_rect()
