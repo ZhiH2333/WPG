@@ -5,7 +5,9 @@ class_name LobbyNet
 ## 职责只有：建连 / 关连 / 大厅 RPC / 网络状态。不决定 UI，不持有 Room / LobbyPlayer。
 ##
 ## 分层：LanOverlay → LobbyManager → LobbyNet → SceneTree.multiplayer → ENet
-## - ENetMultiplayerPeer.new() 只允许出现在本文件。
+## - LAN/P2P 路径：ENetMultiplayerPeer.new() 只允许出现在本文件。
+## - Online Dedicated Server 是并行路径（server/ds_net.gd + online/transport/online_channel.gd），
+##   互不接管 peer；本文件合同不变。
 ## - 大厅 @rpc 只允许出现在本文件。
 ## - LobbyManager 通过本文件的抽象方法发/收，不直接碰 multiplayer。
 ##

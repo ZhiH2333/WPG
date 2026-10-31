@@ -18,6 +18,7 @@ extends Control
 ## 主菜单已经在后台线程里加载，只是没挂进树所以不显示。玩家点「开始游玩」之后才换场。
 const MENU_SCENE := "res://ui/main_menu.tscn"
 const NOTICE_SCENE := "res://ui/test_build_notice.tscn"
+const DEDICATED_SERVER_SCENE := "res://server/main.tscn"
 const MIN_HOLD_SEC: float = 0.6 ## 加载常快于这段时间；用地板值保证进度条一定走完
 const BAR_MAX_W: float = 720.0
 const BAR_W_RATIO: float = 0.42
@@ -45,11 +46,28 @@ var _status: ResourceLoader.ThreadLoadStatus = ResourceLoader.THREAD_LOAD_INVALI
 
 
 func _ready() -> void:
+	## Online Dedicated Server：导出 feature / 环境变量 / CLI 切入，跳过全部客户端 UI。
+	## 主场景仍保持 boot_screen（Architecture Guard）；不新增 Autoload。
+	if _should_run_dedicated_server():
+		await get_tree().process_frame
+		get_tree().change_scene_to_file(DEDICATED_SERVER_SCENE)
+		return
 	_requested = ResourceLoader.load_threaded_request(MENU_SCENE) == OK
 	resized.connect(_layout)
 	_layout()
 	_apply_ratio()
 	_open_notice()
+
+
+static func _should_run_dedicated_server() -> bool:
+	if OS.has_feature("dedicated_server"):
+		return true
+	if OS.get_environment("WPG_DEDICATED_SERVER").strip_edges() == "1":
+		return true
+	for arg: String in OS.get_cmdline_user_args():
+		if arg == "--dedicated-server" or arg == "--ds":
+			return true
+	return false
 
 
 ## 网页版（且玩家没勾「不再提示」）先把提示页盖上来。主菜单的线程加载不受影响，

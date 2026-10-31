@@ -154,14 +154,20 @@ def _lobby_guards() -> list:
     for marker in ("ENetMultiplayerPeer", "@rpc", "check_ticket"):
         if marker in beacon:
             failures.append("arena/lan_beacon.gd 只是 LAN discovery，不允许出现 %s" % marker)
-    # 全仓库：new ENetMultiplayerPeer 只允许 LobbyNet。
+    # 全仓库：new ENetMultiplayerPeer 的生产白名单。
+    # - LobbyNet：LAN / Host-Guest / WAN-P2P 遗留路径（唯一大厅 ENet 所有者）。
+    # - DsNet / OnlineChannel：Online Dedicated Server 并行路径（互不接管 peer）。
     # 例外只限于**明确列出的测试文件**：
     # - connection_path_test：必须亲手持有/替换 peer，才能证明「候选回退过程中
     #   SceneTree 始终只有一个 peer」这条 Phase 8 硬约束。
-    # 新增测试例外必须逐个列出，绝不扩大生产代码白名单。
+    # 新增测试例外必须逐个列出，绝不把白名单扩成「任意 server/」。
     ENet_ALLOWED = {
         "lobby/lobby_net.gd",
+        "server/ds_net.gd",
+        "online/transport/online_channel.gd",
         "tests/unit/connection_path_test.gd",
+        "tests/unit/ds_admission_test.gd",
+        "tests/integration/dedicated_server_test.gd",
     }
     for path in ROOT.rglob("*.gd"):
         rel = path.relative_to(ROOT).as_posix()
@@ -169,7 +175,36 @@ def _lobby_guards() -> list:
             continue
         code = _strip_comments(path.read_text(encoding="utf-8", errors="replace"))
         if "ENetMultiplayerPeer.new()" in code and rel not in ENet_ALLOWED:
-            failures.append("%s 不允许 new ENetMultiplayerPeer（只允许 lobby/lobby_net.gd）" % rel)
+            failures.append(
+                "%s 不允许 new ENetMultiplayerPeer（只允许 LobbyNet / DsNet / OnlineChannel）" % rel
+            )
+    # Online Dedicated Server 路径存在且与 LAN 座位上限分离。
+    online_proto = read(ROOT / "server/online_protocol.gd")
+    if not online_proto:
+        failures.append("缺少 server/online_protocol.gd（Online Dedicated Server 协议常量）")
+    else:
+        if "const MAX_PLAYERS: int = 4" not in online_proto:
+            failures.append("OnlineProtocol.MAX_PLAYERS 必须是 4（Online 上限，不影响 LAN 5 座）")
+        if "const DEFAULT_PORT: int = 24567" not in online_proto:
+            failures.append("OnlineProtocol.DEFAULT_PORT 必须是 24567（与 LAN 17777 分离）")
+    if not (ROOT / "server/ds_net.gd").is_file():
+        failures.append("缺少 server/ds_net.gd（Dedicated Server ENet 所有者）")
+    if not (ROOT / "server/main.tscn").is_file():
+        failures.append("缺少 server/main.tscn（Dedicated Server 入口场景）")
+    if not (ROOT / "online/transport/online_channel.gd").is_file():
+        failures.append("缺少 online/transport/online_channel.gd（Online RPC 通道）")
+    # Dedicated Server 不得复用 LAN LobbyNet / NetSession 建连。
+    for rel in ("server/ds_net.gd", "server/ds_session.gd", "online/transport/online_channel.gd"):
+        code = _strip_comments(read(ROOT / rel))
+        if not code:
+            continue
+        if "LobbyNet" in code or "NetSession" in code:
+            failures.append("%s 不得依赖 LobbyNet / NetSession（Online 路径必须隔离）" % rel)
+    boot = read(ROOT / "ui/boot_screen.gd")
+    if 'const DEDICATED_SERVER_SCENE := "res://server/main.tscn"' not in boot:
+        failures.append("ui/boot_screen.gd 必须能切入 res://server/main.tscn（Dedicated Server）")
+    if "_should_run_dedicated_server" not in boot:
+        failures.append("ui/boot_screen.gd 缺少 _should_run_dedicated_server()")
     # 战斗 NetSession 不得混进大厅 RPC。
     net = read(ROOT / "arena/net_session.gd")
     for marker in (
@@ -481,6 +516,8 @@ def main() -> int:
     # 协议 6（Phase 8）：JoinInvite / ConnectionPath / ticket handshake 唯一一次 bump。
     if "const NET_PROTOCOL: int = 6" not in launch:
         failures.append("GameLaunch.NET_PROTOCOL 不是 6")
+    if "const NET_MAX_SEATS: int = 5" not in launch:
+        failures.append("GameLaunch.NET_MAX_SEATS 必须保持 5（LAN 座位；Online 4 人走 OnlineProtocol）")
     net = read(ROOT / "arena/net_session.gd")
     if "class_name NetSession" not in net:
         failures.append("arena/net_session.gd 缺少 class_name NetSession")

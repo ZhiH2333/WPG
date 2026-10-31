@@ -14,16 +14,17 @@ This is a dependency-ordered plan, not permission to implement everything in one
 **Exit:** current implementation map and approved change plan.
 
 ## Phase 1 — Headless Dedicated Server proof of concept
-- [ ] Add explicit server startup mode.
-- [ ] Add Linux headless export preset/build instructions.
-- [ ] Create a minimal Dedicated Server entry path without client UI dependencies.
-- [ ] Implement server-owned player admission and spawn.
-- [ ] Implement one authoritative state replication loop.
-- [ ] Connect two clients, then test four clients.
-- [ ] Validate malformed/unauthorized client messages.
-- [ ] Add Docker image for the exported server artifact.
-- [ ] Document actual UDP port and health behavior.
+- [x] Add explicit server startup mode.
+- [x] Add Linux headless export preset/build instructions.
+- [x] Create a minimal Dedicated Server entry path without client UI dependencies.
+- [x] Implement server-owned player admission and spawn.
+- [x] Implement one authoritative state replication loop.
+- [x] Connect two clients, then test four clients.
+- [x] Validate malformed/unauthorized client messages.
+- [x] Add Docker image for the exported server artifact.
+- [x] Document actual UDP port and health behavior.
 **Exit:** reproducible containerized headless server with four test clients in one match.
+**Notes (Phase 2A landed in WPG):** see `docs/dedicated-server.md`. Dev identity only; WildBoat tickets are Phase 2.
 
 ## Phase 2 — WildBoat client integration foundation
 - [ ] Add typed HTTPS API client wrapper.

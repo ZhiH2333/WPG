@@ -317,6 +317,8 @@ def godot_candidates() -> List[Path]:
             home / "Applications/Godot.app/Contents/MacOS/Godot",
             Path("/usr/local/bin/godot"),
             Path("/usr/bin/godot"),
+            # 本仓库本地 CI/Netlify 安装落点（build/ 被 gitignore，仅本机可见）。
+            ROOT / "build/netlify-godot/wpg-godot/editor/Godot.app/Contents/MacOS/Godot",
         ]
     )
     unique: List[Path] = []

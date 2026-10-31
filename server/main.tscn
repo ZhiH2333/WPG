@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqdsmainwpg001"]
+
+[ext_resource type="Script" path="res://server/ds_boot.gd" id="1_boot"]
+
+[node name="DedicatedServer" type="Node"]
+script = ExtResource("1_boot")

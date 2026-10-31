@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """运行所有 E2E tests。
 
-用法：python3 tools/test/run_e2e.py [solo|p2p_hole_punch|rendezvous|p2p_direct_enet|p2p_wan_battle|lobby_recovery|lan_e2e|lan_ui|all]
+用法：python3 tools/test/run_e2e.py [solo|p2p_hole_punch|rendezvous|p2p_direct_enet|p2p_wan_battle|lobby_recovery|lan_e2e|lan_ui|dedicated|all]
 """
 
 from __future__ import annotations
@@ -109,7 +109,7 @@ def main() -> int:
         "suite",
         nargs="?",
         default="all",
-        choices=["solo", "p2p_hole_punch", "rendezvous", "p2p_direct_enet", "p2p_wan_battle", "lobby_recovery", "lan_e2e", "lan_ui", "all"],
+        choices=["solo", "p2p_hole_punch", "rendezvous", "p2p_direct_enet", "p2p_wan_battle", "lobby_recovery", "lan_e2e", "lan_ui", "dedicated", "all"],
         help="E2E test suite to run",
     )
     args = parser.parse_args()
@@ -123,6 +123,7 @@ def main() -> int:
         "lobby_recovery": ("python", E2E_DIR / "lobby_recovery" / "run.py"),
         "lan_e2e": ("godot", E2E_DIR / "lan" / "run.gd"),
         "lan_ui": ("python", E2E_DIR / "lan" / "ui_run.py"),
+        "dedicated": ("python", E2E_DIR / "dedicated" / "run.py"),
     }
 
     if args.suite == "all":
