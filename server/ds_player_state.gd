@@ -6,6 +6,7 @@ class_name DsPlayerState
 
 var seat: int = 0
 var peer_id: int = 0
+var player_id: String = ""
 var display_name: String = ""
 var position: Vector2 = Vector2.ZERO
 var move_input: Vector2 = Vector2.ZERO
@@ -13,9 +14,10 @@ var last_input_ms: int = 0
 var admitted_ms: int = 0
 
 
-func _init(p_seat: int = 0, p_peer_id: int = 0, p_name: String = "") -> void:
+func _init(p_seat: int = 0, p_peer_id: int = 0, p_name: String = "", p_player_id: String = "") -> void:
 	seat = p_seat
 	peer_id = p_peer_id
+	player_id = p_player_id
 	display_name = OnlineProtocol.clamp_display_name(p_name)
 	position = _spawn_for_seat(p_seat)
 	admitted_ms = Time.get_ticks_msec()

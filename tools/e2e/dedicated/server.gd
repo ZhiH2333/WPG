@@ -75,7 +75,10 @@ func _setup() -> void:
 	cfg.max_players = clampi(_max_players, 1, OnlineProtocol.MAX_PLAYERS)
 	cfg.dev_token = _dev_token
 	cfg.ready_file = _ready_file
-	cfg.match_id = "e2e_ds"
+	cfg.match_id = _env("MATCH_ID", "e2e_ds")
+	cfg.game_instance_id = _env("GAME_INSTANCE_ID", "dev_instance")
+	var mode_raw: String = _env("ADMISSION_MODE", "dev").to_lower()
+	cfg.admission_mode = ServerConfig._parse_admission_mode(mode_raw)
 	_session = DsSession.new()
 	root.add_child(_session)
 	_session.setup(cfg)

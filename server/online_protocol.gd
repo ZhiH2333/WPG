@@ -2,7 +2,7 @@ extends Object
 class_name OnlineProtocol
 
 ## Online Dedicated Server 协议常量。与 LAN/P2P 的 GameLaunch.NET_* 严格分离。
-## Phase 2A：开发身份 + 最小权威复制环。不复用 LAN room ticket。
+## Phase 2B：hello 携带 game_ticket（短命 scoped）；dev/stub 仅本地。不复用 LAN room ticket。
 
 const PROTOCOL_VERSION: int = 1
 ## 默认游戏 UDP 端口。与 LAN 的 17777 分离，避免本地双路径撞端口。
@@ -16,6 +16,8 @@ const INPUT_HZ: float = 20.0
 const INPUT_MIN_INTERVAL_MS: int = int(1000.0 / INPUT_HZ)
 const MAX_DISPLAY_NAME_LEN: int = 24
 const MAX_DEV_TOKEN_LEN: int = 64
+## game_ticket 长度上界（WildBoat opaque / stub / 短 JWT）。
+const MAX_GAME_TICKET_LEN: int = 512
 ## 权威移动速度（单位/秒）。Phase 2A 最小仿真。
 const MOVE_SPEED: float = 220.0
 const CHANNEL_NODE_NAME := "OnlineChannel"
@@ -28,6 +30,16 @@ enum RejectReason {
 	FULL = 3,
 	DUPLICATE = 4,
 	MALFORMED = 5,
+	TICKET_EXPIRED = 6,
+	TICKET_REPLAYED = 7,
+	TICKET_MISMATCH = 8,
+	BACKEND_UNAVAILABLE = 9,
+}
+
+enum AdmissionMode {
+	DEV = 0,
+	STUB = 1,
+	WILDBOAT = 2,
 }
 
 

@@ -43,6 +43,8 @@ var _row_host_wan: Button = null
 var _row_join_invite: Button = null
 var _row_lan_rooms: Button = null
 var _row_quick_join: Button = null
+var _row_online: Button = null
+var _online_panel: OnlinePanel = null
 var _beacon: LanBeacon
 ## Lobby domain 的唯一入口，由 MainMenu 注入（不是 Autoload）。座位 / ready / 网络状态全归它。
 var _lobby: LobbyManager = null
@@ -680,7 +682,8 @@ func _build_home_nav() -> void:
 	_row_join_invite = _make_home_row("LAN_JOIN_INVITE", "LAN_JOIN_INVITE_CAPTION", _on_home_invite_pressed)
 	_row_lan_rooms = _make_home_row("LAN_LAN_ROOMS", "LAN_CAPTION_SEARCHING", _on_home_join_pressed)
 	_row_quick_join = _make_home_row("LAN_QUICK_JOIN", "LAN_CAPTION_FIRST_OPEN", _on_quick_join_pressed)
-	_home_rows = [_row_create, _row_host_wan, _row_join_invite, _row_lan_rooms, _row_quick_join]
+	_row_online = _make_home_row("Online (beta)", "WPass → Assignment → DS", _on_home_online_pressed)
+	_home_rows = [_row_create, _row_host_wan, _row_join_invite, _row_lan_rooms, _row_quick_join, _row_online]
 	for index: int in _home_rows.size():
 		if index > 0:
 			_home_nav.add_child(_make_nav_divider())
@@ -964,6 +967,23 @@ func _on_quick_join_pressed() -> void:
 	_enter_join()
 	_join_status.text = tr("LAN_SEARCHING")
 	_play_error()
+
+
+## Online beta：打开 WPass / Assignment / DS 面板；不改动 LAN 路径。
+func _on_home_online_pressed() -> void:
+	if not _open:
+		return
+	_play_click()
+	if _online_panel == null:
+		var packed: PackedScene = load("res://online/ui/online_panel.tscn") as PackedScene
+		if packed == null:
+			return
+		_online_panel = packed.instantiate() as OnlinePanel
+		add_child(_online_panel)
+		_online_panel.closed.connect(func() -> void: pass)
+	_online_panel.visible = true
+	_online_panel.move_to_front()
+
 
 ## 从 LAN 房间行 / Quick join 进房：地址与房间事实都来自发现包，顺便记进 RECENT。
 func _connect_to_room(room: Dictionary) -> void:

@@ -27,12 +27,13 @@ This is a dependency-ordered plan, not permission to implement everything in one
 **Notes (Phase 2A landed in WPG):** see `docs/dedicated-server.md`. Dev identity only; WildBoat tickets are Phase 2.
 
 ## Phase 2 — WildBoat client integration foundation
-- [ ] Add typed HTTPS API client wrapper.
-- [ ] Add request IDs, timeouts, cancellation, and structured error parsing.
-- [ ] Add token storage strategy appropriate to each platform.
-- [ ] Add login/session UI and `GET /me` integration after WildBoat endpoint is available.
-- [ ] Add assignment DTO and ticket handoff.
-**Exit:** authenticated test identity obtains a match assignment and joins the server.
+- [x] Add typed HTTPS API client wrapper.
+- [x] Add request IDs, timeouts, cancellation, and structured error parsing.
+- [~] Add token storage strategy appropriate to each platform. (**interim `user://` only; NOT OS secure storage**)
+- [x] Add login/session UI and `GET /me` integration after WildBoat endpoint is available.
+- [x] Add assignment DTO and ticket handoff (WildBoat MM pending; local_stub for DS join).
+- [~] Dedicated Server ticket admission (dev/stub done; WildBoat validate adapter ready, backend BLOCKED).
+**Exit (partial):** authenticated identity can obtain stub assignment and join stub-mode DS. Real WildBoat ticket path blocked on Agent A.
 
 ## Phase 3 — Online room flow
 - [ ] Room create/join by code.

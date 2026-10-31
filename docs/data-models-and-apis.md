@@ -67,15 +67,20 @@ Unknown enum values must be handled safely; do not crash on a newer backend enum
 Base path: `/v1`. All requests use HTTPS and JSON unless specified.
 
 ### Authentication
+Aligned with WildBoat Phase 2 Identity (implemented there):
 - `POST /v1/auth/register`
 - `POST /v1/auth/login`
 - `POST /v1/auth/refresh`
 - `POST /v1/auth/logout`
-- `POST /v1/auth/verify-email`
+- `POST /v1/auth/logout-all`
+- `POST /v1/auth/email/verify`
 - `POST /v1/auth/password/forgot`
 - `POST /v1/auth/password/reset`
 - `GET /v1/me`
 - `PATCH /v1/me/profile`
+- `GET /v1/me/sessions`
+- `DELETE /v1/me/sessions/{session_id}`
+Public IDs are UUID strings. Registration does not issue tokens; login requires verified `active` account.
 
 ### Friends and presence
 - `GET /v1/friends`

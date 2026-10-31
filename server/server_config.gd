@@ -9,9 +9,15 @@ var max_players: int = OnlineProtocol.MAX_PLAYERS
 var tick_hz: float = OnlineProtocol.SNAPSHOT_HZ
 var ready_file: String = OnlineProtocol.READY_FILE_DEFAULT
 var bind_address: String = "*"
-## 开发身份共享口令。空字符串 = 本地开放（仅 Phase 2A / 本机测试）。
+## 开发身份共享口令。空字符串 = 本地开放（仅 admission_mode=dev）。
 var dev_token: String = ""
 var match_id: String = "dev_match"
+var game_instance_id: String = "dev_instance"
+var admission_mode: int = OnlineProtocol.AdmissionMode.DEV
+var wildboat_base_url: String = "http://127.0.0.1:8080"
+var wildboat_server_token: String = ""
+var server_build: String = "wpg-server-dev"
+var settle_on_stop: bool = false
 
 
 static func from_environment() -> ServerConfig:
@@ -31,6 +37,21 @@ static func from_environment() -> ServerConfig:
 	var mid: String = OS.get_environment("WPG_MATCH_ID").strip_edges()
 	if not mid.is_empty():
 		cfg.match_id = mid
+	var iid: String = OS.get_environment("WPG_GAME_INSTANCE_ID").strip_edges()
+	if not iid.is_empty():
+		cfg.game_instance_id = iid
+	var mode_raw: String = OS.get_environment("WPG_ADMISSION_MODE").strip_edges().to_lower()
+	cfg.admission_mode = _parse_admission_mode(mode_raw)
+	var wb: String = OS.get_environment("WPG_WILDBOAT_BASE_URL").strip_edges()
+	if not wb.is_empty():
+		cfg.wildboat_base_url = wb
+	var st: String = OS.get_environment("WPG_WILDBOAT_SERVER_TOKEN")
+	if not st.is_empty():
+		cfg.wildboat_server_token = st
+	var build: String = OS.get_environment("WPG_SERVER_BUILD").strip_edges()
+	if not build.is_empty():
+		cfg.server_build = build
+	cfg.settle_on_stop = OS.get_environment("WPG_SETTLE_ON_STOP").strip_edges() == "1"
 	cfg._apply_cli_overrides()
 	return cfg
 
@@ -68,6 +89,14 @@ func _apply_cli_overrides() -> void:
 			dev_token = arg.get_slice("=", 1).substr(0, OnlineProtocol.MAX_DEV_TOKEN_LEN)
 			i += 1
 			continue
+		if arg == "--admission-mode" and i + 1 < args.size():
+			admission_mode = _parse_admission_mode(args[i + 1])
+			i += 2
+			continue
+		if arg.begins_with("--admission-mode="):
+			admission_mode = _parse_admission_mode(arg.get_slice("=", 1))
+			i += 1
+			continue
 		if arg == "--ready-file" and i + 1 < args.size():
 			ready_file = args[i + 1]
 			i += 2
@@ -77,6 +106,16 @@ func _apply_cli_overrides() -> void:
 			i += 1
 			continue
 		i += 1
+
+
+static func _parse_admission_mode(raw: String) -> int:
+	match raw.strip_edges().to_lower():
+		"stub":
+			return OnlineProtocol.AdmissionMode.STUB
+		"wildboat", "ticket", "online":
+			return OnlineProtocol.AdmissionMode.WILDBOAT
+		_:
+			return OnlineProtocol.AdmissionMode.DEV
 
 
 static func _env_int(key: String, fallback: int) -> int:

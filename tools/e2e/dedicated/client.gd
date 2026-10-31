@@ -56,7 +56,8 @@ func _setup() -> void:
 	_host = _env("GAME_HOST", "127.0.0.1")
 	_port = int(_env("GAME_PORT", str(OnlineProtocol.DEFAULT_PORT)))
 	_display_name = _env("DISPLAY_NAME", "client")
-	_dev_token = _env("DEV_TOKEN", "")
+	## GAME_TICKET 优先；DEV_TOKEN 保留 Phase 2A 兼容（admission_mode=dev）。
+	_dev_token = _env("GAME_TICKET", _env("DEV_TOKEN", ""))
 	_hold_after_admit = _env("HOLD_AFTER_ADMIT", "0") == "1"
 	_deadline_ms = int(_env("DEADLINE_SEC", "15")) * 1000
 	_deadline_at = Time.get_ticks_msec() + _deadline_ms

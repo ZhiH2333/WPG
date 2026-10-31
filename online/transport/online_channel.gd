@@ -5,9 +5,10 @@ class_name OnlineChannel
 ## Server 与 Client 必须以相同节点名 OnlineProtocol.CHANNEL_NODE_NAME 挂到 SceneTree，
 ## 以便 Godot 按路径路由 RPC。本通道与 LobbyNet / NetSession 的 RPC 表完全隔离。
 ##
-## Phase 2A 消息：
-## - Client -> Server: hello(dev identity), input(intent)
+## Phase 2B 消息：
+## - Client -> Server: hello(protocol, display_name, game_ticket), input(intent)
 ## - Server -> Client: welcome / reject, snapshot(authoritative)
+## game_ticket 在 dev 模式下可为 WPG_DEV_TOKEN；生产为 WildBoat 短命票。
 
 signal admitted(seat: int, match_id: String)
 signal rejected(reason: int)
@@ -22,7 +23,7 @@ var _session: DsSession = null
 var _local_seat: int = 0
 var _match_id: String = ""
 var _display_name: String = "player"
-var _dev_token: String = ""
+var _game_ticket: String = ""
 var _wired_client: bool = false
 
 
@@ -32,12 +33,11 @@ func configure_server(session: DsSession) -> void:
 	name = OnlineProtocol.CHANNEL_NODE_NAME
 
 
-func configure_client(display_name: String = "player", dev_token: String = "") -> void:
+func configure_client(display_name: String = "player", game_ticket: String = "") -> void:
 	role = Role.CLIENT
 	_display_name = OnlineProtocol.clamp_display_name(display_name)
-	_dev_token = dev_token.substr(0, OnlineProtocol.MAX_DEV_TOKEN_LEN)
+	_game_ticket = game_ticket.substr(0, OnlineProtocol.MAX_GAME_TICKET_LEN)
 	name = OnlineProtocol.CHANNEL_NODE_NAME
-	## multiplayer 只在进树后可用；configure 可能发生在 add_child 之前。
 	if is_inside_tree():
 		_wire_client_peer_signals()
 
@@ -83,7 +83,7 @@ func send_hello() -> void:
 		return
 	if multiplayer.multiplayer_peer == null:
 		return
-	rpc_hello.rpc_id(1, OnlineProtocol.PROTOCOL_VERSION, _display_name, _dev_token)
+	rpc_hello.rpc_id(1, OnlineProtocol.PROTOCOL_VERSION, _display_name, _game_ticket)
 
 
 func send_input(mx: float, my: float) -> void:
@@ -95,14 +95,13 @@ func send_input(mx: float, my: float) -> void:
 
 
 @rpc("any_peer", "reliable")
-func rpc_hello(protocol: int, display_name: String, dev_token: String) -> void:
+func rpc_hello(protocol: int, display_name: String, game_ticket: String) -> void:
 	if role != Role.SERVER or _session == null:
 		return
 	var peer_id: int = multiplayer.get_remote_sender_id()
-	var result: Dictionary = _session.try_admit(peer_id, protocol, display_name, dev_token)
+	var result: Dictionary = await _session.try_admit_async(peer_id, protocol, display_name, game_ticket)
 	var reason: int = int(result.get("reason", OnlineProtocol.RejectReason.MALFORMED))
 	if reason != OnlineProtocol.RejectReason.NONE:
-		## 先回执再踢：与 LobbyNet KICK_GRACE 同理，避免拒信与 disconnect 同批被 ENet 丢掉。
 		rpc_reject.rpc_id(peer_id, reason)
 		_kick_peer_deferred(peer_id)
 		return
